@@ -7,9 +7,9 @@ namespace RPGPack
     {
         string ID { get; set; }
         List<IModifier> Modifiers { get; }
-        void AddModifier(IModifier modifier);
-        void RemoveModifier(IModifier modifier);
-        void ClearModifiers();
+        IProperty<T> AddModifier(IModifier modifier);
+        IProperty<T> RemoveModifier(IModifier modifier);
+        IProperty<T> ClearModifiers();
         Func<T> GetValueGetter() => GetValue;
         T GetValue();
         void MakeDirty();

@@ -29,6 +29,11 @@ namespace RPGPack
             Value = value;
         }
 
+        public IModifier Clone()
+        {
+            return new FloatModifier(Type, Priority, Value);
+        }
+
         public override bool Equals(object obj)
         {
             if (obj is FloatModifier other)
@@ -58,6 +63,15 @@ namespace RPGPack
             Type = type;
             Priority = priority;
             Range = range;
+        }
+
+        public IModifier Clone()
+        {
+            return new Vector2Modifier(Type, Priority, Range)
+            {
+                Value = this.Value,
+                ID = this.ID
+            };
         }
 
         public override bool Equals(object obj)

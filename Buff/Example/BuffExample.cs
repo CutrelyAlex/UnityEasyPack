@@ -9,8 +9,13 @@ namespace RPGPack
         {
             Test_BuffManager_PropertyIntegration();
             Test_BuffManager_StackBuff_RemoveOneStackEachDuration();
+            Test_BuffManager_ActionEvents();
+            Test_TriggerableBuff();
+            Test_Buff_Priority_Type_Group();
         }
 
+
+        // 测试Buff管理器与GameProperty的集成
         void Test_BuffManager_PropertyIntegration()
         {
             Debug.Log("=== Test_BuffManager_PropertyIntegration ===");
@@ -95,6 +100,7 @@ namespace RPGPack
             Debug.Log("Test_BuffManager_PropertyIntegration passed");
         }
 
+        // 测试可叠加Buff的RemoveOneStackEachDuration功能
         void Test_BuffManager_StackBuff_RemoveOneStackEachDuration()
         {
             Debug.Log("=== Test_BuffManager_StackBuff_RemoveOneStackEachDuration ===");
@@ -103,36 +109,158 @@ namespace RPGPack
 
             var prop = new GameProperty("HeroAtk", 100f);
 
-            // 创建可叠加Buff，持续1秒，RemoveOneStackEachDuration = true，叠加3层
             var mod = new FloatModifier(ModifierType.Add, 0, 10f);
-            var buff = new Buff("StackBuff", mod, 1f, canStack: true)
+            var stackBuff = new Buff("StackBuff", mod, 1f, canStack: true)
             {
                 RemoveOneStackEachDuration = true
             };
-            buffManager.AddBuff(prop, buff);
-            buffManager.AddBuff(prop, buff);
-            buffManager.AddBuff(prop, buff);
 
-            // 初始应为130
+            // 复用同一个Buff对象，BuffManager内部会Clone
+            buffManager
+                .AddBuff(prop, stackBuff)
+                .AddBuff(prop, stackBuff)
+                .AddBuff(prop, stackBuff);
+
             float v1 = prop.GetValue();
             Debug.Assert(Mathf.Approximately(v1, 130f), $"Initial stack failed, got {v1}");
 
-            // 第1秒后，移除1层，应为120
             buffManager.Update(1.01f);
             float v2 = prop.GetValue();
             Debug.Assert(Mathf.Approximately(v2, 120f), $"After 1st expire, got {v2}");
 
-            // 第2秒后，再移除1层，应为110
             buffManager.Update(1.01f);
             float v3 = prop.GetValue();
             Debug.Assert(Mathf.Approximately(v3, 110f), $"After 2nd expire, got {v3}");
 
-            // 第3秒后，最后一层移除，应为100
             buffManager.Update(1.01f);
             float v4 = prop.GetValue();
             Debug.Assert(Mathf.Approximately(v4, 100f), $"After 3rd expire, got {v4}");
 
             Debug.Log("Test_BuffManager_StackBuff_RemoveOneStackEachDuration passed");
+        }
+
+        // 测试Action事件触发
+        void Test_BuffManager_ActionEvents()
+        {
+            Debug.Log("=== Test_BuffManager_ActionEvents ===");
+            var combineManager = new CombineGamePropertyManager();
+            var buffManager = new BuffManager(combineManager);
+            var prop = new GameProperty("HeroAtk", 100f);
+
+            bool added = false, removed = false, expired = false, stackRemoved = false;
+
+            buffManager.BuffAdded += (p, b) => { added = true; Debug.Log("BuffAdded"); };
+            buffManager.BuffRemoved += (p, b) => { removed = true; Debug.Log("BuffRemoved"); };
+            buffManager.BuffExpired += (p, b) => { expired = true; Debug.Log("BuffExpired"); };
+            buffManager.BuffStackRemoved += (p, b) => { stackRemoved = true; Debug.Log("BuffStackRemoved"); };
+
+            // 添加Buff
+            var mod = new FloatModifier(ModifierType.Add, 0, 10f);
+            var buff = new Buff("TestBuff", mod, 1f, canStack: true) { RemoveOneStackEachDuration = true };
+            buffManager.AddBuff(prop, buff);
+            Debug.Assert(added, "BuffAdded event not triggered");
+
+            // 叠加Buff
+            added = false;
+            buffManager.AddBuff(prop, buff);
+            Debug.Assert(added, "BuffAdded event not triggered on stack");
+
+            // 移除一层
+            buffManager.RemoveBuffStack(prop, "TestBuff", 1);
+            Debug.Assert(stackRemoved, "BuffStackRemoved event not triggered");
+
+            // 过期移除
+            buffManager.Update(2f);
+            Debug.Assert(expired, "BuffExpired event not triggered");
+            Debug.Assert(removed, "BuffRemoved event not triggered");
+
+            Debug.Log("Test_BuffManager_ActionEvents passed");
+        }
+
+        // TriggerableBuff 使用示例
+        void Test_TriggerableBuff()
+        {
+            Debug.Log("=== Test_TriggerableBuff ===");
+            var combineManager = new CombineGamePropertyManager();
+            var buffManager = new BuffManager(combineManager);
+
+            var prop = new GameProperty("HeroAtk", 100f);
+
+            // 创建一个+5攻击的普通Buff
+            var mod = new FloatModifier(ModifierType.Add, 0, 5f);
+            var normalBuff = new Buff("NormalBuff", mod, 10f, canStack: false);
+            buffManager.AddBuff(prop, normalBuff);
+
+            // 创建TriggerableBuff，条件为属性值大于110时触发
+            bool triggered = false;
+            var triggerBuff = new TriggerableBuff(
+                "TriggerBuff",
+                new FloatModifier(ModifierType.Add, 0, 20f),
+                triggerCondition: () => prop.GetValue() > 110f,
+                onTriggered: () => {
+                    triggered = true;
+                    Debug.Log("TriggerableBuff触发！当前属性值: " + prop.GetValue());
+                    // 触发后移除自身
+                    buffManager.RemoveBuff(prop, "TriggerBuff");
+                },
+                duration: 10f,
+                canStack: false
+            );
+            buffManager.AddBuff(prop, triggerBuff);
+
+            // 初始未触发
+            Debug.Assert(!triggered, "TriggerableBuff 不应立即触发");
+
+            // 增加属性值使其超过110
+            var addBuff = new Buff("AddBuff", new FloatModifier(ModifierType.Add, 0, 10f), 10f, false);
+            buffManager.AddBuff(prop, addBuff);
+
+            // 更新BuffManager，触发条件成立
+            buffManager.Update(0.1f);
+
+            Debug.Assert(triggered, "TriggerableBuff 未被触发");
+            Debug.Log("Test_TriggerableBuff passed");
+        }
+
+        void Test_Buff_Priority_Type_Group()
+        {
+            Debug.Log("=== Test_Buff_Priority_Type_Group ===");
+            var combineManager = new CombineGamePropertyManager();
+            var buffManager = new BuffManager(combineManager);
+            var prop = new GameProperty("HeroAtk", 100f);
+
+            // Stackable: 同Group可叠加
+            var modA = new FloatModifier(ModifierType.Add, 0, 10f);
+            var buffA = new Buff("BuffA", modA, 10f, true, null, "GroupS", 0, BuffStackType.Stackable);
+            buffManager.AddBuff(prop, buffA);
+            buffManager.AddBuff(prop, buffA); // 叠加一层
+            float v1 = prop.GetValue();
+            Debug.Assert(Mathf.Approximately(v1, 120f), $"Stackable Group叠加异常，期望120，实际{v1}");
+
+            // Override: 低优先级不能覆盖，高优先级能覆盖
+            var modB = new FloatModifier(ModifierType.Add, 0, 20f);
+            var buffB = new Buff("BuffB", modB, 10f, false, null, "GroupO", 1, BuffStackType.Override);
+            var modC = new FloatModifier(ModifierType.Add, 0, 30f);
+            var buffC = new Buff("BuffC", modC, 10f, false, null, "GroupO", 0, BuffStackType.Override);
+            buffManager.AddBuff(prop, buffB); // 先加B
+            buffManager.AddBuff(prop, buffC); // C优先级低，不能覆盖B
+            float v2 = prop.GetValue();
+            Debug.Assert(Mathf.Approximately(v2, 120f + 20f), $"Override低优先级未被覆盖异常，期望140，实际{v2}");
+            var buffD = new Buff("BuffD", new FloatModifier(ModifierType.Add, 0, 40f), 10f, false, null, "GroupO", 2, BuffStackType.Override);
+            buffManager.AddBuff(prop, buffD); // D优先级高，能覆盖B
+            float v3 = prop.GetValue();
+            Debug.Assert(Mathf.Approximately(v3, 120f + 40f), $"Override高优先级未覆盖异常，期望160，实际{v3}");
+
+            // IgnoreIfExists: 已存在时忽略
+            var modE = new FloatModifier(ModifierType.Add, 0, 50f);
+            var buffE = new Buff("BuffE", modE, 10f, false, null, "GroupI", 0, BuffStackType.IgnoreIfExists);
+            buffManager.AddBuff(prop, buffE);
+            float v4 = prop.GetValue();
+            buffManager.AddBuff(prop, buffE); // 应忽略
+            float v5 = prop.GetValue();
+            Debug.Assert(Mathf.Approximately(v4, v5), $"IgnoreIfExists未生效，期望{v4}，实际{v5}");
+
+            Debug.Log("Test_Buff_Priority_Type_Group passed");
         }
     }
 }

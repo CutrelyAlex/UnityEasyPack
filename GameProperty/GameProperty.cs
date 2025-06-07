@@ -84,13 +84,14 @@ namespace RPGPack
         /// 如果值发生变化会触发重新计算。
         /// </summary>
         /// <param name="value">新的基础值。</param>
-        public void SetBaseValue(float value)
+        public IProperty<float> SetBaseValue(float value)
         {
             if (!Mathf.Approximately(_baseValue, value))
             {
                 _baseValue = value;
                 MakeDirty();
             }
+            return this;
         }
         #endregion 
 
@@ -112,26 +113,28 @@ namespace RPGPack
         /// 当依赖属性变化时，本属性会被标记为脏并重新计算。
         /// </summary>
         /// <param name="dependency">要依赖的属性。</param>
-        public void AddDependency(GameProperty dependency)
+        public IProperty<float> AddDependency(GameProperty dependency)
         {
-            if (dependency == null || !_dependencies.Add(dependency)) return;
-            Action<float, float> handler = (oldVal, newVal) => MakeDirty();
+            if (dependency == null || !_dependencies.Add(dependency)) return this;
+            void handler(float oldVal, float newVal) => MakeDirty();
             _dependencyHandlers[dependency] = handler;
             dependency.OnValueChanged += handler;
+            return this;
         }
 
         /// <summary>
         /// 移除对另一个 <see cref="GameProperty"/> 的依赖。
         /// </summary>
         /// <param name="dependency">要移除依赖的属性。</param>
-        public void RemoveDependency(GameProperty dependency)
+        public IProperty<float> RemoveDependency(GameProperty dependency)
         {
-            if (!_dependencies.Remove(dependency)) return;
+            if (!_dependencies.Remove(dependency)) return this;
             if (_dependencyHandlers.TryGetValue(dependency, out var handler))
             {
                 dependency.OnValueChanged -= handler;
                 _dependencyHandlers.Remove(dependency);
             }
+            return this;
         }
 
         /// <summary>
@@ -180,55 +183,60 @@ namespace RPGPack
         /// 向此属性添加一个修饰器，并标记为脏。
         /// </summary>
         /// <param name="modifier">要添加的修饰器。</param>
-        public void AddModifier(IModifier modifier)
+        public IProperty<float> AddModifier(IModifier modifier)
         {
             Modifiers.Add(modifier);
             MakeDirty();
+            return this;
         }
 
         /// <summary>
         /// 移除此属性上的所有修饰器，并标记为脏。
         /// </summary>
-        public void ClearModifiers()
+        public IProperty<float> ClearModifiers()
         {
             Modifiers.Clear();
             MakeDirty();
+            return this;
         }
 
         /// <summary>
         /// 向此属性添加多个修饰器，并标记为脏。
         /// </summary>
         /// <param name="modifiers">要添加的修饰器集合。</param>
-        public void AddModifiers(IEnumerable<IModifier> modifiers)
+        public IProperty<float> AddModifiers(IEnumerable<IModifier> modifiers)
         {
             foreach (var modifier in modifiers)
             {
                 Modifiers.Add(modifier);
             }
             MakeDirty();
+            return this;
         }
 
         /// <summary>
         /// 移除此属性上的多个修饰器，并标记为脏。
         /// </summary>
         /// <param name="modifiers">要移除的修饰器集合。</param>
-        public void RemoveModifiers(IEnumerable<IModifier> modifiers)
+        public IProperty<float> RemoveModifiers(IEnumerable<IModifier> modifiers)
         {
             foreach (var modifier in modifiers)
             {
                 Modifiers.Remove(modifier);
             }
             MakeDirty();
+            return this;
         }
 
         /// <summary>
         /// 移除此属性上的一个修饰器，并标记为脏。
         /// </summary>
         /// <param name="modifier">要移除的修饰器。</param>
-        public void RemoveModifier(IModifier modifier)
+        public IProperty<float> RemoveModifier(IModifier modifier)
         {
             Modifiers.Remove(modifier);
             MakeDirty();
+            return this;
         }
 
         private void ApplyModify(ref float ret)

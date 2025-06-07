@@ -12,9 +12,10 @@ namespace RPGPack
         /// <summary>
         /// 新增或更新一个 ICombineGameProperty
         /// </summary>
-        public void AddOrUpdate(ICombineGameProperty property)
+        public CombineGamePropertyManager AddOrUpdate(ICombineGameProperty property)
         {
             _properties[property.ID] = property;
+            return this;
         }
 
         /// <summary>
