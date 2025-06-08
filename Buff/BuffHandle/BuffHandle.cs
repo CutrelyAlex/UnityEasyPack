@@ -55,26 +55,23 @@ namespace RPGPack
             if (_manager == null || buff == null || property == null)
                 throw new InvalidOperationException("BuffHandle未初始化或参数无效");
 
-            // 添加Buff到Manager
             bool added = _manager.AddBuff(buff);
 
             // 获取当前Buff在Manager中的实例（叠加后可能是已存在的Buff）
             var managedBuff = _manager.GetBuff(buff.BuffID, buff.Layer, buff.Source);
 
             // 记录映射关系
-            if (!_propertyBuffMap.TryGetValue(property, out var buffSet))
+            if (!_propertyBuffMap.TryGetValue(property, out var buffIDSet))
             {
-                buffSet = new HashSet<string>();
-                _propertyBuffMap[property] = buffSet;
+                buffIDSet = new HashSet<string>();
+                _propertyBuffMap[property] = buffIDSet;
             }
-            buffSet.Add(buff.BuffID);
+            buffIDSet.Add(buff.BuffID);
 
             // 只有Buff被真正添加时才移除/添加Modifier
             if (added && managedBuff != null)
             {
-                // 先移除所有与该BuffID相关的Modifier
                 RemoveAllModifiersByBuffID(property, buff.BuffID, buff.Layer, buff.Source);
-                // 按叠加层数添加Modifier
                 for (int i = 0; i < managedBuff.StackCount; i++)
                 {
                     property.AddModifier(managedBuff.Modifier);
@@ -126,10 +123,12 @@ namespace RPGPack
             if (buff == null) return;
             var modifier = buff.Modifier;
 
-            // 移除所有与该Modifier引用相等的项
-            while (property.Modifiers.Contains(modifier))
+            for (int i = property.Modifiers.Count - 1; i >= 0; i--)
             {
-                property.RemoveModifier(modifier);
+                if (ReferenceEquals(property.Modifiers[i], modifier))
+                {
+                    property.RemoveModifier(modifier);
+                }
             }
         }
     }

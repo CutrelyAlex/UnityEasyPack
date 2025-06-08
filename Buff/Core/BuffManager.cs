@@ -38,21 +38,14 @@ namespace RPGPack
         {
             if (buff == null) return false;
 
-            _allBuffs.Add(buff);
 
-            // 克隆Buff对象
-            var newBuff = (buff as Buff)?.Clone() ?? buff;
-
-            IRPGBuff existing = null;
             // 优先根据Layer分组联合BuffID查找，否则直接用BuffID查找
-            if (!string.IsNullOrEmpty(buff.Layer))
-                existing = _buffs.Find(b => b.Layer == buff.Layer && b.BuffID == buff.BuffID);
-            else
-                existing = _buffs.Find(b => b.BuffID == buff.BuffID);
+            IRPGBuff existing = string.IsNullOrEmpty(buff.Layer)
+                    ? _buffs.Find(b => b.BuffID == buff.BuffID)
+                    : _buffs.Find(b => b.Layer == buff.Layer && b.BuffID == buff.BuffID);
 
             if (existing != null)
             {
-                // 只保留叠加型Buff逻辑，其余类型直接忽略
                 if (existing.CanStack)
                 {
                     int maxStack = existing.MaxStackCount > 0 ? existing.MaxStackCount : int.MaxValue;
@@ -66,13 +59,15 @@ namespace RPGPack
                     BuffAddedOrChanged?.Invoke(existing);
                     return true;
                 }
-                // 非叠加型Buff直接忽略
                 return false;
             }
             else
             {
+                // 克隆Buff对象
+                var newBuff = (buff as Buff)?.Clone() ?? buff;
                 _buffs.Add(newBuff);
-                BuffAddedOrChanged?.Invoke(buff);
+                _allBuffs.Add(newBuff);
+                BuffAddedOrChanged?.Invoke(newBuff);
                 return true;
             }
         }
@@ -157,10 +152,10 @@ namespace RPGPack
         public static IEnumerable<IRPGBuff> GetAllBuffs() => _allBuffs;
 
         /// <summary>
-        /// 更新Buff的生命周期（需每帧调用）
+        /// 更新Buff的生命周期（需每帧调用,可在Mono的Update()中调用）
         /// </summary>
         /// <param name="deltaTime">距离上次更新的时间（秒）</param>
-        /// <returns>返回自身以便链式调用</returns>
+        /// <returns>返回自身</returns>
         public BuffManager Update(float deltaTime)
         {
             var expiredBuffs = new List<IRPGBuff>();
@@ -206,10 +201,11 @@ namespace RPGPack
         /// <summary>
         /// 清空所有Buff
         /// </summary>
-        /// <returns>返回自身以便链式调用</returns>
+        /// <returns>返回自身</returns>
         public BuffManager Clear()
         {
-            foreach (var buff in _buffs)
+            var tempBuffs = new List<IRPGBuff>(_buffs);
+            foreach (var buff in tempBuffs)
             {
                 BuffRemoved?.Invoke(buff);
             }
