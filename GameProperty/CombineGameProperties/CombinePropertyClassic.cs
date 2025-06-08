@@ -17,13 +17,13 @@ namespace RPGPack
         public string ID { get; }
         public Func<ICombineGameProperty, float> Calculater { get; }
 
-        private GameProperty _resultHolder;
+        private readonly GameProperty _resultHolder;
         public GameProperty ResultHolder => _resultHolder;
 
         private float _cacheValue;
 
 
-        private float _baseCombineValue;
+        private readonly float _baseCombineValue;
         public float GetBaseValue() => _baseCombineValue;
 
         public float GetValue() 

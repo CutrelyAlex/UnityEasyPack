@@ -12,22 +12,23 @@ namespace RPGPack
         public string ID { get; }
         public Func<ICombineGameProperty, float> Calculater { get; }
 
-        private GameProperty _resultHolder = new GameProperty(0, "ResultHolder");
+        private readonly GameProperty _resultHolder = new(0, "ResultHolder");
         public GameProperty ResultHolder => _resultHolder;
 
         public float GetValue()
         {
             return Calculater(this);
         }
-        public CombinePropertySingle(string id)
+        public CombinePropertySingle(string id, float baseValue = 0)
         {
             ID = id;
+            _resultHolder.SetBaseValue(baseValue);
             Calculater = e =>
             {
                 return ResultHolder.GetValue();
             };
         }
-        public GameProperty RegisterProperty(string id)
+        public GameProperty RegisterProperty()
         {
             return _resultHolder;
         }

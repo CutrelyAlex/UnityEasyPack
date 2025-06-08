@@ -1,13 +1,8 @@
 using System;
+using System.Collections.Generic;
 
 namespace RPGPack
 {
-    public enum BuffStackType
-    {
-        Stackable,      // 可叠加
-        Override,       // 覆盖
-        IgnoreIfExists  // 已存在则忽略
-    }
     /// <summary>
     /// 表示一个Buff（增益/减益效果）。
     /// 可附加到属性上，支持持续时间、叠加等机制。
@@ -44,9 +39,10 @@ namespace RPGPack
         // 决定是否在每次持续时间结束时移除一层叠加，否则直接移除整个Buff
         public bool RemoveOneStackEachDuration { get; set; } = false;
 
-        public string Group { get; }
+        public List<string> Tags { get; }
         public int Priority { get; }
-        public BuffStackType StackType { get; }
+
+        public string Layer { get; }
 
         public Buff(
             string buffID,
@@ -54,9 +50,10 @@ namespace RPGPack
             float duration = -1,
             bool canStack = false,
             object source = null,
-            string group = null,
-            int priority = 0,
-            BuffStackType stackType = BuffStackType.Stackable)
+            List<string> tags = null,
+            string layer = null,
+            int priority = 0
+        )
             : base()
         {
             BuffID = buffID;
@@ -64,9 +61,11 @@ namespace RPGPack
             Duration = duration;
             CanStack = canStack;
             Source = source;
-            Group = group;
+            Tags = tags;
+            Layer = layer;
             Priority = priority;
-            StackType = stackType;
+
+            BuffManager.GetAllBuffs();
         }
 
         public virtual Buff Clone()
@@ -78,9 +77,9 @@ namespace RPGPack
                 Duration,
                 CanStack,
                 Source,
-                Group,
-                Priority,
-                StackType
+                Tags,
+                Layer,
+                Priority
             )
             {
                 MaxStackCount = MaxStackCount,
@@ -118,10 +117,11 @@ namespace RPGPack
                float duration = -1,
                bool canStack = false,
                object source = null,
-               string group = null,
-               int priority = 0,
-               BuffStackType stackType = BuffStackType.Stackable)
-       : base(buffID, modifier, duration, canStack, source, group, priority, stackType)
+               List<string> tags = null,
+               string layer = null,
+               int priority = 0
+        )
+       : base(buffID, modifier, duration, canStack, source, tags, layer, priority)
         {
             TriggerCondition = triggerCondition ?? throw new ArgumentNullException(nameof(triggerCondition));
             OnTriggered = onTriggered;
@@ -138,9 +138,9 @@ namespace RPGPack
                 Duration,
                 CanStack,
                 Source,
-                Group,
-                Priority,
-                StackType
+                Tags,
+                Layer,
+                Priority
             )
             {
                 MaxStackCount = MaxStackCount,

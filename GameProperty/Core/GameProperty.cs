@@ -234,7 +234,8 @@ namespace RPGPack
         /// <param name="modifier">ÒªÒÆ³ýµÄÐÞÊÎÆ÷¡£</param>
         public IProperty<float> RemoveModifier(IModifier modifier)
         {
-            Modifiers.Remove(modifier);
+            var _modifier = Modifiers.Find(m => m.Equals(modifier));
+            if (_modifier != null) Modifiers.Remove(_modifier);
             MakeDirty();
             return this;
         }

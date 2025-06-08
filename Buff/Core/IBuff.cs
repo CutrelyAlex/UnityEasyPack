@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace RPGPack
 {
@@ -8,9 +9,9 @@ namespace RPGPack
     public interface IRPGBuff
     {
         string BuffID { get; }
-        public string Group { get; }
+        public List<string> Tags { get; }
+        public string Layer { get; }
         public int Priority { get; }
-        public BuffStackType StackType { get; }
         IModifier Modifier { get; }
         float Duration { get; }
         float Elapsed { get; set; }

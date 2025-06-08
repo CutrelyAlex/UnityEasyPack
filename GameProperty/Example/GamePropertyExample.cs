@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-/// 使用规范（推荐）：
+/// 使用规范（推荐）
 /// 1. 所有可被Buff、Debuff、装备、成长等动态影响的属性，优先使用 CombineGameProperty（如 CombinePropertyClassic/Single/Custom），避免直接操作 GameProperty。
 /// 2. 静态属性（如最大生命、护甲、攻击力等）变化，务必通过修饰器（Modifier）实现，禁止直接修改 GameProperty 的基础值（SetBaseValue），以便属性变动可追踪、可撤销、可序列化。
 /// 3. 动态属性（如当前生命、当前魔法等）可用单独 GameProperty 或者 SingleProperty 表示（建议使用后者，因为可以直接管理），允许直接 SetBaseValue，不建议通过修饰器叠加。
