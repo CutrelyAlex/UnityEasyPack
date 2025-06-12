@@ -4,8 +4,11 @@ namespace RPGPack
     {
         ModifierType Type { get; }
         int Priority { get; set; }
-        public float Value { get; set; }
-
         IModifier Clone();
+    }
+
+    public interface IModifier<T> : IModifier
+    {
+        T Value { get; set; }
     }
 }

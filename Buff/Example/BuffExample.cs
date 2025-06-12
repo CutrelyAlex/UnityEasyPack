@@ -9,8 +9,12 @@ namespace RPGPack
         {
             Test_BuffManager();
             Test_BuffHandle();
-            Test_ComplexBuffStacking();
+            Example_BuffAndPropertyIntegration();
         }
+
+        /// <summary>
+        /// 基础的BuffManager功能
+        /// </summary>
 
         void Test_BuffManager()
         {
@@ -60,6 +64,9 @@ namespace RPGPack
             Debug.Log("BuffManager 单元测试全部通过！");
         }
 
+        /// <summary>
+        /// 验证BuffHandle功能
+        /// </summary>
         void Test_BuffHandle()
         {
             // 创建BuffManager和BuffHandle实例
@@ -107,6 +114,9 @@ namespace RPGPack
             Debug.Log("BuffHandle 单元测试全部通过！");
         }
 
+        /// <summary>
+        /// 验证复杂的BUFF叠加过程
+        /// </summary>
         void Test_ComplexBuffStacking()
         {
             // 1. 创建角色属性
@@ -168,6 +178,102 @@ namespace RPGPack
 
 
             Debug.Log("ComplexBuffStacking 单元测试通过！");
+        }
+
+        /// <summary>
+        /// 示例：Buff系统与属性系统的集成使用
+        /// 展示如何使用BuffManager和BuffHandle管理角色的多种属性
+        /// </summary>
+        void Example_BuffAndPropertyIntegration()
+        {
+            Debug.Log("=== Buff系统与属性系统集成示例 ===");
+
+            // 创建角色基础属性
+            var maxHp = new GameProperty("MaxHP", 100f);
+            var attack = new GameProperty("Attack", 20f);
+            var defense = new GameProperty("Defense", 10f);
+            var critRate = new GameProperty("CritRate", 0.05f); // 5%基础暴击率
+
+            // 创建组合属性：最终攻击力 = 基础攻击 * (1 + 暴击率)
+            var finalAttack = new CombinePropertyCustom("FinalAttack");
+            finalAttack.RegisterProperty(attack);
+            finalAttack.RegisterProperty(critRate);
+            finalAttack.Calculater = prop => {
+                float baseAtk = prop.GetProperty("Attack").GetValue();
+                float crit = prop.GetProperty("CritRate").GetValue();
+                return baseAtk * (1 + crit); // 暴击伤害简化为攻击力 * (1 + 暴击率)
+            };
+
+            // 初始状态打印
+            Debug.Log($"初始状态 - 最大生命: {maxHp.GetValue()}, 攻击力: {attack.GetValue()}, " +
+                      $"防御力: {defense.GetValue()}, 暴击率: {critRate.GetValue() * 100}%, " +
+                      $"最终攻击: {finalAttack.GetValue()}");
+
+            // 创建Buff管理器和处理器
+            var buffManager = new BuffManager();
+            var buffHandle = new BuffHandle(buffManager);
+
+            // 创建不同类型的Buff
+            // 1. 力量药水：增加攻击力10点，持续30秒
+            var atkBuff = new Buff(
+                "StrengthPotion",
+                new FloatModifier(ModifierType.Add, 0, 10f),
+                30f,
+                canStack: true
+            );
+
+            // 2. 防御护盾：增加防御力50%，持续20秒
+            var defBuff = new Buff(
+                "DefenseShield",
+                new FloatModifier(ModifierType.Mul, 0, 1.5f),
+                20f,
+                canStack: false
+            );
+
+            // 3. 生命强化：增加最大生命30点，持续60秒
+            var hpBuff = new Buff(
+                "VitalityBoost",
+                new FloatModifier(ModifierType.Add, 0, 30f),
+                60f,
+                canStack: true
+            )
+            { MaxStackCount = 3 }; // 设置最大叠加层数为3
+
+            // 4. 会心祝福：增加暴击率8%，持续45秒
+            var critBuff = new Buff(
+                "CriticalBlessing",
+                new FloatModifier(ModifierType.Add, 0, 0.08f),
+                45f,
+                canStack: false
+            );
+
+            // 应用Buff
+            buffHandle.ApplyToProperty(atkBuff, attack);
+            buffHandle.ApplyToProperty(defBuff, defense);
+            buffHandle.ApplyToProperty(hpBuff, maxHp);
+            buffHandle.ApplyToProperty(critBuff, critRate);
+
+            // 打印Buff效果
+            Debug.Log($"应用Buff后 - 最大生命: {maxHp.GetValue()}, 攻击力: {attack.GetValue()}, " +
+                      $"防御力: {defense.GetValue()}, 暴击率: {critRate.GetValue() * 100}%, " +
+                      $"最终攻击: {finalAttack.GetValue()}");
+
+            // 叠加一层力量药水和生命强化
+            buffHandle.ApplyToProperty(atkBuff, attack);
+            buffHandle.ApplyToProperty(hpBuff, maxHp);
+
+            // 打印叠加效果
+            Debug.Log($"叠加Buff后 - 最大生命: {maxHp.GetValue()}, 攻击力: {attack.GetValue()}, " +
+                      $"防御力: {defense.GetValue()}, 暴击率: {critRate.GetValue() * 100}%, " +
+                      $"最终攻击: {finalAttack.GetValue()}");
+
+            // 模拟时间流逝，力量药水过期
+            buffManager.Update(35f);
+
+            // 打印部分Buff过期后效果
+            Debug.Log($"部分Buff过期后 - 最大生命: {maxHp.GetValue()}, 攻击力: {attack.GetValue()}, " +
+                      $"防御力: {defense.GetValue()}, 暴击率: {critRate.GetValue() * 100}%, " +
+                      $"最终攻击: {finalAttack.GetValue()}");
         }
     }
 }

@@ -14,6 +14,7 @@ namespace RPGPack
 {
     public class GameProperty : IProperty<float>
     {
+
         #region 基本属性
 
         /// <summary>
@@ -63,17 +64,26 @@ namespace RPGPack
                 dep.GetValue();
             }
 
-            if (!_isDirty) return _cacheValue;
-            var oldValue = _cacheValue;
-            var ret = _baseValue;
+            // 如果有随机数值或依赖中有随机数，那应当每次获取都计算
+            bool hasRandomModifiers = HasNonClampRangeModifiers() || _hasRandomDependency; 
 
-            ApplyModify(ref ret);
-            _cacheValue = ret;
-            _isDirty = false;
-
-            if (!oldValue.Equals(_cacheValue))
+            // 如果有随机修饰器或者属性已脏，则重新计算
+            if (hasRandomModifiers || _isDirty)
             {
-                OnValueChanged?.Invoke(oldValue, _cacheValue);
+                var oldValue = _cacheValue;
+                var ret = _baseValue;
+
+                ApplyModify(ref ret);
+                _cacheValue = ret;
+
+                // 只有在非随机情况下才清除脏标记
+                if (!hasRandomModifiers)
+                    _isDirty = false;
+
+                if (!oldValue.Equals(_cacheValue))
+                {
+                    OnValueChanged?.Invoke(oldValue, _cacheValue);
+                }
             }
 
             return _cacheValue;
@@ -95,7 +105,7 @@ namespace RPGPack
         }
         #endregion 
 
-        #region 依赖与脏数据        
+        #region 依赖       
 
         private readonly HashSet<GameProperty> _dependencies = new();
         private readonly Dictionary<GameProperty, Action<float, float>> _dependencyHandlers = new();
@@ -113,12 +123,32 @@ namespace RPGPack
         /// 当依赖属性变化时，本属性会被标记为脏并重新计算。
         /// </summary>
         /// <param name="dependency">要依赖的属性。</param>
+        /// <summary>
+        /// 添加对另一个 <see cref="GameProperty"/> 的依赖。
+        /// 当依赖属性变化时，本属性会被标记为脏并重新计算。
+        /// </summary>
+        /// <param name="dependency">要依赖的属性。</param>
         public IProperty<float> AddDependency(GameProperty dependency)
         {
+            // 检查是否为null或已经存在依赖
             if (dependency == null || !_dependencies.Add(dependency)) return this;
+
+            // 检测循环依赖
+            if (WouldCreateCyclicDependency(dependency))
+            {
+                _dependencies.Remove(dependency);
+                Debug.LogWarning($"无法添加依赖：检测到循环依赖。{ID} -> {dependency.ID}");
+                return this;
+            }
+
+            // 创建并注册值变化处理器
             void handler(float oldVal, float newVal) => MakeDirty();
             _dependencyHandlers[dependency] = handler;
             dependency.OnValueChanged += handler;
+
+            // 如果依赖有随机修饰器，确保本属性也会随之更新
+            UpdateRandomDependencyState();
+
             return this;
         }
 
@@ -129,13 +159,64 @@ namespace RPGPack
         public IProperty<float> RemoveDependency(GameProperty dependency)
         {
             if (!_dependencies.Remove(dependency)) return this;
+
+            // 移除事件处理器
             if (_dependencyHandlers.TryGetValue(dependency, out var handler))
             {
                 dependency.OnValueChanged -= handler;
                 _dependencyHandlers.Remove(dependency);
             }
+
+            // 更新随机依赖状态
+            UpdateRandomDependencyState();
+
             return this;
         }
+
+        /// <summary>
+        /// 检测是否有任何依赖项包含随机修饰器
+        /// </summary>
+        private bool _hasRandomDependency = false;
+
+        /// <summary>
+        /// 更新随机依赖状态标记
+        /// </summary>
+        private void UpdateRandomDependencyState()
+        {
+            _hasRandomDependency = _dependencies.Any(dep => dep.HasNonClampRangeModifiers() || dep._hasRandomDependency);
+        }
+
+        /// <summary>
+        /// 检测添加依赖是否会导致循环依赖
+        /// </summary>
+        private bool WouldCreateCyclicDependency(GameProperty dependency)
+        {
+            // 如果依赖项就是自身，直接返回true
+            if (dependency == this) return true;
+
+            // 检查依赖项的依赖是否包含自身（递归检查）
+            var visited = new HashSet<GameProperty>();
+            var toCheck = new Queue<GameProperty>();
+            toCheck.Enqueue(dependency);
+
+            while (toCheck.Count > 0)
+            {
+                var current = toCheck.Dequeue();
+                if (!visited.Add(current)) continue;
+
+                if (current == this) return true;
+
+                foreach (var dep in current._dependencies)
+                {
+                    toCheck.Enqueue(dep);
+                }
+            }
+
+            return false;
+        }
+        #endregion
+
+        #region 脏数据追踪
 
         /// <summary>
         /// 将属性标记为脏，下次访问时会重新计算其值。
@@ -240,14 +321,26 @@ namespace RPGPack
             return this;
         }
 
+
+        /// <summary>
+        /// 检查是否存在非Clamp类型的RangeModifier
+        /// </summary>
+        /// <returns>如果存在则返回true，否则返回false</returns>
+        private bool HasNonClampRangeModifiers()
+        {
+            return Modifiers.OfType<RangeModifier>().Any(m => m.Type != ModifierType.Clamp);
+        }
+
         private void ApplyModify(ref float ret)
         {
+            if (Modifiers.Count == 0)
+                return;
             var groupedModifiers = Modifiers.GroupBy(m => m.Type).ToDictionary(g => g.Key, g => g.ToList());
 
             ProcessModifier(ref ret, ModifierType.Add, groupedModifiers);
-            ProcessModifier(ref ret, ModifierType.OverrideAdd, groupedModifiers);
+            ProcessModifier(ref ret, ModifierType.PriorityAdd, groupedModifiers);
             ProcessModifier(ref ret, ModifierType.Mul, groupedModifiers);
-            ProcessModifier(ref ret, ModifierType.OverrideMul, groupedModifiers);
+            ProcessModifier(ref ret, ModifierType.PriorityMul, groupedModifiers);
             ProcessModifier(ref ret, ModifierType.AfterAdd, groupedModifiers);
             ProcessModifier(ref ret, ModifierType.Clamp, groupedModifiers);
             ProcessModifier(ref ret, ModifierType.Override, groupedModifiers);
@@ -255,137 +348,105 @@ namespace RPGPack
 
         private void ProcessModifier(ref float value, ModifierType modifierType, Dictionary<ModifierType, List<IModifier>> groupedModifiers)
         {
-            if (!groupedModifiers.TryGetValue(modifierType, out var modifiers)) return;
+            if (!groupedModifiers.TryGetValue(modifierType, out var modifiers))
+                return;
+
+            var floatMods = modifiers.OfType<FloatModifier>().ToList();
+            var rangeMods = modifiers.OfType<RangeModifier>().ToList();
 
             switch (modifierType)
             {
                 case ModifierType.Add:
-                    value += modifiers.Sum(m => m.Value);
+                {
+                    var floatAdd = floatMods.Sum(m => m.Value);
+                    var rangeAdd = rangeMods.Sum(m => UnityEngine.Random.Range(m.Value.x, m.Value.y));
+                    value += floatAdd + rangeAdd;
                     break;
-                case ModifierType.OverrideAdd:
-                    IModifier lastAdd = modifiers.OrderBy(m => m.Priority)
-                                                 .LastOrDefault();
-                    value += lastAdd == null ? 0 : lastAdd.Value;
-                    break;
-                case ModifierType.Mul:
-                    value *= modifiers.OfType<FloatModifier>()
-                                      .Aggregate(1f, (acc, m) => acc * m.Value);
-                    break;
-                case ModifierType.OverrideMul:
-                    IModifier lastMul = modifiers.OrderBy(m => m.Priority)
-                                                 .LastOrDefault();
-                    value *= lastMul == null ? 1 : lastMul.Value;
-                    break;
-                case ModifierType.AfterAdd:
-                    value += modifiers.OfType<FloatModifier>()
-                                      .Sum(m => m.Value);
-                    break;
-                case ModifierType.Override:
-                    IModifier lastOverride = modifiers.OrderBy(m => m.Priority)
-                                                      .LastOrDefault();
-                    value = lastOverride == null ? value : lastOverride.Value;
-                    break;
-                case ModifierType.Clamp:
-                    Vector2Modifier lastClamp = modifiers.OfType<Vector2Modifier>()
-                                                         .OrderBy(m => m.Priority)
-                                                         .LastOrDefault();
-                    if (lastClamp != null)
+                }
+                case ModifierType.PriorityAdd:
+                {
+                    var priorityFloatAdd = floatMods.OrderByDescending(m => m.Priority).FirstOrDefault()?.Value ?? 0f;
+                    var priorityRangeMod = rangeMods.OrderByDescending(m => m.Priority).FirstOrDefault();
+                    float priorityRangeAdd = priorityRangeMod != null ? UnityEngine.Random.Range(priorityRangeMod.Value.x, priorityRangeMod.Value.y) : 0f;
+
+                    if (floatMods.Any() && rangeMods.Any())
                     {
-                        var min = lastClamp.Range == null ? float.MinValue : lastClamp.Range.x;
-                        var max = lastClamp.Range == null ? float.MaxValue : lastClamp.Range.y;
-                        value = Math.Clamp(value, min, max);
+                        var floatPriority = floatMods.Max(m => m.Priority);
+                        var rangePriority = rangeMods.Max(m => m.Priority);
+                        value += floatPriority >= rangePriority ? priorityFloatAdd : priorityRangeAdd;
+                    }
+                    else
+                    {
+                        value += priorityFloatAdd + priorityRangeAdd;
                     }
                     break;
+                }
+                case ModifierType.Mul:
+                {
+                    var floatMul = floatMods.Aggregate(1f, (acc, m) => acc * m.Value);
+                    var rangeMul = rangeMods.Aggregate(1f, (acc, m) => acc * UnityEngine.Random.Range(m.Value.x, m.Value.y));
+                    value *= floatMul * rangeMul;
+                    break;
+                }
+                case ModifierType.PriorityMul:
+                {
+                    var priorityFloatMul = floatMods.OrderByDescending(m => m.Priority).FirstOrDefault()?.Value ?? 1f;
+                    var priorityRangeMod = rangeMods.OrderByDescending(m => m.Priority).FirstOrDefault();
+                    float priorityRangeMul = priorityRangeMod != null ? UnityEngine.Random.Range(priorityRangeMod.Value.x, priorityRangeMod.Value.y) : 1f;
+
+                    if (floatMods.Any() && rangeMods.Any())
+                    {
+                        var floatPriority = floatMods.Max(m => m.Priority);
+                        var rangePriority = rangeMods.Max(m => m.Priority);
+                        value *= floatPriority >= rangePriority ? priorityFloatMul : priorityRangeMul;
+                    }
+                    else
+                    {
+                        value *= priorityFloatMul * priorityRangeMul;
+                    }
+                    break;
+                }
+                case ModifierType.AfterAdd:
+                {
+                    var floatAfterAdd = floatMods.Sum(m => m.Value);
+                    var rangeAfterAdd = rangeMods.Sum(m => UnityEngine.Random.Range(m.Value.x, m.Value.y));
+                    value += floatAfterAdd + rangeAfterAdd;
+                    break;
+                }
+                case ModifierType.Override:
+                {
+                    var floatOverrideMod = floatMods.OrderByDescending(m => m.Priority).FirstOrDefault();
+                    var rangeOverrideMod = rangeMods.OrderByDescending(m => m.Priority).FirstOrDefault();
+
+                    if (floatOverrideMod != null && rangeOverrideMod != null)
+                    {
+                        value = floatOverrideMod.Priority >= rangeOverrideMod.Priority ?
+                                floatOverrideMod.Value :
+                                UnityEngine.Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);
+                    }
+                    else if (floatOverrideMod != null)
+                    {
+                        value = floatOverrideMod.Value;
+                    }
+                    else if (rangeOverrideMod != null)
+                    {
+                        value = UnityEngine.Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);
+                    }
+                    break;
+                }
+                case ModifierType.Clamp:
+                {
+                    var clampMod = rangeMods.OrderByDescending(m => m.Priority).FirstOrDefault();
+                    if (clampMod != null)
+                    {
+                        value = Mathf.Clamp(value, clampMod.Value.x, clampMod.Value.y);
+                    }
+                    break;
+                }
                 default:
                     throw new ArgumentOutOfRangeException(nameof(modifierType), modifierType, null);
             }
         }
         #endregion
     }
-
-    #region 存储
-    [Serializable]
-    public class SerializableGameProperty
-    {
-        public string ID;
-        public float BaseValue;
-        public SerializableModifierList ModifierList;
-    }
-
-    [Serializable]
-    public class SerializableModifierList
-    {
-        public List<SerializableModifier> Modifiers;
-    }
-
-    public static class GamePropertySerializer
-    {
-        /// <summary>
-        /// 序列化一个 <see cref="GameProperty"/> 对象为可存储的格式。
-        /// </summary>
-        /// <param name="property">要序列化的属性对象。</param>
-        /// <returns>序列化后的 <see cref="SerializableGameProperty"/> 对象。</returns>
-        public static SerializableGameProperty Serialize(GameProperty property)
-        {
-            var serializableModifiers = 
-                property.Modifiers.Select(m =>
-            {
-                if (m is FloatModifier fm)
-                {
-                    return new SerializableModifier
-                    {
-                        Type = fm.Type,
-                        Priority = fm.Priority,
-                        Value = fm.Value,
-                        ModifierClass = "FloatModifier"
-                    };
-                }
-                else if (m is Vector2Modifier vm)
-                {
-                    return new SerializableModifier
-                    {
-                        Type = vm.Type,
-                        Priority = vm.Priority,
-                        Value = vm.Value,
-                        Range = vm.Range,
-                        ModifierClass = "Vector2Modifier"
-                    };
-                }
-                return null;
-            }).ToList();
-
-            return new SerializableGameProperty
-            {
-                ID = property.ID,
-                BaseValue = property.GetBaseValue(),
-                ModifierList = new SerializableModifierList { Modifiers = serializableModifiers }
-            };
-        }
-
-        /// <summary>
-        /// 从序列化的 <see cref="SerializableGameProperty"/> 对象还原为 <see cref="GameProperty"/> 对象。
-        /// </summary>
-        /// <param name="serializedProperty">序列化的属性对象。</param>
-        /// <returns>还原后的 <see cref="GameProperty"/> 对象。</returns>
-        public static GameProperty FromSerializable(SerializableGameProperty serializedProperty)
-        {
-            var property = new GameProperty(serializedProperty.BaseValue, serializedProperty.ID);
-            if (serializedProperty.ModifierList != null && serializedProperty.ModifierList.Modifiers != null)
-            {
-                foreach (var sm in serializedProperty.ModifierList.Modifiers)
-                {
-                    IModifier modifier = sm.ModifierClass switch
-                    {
-                        "FloatModifier" => new FloatModifier(sm.Type, sm.Priority, sm.Value),
-                        "Vector2Modifier" => new Vector2Modifier(sm.Type, sm.Priority, sm.Range),
-                        _ => null
-                    };
-                    if (modifier != null)
-                        property.AddModifier(modifier);
-                }
-            }
-            return property;
-        }
-    }
-    #endregion
 }

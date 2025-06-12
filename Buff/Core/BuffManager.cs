@@ -11,6 +11,8 @@ namespace RPGPack
     {
         private readonly List<IRPGBuff> _buffs = new();
         private static readonly HashSet<IRPGBuff> _allBuffs = new();
+        private readonly Dictionary<string, List<IRPGBuff>> _buffsByID = new();
+        private readonly Dictionary<string, Dictionary<string, List<IRPGBuff>>> _buffsByLayerAndID = new();
 
         /// <summary>
         /// Buff添加事件
@@ -29,20 +31,53 @@ namespace RPGPack
         /// </summary>
         public event Action<IRPGBuff> BuffStackRemoved;
 
+
+        /// <summary>
+        /// 获取所有已创建的 Buff（全局静态集合）
+        /// </summary>
+        /// <returns>Buff枚举集合</returns>
+        public static IEnumerable<IRPGBuff> GetAllBuffs() => _allBuffs;
+
+        #region 增删查改Buff
+
         /// <summary>
         /// 添加Buff到管理器
         /// </summary>
         /// <param name="buff">要添加的Buff实例</param>
-        /// <returns>返回自身以便链式调用</returns>
+        /// <returns>返回是否成功添加</returns>
         public bool AddBuff(IRPGBuff buff)
         {
             if (buff == null) return false;
 
 
-            // 优先根据Layer分组联合BuffID查找，否则直接用BuffID查找
-            IRPGBuff existing = string.IsNullOrEmpty(buff.Layer)
-                    ? _buffs.Find(b => b.BuffID == buff.BuffID)
-                    : _buffs.Find(b => b.Layer == buff.Layer && b.BuffID == buff.BuffID);
+            // 使用缓存字典查找
+            IRPGBuff existing;
+            if (!string.IsNullOrEmpty(buff.Layer))
+            {
+                // 按Layer和BuffID查找
+                if (_buffsByLayerAndID.TryGetValue(buff.Layer, out var idMap) &&
+                    idMap.TryGetValue(buff.BuffID, out var buffsInLayer) &&
+                    buffsInLayer.Count > 0)
+                {
+                    existing = buffsInLayer[0];
+                }
+                else
+                {
+                    existing = null;
+                }
+            }
+            else
+            {
+                // 仅按BuffID查找
+                if (_buffsByID.TryGetValue(buff.BuffID, out var buffs) && buffs.Count > 0)
+                {
+                    existing = buffs.Find(b => string.IsNullOrEmpty(b.Layer));
+                }
+                else
+                {
+                    existing = null;
+                }
+            }
 
             if (existing != null)
             {
@@ -67,6 +102,10 @@ namespace RPGPack
                 var newBuff = (buff as Buff)?.Clone() ?? buff;
                 _buffs.Add(newBuff);
                 _allBuffs.Add(newBuff);
+
+                // 更新索引
+                AddToIndices(newBuff);
+
                 BuffAddedOrChanged?.Invoke(newBuff);
                 return true;
             }
@@ -78,37 +117,65 @@ namespace RPGPack
         /// <param name="buffId">Buff的唯一ID</param>
         /// <param name="source">Buff来源对象，可选</param>
         /// <returns>返回自身以便链式调用</returns>
-        public BuffManager RemoveBuff(string buffId, object source = null)
+        public BuffManager RemoveBuff(string buffId, string layer = null, object source = null)
         {
-            return RemoveBuffStack(buffId, int.MaxValue, source);
+            return RemoveBuffStack(buffId, int.MaxValue, layer, source);
         }
 
         /// <summary>
         /// 移除指定Buff的指定层数
         /// </summary>
         /// <param name="buffId">Buff的唯一ID</param>
-        /// <param name="layer">要移除的层数，默认为1</param>
+        /// <param name="stack">要移除的层数，默认为1</param>
         /// <param name="source">Buff来源对象，可选</param>
         /// <returns>返回自身以便链式调用</returns>
-        public BuffManager RemoveBuffStack(string buffId, int layer = 1, object source = null)
+        public BuffManager RemoveBuffStack(string buffId, int stack = 1, string layer = null, object source = null)
         {
             if (string.IsNullOrEmpty(buffId)) return this;
 
-            var buff = _buffs.Find(b => b.BuffID == buffId && (source == null || b.Source == source));
+            IRPGBuff buff;
+            if (layer != null)
+            {
+                // 按Layer和BuffID查找
+                if (_buffsByLayerAndID.TryGetValue(layer, out var idMap) &&
+                    idMap.TryGetValue(buffId, out var buffsInLayer))
+                {
+                    buff = buffsInLayer.Find(b => source == null || b.Source == source);
+                }
+                else
+                {
+                    buff = null;
+                }
+            }
+            else
+            {
+                // 按BuffID查找
+                if (_buffsByID.TryGetValue(buffId, out var buffs))
+                {
+                    buff = buffs.Find(b => (source == null || b.Source == source) &&
+                                           (layer == null || b.Layer == layer));
+                }
+                else
+                {
+                    buff = null;
+                }
+            }
+
             if (buff != null)
             {
                 // 叠加型Buff只减少层数，不足则移除整个Buff
                 if (buff.CanStack && buff.StackCount > 1)
                 {
-                    if (layer >= buff.StackCount)
+                    if (stack >= buff.StackCount)
                     {
                         BuffRemoved?.Invoke(buff);
                         _buffs.Remove(buff);
                         _allBuffs.Remove(buff);
+                        RemoveFromIndices(buff);
                     }
                     else
                     {
-                        buff.StackCount -= layer;
+                        buff.StackCount -= stack;
                         BuffStackRemoved?.Invoke(buff);
                     }
                 }
@@ -117,6 +184,7 @@ namespace RPGPack
                     BuffRemoved?.Invoke(buff);
                     _buffs.Remove(buff);
                     _allBuffs.Remove(buff);
+                    RemoveFromIndices(buff);
                 }
             }
             return this;
@@ -132,33 +200,57 @@ namespace RPGPack
         public IRPGBuff GetBuff(string buffId, string layer = null, object source = null)
         {
             if (string.IsNullOrEmpty(buffId)) return null;
-            if (string.IsNullOrEmpty(layer))
+
+            // 使用缓存字典快速查找
+            if (!string.IsNullOrEmpty(layer))
             {
-                // 不按Layer过滤
-                return _buffs.Find(b => b.BuffID == buffId && (source == null || b.Source == source));
+                // 按Layer和BuffID查找
+                if (_buffsByLayerAndID.TryGetValue(layer, out var idMap) &&
+                    idMap.TryGetValue(buffId, out var buffsInLayer))
+                {
+                    return buffsInLayer.Find(b => source == null || b.Source == source);
+                }
             }
             else
             {
-                // 按Layer过滤
-                return _buffs.Find(b => b.BuffID == buffId && b.Layer == layer && (source == null || b.Source == source));
+                // 仅按BuffID查找
+                if (_buffsByID.TryGetValue(buffId, out var buffs))
+                {
+                    return buffs.Find(b => (source == null || b.Source == source));
+                }
             }
+            return null;
         }
 
 
-        /// <summary>
-        /// 获取所有已创建的 Buff（全局静态集合）
-        /// </summary>
-        /// <returns>Buff枚举集合</returns>
-        public static IEnumerable<IRPGBuff> GetAllBuffs() => _allBuffs;
 
         /// <summary>
-        /// 更新Buff的生命周期（需每帧调用,可在Mono的Update()中调用）
+        /// 清空所有Buff
         /// </summary>
-        /// <param name="deltaTime">距离上次更新的时间（秒）</param>
         /// <returns>返回自身</returns>
+        public BuffManager Clear()
+        {
+            if (BuffRemoved != null)
+            {
+                var tempBuffs = new List<IRPGBuff>(_buffs);
+                foreach (var buff in tempBuffs)
+                {
+                    BuffRemoved.Invoke(buff);
+                }
+            }
+
+            _buffs.Clear();
+            _allBuffs.Clear();
+            _buffsByID.Clear();
+            _buffsByLayerAndID.Clear();
+
+            return this;
+        }
+#endregion
         public BuffManager Update(float deltaTime)
         {
-            var expiredBuffs = new List<IRPGBuff>();
+            var expiredBuffs = new List<IRPGBuff>(4);
+
             // 倒序遍历，移除时不会影响索引
             for (int i = _buffs.Count - 1; i >= 0; i--)
             {
@@ -170,6 +262,12 @@ namespace RPGPack
                     triggerableBuff.TryTrigger();
                 }
 
+                // 处理周期性Buff
+                if (buff is PeriodicBuff periodicBuff)
+                {
+                    periodicBuff.UpdateTick(deltaTime);
+                }
+
                 // 只处理有持续时间的Buff
                 if (buff.Duration > 0)
                 {
@@ -179,7 +277,7 @@ namespace RPGPack
                         // 支持每次过期只移除一层
                         if (buff.RemoveOneStackEachDuration && buff.CanStack && buff.StackCount > 1)
                         {
-                            RemoveBuffStack(buff.BuffID, 1, buff.Source);
+                            RemoveBuffStack(buff.BuffID, 1, buff.Layer, buff.Source);
                             buff.Elapsed = 0;
                             continue;
                         }
@@ -187,31 +285,88 @@ namespace RPGPack
                         expiredBuffs.Add(buff);
                         _buffs.RemoveAt(i);
                         _allBuffs.Remove(buff);
+                        RemoveFromIndices(buff);
                     }
                 }
             }
+
             // 统一触发过期事件
-            foreach (var buff in expiredBuffs)
+            if (BuffExpired != null)
             {
-                BuffExpired?.Invoke(buff);
+                foreach (var buff in expiredBuffs)
+                {
+                    BuffExpired.Invoke(buff);
+                }
             }
             return this;
         }
 
-        /// <summary>
-        /// 清空所有Buff
+
+
+        #region 索引
+        // <summary>
+        /// 将Buff添加到索引中
         /// </summary>
-        /// <returns>返回自身</returns>
-        public BuffManager Clear()
+        private void AddToIndices(IRPGBuff buff)
         {
-            var tempBuffs = new List<IRPGBuff>(_buffs);
-            foreach (var buff in tempBuffs)
+            // 添加到ID索引
+            if (!_buffsByID.TryGetValue(buff.BuffID, out var buffs))
             {
-                BuffRemoved?.Invoke(buff);
+                buffs = new List<IRPGBuff>();
+                _buffsByID[buff.BuffID] = buffs;
             }
-            _buffs.Clear();
-            _allBuffs.Clear();
-            return this;
+            buffs.Add(buff);
+
+            // 如果有Layer，添加到Layer索引
+            if (!string.IsNullOrEmpty(buff.Layer))
+            {
+                if (!_buffsByLayerAndID.TryGetValue(buff.Layer, out var idMap))
+                {
+                    idMap = new Dictionary<string, List<IRPGBuff>>();
+                    _buffsByLayerAndID[buff.Layer] = idMap;
+                }
+
+                if (!idMap.TryGetValue(buff.BuffID, out var layerBuffs))
+                {
+                    layerBuffs = new List<IRPGBuff>();
+                    idMap[buff.BuffID] = layerBuffs;
+                }
+
+                layerBuffs.Add(buff);
+            }
         }
+
+        /// <summary>
+        /// 从索引中移除Buff
+        /// </summary>
+        private void RemoveFromIndices(IRPGBuff buff)
+        {
+            // 从ID索引中移除
+            if (_buffsByID.TryGetValue(buff.BuffID, out var buffs))
+            {
+                buffs.Remove(buff);
+                if (buffs.Count == 0)
+                {
+                    _buffsByID.Remove(buff.BuffID);
+                }
+            }
+
+            // 如果有Layer，从Layer索引中移除
+            if (!string.IsNullOrEmpty(buff.Layer) &&
+                _buffsByLayerAndID.TryGetValue(buff.Layer, out var idMap) &&
+                idMap.TryGetValue(buff.BuffID, out var layerBuffs))
+            {
+                layerBuffs.Remove(buff);
+                if (layerBuffs.Count == 0)
+                {
+                    idMap.Remove(buff.BuffID);
+                    if (idMap.Count == 0)
+                    {
+                        _buffsByLayerAndID.Remove(buff.Layer);
+                    }
+                }
+            }
+        }
+        #endregion
     }
 }

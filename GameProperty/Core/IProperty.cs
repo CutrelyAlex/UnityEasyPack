@@ -10,7 +10,6 @@ namespace RPGPack
         IProperty<T> AddModifier(IModifier modifier);
         IProperty<T> RemoveModifier(IModifier modifier);
         IProperty<T> ClearModifiers();
-        Func<T> GetValueGetter() => GetValue;
         T GetValue();
         void MakeDirty();
         void OnDirty(Action aciton);

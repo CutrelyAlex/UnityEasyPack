@@ -6,18 +6,19 @@ namespace RPGPack
     /// <summary>
     /// 表示一个Buff（增益/减益效果）。
     /// 可附加到属性上，支持持续时间、叠加等机制。
+    /// 为什么只携带一个Modifier?
+    /// 组合而非聚合：复合效果可以通过组合多个Buff实现，而非在一个Buff中包含多个Modifier。
     /// </summary>
     public class Buff : IRPGBuff
     {
-        // Buff的唯一标识符。
+        // Buff的名称。
         public string BuffID { get; }
 
-        // Buff所携带的修饰器（影响属性的具体方式）。
+        // Buff所携带的修饰器。
         public IModifier Modifier { get; }
 
         // Buff持续时间（秒）。-1为永久Buff。
-        public float Duration { get; } // -1为永久
-
+        public float Duration { get; } 
         // Buff已存在的时间（秒）。
         public float Elapsed { get; set; }
 
