@@ -1,153 +1,153 @@
-# BuffÏµÍ³Ê¹ÓÃÖ¸ÄÏ
+# Buffç³»ç»Ÿä½¿ç”¨æŒ‡å—
 
-## Ä¿Â¼
-- [ÏµÍ³¸ÅÊö](#ÏµÍ³¸ÅÊö)
-- [ºËĞÄ×é¼ş](#ºËĞÄ×é¼ş)
-- [»ù±¾Ê¹ÓÃÁ÷³Ì](#»ù±¾Ê¹ÓÃÁ÷³Ì)
-- [BuffµÄÉúÃüÖÜÆÚ](#buffµÄÉúÃüÖÜÆÚ)
-- [BuffµÄµş¼ÓºÍ³ÖĞøÊ±¼ä²ßÂÔ](#buffµÄµş¼ÓºÍ³ÖĞøÊ±¼ä²ßÂÔ)
-- [Modules¿ª·¢Ö¸ÄÏ](#modules¿ª·¢Ö¸ÄÏ)
-  - [´´½¨×Ô¶¨ÒåModule](#´´½¨×Ô¶¨Òåmodule)
-  - [Module»Øµ÷ÀàĞÍ](#module»Øµ÷ÀàĞÍ)
-  - [×Ô¶¨Òå»Øµ÷](#×Ô¶¨Òå»Øµ÷)
-  - [ÓÅÏÈ¼¶ÉèÖÃ](#ÓÅÏÈ¼¶ÉèÖÃ)
-- [³£¼ûÓÃÀı](#³£¼ûÓÃÀı)
-  - [ÊôĞÔĞŞ¸ÄĞÍBuff](#ÊôĞÔĞŞ¸ÄĞÍbuff)
-  - [¶¨Ê±´¥·¢Ğ§¹û](#¶¨Ê±´¥·¢Ğ§¹û)
-  - [¶à²ã¶ÑµşĞ§¹û](#¶à²ã¶ÑµşĞ§¹û)
+## ç›®å½•
+- [ç³»ç»Ÿæ¦‚è¿°](#ç³»ç»Ÿæ¦‚è¿°)
+- [æ ¸å¿ƒç»„ä»¶](#æ ¸å¿ƒç»„ä»¶)
+- [åŸºæœ¬ä½¿ç”¨æµç¨‹](#åŸºæœ¬ä½¿ç”¨æµç¨‹)
+- [Buffçš„ç”Ÿå‘½å‘¨æœŸ](#buffçš„ç”Ÿå‘½å‘¨æœŸ)
+- [Buffçš„å åŠ å’ŒæŒç»­æ—¶é—´ç­–ç•¥](#buffçš„å åŠ å’ŒæŒç»­æ—¶é—´ç­–ç•¥)
+- [Moduleså¼€å‘æŒ‡å—](#moduleså¼€å‘æŒ‡å—)
+  - [åˆ›å»ºè‡ªå®šä¹‰Module](#åˆ›å»ºè‡ªå®šä¹‰module)
+  - [Moduleå›è°ƒç±»å‹](#moduleå›è°ƒç±»å‹)
+  - [è‡ªå®šä¹‰å›è°ƒ](#è‡ªå®šä¹‰å›è°ƒ)
+  - [ä¼˜å…ˆçº§è®¾ç½®](#ä¼˜å…ˆçº§è®¾ç½®)
+- [å¸¸è§ç”¨ä¾‹](#å¸¸è§ç”¨ä¾‹)
+  - [å±æ€§ä¿®æ”¹å‹Buff](#å±æ€§ä¿®æ”¹å‹buff)
+  - [å®šæ—¶è§¦å‘æ•ˆæœ](#å®šæ—¶è§¦å‘æ•ˆæœ)
+  - [å¤šå±‚å †å æ•ˆæœ](#å¤šå±‚å †å æ•ˆæœ)
 
-## ÏµÍ³¸ÅÊö
+## ç³»ç»Ÿæ¦‚è¿°
 
-BuffÏµÍ³ÊÇÒ»¸öÁé»îµÄ×´Ì¬Ğ§¹û¹ÜÀí¿ò¼Ü£¬ÓÃÓÚ´¦ÀíÓÎÏ·ÖĞµÄ¸÷ÖÖÁÙÊ±×´Ì¬Ğ§¹û£¨ÈçÔöÒæ¡¢¼õÒæµÈ£©¡£ÏµÍ³»ùÓÚÄ£¿é»¯Éè¼Æ£¬¿ÉÒÔÍ¨¹ı×éºÏ²»Í¬µÄModuleÀ´ÊµÏÖ¸÷ÖÖ¸´ÔÓĞ§¹û¡£
+Buffç³»ç»Ÿæ˜¯ä¸€ä¸ªçµæ´»çš„çŠ¶æ€æ•ˆæœç®¡ç†æ¡†æ¶ï¼Œç”¨äºå¤„ç†æ¸¸æˆä¸­çš„å„ç§ä¸´æ—¶çŠ¶æ€æ•ˆæœï¼ˆå¦‚å¢ç›Šã€å‡ç›Šç­‰ï¼‰ã€‚ç³»ç»ŸåŸºäºæ¨¡å—åŒ–è®¾è®¡ï¼Œå¯ä»¥é€šè¿‡ç»„åˆä¸åŒçš„Moduleæ¥å®ç°å„ç§å¤æ‚æ•ˆæœã€‚
 
-## ºËĞÄ×é¼ş
+## æ ¸å¿ƒç»„ä»¶
 
-- **BuffManager**: ¸ºÔğBuffµÄÉúÃüÖÜÆÚ¹ÜÀíºÍÊÂ¼ş´¥·¢
-- **Buff**: µ¥¸öBuffµÄÊµÀı£¬°üº¬BuffDataºÍÔËĞĞÊ±×´Ì¬
-- **BuffData**: BuffµÄ¾²Ì¬ÅäÖÃÊı¾İ
-- **BuffModule**: ¶¨ÒåBuffĞĞÎªµÄÄ£¿é»ùÀà
-- **¸÷ÖÖ¾ßÌåModule**: Èç`CastModifierToProperty`ÓÃÓÚĞŞ¸ÄÓÎÏ·ÊôĞÔ
+- **BuffManager**: è´Ÿè´£Buffçš„ç”Ÿå‘½å‘¨æœŸç®¡ç†å’Œäº‹ä»¶è§¦å‘
+- **Buff**: å•ä¸ªBuffçš„å®ä¾‹ï¼ŒåŒ…å«BuffDataå’Œè¿è¡Œæ—¶çŠ¶æ€
+- **BuffData**: Buffçš„é™æ€é…ç½®æ•°æ®
+- **BuffModule**: å®šä¹‰Buffè¡Œä¸ºçš„æ¨¡å—åŸºç±»
+- **å„ç§å…·ä½“Module**: å¦‚`CastModifierToProperty`ç”¨äºä¿®æ”¹æ¸¸æˆå±æ€§
 
-## »ù±¾Ê¹ÓÃÁ÷³Ì
+## åŸºæœ¬ä½¿ç”¨æµç¨‹
 
-### 1. ´´½¨BuffData
+### 1. åˆ›å»ºBuffData
 
 ```csharp
-// ´´½¨BuffData
+// åˆ›å»ºBuffData
 var buffData = new BuffData
 {
     ID = "Buff_Strength",
-    Name = "Á¦Á¿ÔöÒæ",
-    Description = "Ôö¼Ó½ÇÉ«µÄÁ¦Á¿ÊôĞÔ",
-    Duration = 10f,                  // ³ÖĞø10Ãë
-    TriggerInterval = 1f,            // Ã¿Ãë´¥·¢Ò»´Î
-    MaxStacks = 3,                   // ×î¶àµş¼Ó3²ã
-    BuffSuperpositionStrategy = BuffSuperpositionDurationType.Add,  // µş¼ÓÊ±Ôö¼Ó³ÖĞøÊ±¼ä
-    BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add,  // µş¼ÓÔö¼Ó²ãÊı
-    TriggerOnCreate = true           // ´´½¨Ê±Á¢¼´´¥·¢Ò»´Î
+    Name = "åŠ›é‡å¢ç›Š",
+    Description = "å¢åŠ è§’è‰²çš„åŠ›é‡å±æ€§",
+    Duration = 10f,                  // æŒç»­10ç§’
+    TriggerInterval = 1f,            // æ¯ç§’è§¦å‘ä¸€æ¬¡
+    MaxStacks = 3,                   // æœ€å¤šå åŠ 3å±‚
+    BuffSuperpositionStrategy = BuffSuperpositionDurationType.Add,  // å åŠ æ—¶å¢åŠ æŒç»­æ—¶é—´
+    BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add,  // å åŠ å¢åŠ å±‚æ•°
+    TriggerOnCreate = true           // åˆ›å»ºæ—¶ç«‹å³è§¦å‘ä¸€æ¬¡
 };
 
-// Ìí¼Ó±êÇ©ºÍ²ã¼¶£¨¿ÉÓÃÓÚ·Ö×é¹ÜÀí£©
-buffData.Tags.Add("Positive");      // ÕıÃæĞ§¹û±êÇ©
-buffData.Layers.Add("Attribute");   // ÊôĞÔ²ã¼¶
+// æ·»åŠ æ ‡ç­¾å’Œå±‚çº§ï¼ˆå¯ç”¨äºåˆ†ç»„ç®¡ç†ï¼‰
+buffData.Tags.Add("Positive");      // æ­£é¢æ•ˆæœæ ‡ç­¾
+buffData.Layers.Add("Attribute");   // å±æ€§å±‚çº§
 ```
 
-### 2. Ìí¼ÓModule
+### 2. æ·»åŠ Module
 
 ```csharp
-// ´´½¨Ò»¸öĞŞ¸ÄÁ¦Á¿ÊôĞÔµÄĞŞÊÎ·û
-var strengthModifier = new FloatModifier(ModifierType.Add, 0, 5f);  // Ôö¼Ó5µãÁ¦Á¿
+// åˆ›å»ºä¸€ä¸ªä¿®æ”¹åŠ›é‡å±æ€§çš„ä¿®é¥°ç¬¦
+var strengthModifier = new FloatModifier(ModifierType.Add, 0, 5f);  // å¢åŠ 5ç‚¹åŠ›é‡
 
-// ´´½¨Module²¢Ìí¼Óµ½BuffData
+// åˆ›å»ºModuleå¹¶æ·»åŠ åˆ°BuffData
 var propertyModule = new CastModifierToProperty(strengthModifier, "Strength");
 buffData.BuffModules.Add(propertyModule);
 ```
 
-### 3. ´´½¨BuffManagerºÍÓ¦ÓÃBuff
+### 3. åˆ›å»ºBuffManagerå’Œåº”ç”¨Buff
 
 ```csharp
-// ´´½¨BuffManager
+// åˆ›å»ºBuffManager
 var buffManager = new BuffManager();
 
-// Ó¦ÓÃBuffµ½Ä¿±ê
-GameObject caster = ...; // BuffµÄ´´½¨Õß
-GameObject target = ...; // BuffµÄÄ¿±ê
+// åº”ç”¨Buffåˆ°ç›®æ ‡
+GameObject caster = ...; // Buffçš„åˆ›å»ºè€…
+GameObject target = ...; // Buffçš„ç›®æ ‡
 var buff = buffManager.AddBuff(buffData, caster, target);
 
-// ÔÚÓÎÏ·Ñ­»·ÖĞ¸üĞÂBuffManager
+// åœ¨æ¸¸æˆå¾ªç¯ä¸­æ›´æ–°BuffManager
 void Update()
 {
     buffManager.Update(Time.deltaTime);
 }
 ```
 
-### 4. ¹ÜÀíBuff
+### 4. ç®¡ç†Buff
 
 ```csharp
-// ÒÆ³ıÌØ¶¨Buff
+// ç§»é™¤ç‰¹å®šBuff
 buffManager.RemoveBuff(buff);
 
-// ÒÆ³ıÄ¿±êÉÏµÄËùÓĞBuff
+// ç§»é™¤ç›®æ ‡ä¸Šçš„æ‰€æœ‰Buff
 buffManager.RemoveAllBuffs(target);
 
-// ÒÆ³ıÄ¿±êÉÏÌØ¶¨IDµÄBuff
+// ç§»é™¤ç›®æ ‡ä¸Šç‰¹å®šIDçš„Buff
 buffManager.RemoveBuffByID(target, "Buff_Strength");
 
-// ÒÆ³ıÄ¿±êÉÏ´øÓĞÌØ¶¨±êÇ©µÄBuff
+// ç§»é™¤ç›®æ ‡ä¸Šå¸¦æœ‰ç‰¹å®šæ ‡ç­¾çš„Buff
 buffManager.RemoveBuffsByTag(target, "Positive");
 
-// ¼ì²éÄ¿±êÊÇ·ñÓĞÌØ¶¨Buff
+// æ£€æŸ¥ç›®æ ‡æ˜¯å¦æœ‰ç‰¹å®šBuff
 bool hasBuff = buffManager.HasBuff(target, "Buff_Strength");
 
-// »ñÈ¡Ä¿±êÉÏµÄËùÓĞBuff
+// è·å–ç›®æ ‡ä¸Šçš„æ‰€æœ‰Buff
 List<Buff> allBuffs = buffManager.GetAllBuffs(target);
 ```
 
-## BuffµÄÉúÃüÖÜÆÚ
+## Buffçš„ç”Ÿå‘½å‘¨æœŸ
 
-BuffÔÚÆäÉúÃüÖÜÆÚÖĞ»á´¥·¢ÒÔÏÂÊÂ¼ş£º
+Buffåœ¨å…¶ç”Ÿå‘½å‘¨æœŸä¸­ä¼šè§¦å‘ä»¥ä¸‹äº‹ä»¶ï¼š
 
-1. **OnCreate**: Buff±»´´½¨Ê±
-2. **OnTrigger**: Buff°´TriggerInterval¶¨Ê±´¥·¢Ê±
-3. **OnUpdate**: Ã¿Ö¡¸üĞÂÊ±
-4. **OnAddStack**: Buff¶ÑµşÔö¼ÓÊ±
-5. **OnReduceStack**: Buff¶Ñµş¼õÉÙÊ±
-6. **OnRemove**: Buff±»ÒÆ³ıÊ±
+1. **OnCreate**: Buffè¢«åˆ›å»ºæ—¶
+2. **OnTrigger**: BuffæŒ‰TriggerIntervalå®šæ—¶è§¦å‘æ—¶
+3. **OnUpdate**: æ¯å¸§æ›´æ–°æ—¶
+4. **OnAddStack**: Buffå †å å¢åŠ æ—¶
+5. **OnReduceStack**: Buffå †å å‡å°‘æ—¶
+6. **OnRemove**: Buffè¢«ç§»é™¤æ—¶
 
-## BuffµÄµş¼ÓºÍ³ÖĞøÊ±¼ä²ßÂÔ
+## Buffçš„å åŠ å’ŒæŒç»­æ—¶é—´ç­–ç•¥
 
-### ³ÖĞøÊ±¼ä²ßÂÔ (BuffSuperpositionDurationType)
+### æŒç»­æ—¶é—´ç­–ç•¥ (BuffSuperpositionDurationType)
 
-- **Add**: µş¼Ó³ÖĞøÊ±¼ä
-- **ResetThenAdd**: ÖØÖÃ³ÖĞøÊ±¼äºóÔÙµş¼Ó
-- **Reset**: ÖØÖÃ³ÖĞøÊ±¼ä
-- **Keep**: ±£³ÖÔ­ÓĞ³ÖĞøÊ±¼ä²»±ä
+- **Add**: å åŠ æŒç»­æ—¶é—´
+- **ResetThenAdd**: é‡ç½®æŒç»­æ—¶é—´åå†å åŠ 
+- **Reset**: é‡ç½®æŒç»­æ—¶é—´
+- **Keep**: ä¿æŒåŸæœ‰æŒç»­æ—¶é—´ä¸å˜
 
-### ¶ÑµşÊı²ßÂÔ (BuffSuperpositionStacksType)
+### å †å æ•°ç­–ç•¥ (BuffSuperpositionStacksType)
 
-- **Add**: µş¼Ó¶ÑµşÊı
-- **ResetThenAdd**: ÖØÖÃ¶ÑµşÊıºóÔÙµş¼Ó
-- **Reset**: ÖØÖÃ¶ÑµşÊı
-- **Keep**: ±£³ÖÔ­ÓĞ¶ÑµşÊı²»±ä
+- **Add**: å åŠ å †å æ•°
+- **ResetThenAdd**: é‡ç½®å †å æ•°åå†å åŠ 
+- **Reset**: é‡ç½®å †å æ•°
+- **Keep**: ä¿æŒåŸæœ‰å †å æ•°ä¸å˜
 
-### ÒÆ³ı²ßÂÔ (BuffRemoveType)
+### ç§»é™¤ç­–ç•¥ (BuffRemoveType)
 
-- **All**: ÍêÈ«ÒÆ³ıBuff
-- **OneStack**: ¼õÉÙÒ»²ã¶Ñµş
-- **Manual**: ²»×Ô¶¯ÒÆ³ı£¬ĞèÊÖ¶¯¿ØÖÆ
+- **All**: å®Œå…¨ç§»é™¤Buff
+- **OneStack**: å‡å°‘ä¸€å±‚å †å 
+- **Manual**: ä¸è‡ªåŠ¨ç§»é™¤ï¼Œéœ€æ‰‹åŠ¨æ§åˆ¶
 
-## Modules¿ª·¢Ö¸ÄÏ
+## Moduleså¼€å‘æŒ‡å—
 
-### ´´½¨×Ô¶¨ÒåModule
+### åˆ›å»ºè‡ªå®šä¹‰Module
 
-´´½¨×Ô¶¨ÒåModuleĞèÒª¼Ì³Ğ`BuffModule`»ùÀà£¬²¢ÊµÏÖÏà¹ØµÄ»Øµ÷´¦Àí£º
+åˆ›å»ºè‡ªå®šä¹‰Moduleéœ€è¦ç»§æ‰¿`BuffModule`åŸºç±»ï¼Œå¹¶å®ç°ç›¸å…³çš„å›è°ƒå¤„ç†ï¼š
 
 ```csharp
 public class MyCustomBuffModule : BuffModule
 {
     public MyCustomBuffModule()
     {
-        // ×¢²á¶ÔÌØ¶¨»Øµ÷ÀàĞÍ¸ĞĞËÈ¤
+        // æ³¨å†Œå¯¹ç‰¹å®šå›è°ƒç±»å‹æ„Ÿå…´è¶£
         RegisterCallback(BuffCallBackType.OnCreate, OnCreate);
         RegisterCallback(BuffCallBackType.OnRemove, OnRemove);
         RegisterCallback(BuffCallBackType.OnTick, OnTick);
@@ -155,106 +155,106 @@ public class MyCustomBuffModule : BuffModule
 
     private void OnCreate(Buff buff, object[] parameters)
     {
-        // Buff´´½¨Ê±µÄÂß¼­
-        Debug.Log($"Buff {buff.BuffData.Name} ÒÑ´´½¨!");
+        // Buffåˆ›å»ºæ—¶çš„é€»è¾‘
+        Debug.Log($"Buff {buff.BuffData.Name} å·²åˆ›å»º!");
         
-        // ¿ÉÒÔ·ÃÎÊbuffµÄ¸÷ÖÖÊôĞÔ
+        // å¯ä»¥è®¿é—®buffçš„å„ç§å±æ€§
         GameObject target = buff.Target;
         int currentStacks = buff.CurrentStacks;
         
-        // Ö´ĞĞ×Ô¶¨ÒåÂß¼­...
+        // æ‰§è¡Œè‡ªå®šä¹‰é€»è¾‘...
     }
 
     private void OnRemove(Buff buff, object[] parameters)
     {
-        // BuffÒÆ³ıÊ±µÄÂß¼­
-        Debug.Log($"Buff {buff.BuffData.Name} ÒÑÒÆ³ı!");
+        // Buffç§»é™¤æ—¶çš„é€»è¾‘
+        Debug.Log($"Buff {buff.BuffData.Name} å·²ç§»é™¤!");
         
-        // ÇåÀí×ÊÔ´»ò×´Ì¬...
+        // æ¸…ç†èµ„æºæˆ–çŠ¶æ€...
     }
     
     private void OnTick(Buff buff, object[] parameters)
     {
-        // Buff¶¨Ê±´¥·¢Ê±µÄÂß¼­
-        Debug.Log($"Buff {buff.BuffData.Name} ´¥·¢Ğ§¹û!");
+        // Buffå®šæ—¶è§¦å‘æ—¶çš„é€»è¾‘
+        Debug.Log($"Buff {buff.BuffData.Name} è§¦å‘æ•ˆæœ!");
         
-        // ÀıÈç£ºÃ¿´Î´¥·¢Ôì³ÉÉËº¦
+        // ä¾‹å¦‚ï¼šæ¯æ¬¡è§¦å‘é€ æˆä¼¤å®³
         // DamageSystem.ApplyDamage(buff.Target, 10f);
     }
 }
 ```
 
-### Module»Øµ÷ÀàĞÍ
+### Moduleå›è°ƒç±»å‹
 
-`BuffCallBackType`Ã¶¾Ù¶¨ÒåÁËÒÔÏÂ»Øµ÷ÀàĞÍ£º
+`BuffCallBackType`æšä¸¾å®šä¹‰äº†ä»¥ä¸‹å›è°ƒç±»å‹ï¼š
 
-- **OnCreate**: Buff´´½¨Ê±
-- **OnRemove**: BuffÒÆ³ıÊ±
-- **OnAddStack**: Buff¶ÑµşÔö¼ÓÊ±
-- **OnReduceStack**: Buff¶Ñµş¼õÉÙÊ±
-- **OnUpdate**: Ã¿Ö¡¸üĞÂÊ±
-- **OnTick**: Buff°´¼ä¸ô´¥·¢Ê±
-- **Custom**: ×Ô¶¨Òå»Øµ÷
+- **OnCreate**: Buffåˆ›å»ºæ—¶
+- **OnRemove**: Buffç§»é™¤æ—¶
+- **OnAddStack**: Buffå †å å¢åŠ æ—¶
+- **OnReduceStack**: Buffå †å å‡å°‘æ—¶
+- **OnUpdate**: æ¯å¸§æ›´æ–°æ—¶
+- **OnTick**: BuffæŒ‰é—´éš”è§¦å‘æ—¶
+- **Custom**: è‡ªå®šä¹‰å›è°ƒ
 
-### ×Ô¶¨Òå»Øµ÷
+### è‡ªå®šä¹‰å›è°ƒ
 
-³ıÁË±ê×¼»Øµ÷Íâ£¬»¹¿ÉÒÔ×¢²á×Ô¶¨Òå»Øµ÷£º
+é™¤äº†æ ‡å‡†å›è°ƒå¤–ï¼Œè¿˜å¯ä»¥æ³¨å†Œè‡ªå®šä¹‰å›è°ƒï¼š
 
 ```csharp
 public class AdvancedBuffModule : BuffModule
 {
     public AdvancedBuffModule()
     {
-        // ×¢²á±ê×¼»Øµ÷
+        // æ³¨å†Œæ ‡å‡†å›è°ƒ
         RegisterCallback(BuffCallBackType.OnCreate, OnCreate);
         
-        // ×¢²á×Ô¶¨Òå»Øµ÷
+        // æ³¨å†Œè‡ªå®šä¹‰å›è°ƒ
         RegisterCustomCallback("OnTargetDamaged", OnTargetDamaged);
         RegisterCustomCallback("OnSkillCast", OnSkillCast);
     }
     
     private void OnCreate(Buff buff, object[] parameters)
     {
-        // ³£¹æ´´½¨Âß¼­
+        // å¸¸è§„åˆ›å»ºé€»è¾‘
     }
     
     private void OnTargetDamaged(Buff buff, object[] parameters)
     {
-        // µ±Ä¿±êÊÜÉËÊ±µÄÌØÊâ´¦Àí
+        // å½“ç›®æ ‡å—ä¼¤æ—¶çš„ç‰¹æ®Šå¤„ç†
         float damageAmount = (float)parameters[0];
-        Debug.Log($"BuffÏìÓ¦ÉËº¦ÊÂ¼ş: {damageAmount}");
+        Debug.Log($"Buffå“åº”ä¼¤å®³äº‹ä»¶: {damageAmount}");
         
-        // ÌØÊâĞ§¹û...
+        // ç‰¹æ®Šæ•ˆæœ...
     }
     
     private void OnSkillCast(Buff buff, object[] parameters)
     {
-        // µ±¼¼ÄÜÊ©·ÅÊ±µÄÌØÊâ´¦Àí
+        // å½“æŠ€èƒ½æ–½æ”¾æ—¶çš„ç‰¹æ®Šå¤„ç†
         string skillId = (string)parameters[0];
-        Debug.Log($"BuffÏìÓ¦¼¼ÄÜÊ©·Å: {skillId}");
+        Debug.Log($"Buffå“åº”æŠ€èƒ½æ–½æ”¾: {skillId}");
         
-        // ÌØÊâĞ§¹û...
+        // ç‰¹æ®Šæ•ˆæœ...
     }
 }
 ```
 
-ÔÚÓÎÏ·´úÂëÖĞ´¥·¢×Ô¶¨Òå»Øµ÷£º
+åœ¨æ¸¸æˆä»£ç ä¸­è§¦å‘è‡ªå®šä¹‰å›è°ƒï¼š
 
 ```csharp
-// ÔÚºÏÊÊµÄÎ»ÖÃ´¥·¢×Ô¶¨Òå»Øµ÷
+// åœ¨åˆé€‚çš„ä½ç½®è§¦å‘è‡ªå®šä¹‰å›è°ƒ
 buffManager.ExecuteBuffModules(buff, BuffCallBackType.Custom, "OnTargetDamaged", damageAmount);
 ```
 
-### ÓÅÏÈ¼¶ÉèÖÃ
+### ä¼˜å…ˆçº§è®¾ç½®
 
-¿ÉÒÔÉèÖÃModuleµÄÓÅÏÈ¼¶£¬¿ØÖÆ¶à¸öModuleµÄÖ´ĞĞË³Ğò£º
+å¯ä»¥è®¾ç½®Moduleçš„ä¼˜å…ˆçº§ï¼Œæ§åˆ¶å¤šä¸ªModuleçš„æ‰§è¡Œé¡ºåºï¼š
 
 ```csharp
 public class HighPriorityModule : BuffModule
 {
     public HighPriorityModule()
     {
-        // ÉèÖÃ¸ßÓÅÏÈ¼¶£¬½«»áÏÈÓÚµÍÓÅÏÈ¼¶Ä£¿éÖ´ĞĞ
+        // è®¾ç½®é«˜ä¼˜å…ˆçº§ï¼Œå°†ä¼šå…ˆäºä½ä¼˜å…ˆçº§æ¨¡å—æ‰§è¡Œ
         Priority = 100;
         
         RegisterCallback(BuffCallBackType.OnCreate, OnCreate);
@@ -262,8 +262,8 @@ public class HighPriorityModule : BuffModule
     
     private void OnCreate(Buff buff, object[] parameters)
     {
-        // ÏÈÖ´ĞĞµÄÂß¼­
-        Debug.Log("¸ßÓÅÏÈ¼¶Ä£¿éÖ´ĞĞ");
+        // å…ˆæ‰§è¡Œçš„é€»è¾‘
+        Debug.Log("é«˜ä¼˜å…ˆçº§æ¨¡å—æ‰§è¡Œ");
     }
 }
 
@@ -271,7 +271,7 @@ public class LowPriorityModule : BuffModule
 {
     public LowPriorityModule()
     {
-        // ÉèÖÃµÍÓÅÏÈ¼¶£¬½«»áºóÓÚ¸ßÓÅÏÈ¼¶Ä£¿éÖ´ĞĞ
+        // è®¾ç½®ä½ä¼˜å…ˆçº§ï¼Œå°†ä¼šåäºé«˜ä¼˜å…ˆçº§æ¨¡å—æ‰§è¡Œ
         Priority = 0;
         
         RegisterCallback(BuffCallBackType.OnCreate, OnCreate);
@@ -279,53 +279,53 @@ public class LowPriorityModule : BuffModule
     
     private void OnCreate(Buff buff, object[] parameters)
     {
-        // ºóÖ´ĞĞµÄÂß¼­
-        Debug.Log("µÍÓÅÏÈ¼¶Ä£¿éÖ´ĞĞ");
+        // åæ‰§è¡Œçš„é€»è¾‘
+        Debug.Log("ä½ä¼˜å…ˆçº§æ¨¡å—æ‰§è¡Œ");
     }
 }
 ```
 
-## ³£¼ûÓÃÀı
+## å¸¸è§ç”¨ä¾‹
 
-### ÊôĞÔĞŞ¸ÄĞÍBuff
+### å±æ€§ä¿®æ”¹å‹Buff
 
-Ê¹ÓÃ`CastModifierToProperty`Ä£¿éĞŞ¸Ä½ÇÉ«ÊôĞÔ£º
+ä½¿ç”¨`CastModifierToProperty`æ¨¡å—ä¿®æ”¹è§’è‰²å±æ€§ï¼š
 
 ```csharp
-// ´´½¨Ôö¼ÓÒÆ¶¯ËÙ¶È20%µÄBuff
+// åˆ›å»ºå¢åŠ ç§»åŠ¨é€Ÿåº¦20%çš„Buff
 var speedBuff = new BuffData
 {
     ID = "Speed_Boost",
-    Name = "¼²ÅÜ",
+    Name = "ç–¾è·‘",
     Duration = 5f
 };
 
-// ´´½¨³Ë·¨ĞŞÊÎ·û£¨Ôö¼Ó20%£©
-var speedModifier = new FloatModifier(ModifierType.Mul, 1, 0.2f);
+// åˆ›å»ºä¹˜æ³•ä¿®é¥°ç¬¦ï¼ˆå¢åŠ 20%ï¼‰
+var speedModifier = new FloatModifier(ModifierType.Mul, 1, 1.2f);
 
-// ´´½¨²¢Ìí¼ÓModule
+// åˆ›å»ºå¹¶æ·»åŠ Module
 var speedModule = new CastModifierToProperty(speedModifier, "MovementSpeed");
 speedBuff.BuffModules.Add(speedModule);
 
-// Ó¦ÓÃBuff
+// åº”ç”¨Buff
 buffManager.AddBuff(speedBuff, caster, target);
 ```
 
-### ¶¨Ê±´¥·¢Ğ§¹û
+### å®šæ—¶è§¦å‘æ•ˆæœ
 
-´´½¨¶¨Ê±´¥·¢Ğ§¹ûµÄBuff£¨Èç³ÖĞøÉËº¦£©£º
+åˆ›å»ºå®šæ—¶è§¦å‘æ•ˆæœçš„Buffï¼ˆå¦‚æŒç»­ä¼¤å®³ï¼‰ï¼š
 
 ```csharp
-// ´´½¨³ÖĞøÉËº¦Buff
+// åˆ›å»ºæŒç»­ä¼¤å®³Buff
 var dotBuff = new BuffData
 {
     ID = "Poison",
-    Name = "ÖĞ¶¾",
+    Name = "ä¸­æ¯’",
     Duration = 10f,
-    TriggerInterval = 1f,  // Ã¿Ãë´¥·¢Ò»´Î
+    TriggerInterval = 1f,  // æ¯ç§’è§¦å‘ä¸€æ¬¡
 };
 
-// ´´½¨×Ô¶¨ÒåModule´¦ÀíÉËº¦Âß¼­
+// åˆ›å»ºè‡ªå®šä¹‰Moduleå¤„ç†ä¼¤å®³é€»è¾‘
 public class DamageOverTimeModule : BuffModule
 {
     private float _damagePerTick;
@@ -338,7 +338,7 @@ public class DamageOverTimeModule : BuffModule
     
     private void OnTick(Buff buff, object[] parameters)
     {
-        // Ôì³ÉÉËº¦
+        // é€ æˆä¼¤å®³
         var target = buff.Target.GetComponent<Health>();
         if (target != null)
         {
@@ -347,27 +347,27 @@ public class DamageOverTimeModule : BuffModule
     }
 }
 
-// Ìí¼ÓModule
-dotBuff.BuffModules.Add(new DamageOverTimeModule(5f));  // Ã¿´ÎÔì³É5µãÉËº¦
+// æ·»åŠ Module
+dotBuff.BuffModules.Add(new DamageOverTimeModule(5f));  // æ¯æ¬¡é€ æˆ5ç‚¹ä¼¤å®³
 ```
 
-### ¶à²ã¶ÑµşĞ§¹û
+### å¤šå±‚å †å æ•ˆæœ
 
-´´½¨Ğ§¹ûËæ¶Ñµş²ãÊıÔö¼ÓµÄBuff£º
+åˆ›å»ºæ•ˆæœéšå †å å±‚æ•°å¢åŠ çš„Buffï¼š
 
 ```csharp
-// ´´½¨¿É¶ÑµşµÄ¹¥»÷Á¦Buff
+// åˆ›å»ºå¯å †å çš„æ”»å‡»åŠ›Buff
 var stackableBuff = new BuffData
 {
     ID = "Rage",
-    Name = "Å­Æø",
-    MaxStacks = 5,  // ×î¶à5²ã
+    Name = "æ€’æ°”",
+    MaxStacks = 5,  // æœ€å¤š5å±‚
     Duration = 8f,
-    BuffSuperpositionStrategy = BuffSuperpositionDurationType.Reset,  // ÖØÖÃ³ÖĞøÊ±¼ä
-    BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add,  // µş¼Ó²ãÊı
+    BuffSuperpositionStrategy = BuffSuperpositionDurationType.Reset,  // é‡ç½®æŒç»­æ—¶é—´
+    BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add,  // å åŠ å±‚æ•°
 };
 
-// ´´½¨»á¸ù¾İ¶ÑµşÊıÔö¼ÓĞ§¹ûµÄÄ£¿é
+// åˆ›å»ºä¼šæ ¹æ®å †å æ•°å¢åŠ æ•ˆæœçš„æ¨¡å—
 public class StackableEffectModule : BuffModule
 {
     private float _baseEffect;
@@ -383,20 +383,20 @@ public class StackableEffectModule : BuffModule
     
     private void ApplyEffect(Buff buff, object[] parameters)
     {
-        // ÒÆ³ı¾ÉĞ§¹û
+        // ç§»é™¤æ—§æ•ˆæœ
         RemoveEffect(buff, parameters);
         
-        // ¼ÆËãµ±Ç°Ğ§¹ûÖµ
+        // è®¡ç®—å½“å‰æ•ˆæœå€¼
         float currentEffect = _baseEffect * buff.CurrentStacks;
         
-        // Ó¦ÓÃĞ§¹û
+        // åº”ç”¨æ•ˆæœ
         var attackPower = CombineGamePropertyManager.GetGameProperty("AttackPower");
         if (attackPower != null)
         {
             var modifier = new FloatModifier(ModifierType.Add, 0, currentEffect);
             attackPower.AddModifier(modifier);
             
-            // ´æ´¢modifierÒÔ±ãºóĞøÒÆ³ı
+            // å­˜å‚¨modifierä»¥ä¾¿åç»­ç§»é™¤
             buff.BuffData.CustomData["CurrentModifier"] = modifier;
         }
     }
@@ -412,10 +412,10 @@ public class StackableEffectModule : BuffModule
     }
 }
 
-// Ìí¼ÓModule
-stackableBuff.BuffModules.Add(new StackableEffectModule(5f));  // Ã¿²ãÔö¼Ó5µã¹¥»÷Á¦
+// æ·»åŠ Module
+stackableBuff.BuffModules.Add(new StackableEffectModule(5f));  // æ¯å±‚å¢åŠ 5ç‚¹æ”»å‡»åŠ›
 ```
 
 ---
 
-Í¨¹ıºÏÀí×éºÏBuffDataºÍModule£¬¿ÉÒÔ´´½¨¸÷ÖÖ¸´ÔÓµÄÓÎÏ·Ğ§¹û¡£BuffÏµÍ³µÄÄ£¿é»¯Éè¼ÆÊ¹µÃ²»Í¬µÄĞ§¹ûÂß¼­¿ÉÒÔ·ÖÀë²¢ÖØ¸´Ê¹ÓÃ£¬·½±ãÀ©Õ¹ºÍÎ¬»¤¡£
+é€šè¿‡åˆç†ç»„åˆBuffDataå’ŒModuleï¼Œå¯ä»¥åˆ›å»ºå„ç§å¤æ‚çš„æ¸¸æˆæ•ˆæœã€‚Buffç³»ç»Ÿçš„æ¨¡å—åŒ–è®¾è®¡ä½¿å¾—ä¸åŒçš„æ•ˆæœé€»è¾‘å¯ä»¥åˆ†ç¦»å¹¶é‡å¤ä½¿ç”¨ï¼Œæ–¹ä¾¿æ‰©å±•å’Œç»´æŠ¤ã€‚
