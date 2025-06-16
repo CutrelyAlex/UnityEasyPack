@@ -2,24 +2,12 @@ using System;
 
 namespace RPGPack
 {
-    [Serializable]
-    public enum ModifierType
-    {
-        None,
-        Add,
-        AfterAdd,
-        PriorityAdd,
-        Mul,
-        PriorityMul,
-        Override,
-        Clamp,
-    }
+
 
     public class FloatModifier : IModifier<float>
     {
         public ModifierType Type { get; }
         public int Priority { get; set; }
-        public bool isPriority { get; set; } = false;
         public float Value { get; set; }
 
         public FloatModifier(ModifierType type, int priority, float value)

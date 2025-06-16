@@ -1,16 +1,5 @@
 ﻿using UnityEngine;
 
-/// 使用规范（推荐）
-/// 1. 所有可被Buff、Debuff、装备、成长等动态影响的属性，优先使用 CombineGameProperty（如 CombinePropertyClassic/Single/Custom），避免直接操作 GameProperty。
-/// 2. 静态属性（如最大生命、护甲、攻击力等）变化，务必通过修饰器（Modifier）实现，禁止直接修改 GameProperty 的基础值（SetBaseValue），以便属性变动可追踪、可撤销、可序列化。
-/// 3. 动态属性（如当前生命、当前魔法等）可用单独 GameProperty 或者 SingleProperty 表示（建议使用后者，因为可以直接管理），允许直接 SetBaseValue，不建议通过修饰器叠加。
-/// 4. 所有游戏内的 Buff/Debuff 效果，必须通过 BuffManager 进行添加、移除和生命周期管理，Buff 的属性变动通过其携带的 Modifier 实现，禁止手动对属性添加/移除 Modifier 来实现Buff效果。
-/// 5. 静态属性的所有增减、乘除、限制（Clamp）等变动，均应通过 ModifierType 体系实现，建议避免自定义“特殊处理”绕过修饰器体系，除非修饰器体系不足以完成逻辑。
-/// 6. 组合属性（CombineGameProperty）统一由 CombineGamePropertyManager 管理，便于批量查询、序列化、保存与还原。
-/// 7. 需要保存/还原的属性，优先使用 GamePropertySerializer 进行序列化与反序列化，避免直接存储 GameProperty 实例。
-/// 8. BuffManager 只管理 GameProperty 的 Buff，不直接管理 CombineGameProperty；如需对组合属性生效，应操作其 ResultHolder 或相关子属性。
-/// 9. 禁止跨系统直接操作属性的 Modifiers 列表，所有修饰器的增删应通过 AddModifier/RemoveModifier/相关 BuffManager 方法完成。
-/// 10. 若需监听属性变动，建议使用 GameProperty.OnValueChanged 事件，避免轮询。
 
 namespace RPGPack
 {
@@ -18,9 +7,9 @@ namespace RPGPack
     {
         void Start()
         {
-            //Test_RPG_AttackPower_Complex();
-            //Test_MultiCombinePropertyCustom_ShareGameProperty();
-            //Test_CyclicDependency_Detection();
+            Test_RPG_AttackPower_Complex();
+            Test_MultiCombinePropertyCustom_ShareGameProperty();
+            Test_CyclicDependency_Detection();
             Example_PropertyWithDependencies();
             Example();
         }
@@ -65,11 +54,10 @@ namespace RPGPack
             Debug.Log($"[CombinePropertyClassic] 计算结果: {classic.GetValue()}");
 
             // 示例4：使用管理器管理属性
-            var manager = new CombineGamePropertyManager();
-            manager.AddOrUpdate(classic);
-            manager.AddOrUpdate(single);
+            CombineGamePropertyManager.AddOrUpdate(classic);
+            CombineGamePropertyManager.AddOrUpdate(single);
 
-            foreach (var p in manager.GetAll())
+            foreach (var p in CombineGamePropertyManager.GetAll())
             {
                 Debug.Log($"[Manager] 属性ID: {p.ID}, 当前值: {p.GetValue()}");
             }

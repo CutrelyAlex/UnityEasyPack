@@ -264,6 +264,7 @@ namespace RPGPack
         /// 向此属性添加一个修饰器，并标记为脏。
         /// </summary>
         /// <param name="modifier">要添加的修饰器。</param>
+
         public IProperty<float> AddModifier(IModifier modifier)
         {
             Modifiers.Add(modifier);
@@ -337,116 +338,24 @@ namespace RPGPack
                 return;
             var groupedModifiers = Modifiers.GroupBy(m => m.Type).ToDictionary(g => g.Key, g => g.ToList());
 
-            ProcessModifier(ref ret, ModifierType.Add, groupedModifiers);
-            ProcessModifier(ref ret, ModifierType.PriorityAdd, groupedModifiers);
-            ProcessModifier(ref ret, ModifierType.Mul, groupedModifiers);
-            ProcessModifier(ref ret, ModifierType.PriorityMul, groupedModifiers);
-            ProcessModifier(ref ret, ModifierType.AfterAdd, groupedModifiers);
-            ProcessModifier(ref ret, ModifierType.Clamp, groupedModifiers);
-            ProcessModifier(ref ret, ModifierType.Override, groupedModifiers);
+            ApplyModifierByType(ref ret, ModifierType.Add, groupedModifiers);
+            ApplyModifierByType(ref ret, ModifierType.PriorityAdd, groupedModifiers);
+            ApplyModifierByType(ref ret, ModifierType.Mul, groupedModifiers);
+            ApplyModifierByType(ref ret, ModifierType.PriorityMul, groupedModifiers);
+            ApplyModifierByType(ref ret, ModifierType.AfterAdd, groupedModifiers);
+            ApplyModifierByType(ref ret, ModifierType.Clamp, groupedModifiers);
+            ApplyModifierByType(ref ret, ModifierType.Override, groupedModifiers);
         }
 
-        private void ProcessModifier(ref float value, ModifierType modifierType, Dictionary<ModifierType, List<IModifier>> groupedModifiers)
+        private void ApplyModifierByType(ref float value, ModifierType type, Dictionary<ModifierType, List<IModifier>> groupedModifiers)
         {
-            if (!groupedModifiers.TryGetValue(modifierType, out var modifiers))
+            if (!groupedModifiers.TryGetValue(type, out var modifiers))
                 return;
 
-            var floatMods = modifiers.OfType<FloatModifier>().ToList();
-            var rangeMods = modifiers.OfType<RangeModifier>().ToList();
-
-            switch (modifierType)
-            {
-                case ModifierType.Add:
-                {
-                    var floatAdd = floatMods.Sum(m => m.Value);
-                    var rangeAdd = rangeMods.Sum(m => UnityEngine.Random.Range(m.Value.x, m.Value.y));
-                    value += floatAdd + rangeAdd;
-                    break;
-                }
-                case ModifierType.PriorityAdd:
-                {
-                    var priorityFloatAdd = floatMods.OrderByDescending(m => m.Priority).FirstOrDefault()?.Value ?? 0f;
-                    var priorityRangeMod = rangeMods.OrderByDescending(m => m.Priority).FirstOrDefault();
-                    float priorityRangeAdd = priorityRangeMod != null ? UnityEngine.Random.Range(priorityRangeMod.Value.x, priorityRangeMod.Value.y) : 0f;
-
-                    if (floatMods.Any() && rangeMods.Any())
-                    {
-                        var floatPriority = floatMods.Max(m => m.Priority);
-                        var rangePriority = rangeMods.Max(m => m.Priority);
-                        value += floatPriority >= rangePriority ? priorityFloatAdd : priorityRangeAdd;
-                    }
-                    else
-                    {
-                        value += priorityFloatAdd + priorityRangeAdd;
-                    }
-                    break;
-                }
-                case ModifierType.Mul:
-                {
-                    var floatMul = floatMods.Aggregate(1f, (acc, m) => acc * m.Value);
-                    var rangeMul = rangeMods.Aggregate(1f, (acc, m) => acc * UnityEngine.Random.Range(m.Value.x, m.Value.y));
-                    value *= floatMul * rangeMul;
-                    break;
-                }
-                case ModifierType.PriorityMul:
-                {
-                    var priorityFloatMul = floatMods.OrderByDescending(m => m.Priority).FirstOrDefault()?.Value ?? 1f;
-                    var priorityRangeMod = rangeMods.OrderByDescending(m => m.Priority).FirstOrDefault();
-                    float priorityRangeMul = priorityRangeMod != null ? UnityEngine.Random.Range(priorityRangeMod.Value.x, priorityRangeMod.Value.y) : 1f;
-
-                    if (floatMods.Any() && rangeMods.Any())
-                    {
-                        var floatPriority = floatMods.Max(m => m.Priority);
-                        var rangePriority = rangeMods.Max(m => m.Priority);
-                        value *= floatPriority >= rangePriority ? priorityFloatMul : priorityRangeMul;
-                    }
-                    else
-                    {
-                        value *= priorityFloatMul * priorityRangeMul;
-                    }
-                    break;
-                }
-                case ModifierType.AfterAdd:
-                {
-                    var floatAfterAdd = floatMods.Sum(m => m.Value);
-                    var rangeAfterAdd = rangeMods.Sum(m => UnityEngine.Random.Range(m.Value.x, m.Value.y));
-                    value += floatAfterAdd + rangeAfterAdd;
-                    break;
-                }
-                case ModifierType.Override:
-                {
-                    var floatOverrideMod = floatMods.OrderByDescending(m => m.Priority).FirstOrDefault();
-                    var rangeOverrideMod = rangeMods.OrderByDescending(m => m.Priority).FirstOrDefault();
-
-                    if (floatOverrideMod != null && rangeOverrideMod != null)
-                    {
-                        value = floatOverrideMod.Priority >= rangeOverrideMod.Priority ?
-                                floatOverrideMod.Value :
-                                UnityEngine.Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);
-                    }
-                    else if (floatOverrideMod != null)
-                    {
-                        value = floatOverrideMod.Value;
-                    }
-                    else if (rangeOverrideMod != null)
-                    {
-                        value = UnityEngine.Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);
-                    }
-                    break;
-                }
-                case ModifierType.Clamp:
-                {
-                    var clampMod = rangeMods.OrderByDescending(m => m.Priority).FirstOrDefault();
-                    if (clampMod != null)
-                    {
-                        value = Mathf.Clamp(value, clampMod.Value.x, clampMod.Value.y);
-                    }
-                    break;
-                }
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(modifierType), modifierType, null);
-            }
+            var strategy = ModifierStrategyManager.GetStrategy(type);
+            strategy.Apply(ref value, modifiers);
         }
+
         #endregion
     }
 }

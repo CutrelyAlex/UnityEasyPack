@@ -13,12 +13,12 @@ namespace RPGPack
         private Dictionary<string, GameProperty> GameProperties { get; set; } = new Dictionary<string, GameProperty>();
         public string ID { get; }
 
-        private float _baseCombineValue;
+        private readonly float _baseCombineValue;
         public float GetBaseValue() => _baseCombineValue;
         public Func<ICombineGameProperty, float> Calculater { get; set; }
 
 
-        private GameProperty _resultHolder;
+        private readonly GameProperty _resultHolder;
         public GameProperty ResultHolder => _resultHolder;
 
         public float GetValue()
