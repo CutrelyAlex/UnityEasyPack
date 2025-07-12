@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 
 namespace EasyPack
@@ -8,10 +9,14 @@ namespace EasyPack
     {
         string ID { get; }
         string Name { get; }
+        string Type { get; } 
         string Description { get; }
         float Weight { get; }
         bool IsStackable { get; }
         int MaxStackCount { get; }
-        Dictionary<string, object> CustomAttributes { get; set; }
+        bool IsMultiSlot { get; }
+        Vector2Int Size { get; }
+        Dictionary<string, object> Attributes { get; set; }
+        IItem Clone();
     }
 }

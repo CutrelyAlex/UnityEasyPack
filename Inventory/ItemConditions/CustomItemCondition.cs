@@ -6,21 +6,21 @@ namespace EasyPack
     /// <summary>
     /// 物品条件检查接口，使用委托模式实现条件验证
     /// </summary>
-    public class ItemCondition
+    public class CustomItemCondition : IItemCondition
     {
         /// <summary>
         /// 用于验证物品的条件委托
         /// </summary>
         Func<IItem, bool> Condition { get; set; }
 
-        public ItemCondition(Func<IItem, bool> condition)
+        public CustomItemCondition(Func<IItem, bool> condition)
         {
-            Condition = condition ?? throw new ArgumentNullException(nameof(condition), "Condition delegate cannot be null.");
+            Condition = condition;
         }
 
         public void SetItemCondition(Func<IItem, bool> condition)
         {
-            Condition = condition ?? throw new ArgumentNullException(nameof(condition), "Condition delegate cannot be null.");
+            Condition = condition;
         }
 
 
@@ -33,7 +33,7 @@ namespace EasyPack
         { 
             if(Condition == null)
             {
-                throw new InvalidOperationException("Condition delegate is not set.");
+                return false;
             }
             return Condition(item);
         }
