@@ -56,7 +56,6 @@ namespace EasyPack
                 isContanierItem = this.isContanierItem
             };
 
-            // 深度复制属性字典
             if (this.Attributes != null)
             {
                 clone.Attributes = new Dictionary<string, object>();
@@ -66,7 +65,6 @@ namespace EasyPack
                 }
             }
 
-            // 深度复制容器列表（如果有的话）
             if (this.Containers != null && this.Containers.Count > 0)
             {
                 clone.Containers = new List<IContainer>(this.Containers);

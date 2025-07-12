@@ -47,14 +47,11 @@ public class LinerContainer : Container
         if (!sourceSlot.IsOccupied || sourceSlot.Item == null)
             return new MoveResult(false, "源槽位为空");
 
-        // 获取源槽位物品和数量
         var item = sourceSlot.Item;
         int count = sourceSlot.ItemCount;
 
-        // 检查物品是否可堆叠
         bool isStackable = item.IsStackable;
 
-        // 为非堆叠物品创建克隆
         IItem itemToAdd;
         if (!isStackable)
         {
@@ -85,11 +82,9 @@ public class LinerContainer : Container
         }
         else
         {
-            // 可堆叠物品可以直接使用原引用
             itemToAdd = item;
         }
 
-        // 尝试将物品添加到目标容器
         var addResult = targetContainer.AddItems(itemToAdd, count);
 
         if (addResult.result == AddItemResult.Success)
