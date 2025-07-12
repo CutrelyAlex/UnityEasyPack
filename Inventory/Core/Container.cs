@@ -34,15 +34,12 @@ public abstract class Container : IContainer
     {
         get
         {
-            // 如果是无限容量，则永远不会满
             if (Capacity <= 0)
                 return false;
 
-            // 如果槽位数量小于容量，容器不满
             if (_slots.Count < Capacity)
                 return false;
 
-            // 检查是否所有槽位都已被占用
             foreach (var slot in _slots)
             {
                 if (!slot.IsOccupied)
@@ -110,13 +107,11 @@ public abstract class Container : IContainer
                     }
                 }
 
-                // 没有可堆叠的槽位
                 if (!hasStackableSlot)
                     return AddItemResult.StackLimitReached;
             }
             else
             {
-                // 物品不可堆叠且容器已满
                 return AddItemResult.ContainerIsFull;
             }
         }
@@ -392,7 +387,6 @@ public abstract class Container : IContainer
             if (!targetSlot.CheckSlotCondition(item))
                 return (AddItemResult.ItemConditionNotMet, totalAdded);
 
-            // 尝试设置物品到槽位
             int addCount = item.IsStackable && item.MaxStackCount > 0 ?
                            Mathf.Min(remainingCount, item.MaxStackCount) :
                            remainingCount;
