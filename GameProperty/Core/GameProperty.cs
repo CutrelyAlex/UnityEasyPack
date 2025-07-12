@@ -1,16 +1,16 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 /// <summary>
-/// 表示RPGPack系统中可被修饰的float属性。
+/// 可被修饰的float属性。
 /// 支持修饰器、依赖关系和脏数据追踪。
 /// 可用于管理角色属性或其他可被buff、debuff等游戏逻辑影响的动态数值。
 /// 
 /// 一般情况下，优先使用CombineProperty而非GameProperty
 /// </summary>
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
 
-namespace RPGPack
+namespace EasyPack
 {
     public class GameProperty : IProperty<float>
     {

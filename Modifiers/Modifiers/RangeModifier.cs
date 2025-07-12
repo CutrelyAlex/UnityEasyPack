@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace RPGPack
+namespace EasyPack
 {
     public class RangeModifier : IModifier<Vector2>
     {

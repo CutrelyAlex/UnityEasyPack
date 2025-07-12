@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace RPGPack
+namespace EasyPack
 {
     /// <summary>
     /// ÐÞÊÎÆ÷²ßÂÔ½Ó¿Ú

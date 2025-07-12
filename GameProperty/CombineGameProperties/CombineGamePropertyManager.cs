@@ -1,4 +1,4 @@
-using RPGPack;
+using EasyPack;
 using System.Collections.Generic;
 
 public static class CombineGamePropertyManager

@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 
 
-namespace RPGPack
+namespace EasyPack
 {
     public class GamePropertyExample : MonoBehaviour
     {

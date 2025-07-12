@@ -7,7 +7,7 @@ using System;
 ///     策划：我要一个卡牌，这个卡牌可以让 反击伤害 增加  2*（2倍的攻击力 + 2 + 50% 的暴击伤害）*（1+50%）- 防御力*（1+50%）
 ///                                                         再并乘以攻击力的 50% 的百分比
 ///                                                         （特别复杂需求）
-namespace RPGPack
+namespace EasyPack
 {
     public interface ICombineGameProperty
     {

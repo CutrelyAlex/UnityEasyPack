@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace RPGPack
+namespace EasyPack
 {
     /// <summary>
     /// 后置加法修饰器策略

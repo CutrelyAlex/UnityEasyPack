@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace RPGPack
+namespace EasyPack
 {
     public class BuffData
     {

@@ -5,7 +5,7 @@
 /// </summary>
 
 using System;
-namespace RPGPack
+namespace EasyPack
 {
     public class CombinePropertySingle : ICombineGameProperty
     {

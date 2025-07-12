@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace RPGPack
+namespace EasyPack
 {
     public interface IProperty<out T>
     {

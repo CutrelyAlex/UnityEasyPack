@@ -1,6 +1,6 @@
 using System;
 
-namespace RPGPack
+namespace EasyPack
 {
 
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace RPGPack
+namespace EasyPack
 {
     /// <summary>
     /// 只负责Buff的生命周期管理和事件，不直接操作IProperty。

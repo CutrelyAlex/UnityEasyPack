@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace RPGPack
+namespace EasyPack
 {
     /// <summary>
     /// 游戏属性的可序列化表示形式，用于存储和传输

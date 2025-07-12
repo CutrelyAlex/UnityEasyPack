@@ -1,4 +1,4 @@
-namespace RPGPack
+namespace EasyPack
 {
     public interface IModifier
     {

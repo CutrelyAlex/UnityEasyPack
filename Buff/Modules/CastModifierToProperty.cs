@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace RPGPack
+namespace EasyPack
 {
     /// <summary>
     /// 一个BuffModule，用于将Modifier应用到GameProperty上。
