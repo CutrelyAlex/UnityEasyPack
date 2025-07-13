@@ -192,6 +192,11 @@ public class InventoryExample : MonoBehaviour
         var dropManaPotion = playerBackpack.RemoveItem("mana_potion", 3);
         Debug.Log($"丢弃结果: {(dropManaPotion == RemoveItemResult.Success ? "成功" : "失败")}");
 
+        // 过度移除
+        Debug.Log("试图移除30个面包...");
+        useBread = playerBackpack.RemoveItem("bread", 30);
+        Debug.Log($"使用结果: {(useBread == RemoveItemResult.Success ? "成功" : "失败")}");
+
         Debug.Log("物品使用后的背包内容:");
         DisplayInventoryContents(playerBackpack);
         Debug.Log("");

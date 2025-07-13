@@ -120,7 +120,52 @@ public abstract class Container : IContainer
     }
     #endregion
 
-    #region 物品操作
+    #region 物品查询
+    /// <summary>
+    /// 检查容器中是否包含指定ID的物品
+    /// </summary>
+    /// <param name="itemId">物品ID</param>
+    /// <returns>如果包含返回true，否则返回false</returns>
+    public bool ContainsItem(string itemId)
+    {
+        if (string.IsNullOrEmpty(itemId))
+            return false;
+
+        foreach (var slot in _slots)
+        {
+            if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 获取容器中指定ID物品的总数量
+    /// </summary>
+    /// <param name="itemId">物品ID</param>
+    /// <returns>物品总数量</returns>
+    public int GetItemCount(string itemId)
+    {
+        if (string.IsNullOrEmpty(itemId))
+            return 0;
+
+        int totalCount = 0;
+
+        foreach (var slot in _slots)
+        {
+            if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
+            {
+                totalCount += slot.ItemCount;
+            }
+        }
+
+        return totalCount;
+    }
+
+    #endregion
+
+    #region 物品堆叠
     /// <summary>
     /// 尝试将物品堆叠到已有相同物品的槽位
     /// </summary>
@@ -214,48 +259,9 @@ public abstract class Container : IContainer
         return 0;
     }
 
-    /// <summary>
-    /// 检查容器中是否包含指定ID的物品
-    /// </summary>
-    /// <param name="itemId">物品ID</param>
-    /// <returns>如果包含返回true，否则返回false</returns>
-    public bool ContainsItem(string itemId)
-    {
-        if (string.IsNullOrEmpty(itemId))
-            return false;
+    #endregion
 
-        foreach (var slot in _slots)
-        {
-            if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
-                return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// 获取容器中指定ID物品的总数量
-    /// </summary>
-    /// <param name="itemId">物品ID</param>
-    /// <returns>物品总数量</returns>
-    public int GetItemCount(string itemId)
-    {
-        if (string.IsNullOrEmpty(itemId))
-            return 0;
-
-        int totalCount = 0;
-
-        foreach (var slot in _slots)
-        {
-            if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
-            {
-                totalCount += slot.ItemCount;
-            }
-        }
-
-        return totalCount;
-    }
-
+    #region 移除物品
     /// <summary>
     /// 移除指定ID的物品
     /// </summary>
@@ -267,37 +273,50 @@ public abstract class Container : IContainer
         if (string.IsNullOrEmpty(itemId))
             return RemoveItemResult.InvalidItemId;
 
-        int remainingCount = count;
+        // 先检查物品总数是否足够
+        int totalCount = GetItemCount(itemId);
+        if (totalCount < count)
+            return RemoveItemResult.InsufficientQuantity;
 
-        for (int i = 0; i < _slots.Count; i++)
+        // 如果物品不存在
+        if (totalCount == 0)
+            return RemoveItemResult.ItemNotFound;
+
+        // 只有确认能够完全移除指定数量的物品时，才执行移除操作
+        int remainingCount = count;
+        List<(ISlot slot, int removeAmount)> removals = new List<(ISlot, int)>();
+
+        // 第一步：计算要从每个槽位移除的数量
+        for (int i = 0; i < _slots.Count && remainingCount > 0; i++)
         {
             var slot = _slots[i];
             if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
             {
                 int removeAmount = Mathf.Min(slot.ItemCount, remainingCount);
-
-                if (removeAmount == slot.ItemCount)
-                {
-                    slot.ClearSlot();
-                }
-                else
-                {
-                    slot.SetItem(slot.Item, slot.ItemCount - removeAmount);
-                }
-
+                removals.Add((slot, removeAmount));
                 remainingCount -= removeAmount;
-
-                if (remainingCount <= 0)
-                    return RemoveItemResult.Success;
             }
         }
 
-        // 如果移除了部分物品但数量不足
-        if (remainingCount < count)
-            return RemoveItemResult.InsufficientQuantity;
+        // 第二步：确认可以完全移除指定数量后，执行实际的移除操作
+        if (remainingCount == 0)
+        {
+            foreach (var removal in removals)
+            {
+                if (removal.removeAmount == removal.slot.ItemCount)
+                {
+                    removal.slot.ClearSlot();
+                }
+                else
+                {
+                    removal.slot.SetItem(removal.slot.Item, removal.slot.ItemCount - removal.removeAmount);
+                }
+            }
+            return RemoveItemResult.Success;
+        }
 
-        // 如果没有找到任何物品
-        return RemoveItemResult.ItemNotFound;
+        // 不应该走到这里，因为前面已经检查了总数量
+        return RemoveItemResult.Failed;
     }
 
     /// <summary>
@@ -305,14 +324,17 @@ public abstract class Container : IContainer
     /// </summary>
     /// <param name="index">槽位索引</param>
     /// <param name="count">移除数量</param>
+    /// <param name="expectedItemId">预期物品ID，用于验证</param>
     /// <returns>移除结果</returns>
     public virtual RemoveItemResult RemoveItemAtIndex(int index, int count = 1, string expectedItemId = null)
     {
+        // 检查槽位索引是否有效
         if (index < 0 || index >= _slots.Count)
             return RemoveItemResult.SlotNotFound;
 
         var slot = _slots[index];
 
+        // 检查槽位是否有物品
         if (!slot.IsOccupied || slot.Item == null)
             return RemoveItemResult.ItemNotFound;
 
@@ -320,9 +342,11 @@ public abstract class Container : IContainer
         if (!string.IsNullOrEmpty(expectedItemId) && slot.Item.ID != expectedItemId)
             return RemoveItemResult.InvalidItemId;
 
+        // 检查物品数量是否足够
         if (slot.ItemCount < count)
             return RemoveItemResult.InsufficientQuantity;
 
+        // 所有检查都通过，执行移除操作
         if (slot.ItemCount - count <= 0)
         {
             slot.ClearSlot();
@@ -336,7 +360,7 @@ public abstract class Container : IContainer
     }
     #endregion
 
-
+    #region 添加物品
     /// <summary>
     /// 添加指定数量的物品到容器
     /// </summary>
@@ -505,4 +529,5 @@ public abstract class Container : IContainer
     {
         return AddItems(item, out _, count, slotIndex);
     }
+    #endregion
 }
