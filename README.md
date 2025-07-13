@@ -14,5 +14,5 @@
 
 ## 下一步
 - [x] 重构Buff系统
-- [ ] 背包系统(InventoryKit)
+- [x] 背包系统(InventoryKit) **进行中**
 - [ ] 方便的添加SO、Database、编辑甚至是编辑器
