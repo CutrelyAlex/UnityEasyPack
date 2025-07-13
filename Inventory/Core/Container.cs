@@ -266,6 +266,258 @@ public abstract class Container : IContainer
         return totalCount;
     }
 
+    /// <summary>
+    /// 按类型查询物品
+    /// </summary>
+    /// <param name="itemType">物品类型</param>
+    /// <returns>符合类型的物品列表，包含槽位索引、物品引用和数量</returns>
+    public List<(int slotIndex, IItem item, int count)> FindItemsByType(string itemType)
+    {
+        var result = new List<(int slotIndex, IItem item, int count)>();
+
+        if (string.IsNullOrEmpty(itemType))
+            return result;
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            var slot = _slots[i];
+            if (slot.IsOccupied && slot.Item != null && slot.Item.Type == itemType)
+            {
+                result.Add((i, slot.Item, slot.ItemCount));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 按属性查询物品
+    /// </summary>
+    /// <param name="attributeName">属性名称</param>
+    /// <param name="attributeValue">属性值</param>
+    /// <returns>符合属性条件的物品列表，包含槽位索引、物品引用和数量</returns>
+    public List<(int slotIndex, IItem item, int count)> FindItemsByAttribute(string attributeName, object attributeValue)
+    {
+        var result = new List<(int slotIndex, IItem item, int count)>();
+
+        if (string.IsNullOrEmpty(attributeName))
+            return result;
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            var slot = _slots[i];
+            if (slot.IsOccupied && slot.Item != null &&
+                slot.Item.Attributes != null &&
+                slot.Item.Attributes.TryGetValue(attributeName, out var value) &&
+                (attributeValue == null || value.Equals(attributeValue)))
+            {
+                result.Add((i, slot.Item, slot.ItemCount));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 按条件查询物品
+    /// </summary>
+    /// <param name="condition">条件委托</param>
+    /// <returns>符合条件的物品列表，包含槽位索引、物品引用和数量</returns>
+    public List<(int slotIndex, IItem item, int count)> FindItems(System.Func<IItem, bool> condition)
+    {
+        var result = new List<(int slotIndex, IItem item, int count)>();
+
+        if (condition == null)
+            return result;
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            var slot = _slots[i];
+            if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
+            {
+                result.Add((i, slot.Item, slot.ItemCount));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 获取物品所在的槽位索引
+    /// </summary>
+    /// <param name="itemId">物品ID</param>
+    /// <param name="skipEmptySlots">是否跳过数量为0的槽位</param>
+    /// <returns>物品所在的槽位索引列表</returns>
+    public List<int> GetItemSlotIndices(string itemId, bool skipEmptySlots = true)
+    {
+        var result = new List<int>();
+
+        if (string.IsNullOrEmpty(itemId))
+            return result;
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            var slot = _slots[i];
+            if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
+            {
+                if (!skipEmptySlots || slot.ItemCount > 0)
+                {
+                    result.Add(i);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 获取第一个包含指定物品ID的槽位索引
+    /// </summary>
+    /// <param name="itemId">物品ID</param>
+    /// <returns>找到的槽位索引，如果没找到返回-1</returns>
+    public int GetFirstItemSlotIndex(string itemId)
+    {
+        if (string.IsNullOrEmpty(itemId))
+            return -1;
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            var slot = _slots[i];
+            if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// 获取容器中所有物品的ID和总数量
+    /// </summary>
+    /// <returns>物品ID和总数量的字典</returns>
+    public Dictionary<string, int> GetAllItemCounts()
+    {
+        var result = new Dictionary<string, int>();
+
+        foreach (var slot in _slots)
+        {
+            if (slot.IsOccupied && slot.Item != null)
+            {
+                string itemId = slot.Item.ID;
+                int count = slot.ItemCount;
+
+                if (result.ContainsKey(itemId))
+                {
+                    result[itemId] += count;
+                }
+                else
+                {
+                    result[itemId] = count;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 获取容器中所有的物品，按槽位顺序
+    /// </summary>
+    /// <returns>槽位索引、物品和数量的列表</returns>
+    public List<(int slotIndex, IItem item, int count)> GetAllItems()
+    {
+        var result = new List<(int slotIndex, IItem item, int count)>();
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            var slot = _slots[i];
+            if (slot.IsOccupied && slot.Item != null)
+            {
+                result.Add((i, slot.Item, slot.ItemCount));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 获取容器中所有不同类型的物品数量
+    /// </summary>
+    /// <returns>不同类型的物品总数</returns>
+    public int GetUniqueItemCount()
+    {
+        return GetAllItemCounts().Count;
+    }
+
+    /// <summary>
+    /// 检查容器是否为空
+    /// </summary>
+    /// <returns>如果容器为空返回true，否则返回false</returns>
+    public bool IsEmpty()
+    {
+        foreach (var slot in _slots)
+        {
+            if (slot.IsOccupied && slot.Item != null && slot.ItemCount > 0)
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// 获取容器当前占用的总重量
+    /// </summary>
+    /// <returns>总重量</returns>
+    public float GetTotalWeight()
+    {
+        float totalWeight = 0;
+
+        foreach (var slot in _slots)
+        {
+            if (slot.IsOccupied && slot.Item != null)
+            {
+                totalWeight += slot.Item.Weight * slot.ItemCount;
+            }
+        }
+
+        return totalWeight;
+    }
+
+    /// <summary>
+    /// 检查容器中是否有足够数量的指定物品
+    /// </summary>
+    /// <param name="itemId">物品ID</param>
+    /// <param name="requiredCount">需要的数量</param>
+    /// <returns>如果有足够数量返回true，否则返回false</returns>
+    public bool HasEnoughItems(string itemId, int requiredCount)
+    {
+        return GetItemCount(itemId) >= requiredCount;
+    }
+
+    /// <summary>
+    /// 通过名称模糊查询物品
+    /// </summary>
+    /// <param name="namePattern">名称模式，支持部分匹配</param>
+    /// <returns>符合名称模式的物品列表</returns>
+    public List<(int slotIndex, IItem item, int count)> FindItemsByName(string namePattern)
+    {
+        var result = new List<(int slotIndex, IItem item, int count)>();
+
+        if (string.IsNullOrEmpty(namePattern))
+            return result;
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            var slot = _slots[i];
+            if (slot.IsOccupied && slot.Item != null &&
+                slot.Item.Name != null && slot.Item.Name.Contains(namePattern))
+            {
+                result.Add((i, slot.Item, slot.ItemCount));
+            }
+        }
+
+        return result;
+    }
     #endregion
 
     #region 物品堆叠
