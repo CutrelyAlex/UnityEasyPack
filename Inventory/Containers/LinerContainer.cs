@@ -85,27 +85,27 @@ public class LinerContainer : Container
             itemToAdd = item;
         }
 
-        var addResult = targetContainer.AddItems(itemToAdd, count);
+        var (result, addedCount) = targetContainer.AddItems(itemToAdd, count);
 
-        if (addResult.result == AddItemResult.Success)
+        if (result == AddItemResult.Success)
         {
             // 完全移动
-            if (addResult.addedCount == count)
+            if (addedCount == count)
             {
                 // 清除源槽位
                 sourceSlot.ClearSlot();
                 return new MoveResult(true, $"成功移动全部{count}个物品");
             }
             // 部分移动
-            else if (addResult.addedCount > 0)
+            else if (addedCount > 0)
             {
                 // 更新源槽位的物品数量
-                sourceSlot.SetItem(item, count - addResult.addedCount);
-                return new MoveResult(true, $"成功移动{addResult.addedCount}个物品，剩余{count - addResult.addedCount}个");
+                sourceSlot.SetItem(item, count - addedCount);
+                return new MoveResult(true, $"成功移动{addedCount}个物品，剩余{count - addedCount}个");
             }
         }
 
-        return new MoveResult(false, $"移动失败: {addResult.result}");
+        return new MoveResult(false, $"移动失败: {result}");
     }
     /// <summary>
     /// 整理容器
