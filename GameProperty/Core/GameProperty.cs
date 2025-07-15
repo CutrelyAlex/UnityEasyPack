@@ -56,34 +56,71 @@ namespace EasyPack
         /// 获取应用所有修饰器和依赖后的当前属性值。
         /// </summary>
         /// <returns>计算后的float值。</returns>
+        //public float GetValue()
+        //{
+        //    // 刷新依赖
+        //    foreach (var dep in _dependencies)
+        //    {
+        //        dep.GetValue();
+        //    }
+
+        //    // 如果有随机数值或依赖中有随机数，那应当每次获取都计算
+        //    bool needsRecalculation = _hasNonClampRangeModifier || _hasRandomDependency || _isDirty;
+
+        //    if (needsRecalculation)
+        //    {
+        //        var oldValue = _cacheValue;
+        //        var ret = _baseValue;
+
+        //        // 直接使用预分组的修饰器，避免每次重新分组
+        //        ApplyModify(ref ret);
+        //        _cacheValue = ret;
+
+        //        // 只有在非随机情况下才清除脏标记
+        //        if (!(_hasNonClampRangeModifier || _hasRandomDependency))
+        //            _isDirty = false;
+
+        //        if (!oldValue.Equals(_cacheValue))
+        //        {
+        //            OnValueChanged?.Invoke(oldValue, _cacheValue);
+        //        }
+        //    }
+
+        //    return _cacheValue;
+        //}
+
+
         public float GetValue()
         {
-            // 刷新依赖
-            foreach (var dep in _dependencies)
+            bool needsRecalculation = _hasNonClampRangeModifier || _hasRandomDependency || _isDirty;
+
+            if (!needsRecalculation)
+                return _cacheValue;
+
+            // 仅在需要时刷新依赖
+            if (_isDirty)
             {
-                dep.GetValue();
+                foreach (var dep in _dependencies)
+                {
+                    dep.GetValue();
+                }
             }
 
-            // 如果有随机数值或依赖中有随机数，那应当每次获取都计算
-            bool hasRandomModifiers = HasNonClampRangeModifiers() || _hasRandomDependency; 
+            var oldValue = _cacheValue;
+            var ret = _baseValue;
 
-            // 如果有随机修饰器或者属性已脏，则重新计算
-            if (hasRandomModifiers || _isDirty)
+            // 优化的修饰器应用
+            OptimizedApplyModifiers(ref ret);
+            _cacheValue = ret;
+
+            // 只有在非随机情况下才清除脏标记
+            if (!(_hasNonClampRangeModifier || _hasRandomDependency))
+                _isDirty = false;
+
+            // 仅在值真正变化时触发事件
+            if (!oldValue.Equals(_cacheValue))
             {
-                var oldValue = _cacheValue;
-                var ret = _baseValue;
-
-                ApplyModify(ref ret);
-                _cacheValue = ret;
-
-                // 只有在非随机情况下才清除脏标记
-                if (!hasRandomModifiers)
-                    _isDirty = false;
-
-                if (!oldValue.Equals(_cacheValue))
-                {
-                    OnValueChanged?.Invoke(oldValue, _cacheValue);
-                }
+                OnValueChanged?.Invoke(oldValue, _cacheValue);
             }
 
             return _cacheValue;
@@ -259,6 +296,8 @@ namespace EasyPack
         /// 获取应用于此属性的修饰器列表。
         /// </summary>
         public List<IModifier> Modifiers { get; }
+        private Dictionary<ModifierType, List<IModifier>> _groupedModifiers = new();
+        private bool _hasNonClampRangeModifier = false;
 
         /// <summary>
         /// 向此属性添加一个修饰器，并标记为脏。
@@ -267,7 +306,23 @@ namespace EasyPack
 
         public IProperty<float> AddModifier(IModifier modifier)
         {
+            // 添加到总列表
             Modifiers.Add(modifier);
+
+            // 预分组
+            if (!_groupedModifiers.TryGetValue(modifier.Type, out var list))
+            {
+                list = new List<IModifier>();
+                _groupedModifiers[modifier.Type] = list;
+            }
+            list.Add(modifier);
+
+            // 预检查随机修饰器
+            if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
+            {
+                _hasNonClampRangeModifier = true;
+            }
+
             MakeDirty();
             return this;
         }
@@ -322,6 +377,17 @@ namespace EasyPack
             return this;
         }
 
+        public IProperty<float> RemoveModifier(int index)
+        {             
+            if (index < 0 || index >= Modifiers.Count)
+            {
+                return this;
+            }
+            Modifiers.RemoveAt(index);
+            MakeDirty();
+            return this;
+        }
+
 
         /// <summary>
         /// 检查是否存在非Clamp类型的RangeModifier
@@ -334,28 +400,55 @@ namespace EasyPack
 
         private void ApplyModify(ref float ret)
         {
-            if (Modifiers.Count == 0)
-                return;
-            var groupedModifiers = Modifiers.GroupBy(m => m.Type).ToDictionary(g => g.Key, g => g.ToList());
-
-            ApplyModifierByType(ref ret, ModifierType.Add, groupedModifiers);
-            ApplyModifierByType(ref ret, ModifierType.PriorityAdd, groupedModifiers);
-            ApplyModifierByType(ref ret, ModifierType.Mul, groupedModifiers);
-            ApplyModifierByType(ref ret, ModifierType.PriorityMul, groupedModifiers);
-            ApplyModifierByType(ref ret, ModifierType.AfterAdd, groupedModifiers);
-            ApplyModifierByType(ref ret, ModifierType.Clamp, groupedModifiers);
-            ApplyModifierByType(ref ret, ModifierType.Override, groupedModifiers);
+                // 按顺序应用各类型修饰器，直接从预分组字典获取
+                ApplyModifierByType(ref ret, ModifierType.Add);
+                ApplyModifierByType(ref ret, ModifierType.PriorityAdd);
+                ApplyModifierByType(ref ret, ModifierType.Mul);
+                ApplyModifierByType(ref ret, ModifierType.PriorityMul);
+                ApplyModifierByType(ref ret, ModifierType.AfterAdd);
+                ApplyModifierByType(ref ret, ModifierType.Clamp);
+                ApplyModifierByType(ref ret, ModifierType.Override);
         }
 
-        private void ApplyModifierByType(ref float value, ModifierType type, Dictionary<ModifierType, List<IModifier>> groupedModifiers)
+        private void ApplyModifierByType(ref float value, ModifierType type)
         {
-            if (!groupedModifiers.TryGetValue(type, out var modifiers))
+            if (!_groupedModifiers.TryGetValue(type, out var modifiers) || modifiers.Count == 0)
                 return;
-
             var strategy = ModifierStrategyManager.GetStrategy(type);
             strategy.Apply(ref value, modifiers);
         }
 
+        // 缓存策略
+        private static readonly Dictionary<ModifierType, IModifierStrategy> _cachedStrategies = new();
+
+        // 获取或缓存策略
+        private static IModifierStrategy GetCachedStrategy(ModifierType type)
+        {
+            if (!_cachedStrategies.TryGetValue(type, out var strategy))
+            {
+                strategy = ModifierStrategyManager.GetStrategy(type);
+                _cachedStrategies[type] = strategy;
+            }
+            return strategy;
+        }
+
+        private void OptimizedApplyModifiers(ref float value)
+        {
+            if (_groupedModifiers.Count == 0)
+                return;
+
+            // 按优先级应用修饰器类型
+            foreach (ModifierType type in Enum.GetValues(typeof(ModifierType)))
+            {
+                if (type == ModifierType.None) continue;
+
+                if (_groupedModifiers.TryGetValue(type, out var modifiers) && modifiers.Count > 0)
+                {
+                    var strategy = GetCachedStrategy(type);
+                    strategy.Apply(ref value, modifiers);
+                }
+            }
+        }
         #endregion
     }
 }
