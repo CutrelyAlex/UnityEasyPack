@@ -75,7 +75,7 @@ namespace EasyPack
             var oldValue = _cacheValue;
             var ret = _baseValue;
 
-            // 优化的修饰器应用
+            // 修饰器应用
             ApplyModifiers(ref ret);
             _cacheValue = ret;
 
