@@ -11,9 +11,9 @@ public class InventoryExample : MonoBehaviour
     private void Start()
     {
         // 测试
-        Test();
+        // Test();
         // 启动实际使用案例展示
-        // ShowInventoryUseCases();
+         ShowInventoryUseCases();
     }
 
 
@@ -494,7 +494,6 @@ public class InventoryExample : MonoBehaviour
         Debug.Log("整理后的背包内容(按物品类型和名称排序):");
         DisplayInventoryContents(playerBackpack);
         Debug.Log("物品已按照类型(A消耗品 > B武器 > C防具 > D食物 > E货币)和名称排序");
-        Debug.Log("");
     }
 
     // 辅助方法: 创建游戏物品

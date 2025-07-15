@@ -60,11 +60,12 @@ namespace EasyPack
             if (item == null)
                 return false;
 
+            //if (IsOccupied)
+            //    return false;
+
             if (SlotCondition != null && !SlotCondition.IsCondition(item))
                 return false;
 
-            if (IsOccupied)
-                return false;
 
             return true;
         }
