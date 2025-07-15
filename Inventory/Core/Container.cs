@@ -345,6 +345,32 @@ public abstract class Container : IContainer
         return result;
     }
 
+    // 在 Container 类中添加缓存字典
+    private readonly Dictionary<string, List<int>> _itemSlotIndexCache = new Dictionary<string, List<int>>();
+    private void UpdateItemCache(string itemId, int slotIndex, bool isAdding)
+    {
+        if (string.IsNullOrEmpty(itemId))
+            return;
+
+        if (isAdding)
+        {
+            if (!_itemSlotIndexCache.ContainsKey(itemId))
+                _itemSlotIndexCache[itemId] = new List<int>();
+
+            if (!_itemSlotIndexCache[itemId].Contains(slotIndex))
+                _itemSlotIndexCache[itemId].Add(slotIndex);
+        }
+        else
+        {
+            if (_itemSlotIndexCache.ContainsKey(itemId) && _itemSlotIndexCache[itemId].Contains(slotIndex))
+                _itemSlotIndexCache[itemId].Remove(slotIndex);
+
+            if (_itemSlotIndexCache.ContainsKey(itemId) && _itemSlotIndexCache[itemId].Count == 0)
+                _itemSlotIndexCache.Remove(itemId);
+        }
+    }
+
+
     /// <summary>
     /// 获取物品所在的槽位索引
     /// </summary>
@@ -353,11 +379,21 @@ public abstract class Container : IContainer
     /// <returns>物品所在的槽位索引列表</returns>
     public List<int> GetItemSlotIndices(string itemId, bool skipEmptySlots = true)
     {
-        var result = new List<int>();
-
         if (string.IsNullOrEmpty(itemId))
-            return result;
+            return new List<int>();
 
+        // 使用缓存
+        if (_itemSlotIndexCache.TryGetValue(itemId, out var indices))
+        {
+            if (!skipEmptySlots)
+                return new List<int>(indices);
+
+            // 过滤空槽位
+            return indices.Where(i => _slots[i].ItemCount > 0).ToList();
+        }
+
+        // 缓存未命中，使用原始方法并更新缓存
+        var result = new List<int>();
         for (int i = 0; i < _slots.Count; i++)
         {
             var slot = _slots[i];
@@ -366,10 +402,11 @@ public abstract class Container : IContainer
                 if (!skipEmptySlots || slot.ItemCount > 0)
                 {
                     result.Add(i);
+                    // 更新缓存
+                    UpdateItemCache(itemId, i, true);
                 }
             }
         }
-
         return result;
     }
 

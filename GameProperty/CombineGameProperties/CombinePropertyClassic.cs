@@ -38,6 +38,7 @@ namespace EasyPack
         {
             _resultHolder = new GameProperty(0, id + "@ResultHolder");
             ID = id;
+            _baseCombineValue = BaseValue;
             RegisterProperty(new GameProperty(BaseValue, ConfigProperty));
             RegisterProperty(new GameProperty(0, IncreaseValue));
             RegisterProperty(new GameProperty(0, IncreaseMul));

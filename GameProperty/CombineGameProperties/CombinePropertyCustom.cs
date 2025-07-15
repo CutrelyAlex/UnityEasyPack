@@ -28,10 +28,11 @@ namespace EasyPack
             return _resultHolder.GetValue();
         }
 
-        public CombinePropertyCustom(string id, float initValue = 0)
+        public CombinePropertyCustom(string id, float baseValue = 0)
         {
             ID = id;
-            _resultHolder = new GameProperty(initValue, id + "@ResultHolder");
+            _baseCombineValue = baseValue;
+            _resultHolder = new GameProperty(baseValue, id + "@ResultHolder");
         }
 
         public GameProperty RegisterProperty(GameProperty gameProperty)

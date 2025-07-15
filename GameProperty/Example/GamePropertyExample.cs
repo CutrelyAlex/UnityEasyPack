@@ -8,11 +8,11 @@ namespace EasyPack
     {
         void Start()
         {
-            //Test_RPG_AttackPower_Complex();
-            //Test_MultiCombinePropertyCustom_ShareGameProperty();
-            //Test_CyclicDependency_Detection();
-            //Example_PropertyWithDependencies();
-            //Example();
+            Test_RPG_AttackPower_Complex();
+            Test_MultiCombinePropertyCustom_ShareGameProperty();
+            Test_CyclicDependency_Detection();
+            Example_PropertyWithDependencies();
+            Example();
 
             Test_GameProperty_ModifierOperations();
         }
