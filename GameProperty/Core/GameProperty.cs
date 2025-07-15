@@ -312,7 +312,7 @@ namespace EasyPack
         {
             foreach (var modifier in modifiers)
             {
-                Modifiers.Add(modifier);
+                AddModifier(modifier);
             }
             MakeDirty();
             return this;
@@ -326,7 +326,7 @@ namespace EasyPack
         {
             foreach (var modifier in modifiers)
             {
-                Modifiers.Remove(modifier);
+                RemoveModifier(modifier);
             }
 
             _hasNonClampRangeModifier = HasNonClampRangeModifiers();

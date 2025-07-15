@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 
 namespace EasyPack
@@ -7,11 +8,13 @@ namespace EasyPack
     {
         void Start()
         {
-            Test_RPG_AttackPower_Complex();
-            Test_MultiCombinePropertyCustom_ShareGameProperty();
-            Test_CyclicDependency_Detection();
-            Example_PropertyWithDependencies();
-            Example();
+            //Test_RPG_AttackPower_Complex();
+            //Test_MultiCombinePropertyCustom_ShareGameProperty();
+            //Test_CyclicDependency_Detection();
+            //Example_PropertyWithDependencies();
+            //Example();
+
+            Test_GameProperty_ModifierOperations();
         }
 
         void Example()
@@ -363,6 +366,80 @@ namespace EasyPack
             Debug.Log("\n装备特效触发，力量翻倍!");
             strength.AddModifier(new FloatModifier(ModifierType.Mul, 0, 2.0f)); // 力量翻倍
             Debug.Log($"  力量: {strength.GetValue()}, 攻击力: {attackPower.GetValue()}, DPS: {dps.GetValue()}");
+        }
+
+        /// <summary>
+        /// 测试GameProperty添加和移除修饰器的各种操作
+        /// </summary>
+        void Test_GameProperty_ModifierOperations()
+        {
+            Debug.Log("=== Test_GameProperty_ModifierOperations ===");
+
+            // 创建一个基本属性
+            var prop = new GameProperty("TestProp", 100f);
+            Debug.Log($"初始值: {prop.GetValue()}");
+
+            // 添加一些修饰器
+            var addMod = new FloatModifier(ModifierType.Add, 0, 50f);  // +50
+            var mulMod = new FloatModifier(ModifierType.Mul, 0, 1.5f); // ×1.5
+            var clampMod = new RangeModifier(ModifierType.Clamp, 0, new Vector2(0, 200)); // 限制范围0-200
+
+            // 添加Add修饰器并测试
+            prop.AddModifier(addMod);
+            float value1 = prop.GetValue();
+            Debug.Log($"添加Add修饰器后: {value1}");
+            Debug.Assert(Mathf.Approximately(value1, 150f), $"添加Add修饰器后值错误: {value1}，期望值: 150");
+
+            // 添加Mul修饰器并测试
+            prop.AddModifier(mulMod);
+            float value2 = prop.GetValue();
+            Debug.Log($"添加Mul修饰器后: {value2}");
+            Debug.Assert(Mathf.Approximately(value2, 225f), $"添加Mul修饰器后值错误: {value2}，期望值: 225");
+
+            // 添加Clamp修饰器并测试
+            prop.AddModifier(clampMod);
+            float value3 = prop.GetValue();
+            Debug.Log($"添加Clamp修饰器后: {value3}");
+            Debug.Assert(Mathf.Approximately(value3, 200f), $"添加Clamp修饰器后值错误: {value3}，期望值: 200");
+
+            // 移除Clamp修饰器并测试
+            prop.RemoveModifier(clampMod);
+            float value4 = prop.GetValue();
+            Debug.Log($"移除Clamp修饰器后: {value4}");
+            Debug.Assert(Mathf.Approximately(value4, 225f), $"移除Clamp修饰器后值错误: {value4}，期望值: 225");
+
+            // 清除所有修饰器并测试
+            prop.ClearModifiers();
+            float value6 = prop.GetValue();
+            Debug.Log($"清除所有修饰器后: {value6}");
+            Debug.Assert(Mathf.Approximately(value6, 100f), $"清除所有修饰器后值错误: {value6}，期望值: 100");
+
+            // 测试批量添加和移除修饰器
+            var modifiers = new List<IModifier> {
+        new FloatModifier(ModifierType.Add, 0, 30f),
+        new FloatModifier(ModifierType.Mul, 0, 2.0f)
+    };
+
+            // 批量添加
+            prop.AddModifiers(modifiers);
+            float value7 = prop.GetValue();
+            Debug.Log($"批量添加修饰器后: {value7}");
+            Debug.Assert(Mathf.Approximately(value7, 260f), $"批量添加修饰器后值错误: {value7}，期望值: 260"); // (100+30)*2=260
+
+            // 批量移除
+            prop.RemoveModifiers(modifiers);
+            float value8 = prop.GetValue();
+            Debug.Log($"批量移除修饰器后: {value8}");
+            Debug.Assert(Mathf.Approximately(value8, 100f), $"批量移除修饰器后值错误: {value8}，期望值: 100");
+
+            // 测试添加相同类型多个修饰器
+            prop.AddModifier(new FloatModifier(ModifierType.Add, 1, 10f)); // +10，优先级1
+            prop.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f)); // +20，优先级0
+            float value9 = prop.GetValue();
+            Debug.Log($"添加多个同类型修饰器后: {value9}");
+            Debug.Assert(Mathf.Approximately(value9, 130f), $"添加多个同类型修饰器后值错误: {value9}，期望值: 130");
+
+            Debug.Log("Test_GameProperty_ModifierOperations 所有测试通过");
         }
     }
 }
