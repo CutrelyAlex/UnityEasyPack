@@ -1326,7 +1326,7 @@ public abstract class Container : IContainer
                 if (i >= _slots.Count) continue;
 
                 var slot = _slots[i];
-                if (!slot.IsOccupied || slot.HasMultiSlotItem) continue;
+                if (!slot.IsOccupied) continue;
 
                 int canAdd = maxStack <= 0 ? remainingCount :
                             Mathf.Min(remainingCount, maxStack - slot.ItemCount);
@@ -1443,7 +1443,7 @@ public abstract class Container : IContainer
         TryAddToEmptySlot(IItem item, int remainingCount)
     {
         // ¿Õ²ÛÎ»»º´æ²éÕÒ
-        foreach (var i in _emptySlotIndices.ToArray())
+        foreach (var i in _emptySlotIndices)
         {
             if (i < _slots.Count)
             {
