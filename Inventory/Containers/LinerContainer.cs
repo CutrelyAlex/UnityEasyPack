@@ -7,6 +7,9 @@ public class LinerContainer : Container
 {
     public override bool IsGrid => false;
 
+    public override Vector2 Grid => new Vector2(-1,-1);
+
+
     /// <summary>
     /// 创建一个线性容器
     /// </summary>

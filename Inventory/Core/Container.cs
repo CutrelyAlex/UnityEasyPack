@@ -8,9 +8,12 @@ public abstract class Container : IContainer
     #region 基本属性
     public string ID { get; }
     public string Name { get; }
-    public string Type { get; set; }
+    public string Type { get; set; } = "";
     public int Capacity { get; set; } // -1表示无限容量
     public abstract bool IsGrid { get; } // 子类实现，决定是否为网格容器
+
+    public abstract Vector2 Grid {  get; } // 网格容器形状
+
     public List<IItemCondition> ContainerCondition { get; set; }
     protected List<ISlot> _slots = new List<ISlot>();
     public IReadOnlyList<ISlot> Slots => _slots.AsReadOnly();
@@ -66,7 +69,7 @@ public abstract class Container : IContainer
     /// <param name="item">变更的物品</param>
     /// <param name="oldCount">原数量</param>
     /// <param name="newCount">新数量</param>
-    public event System.Action<int, IItem, int, int> OnItemCountChanged;
+    public event System.Action<int, IItem, int, int> OnSlotCountChanged;
 
 
     /// <summary>
@@ -74,7 +77,7 @@ public abstract class Container : IContainer
     /// </summary>
     protected virtual void RaiseSlotItemCountChangedEvent(int slotIndex, IItem item, int oldCount, int newCount)
     {
-        OnItemCountChanged?.Invoke(slotIndex, item, oldCount, newCount);
+        OnSlotCountChanged?.Invoke(slotIndex, item, oldCount, newCount);
     }
 
 
@@ -87,7 +90,7 @@ public abstract class Container : IContainer
     /// <param name="newTotalCount">新总数</param>
     public event System.Action<string, IItem, int, int> OnItemTotalCountChanged;
 
-    private Dictionary<string, int> _itemTotalCounts = new Dictionary<string, int>();
+    private readonly Dictionary<string, int> _itemTotalCounts = new Dictionary<string, int>();
 
     /// <summary>
     /// 检查并触发物品总数变化事件
@@ -518,102 +521,6 @@ public abstract class Container : IContainer
 
         return result;
     }
-    #endregion
-
-    #region 物品堆叠
-    /// <summary>
-    /// 尝试将物品堆叠到已有相同物品的槽位
-    /// </summary>
-    protected virtual bool TryStackItem(IItem item, out AddItemResult result)
-    {
-        result = AddItemResult.NoSuitableSlotFound;
-
-        if (!item.IsStackable)
-            return false;
-
-        foreach (var slot in _slots)
-        {
-            if (slot.IsOccupied && slot.Item != null && slot.Item.ID == item.ID && !slot.HasMultiSlotItem)
-            {
-                if (slot.Item.MaxStackCount <= 0 || slot.ItemCount < slot.Item.MaxStackCount) // 使用槽位中物品的MaxStackCount
-                {
-                    IItem existingItem = slot.Item;
-                    if (slot.SetItem(existingItem, slot.ItemCount + 1))
-                    {
-                        result = AddItemResult.Success;
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// 尝试将指定数量的物品堆叠到已有相同物品的槽位
-    /// </summary>
-    /// <param name="item">要堆叠的物品</param>
-    /// <param name="count">要堆叠的数量</param>
-    /// <param name="result">堆叠结果</param>
-    /// <param name="exceededCount">返回无法堆叠的数量</param>
-    /// <returns>成功堆叠的数量</returns>
-    protected virtual int TryStackItemWithCount(IItem item, int count, out AddItemResult result, out int exceededCount)
-    {
-        result = AddItemResult.NoSuitableSlotFound;
-        exceededCount = 0;
-
-        if (!item.IsStackable || count <= 0)
-            return 0;
-
-        int remainingCount = count;
-        bool anyStacked = false;
-
-        foreach (var slot in _slots)
-        {
-            if (slot.IsOccupied && slot.Item != null && slot.Item.ID == item.ID && !slot.HasMultiSlotItem)
-            {
-                if (slot.Item.MaxStackCount <= 0 || slot.ItemCount < slot.Item.MaxStackCount)
-                {
-                    int canAddCount;
-
-                    if (slot.Item.MaxStackCount <= 0)
-                    {
-                        canAddCount = remainingCount; // 无限堆叠
-                    }
-                    else
-                    {
-                        canAddCount = Mathf.Min(remainingCount, slot.Item.MaxStackCount - slot.ItemCount);
-                    }
-
-                    if (canAddCount > 0)
-                    {
-                        IItem existingItem = slot.Item;
-                        if (slot.SetItem(existingItem, slot.ItemCount + canAddCount))
-                        {
-                            remainingCount -= canAddCount;
-                            anyStacked = true;
-
-                            if (remainingCount <= 0)
-                            {
-                                result = AddItemResult.Success;
-                                return count;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (anyStacked)
-        {
-            result = AddItemResult.Success;
-            return count - remainingCount;
-        }
-
-        return 0;
-    }
-
     #endregion
 
     #region 移除物品

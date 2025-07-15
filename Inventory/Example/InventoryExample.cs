@@ -167,7 +167,7 @@ public class InventoryExample : MonoBehaviour
         };
 
         // 注册物品数量变更事件
-        backpack.OnItemCountChanged += (slotIndex, item, oldCount, newCount) => {
+        backpack.OnSlotCountChanged += (slotIndex, item, oldCount, newCount) => {
             Debug.Log($"[事件] 数量变更: 槽位 {slotIndex} 中 {item.Name} 从 {oldCount} 变为 {newCount}");
         };
 
@@ -339,7 +339,7 @@ public class InventoryExample : MonoBehaviour
         var goldCoin = CreateGameItem("gold_coin", "金币", true, 999, "Currency");
 
         // 向背包中添加物品
-        var (result, addedCount) = playerBackpack.AddItems(healthPotion, 5);
+        var (result, _) = playerBackpack.AddItems(healthPotion, 5);
         Debug.Log($"添加5瓶生命药水: {(result == AddItemResult.Success ? "成功" : "失败")}");
 
         var swordResult = playerBackpack.AddItems(woodSword);
