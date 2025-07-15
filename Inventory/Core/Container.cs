@@ -1,8 +1,10 @@
 using EasyPack;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Pool;
 
 public abstract class Container : IContainer
 {
@@ -19,7 +21,7 @@ public abstract class Container : IContainer
     protected List<ISlot> _slots = new();
     public IReadOnlyList<ISlot> Slots => _slots.AsReadOnly();
 
-    public Container(string id, string name, string type, int capacity = -1)
+    public Container(string id, string name, string type, int capacity = -1, int BIGCAPACITYNUM = 1000, int PRECACHE = 1000)
     {
         ID = id;
         Name = name;
@@ -30,6 +32,15 @@ public abstract class Container : IContainer
         _emptySlotIndices.Clear();
         _itemSlotIndexCache.Clear();
         _itemMaxStackCache.Clear();
+        _itemTypeIndexCache.Clear();
+        _itemCountCache.Clear();
+
+        if (capacity > BIGCAPACITYNUM)
+        {
+            _itemSlotIndexCache = new Dictionary<string, HashSet<int>>(PRECACHE);
+            _itemTypeIndexCache = new Dictionary<string, HashSet<int>>(PRECACHE / 4);
+            _itemCountCache = new Dictionary<string, int>(PRECACHE);
+        }
     }
     #endregion
 
@@ -114,17 +125,21 @@ public abstract class Container : IContainer
             // 如果没有传入物品引用，尝试从背包中找到一个
             if (itemRef == null && newTotal > 0)
             {
-                foreach (var slot in _slots)
+                if (_itemSlotIndexCache.TryGetValue(itemId, out var indices) && indices.Count > 0)
                 {
-                    if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
+                    int firstIndex = indices.First();
+                    if (firstIndex < _slots.Count)
                     {
-                        itemRef = slot.Item;
-                        break;
+                        var slot = _slots[firstIndex];
+                        if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
+                        {
+                            itemRef = slot.Item;
+                        }
                     }
                 }
             }
 
-            // 触发事件 (确保先触发事件，再更新记录)
+            // 触发事件
             OnItemTotalCountChanged?.Invoke(itemId, itemRef, oldTotal, newTotal);
 
             // 更新记录
@@ -149,6 +164,9 @@ public abstract class Container : IContainer
                 return false;
 
             if (_slots.Count < Capacity)
+                return false;
+
+            if (_emptySlotIndices.Count > 0)
                 return false;
 
             foreach (var slot in _slots)
@@ -207,19 +225,22 @@ public abstract class Container : IContainer
             // 如果物品可堆叠，检查是否有相同物品且未达到堆叠上限的槽位
             if (item.IsStackable)
             {
-                bool hasStackableSlot = false;
-                foreach (var slot in _slots)
+                if (_itemSlotIndexCache.TryGetValue(item.ID, out var indices))
                 {
-                    if (slot.IsOccupied && slot.Item.ID == item.ID &&
-                        slot.Item.IsStackable && (slot.Item.MaxStackCount <= 0 || slot.ItemCount < slot.Item.MaxStackCount))
+                    foreach (int slotIndex in indices)
                     {
-                        hasStackableSlot = true;
-                        break;
+                        if (slotIndex < _slots.Count)
+                        {
+                            var slot = _slots[slotIndex];
+                            if (slot.IsOccupied && slot.Item.ID == item.ID &&
+                                slot.Item.IsStackable && (slot.Item.MaxStackCount <= 0 || slot.ItemCount < slot.Item.MaxStackCount))
+                            {
+                                return AddItemResult.Success;
+                            }
+                        }
                     }
                 }
-
-                if (!hasStackableSlot)
-                    return AddItemResult.StackLimitReached;
+                return AddItemResult.StackLimitReached;
             }
             else
             {
@@ -232,8 +253,28 @@ public abstract class Container : IContainer
     #endregion
 
     #region 缓存
-    // 物品->index列表缓存
-    private readonly Dictionary<string, List<int>> _itemSlotIndexCache = new();
+    // 物品索引缓存
+    private readonly Dictionary<string, HashSet<int>> _itemSlotIndexCache = new();
+
+    // 空槽位缓存
+    private readonly SortedSet<int> _emptySlotIndices = new();
+
+    // 物品类型索引缓存
+    private readonly Dictionary<string, HashSet<int>> _itemTypeIndexCache = new();
+
+    // 物品数量缓存
+    private readonly Dictionary<string, int> _itemCountCache = new();
+
+    // 物品最大堆叠数缓存
+    private readonly Dictionary<string, int> _itemMaxStackCache = new();
+
+    // 批量操作缓存
+    private readonly Dictionary<string, List<int>> _batchOperationCache = new();
+
+    // 频繁查询缓存
+    private readonly Dictionary<string, (DateTime lastUpdate, int count)> _hotItemCache = new();
+    private static readonly TimeSpan CacheExpiry = TimeSpan.FromSeconds(1);
+
     private void UpdateItemCache(string itemId, int slotIndex, bool isAdding)
     {
         if (string.IsNullOrEmpty(itemId))
@@ -242,7 +283,7 @@ public abstract class Container : IContainer
         if (isAdding)
         {
             if (!_itemSlotIndexCache.ContainsKey(itemId))
-                _itemSlotIndexCache[itemId] = new List<int>();
+                _itemSlotIndexCache[itemId] = new HashSet<int>();
 
             if (!_itemSlotIndexCache[itemId].Contains(slotIndex))
                 _itemSlotIndexCache[itemId].Add(slotIndex);
@@ -257,9 +298,6 @@ public abstract class Container : IContainer
         }
     }
 
-
-    // 空槽位缓存
-    private readonly List<int> _emptySlotIndices = new();
     private void UpdateEmptySlotCache(int slotIndex, bool isEmpty)
     {
         if (isEmpty)
@@ -273,8 +311,48 @@ public abstract class Container : IContainer
         }
     }
 
-    // 物品最大堆叠数缓存
-    private readonly Dictionary<string, int> _itemMaxStackCache = new();
+    // 更新物品类型索引缓存
+    private void UpdateItemTypeCache(string itemType, int slotIndex, bool isAdding)
+    {
+        if (string.IsNullOrEmpty(itemType))
+            return;
+
+        if (isAdding)
+        {
+            if (!_itemTypeIndexCache.ContainsKey(itemType))
+                _itemTypeIndexCache[itemType] = new HashSet<int>();
+
+            _itemTypeIndexCache[itemType].Add(slotIndex);
+        }
+        else
+        {
+            if (_itemTypeIndexCache.ContainsKey(itemType))
+            {
+                _itemTypeIndexCache[itemType].Remove(slotIndex);
+                if (_itemTypeIndexCache[itemType].Count == 0)
+                    _itemTypeIndexCache.Remove(itemType);
+            }
+        }
+    }
+
+    // 更新物品数量缓存
+    private void UpdateItemCountCache(string itemId, int delta)
+    {
+        if (string.IsNullOrEmpty(itemId))
+            return;
+
+        if (_itemCountCache.ContainsKey(itemId))
+        {
+            _itemCountCache[itemId] += delta;
+            if (_itemCountCache[itemId] <= 0)
+                _itemCountCache.Remove(itemId);
+        }
+        else if (delta > 0)
+        {
+            _itemCountCache[itemId] = delta;
+        }
+    }
+
     /// <summary>
     /// 初始化或重建所有缓存
     /// </summary>
@@ -284,6 +362,8 @@ public abstract class Container : IContainer
         _itemSlotIndexCache.Clear();
         _emptySlotIndices.Clear();
         _itemMaxStackCache.Clear();
+        _itemTypeIndexCache.Clear();
+        _itemCountCache.Clear();
 
         // 重建缓存
         for (int i = 0; i < _slots.Count; i++)
@@ -294,6 +374,12 @@ public abstract class Container : IContainer
                 // 更新物品索引缓存
                 UpdateItemCache(slot.Item.ID, i, true);
 
+                // 更新物品类型缓存
+                UpdateItemTypeCache(slot.Item.Type, i, true);
+
+                // 更新物品数量缓存
+                UpdateItemCountCache(slot.Item.ID, slot.ItemCount);
+
                 // 更新物品最大堆叠缓存
                 if (!_itemMaxStackCache.ContainsKey(slot.Item.ID))
                     _itemMaxStackCache[slot.Item.ID] = slot.Item.MaxStackCount;
@@ -303,6 +389,50 @@ public abstract class Container : IContainer
                 // 更新空槽位缓存
                 UpdateEmptySlotCache(i, true);
             }
+        }
+    }
+
+    /// <summary>
+    /// 清除缓存中的无效条目
+    /// </summary>
+    protected void ValidateCaches()
+    {
+        // 验证物品索引缓存
+        var itemsToRemove = new List<string>();
+        foreach (var kvp in _itemSlotIndexCache)
+        {
+            var validIndices = new HashSet<int>();
+            foreach (int index in kvp.Value)
+            {
+                if (index < _slots.Count && _slots[index].IsOccupied &&
+                    _slots[index].Item != null && _slots[index].Item.ID == kvp.Key)
+                {
+                    validIndices.Add(index);
+                }
+            }
+
+            if (validIndices.Count == 0)
+                itemsToRemove.Add(kvp.Key);
+            else
+                _itemSlotIndexCache[kvp.Key] = validIndices;
+        }
+
+        foreach (string itemId in itemsToRemove)
+        {
+            _itemSlotIndexCache.Remove(itemId);
+        }
+
+        // 验证空槽位缓存
+        var emptyToRemove = new List<int>();
+        foreach (int index in _emptySlotIndices)
+        {
+            if (index >= _slots.Count || _slots[index].IsOccupied)
+                emptyToRemove.Add(index);
+        }
+
+        foreach (int index in emptyToRemove)
+        {
+            _emptySlotIndices.Remove(index);
         }
     }
 
@@ -319,13 +449,7 @@ public abstract class Container : IContainer
         if (string.IsNullOrEmpty(itemId))
             return false;
 
-        foreach (var slot in _slots)
-        {
-            if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
-                return true;
-        }
-
-        return false;
+        return _itemSlotIndexCache.ContainsKey(itemId) && _itemSlotIndexCache[itemId].Count > 0;
     }
 
     /// <summary>
@@ -338,17 +462,52 @@ public abstract class Container : IContainer
         if (string.IsNullOrEmpty(itemId))
             return 0;
 
-        int totalCount = 0;
-
-        foreach (var slot in _slots)
+        // 首先尝试使用数量缓存
+        if (_itemCountCache.TryGetValue(itemId, out int cachedCount))
         {
+            return cachedCount;
+        }
+
+        // 如果缓存未命中，使用索引缓存计算
+        if (_itemSlotIndexCache.TryGetValue(itemId, out var indices))
+        {
+            int totalCount = 0;
+            foreach (int index in indices)
+            {
+                if (index < _slots.Count)
+                {
+                    var slot = _slots[index];
+                    if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
+                    {
+                        totalCount += slot.ItemCount;
+                    }
+                }
+            }
+
+            // 更新缓存
+            if (totalCount > 0)
+                _itemCountCache[itemId] = totalCount;
+
+            return totalCount;
+        }
+
+        // 回退到传统方法
+        int count = 0;
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            var slot = _slots[i];
             if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
             {
-                totalCount += slot.ItemCount;
+                count += slot.ItemCount;
+                // 更新缓存
+                UpdateItemCache(itemId, i, true);
             }
         }
 
-        return totalCount;
+        if (count > 0)
+            _itemCountCache[itemId] = count;
+
+        return count;
     }
 
     /// <summary>
@@ -363,12 +522,32 @@ public abstract class Container : IContainer
         if (string.IsNullOrEmpty(itemType))
             return result;
 
+        // 使用类型索引缓存
+        if (_itemTypeIndexCache.TryGetValue(itemType, out var indices))
+        {
+            foreach (int index in indices)
+            {
+                if (index < _slots.Count)
+                {
+                    var slot = _slots[index];
+                    if (slot.IsOccupied && slot.Item != null && slot.Item.Type == itemType)
+                    {
+                        result.Add((index, slot.Item, slot.ItemCount));
+                    }
+                }
+            }
+            return result;
+        }
+
+        // 缓存未命中
         for (int i = 0; i < _slots.Count; i++)
         {
             var slot = _slots[i];
             if (slot.IsOccupied && slot.Item != null && slot.Item.Type == itemType)
             {
                 result.Add((i, slot.Item, slot.ItemCount));
+                // 更新类型缓存
+                UpdateItemTypeCache(itemType, i, true);
             }
         }
 
@@ -388,15 +567,41 @@ public abstract class Container : IContainer
         if (string.IsNullOrEmpty(attributeName))
             return result;
 
-        for (int i = 0; i < _slots.Count; i++)
+        var slots = _slots;
+        int slotCount = slots.Count;
+
+        // 如果槽位数量较大，使用并行处理
+        if (slotCount > 100)
         {
-            var slot = _slots[i];
-            if (slot.IsOccupied && slot.Item != null &&
-                slot.Item.Attributes != null &&
-                slot.Item.Attributes.TryGetValue(attributeName, out var value) &&
-                (attributeValue == null || value.Equals(attributeValue)))
+            var lockObject = new object();
+            System.Threading.Tasks.Parallel.For(0, slotCount, i =>
             {
-                result.Add((i, slot.Item, slot.ItemCount));
+                var slot = slots[i];
+                if (slot.IsOccupied && slot.Item != null &&
+                    slot.Item.Attributes != null &&
+                    slot.Item.Attributes.TryGetValue(attributeName, out var value) &&
+                    (attributeValue == null || value.Equals(attributeValue)))
+                {
+                    lock (lockObject)
+                    {
+                        result.Add((i, slot.Item, slot.ItemCount));
+                    }
+                }
+            });
+        }
+        else
+        {
+            // 小规模数据使用单线程
+            for (int i = 0; i < slotCount; i++)
+            {
+                var slot = slots[i];
+                if (slot.IsOccupied && slot.Item != null &&
+                    slot.Item.Attributes != null &&
+                    slot.Item.Attributes.TryGetValue(attributeName, out var value) &&
+                    (attributeValue == null || value.Equals(attributeValue)))
+                {
+                    result.Add((i, slot.Item, slot.ItemCount));
+                }
             }
         }
 
@@ -408,19 +613,42 @@ public abstract class Container : IContainer
     /// </summary>
     /// <param name="condition">条件委托</param>
     /// <returns>符合条件的物品列表，包含槽位索引、物品引用和数量</returns>
-    public List<(int slotIndex, IItem item, int count)> FindItems(System.Func<IItem, bool> condition)
+    public List<(int slotIndex, IItem item, int count)> FindItemsCustom(System.Func<IItem, bool> condition)
     {
         var result = new List<(int slotIndex, IItem item, int count)>();
 
         if (condition == null)
             return result;
 
-        for (int i = 0; i < _slots.Count; i++)
+        var slots = _slots;
+        int slotCount = slots.Count;
+
+        // 如果槽位数量较大，使用并行处理
+        if (slotCount > 100)
         {
-            var slot = _slots[i];
-            if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
+            var lockObject = new object();
+            System.Threading.Tasks.Parallel.For(0, slotCount, i =>
             {
-                result.Add((i, slot.Item, slot.ItemCount));
+                var slot = slots[i];
+                if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
+                {
+                    lock (lockObject)
+                    {
+                        result.Add((i, slot.Item, slot.ItemCount));
+                    }
+                }
+            });
+        }
+        else
+        {
+            // 小规模数据使用单线程
+            for (int i = 0; i < slotCount; i++)
+            {
+                var slot = slots[i];
+                if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
+                {
+                    result.Add((i, slot.Item, slot.ItemCount));
+                }
             }
         }
 
@@ -442,9 +670,11 @@ public abstract class Container : IContainer
         {
             // 验证缓存有效性
             var validIndices = new List<int>(indices.Count);
+            bool needsUpdate = false;
+
             foreach (int idx in indices)
             {
-                if (idx < _slots.Count)  // 确保索引有效
+                if (idx < _slots.Count)
                 {
                     var slot = _slots[idx];
                     if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
@@ -453,11 +683,23 @@ public abstract class Container : IContainer
                     }
                     else
                     {
-                        // 缓存项无效，从缓存中移除
-                        UpdateItemCache(itemId, idx, false);
+                        needsUpdate = true;
                     }
                 }
+                else
+                {
+                    needsUpdate = true;
+                }
             }
+
+            // 如果需要更新缓存
+            if (needsUpdate)
+            {
+                _itemSlotIndexCache[itemId] = new HashSet<int>(validIndices);
+                if (validIndices.Count == 0)
+                    _itemSlotIndexCache.Remove(itemId);
+            }
+
             return validIndices;
         }
 
@@ -486,11 +728,28 @@ public abstract class Container : IContainer
         if (string.IsNullOrEmpty(itemId))
             return -1;
 
+        // 使用缓存快速查找
+        if (_itemSlotIndexCache.TryGetValue(itemId, out var indices) && indices.Count > 0)
+        {
+            int firstIndex = indices.Min();
+            if (firstIndex < _slots.Count)
+            {
+                var slot = _slots[firstIndex];
+                if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
+                {
+                    return firstIndex;
+                }
+            }
+        }
+
+        // 回退到传统方法
         for (int i = 0; i < _slots.Count; i++)
         {
             var slot = _slots[i];
             if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
             {
+                // 更新缓存
+                UpdateItemCache(itemId, i, true);
                 return i;
             }
         }
@@ -504,8 +763,31 @@ public abstract class Container : IContainer
     /// <returns>物品ID和总数量的字典</returns>
     public Dictionary<string, int> GetAllItemCountsDict()
     {
-        var result = new Dictionary<string, int>();
+        // 如果数量缓存完整，直接返回缓存副本
+        if (_itemCountCache.Count > 0)
+        {
+            var result = new Dictionary<string, int>(_itemCountCache);
 
+            // 验证缓存是否完整
+            bool cacheComplete = true;
+            foreach (var slot in _slots)
+            {
+                if (slot.IsOccupied && slot.Item != null)
+                {
+                    if (!result.ContainsKey(slot.Item.ID))
+                    {
+                        cacheComplete = false;
+                        break;
+                    }
+                }
+            }
+
+            if (cacheComplete)
+                return result;
+        }
+
+        // 重新计算并更新缓存
+        var counts = new Dictionary<string, int>();
         foreach (var slot in _slots)
         {
             if (slot.IsOccupied && slot.Item != null)
@@ -513,18 +795,25 @@ public abstract class Container : IContainer
                 string itemId = slot.Item.ID;
                 int count = slot.ItemCount;
 
-                if (result.ContainsKey(itemId))
+                if (counts.ContainsKey(itemId))
                 {
-                    result[itemId] += count;
+                    counts[itemId] += count;
                 }
                 else
                 {
-                    result[itemId] = count;
+                    counts[itemId] = count;
                 }
             }
         }
 
-        return result;
+        // 更新缓存
+        _itemCountCache.Clear();
+        foreach (var kvp in counts)
+        {
+            _itemCountCache[kvp.Key] = kvp.Value;
+        }
+
+        return counts;
     }
 
     /// <summary>
@@ -562,12 +851,7 @@ public abstract class Container : IContainer
     /// <returns>如果容器为空返回true，否则返回false</returns>
     public bool IsEmpty()
     {
-        foreach (var slot in _slots)
-        {
-            if (slot.IsOccupied && slot.Item != null && slot.ItemCount > 0)
-                return false;
-        }
-        return true;
+        return _itemSlotIndexCache.Count == 0;
     }
 
     /// <summary>
@@ -633,6 +917,12 @@ public abstract class Container : IContainer
     /// <param name="itemId">物品ID</param>
     /// <param name="count">移除数量</param>
     /// <returns>移除结果</returns>
+    /// <summary>
+    /// 移除指定ID的物品
+    /// </summary>
+    /// <param name="itemId">物品ID</param>
+    /// <param name="count">移除数量</param>
+    /// <returns>移除结果</returns>
     public virtual RemoveItemResult RemoveItem(string itemId, int count = 1)
     {
         if (string.IsNullOrEmpty(itemId))
@@ -681,17 +971,22 @@ public abstract class Container : IContainer
             {
                 int oldCount = slot.ItemCount;
                 var item = slot.Item;
+                string itemType = item.Type;
 
                 if (removeAmount == slot.ItemCount)
                 {
                     slot.ClearSlot();
                     UpdateEmptySlotCache(slotIndex, true);
                     UpdateItemCache(itemId, slotIndex, false);
+                    UpdateItemTypeCache(itemType, slotIndex, false);
                 }
                 else
                 {
                     slot.SetItem(slot.Item, slot.ItemCount - removeAmount);
                 }
+
+                // 更新数量缓存
+                UpdateItemCountCache(itemId, -removeAmount);
 
                 affectedSlots.Add(slotIndex);
 
@@ -710,6 +1005,13 @@ public abstract class Container : IContainer
         return RemoveItemResult.Failed;
     }
 
+    /// <summary>
+    /// 从指定槽位移除物品
+    /// </summary>
+    /// <param name="index">槽位索引</param>
+    /// <param name="count">移除数量</param>
+    /// <param name="expectedItemId">预期物品ID，用于验证</param>
+    /// <returns>移除结果</returns>
     /// <summary>
     /// 从指定槽位移除物品
     /// </summary>
@@ -738,6 +1040,7 @@ public abstract class Container : IContainer
         // 保存物品引用和ID
         IItem item = slot.Item;
         string itemId = item.ID;
+        string itemType = item.Type;
 
         // 如果提供了预期的物品ID，则验证
         if (!string.IsNullOrEmpty(expectedItemId) && itemId != expectedItemId)
@@ -762,11 +1065,15 @@ public abstract class Container : IContainer
             slot.ClearSlot();
             UpdateEmptySlotCache(index, true);
             UpdateItemCache(itemId, index, false);
+            UpdateItemTypeCache(itemType, index, false);
         }
         else
         {
             slot.SetItem(item, slot.ItemCount - count);
         }
+
+        // 更新数量缓存
+        UpdateItemCountCache(itemId, -count);
 
         // 触发物品数量变更事件
         RaiseSlotItemCountChangedEvent(index, item, oldCount, slot.ItemCount);
@@ -801,7 +1108,7 @@ public abstract class Container : IContainer
         }
 
         if (count <= 0)
-            return (AddItemResult.Success, 0);
+            return (AddItemResult.AddNothingLOL, 0);
 
         if (!CheckContainerCondition(item))
         {
@@ -811,8 +1118,6 @@ public abstract class Container : IContainer
 
         int totalAdded = 0;
         int remainingCount = count;
-
-
 
         // 1. 如果物品可堆叠，且未指定槽位，优先尝试堆叠
         if (item.IsStackable && slotIndex == -1)
@@ -824,6 +1129,9 @@ public abstract class Container : IContainer
                 totalAdded += stackedCount;
                 remainingCount -= stackedCount;
                 affectedSlots.AddRange(stackedSlots);
+
+                // 更新数量缓存
+                UpdateItemCountCache(item.ID, stackedCount);
 
                 // 触发数量变更事件
                 foreach (var change in slotChanges)
@@ -854,6 +1162,12 @@ public abstract class Container : IContainer
                 totalAdded += addedCount;
                 remainingCount = newRemaining;
                 affectedSlots.Add(slotIndex);
+
+                // 更新缓存
+                UpdateItemCountCache(item.ID, addedCount);
+                UpdateItemCache(item.ID, slotIndex, true);
+                UpdateItemTypeCache(item.Type, slotIndex, true);
+                UpdateEmptySlotCache(slotIndex, false);
 
                 CheckAndRaiseItemTotalCountChanged(item.ID, item);
 
@@ -887,6 +1201,11 @@ public abstract class Container : IContainer
                 remainingCount = emptyRemaining;
                 affectedSlots.Add(emptySlotIndex);
 
+                // 更新缓存
+                UpdateItemCountCache(item.ID, emptyAddedCount);
+                UpdateItemCache(item.ID, emptySlotIndex, true);
+                UpdateItemTypeCache(item.Type, emptySlotIndex, true);
+
                 if (remainingCount <= 0)
                 {
                     OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
@@ -906,6 +1225,11 @@ public abstract class Container : IContainer
                 totalAdded += newAddedCount;
                 remainingCount = newRemaining;
                 affectedSlots.Add(newSlotIndex);
+
+                // 更新缓存
+                UpdateItemCountCache(item.ID, newAddedCount);
+                UpdateItemCache(item.ID, newSlotIndex, true);
+                UpdateItemTypeCache(item.Type, newSlotIndex, true);
 
                 CheckAndRaiseItemTotalCountChanged(item.ID, item);
 
@@ -930,7 +1254,7 @@ public abstract class Container : IContainer
             {
                 exceededCount = count;
                 // 检查是否所有现有槽位都已被占用
-                bool noEmptySlots = !_slots.Any(s => !s.IsOccupied);
+                bool noEmptySlots = _emptySlotIndices.Count == 0;
                 AddItemResult result = noEmptySlots ? AddItemResult.ContainerIsFull : AddItemResult.NoSuitableSlotFound;
                 OnItemAddFailed?.Invoke(item, count, result);
                 return (result, 0);
@@ -954,6 +1278,21 @@ public abstract class Container : IContainer
     {
         return AddItemsWithCount(item, out _, count, slotIndex);
     }
+
+    /// <summary>
+    /// 异步添加物品
+    /// </summary>
+    public async Task<(AddItemResult result, int addedCount)> AddItemsAsync(
+        IItem item, int count, CancellationToken cancellationToken = default)
+    {
+        if (count > 10000 || _slots.Count > 100000)
+        {
+            return await Task.Run(() => AddItems(item, count), cancellationToken);
+        }
+
+        // 否则直接处理
+        return AddItems(item, count);
+    }
     #endregion
 
     #region 中间处理API
@@ -968,85 +1307,53 @@ public abstract class Container : IContainer
         List<int> affectedSlots = new(8);
         Dictionary<int, (int oldCount, int newCount)> slotChanges = new();
 
-        // 物品缓存查找
-        if (_itemSlotIndexCache.TryGetValue(item.ID, out var slotIndices) && slotIndices.Count > 0)
+        // 获取最大堆叠数
+        if (!_itemMaxStackCache.TryGetValue(item.ID, out int maxStack))
         {
-            // 仅遍历有该物品的槽位
+            maxStack = item.MaxStackCount;
+            _itemMaxStackCache[item.ID] = maxStack;
+        }
+
+        // 批量处理相同ID的槽位
+        if (_itemSlotIndexCache.TryGetValue(item.ID, out var slotIndices))
+        {
+            // 计算每个槽位可堆叠数量
+            List<(int index, int canAdd)> stackTargets = new();
+            int totalCanAdd = 0;
+
             foreach (int i in slotIndices)
+            {
+                if (i >= _slots.Count) continue;
+
+                var slot = _slots[i];
+                if (!slot.IsOccupied || slot.HasMultiSlotItem) continue;
+
+                int canAdd = maxStack <= 0 ? remainingCount :
+                            Mathf.Min(remainingCount, maxStack - slot.ItemCount);
+
+                if (canAdd > 0)
+                {
+                    stackTargets.Add((i, canAdd));
+                    totalCanAdd += canAdd;
+                    if (totalCanAdd >= remainingCount) break;
+                }
+            }
+
+            // 执行实际堆叠操作
+            foreach (var (idx, canAdd) in stackTargets)
             {
                 if (remainingCount <= 0) break;
 
-                var slot = _slots[i];
-                if (slot.IsOccupied && slot.Item != null && !slot.HasMultiSlotItem)
+                var slot = _slots[idx];
+                int oldCount = slot.ItemCount;
+                int actualAdd = Mathf.Min(canAdd, remainingCount);
+
+                if (slot.SetItem(slot.Item, slot.ItemCount + actualAdd))
                 {
-                    // 获取或缓存最大堆叠数
-                    int maxStack;
-                    if (!_itemMaxStackCache.TryGetValue(item.ID, out maxStack))
-                    {
-                        maxStack = slot.Item.MaxStackCount;
-                        _itemMaxStackCache[item.ID] = maxStack;
-                    }
-
-                    if (maxStack <= 0 || slot.ItemCount < maxStack)
-                    {
-                        int oldCount = slot.ItemCount;
-                        int canAddCount = maxStack <= 0 ? remainingCount :
-                                          Mathf.Min(remainingCount, maxStack - slot.ItemCount);
-
-                        if (canAddCount > 0)
-                        {
-                            IItem existingItem = slot.Item;
-                            if (slot.SetItem(existingItem, slot.ItemCount + canAddCount))
-                            {
-                                remainingCount -= canAddCount;
-                                stackedCount += canAddCount;
-                                affectedSlots.Add(i);
-                                slotChanges[i] = (oldCount, slot.ItemCount);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            // 缓存未命中
-            for (int i = 0; i < _slots.Count && remainingCount > 0; i++)
-            {
-                var slot = _slots[i];
-                if (slot.IsOccupied && slot.Item != null && slot.Item.ID == item.ID && !slot.HasMultiSlotItem)
-                {
-                    if (slot.Item.MaxStackCount <= 0 || slot.ItemCount < slot.Item.MaxStackCount)
-                    {
-                        int oldCount = slot.ItemCount;
-                        int canAddCount;
-
-                        if (slot.Item.MaxStackCount <= 0)
-                        {
-                            canAddCount = remainingCount; // 无限堆叠
-                        }
-                        else
-                        {
-                            canAddCount = Mathf.Min(remainingCount, slot.Item.MaxStackCount - slot.ItemCount);
-                        }
-
-                        if (canAddCount > 0)
-                        {
-                            IItem existingItem = slot.Item;
-                            if (slot.SetItem(existingItem, slot.ItemCount + canAddCount))
-                            {
-                                remainingCount -= canAddCount;
-                                stackedCount += canAddCount;
-                                affectedSlots.Add(i);
-                                slotChanges[i] = (oldCount, slot.ItemCount);
-
-                                // 更新缓存
-                                UpdateItemCache(item.ID, i, true);
-                                if (!_itemMaxStackCache.ContainsKey(item.ID))
-                                    _itemMaxStackCache[item.ID] = existingItem.MaxStackCount;
-                            }
-                        }
-                    }
+                    remainingCount -= actualAdd;
+                    stackedCount += actualAdd;
+                    affectedSlots.Add(idx);
+                    slotChanges[idx] = (oldCount, slot.ItemCount);
                 }
             }
         }
@@ -1159,6 +1466,7 @@ public abstract class Container : IContainer
                         // 更新缓存
                         _emptySlotIndices.Remove(i);
                         UpdateItemCache(item.ID, i, true);
+                        UpdateItemTypeCache(item.Type, i, true);
 
                         // 触发数量变更
                         RaiseSlotItemCountChangedEvent(i, slot.Item, 0, slot.ItemCount);
@@ -1183,6 +1491,7 @@ public abstract class Container : IContainer
                     {
                         // 更新缓存
                         UpdateItemCache(item.ID, i, true);
+                        UpdateItemTypeCache(item.Type, i, true);
 
                         // 触发数量变更
                         RaiseSlotItemCountChangedEvent(i, slot.Item, 0, slot.ItemCount);
@@ -1218,6 +1527,11 @@ public abstract class Container : IContainer
             if (newSlot.CheckSlotCondition(item) && newSlot.SetItem(item, addCount))
             {
                 _slots.Add(newSlot);
+
+                // 更新缓存
+                UpdateItemCache(item.ID, newSlotIndex, true);
+                UpdateItemTypeCache(item.Type, newSlotIndex, true);
+
                 // 触发数量变更
                 RaiseSlotItemCountChangedEvent(newSlotIndex, newSlot.Item, 0, newSlot.ItemCount);
                 return (true, addCount, remainingCount - addCount, newSlotIndex);

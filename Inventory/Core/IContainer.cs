@@ -17,7 +17,8 @@ namespace EasyPack
         StackLimitReached,
         SlotNotFound,
         ItemConditionNotMet,
-        NoSuitableSlotFound
+        NoSuitableSlotFound,
+        AddNothingLOL
     }
 
     public enum RemoveItemResult
