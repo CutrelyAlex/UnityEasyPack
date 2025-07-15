@@ -436,7 +436,7 @@ public abstract class Container : IContainer
     /// 获取容器中所有物品的ID和总数量
     /// </summary>
     /// <returns>物品ID和总数量的字典</returns>
-    public Dictionary<string, int> GetAllItemCounts()
+    public Dictionary<string, int> GetAllItemCountsDict()
     {
         var result = new Dictionary<string, int>();
 
@@ -487,7 +487,7 @@ public abstract class Container : IContainer
     /// <returns>不同类型的物品总数</returns>
     public int GetUniqueItemCount()
     {
-        return GetAllItemCounts().Count;
+        return GetAllItemCountsDict().Count;
     }
 
     /// <summary>
@@ -577,7 +577,7 @@ public abstract class Container : IContainer
 
         // 先检查物品总数是否足够
         int totalCount = GetItemCount(itemId);
-        if (totalCount < count)
+        if (totalCount < count && totalCount != 0)
         {
             OnItemRemoveFailed?.Invoke(itemId, count, RemoveItemResult.InsufficientQuantity);
             return RemoveItemResult.InsufficientQuantity;
