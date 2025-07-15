@@ -269,7 +269,6 @@ namespace EasyPack
         /// 向此属性添加一个修饰器，并标记为脏。
         /// </summary>
         /// <param name="modifier">要添加的修饰器。</param>
-
         public IProperty<float> AddModifier(IModifier modifier)
         {
             // 添加到总列表
@@ -299,6 +298,8 @@ namespace EasyPack
         public IProperty<float> ClearModifiers()
         {
             Modifiers.Clear();
+            _groupedModifiers.Clear(); // 同时清除分组字典
+            _hasNonClampRangeModifier = false; // 重置RangeModifier标记
             MakeDirty();
             return this;
         }
@@ -327,6 +328,8 @@ namespace EasyPack
             {
                 Modifiers.Remove(modifier);
             }
+
+            _hasNonClampRangeModifier = HasNonClampRangeModifiers();
             MakeDirty();
             return this;
         }
@@ -338,22 +341,29 @@ namespace EasyPack
         public IProperty<float> RemoveModifier(IModifier modifier)
         {
             var _modifier = Modifiers.Find(m => m.Equals(modifier));
-            if (_modifier != null) Modifiers.Remove(_modifier);
-            MakeDirty();
-            return this;
-        }
-
-        public IProperty<float> RemoveModifier(int index)
-        {             
-            if (index < 0 || index >= Modifiers.Count)
+            if (_modifier != null)
             {
-                return this;
+                Modifiers.Remove(_modifier);
+
+                // 同时从分组中移除
+                if (_groupedModifiers.TryGetValue(_modifier.Type, out var list))
+                {
+                    list.Remove(_modifier);
+
+                    // 如果列表为空，可以考虑移除该类型的键
+                    if (list.Count == 0)
+                    {
+                        _groupedModifiers.Remove(_modifier.Type);
+                    }
+                }
             }
-            Modifiers.RemoveAt(index);
+
+            // 更新非Clamp的RangeModifier标记
+            _hasNonClampRangeModifier = HasNonClampRangeModifiers();
+
             MakeDirty();
             return this;
         }
-
 
         /// <summary>
         /// 检查是否存在非Clamp类型的RangeModifier
