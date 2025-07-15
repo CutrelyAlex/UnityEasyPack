@@ -48,6 +48,6 @@ namespace EasyPack
 
         // 添加物品方法
         (AddItemResult result, int addedCount) AddItems(IItem item, int count, int slotIndex = -1);
-        (AddItemResult result, int addedCount) AddItems(IItem item, out int exceededCount, int count = 1, int slotIndex = -1);
+        (AddItemResult result, int addedCount) AddItemsWithCount(IItem item, out int exceededCount, int count = 1, int slotIndex = -1);
     }
 }

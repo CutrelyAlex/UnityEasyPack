@@ -23,8 +23,9 @@ namespace EasyPack
         private float _cacheValue;
 
 
-        private readonly float _baseCombineValue;
+        private float _baseCombineValue;
         public float GetBaseValue() => _baseCombineValue;
+
 
         public float GetValue() 
         {

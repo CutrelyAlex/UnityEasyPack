@@ -19,6 +19,13 @@ namespace EasyPack
 
         public bool SetItem(IItem item, int count = 1)
         {
+
+            if (IsOccupied && Item != null && item != null && Item.ID == item.ID)
+            {
+                ItemCount = count;
+                return true;
+            }
+
             if (item != null && item.IsMultiSlot)
             {
                 Debug.LogWarning($"Falied to Set {item.ID} at {Container.ID}.Use SetAsMultiSlotPart for multislot items Instead.");

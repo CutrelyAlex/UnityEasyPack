@@ -146,35 +146,18 @@ namespace EasyPack
                 return AttributeValue == null;
 
             // 根据比较类型进行比较
-            switch (ComparisonType)
+            return ComparisonType switch
             {
-                case AttributeComparisonType.Equal:
-                    return actualValue.Equals(AttributeValue);
-
-                case AttributeComparisonType.NotEqual:
-                    return !actualValue.Equals(AttributeValue);
-
-                case AttributeComparisonType.GreaterThan:
-                    return CompareNumeric(actualValue, AttributeValue) > 0;
-
-                case AttributeComparisonType.LessThan:
-                    return CompareNumeric(actualValue, AttributeValue) < 0;
-
-                case AttributeComparisonType.GreaterThanOrEqual:
-                    return CompareNumeric(actualValue, AttributeValue) >= 0;
-
-                case AttributeComparisonType.LessThanOrEqual:
-                    return CompareNumeric(actualValue, AttributeValue) <= 0;
-
-                case AttributeComparisonType.Contains:
-                    return CompareContains(actualValue, AttributeValue);
-
-                case AttributeComparisonType.NotContains:
-                    return !CompareContains(actualValue, AttributeValue);
-
-                default:
-                    return false;
-            }
+                AttributeComparisonType.Equal => actualValue.Equals(AttributeValue),
+                AttributeComparisonType.NotEqual => !actualValue.Equals(AttributeValue),
+                AttributeComparisonType.GreaterThan => CompareNumeric(actualValue, AttributeValue) > 0,
+                AttributeComparisonType.LessThan => CompareNumeric(actualValue, AttributeValue) < 0,
+                AttributeComparisonType.GreaterThanOrEqual => CompareNumeric(actualValue, AttributeValue) >= 0,
+                AttributeComparisonType.LessThanOrEqual => CompareNumeric(actualValue, AttributeValue) <= 0,
+                AttributeComparisonType.Contains => CompareContains(actualValue, AttributeValue),
+                AttributeComparisonType.NotContains => !CompareContains(actualValue, AttributeValue),
+                _ => false,
+            };
         }
 
         /// <summary>
@@ -229,7 +212,7 @@ namespace EasyPack
                 return containerStr.Contains(valueStr);
 
             // 集合包含比较
-            if (container is System.Collections.IEnumerable enumerable && !(container is string))
+            if (container is System.Collections.IEnumerable enumerable && container is not string)
             {
                 foreach (var item in enumerable)
                 {

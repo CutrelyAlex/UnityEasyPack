@@ -101,7 +101,7 @@ public class InventoryExample : MonoBehaviour
         if (bread_slot != -1)
         {
             var moveResult = playerBackpack.MoveItemToContainer(bread_slot, innerContainer);
-            Debug.Log($"移动结果: {(moveResult.Success ? moveResult.Message : "失败: " + moveResult.Message)}");
+            Debug.Log($"移动结果: {(moveResult ? moveResult : "失败: " + moveResult)}");
 
             Debug.Log("移动后主背包内容:");
             DisplayInventoryContents(playerBackpack);
@@ -411,10 +411,10 @@ public class InventoryExample : MonoBehaviour
 
         // 将物品从背包移动到储物箱
         var moveOreResult = playerBackpack.MoveItemToContainer(0, storageChest);
-        Debug.Log($"将铁矿石从背包移动到储物箱: {(moveOreResult.Success ? "成功" : "失败")}");
+        Debug.Log($"将铁矿石从背包移动到储物箱: {(moveOreResult ? "成功" : "失败")}");
 
         var moveHelmetResult = playerBackpack.MoveItemToContainer(2, storageChest);
-        Debug.Log($"将皮革头盔从背包移动到储物箱: {(moveHelmetResult.Success ? "成功" : "失败")}");
+        Debug.Log($"将皮革头盔从背包移动到储物箱: {(moveHelmetResult ? "成功" : "失败")}");
 
         Debug.Log("移动后背包内容:");
         DisplayInventoryContents(playerBackpack);

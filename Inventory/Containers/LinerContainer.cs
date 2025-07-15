@@ -7,7 +7,7 @@ public class LinerContainer : Container
 {
     public override bool IsGrid => false;
 
-    public override Vector2 Grid => new Vector2(-1,-1);
+    public override Vector2 Grid => new(-1,-1);
 
 
     /// <summary>
@@ -41,14 +41,14 @@ public class LinerContainer : Container
     /// <param name="sourceSlotIndex">源槽位索引</param>
     /// <param name="targetContainer">目标容器</param>
     /// <returns>移动结果</returns>
-    public MoveResult MoveItemToContainer(int sourceSlotIndex, IContainer targetContainer)
+    public bool MoveItemToContainer(int sourceSlotIndex, IContainer targetContainer)
     {
         if (sourceSlotIndex < 0 || sourceSlotIndex >= _slots.Count)
-            return new MoveResult(false, "源槽位无效");
+            return false;
 
         var sourceSlot = _slots[sourceSlotIndex];
         if (!sourceSlot.IsOccupied || sourceSlot.Item == null)
-            return new MoveResult(false, "源槽位为空");
+            return false;
 
         var item = sourceSlot.Item;
         int count = sourceSlot.ItemCount;
@@ -97,18 +97,18 @@ public class LinerContainer : Container
             {
                 // 清除源槽位
                 sourceSlot.ClearSlot();
-                return new MoveResult(true, $"成功移动全部{count}个物品");
+                return true;
             }
             // 部分移动
             else if (addedCount > 0)
             {
                 // 更新源槽位的物品数量
                 sourceSlot.SetItem(item, count - addedCount);
-                return new MoveResult(true, $"成功移动{addedCount}个物品，剩余{count - addedCount}个");
+                return true;
             }
         }
 
-        return new MoveResult(false, $"移动失败: {result}");
+        return true;
     }
     /// <summary>
     /// 整理容器
@@ -146,20 +146,5 @@ public class LinerContainer : Container
                 Debug.LogWarning($"排序背包时无法重新添加物品: {itemTemplate.Name}, 结果: {result.result}");
             }
         }
-    }
-}
-
-/// <summary>
-/// 物品移动结果
-/// </summary>
-public class MoveResult
-{
-    public bool Success { get; }
-    public string Message { get; }
-
-    public MoveResult(bool success, string message)
-    {
-        Success = success;
-        Message = message;
     }
 }
