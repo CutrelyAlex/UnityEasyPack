@@ -33,18 +33,11 @@ namespace EasyPack
         public GameProperty(string id, float initValue)
         {
             _baseValue = initValue;
+            _cacheValue = initValue;
             ID = id;
             Modifiers = new List<IModifier>();
             MakeDirty();
         }
-        public GameProperty(float initValue, string id)
-        {
-            _baseValue = initValue;
-            ID = id;
-            Modifiers = new List<IModifier>();
-            MakeDirty();
-        }
-
 
         /// <summary>
         /// 获取属性的基础（未修饰）值。
@@ -83,10 +76,11 @@ namespace EasyPack
             if (!(_hasNonClampRangeModifier || _hasRandomDependency))
                 _isDirty = false;
 
-            // 仅在值真正变化时触发事件
             if (!oldValue.Equals(_cacheValue))
             {
                 OnValueChanged?.Invoke(oldValue, _cacheValue);
+
+                TriggerDependentUpdates();
             }
 
             return _cacheValue;
@@ -107,37 +101,30 @@ namespace EasyPack
             }
             return this;
         }
-        #endregion 
+        #endregion
 
         #region 依赖       
 
         private readonly HashSet<GameProperty> _dependencies = new();
-        private readonly Dictionary<GameProperty, Action<float, float>> _dependencyHandlers = new();
+        private readonly HashSet<GameProperty> _dependents = new(); // 反向依赖追踪
+        private readonly Dictionary<GameProperty, Func<GameProperty, float, float>> _dependencyCalculators = new();
 
         /// <summary>
-        /// 当属性值发生变化时触发。
+        /// 当属性值发生变化时触发
         /// </summary>
         public event Action<float, float> OnValueChanged;
-        private bool _isDirty = false;
-        private Action _onDirty;
+
         private readonly HashSet<Action> _onDirtyHandlers = new();
 
         /// <summary>
-        /// 添加对另一个 <see cref="GameProperty"/> 的依赖。
-        /// 当依赖属性变化时，本属性会被标记为脏并重新计算。
+        /// 添加依赖，当dependency变化时，自动使用calculator计算新值
         /// </summary>
-        /// <param name="dependency">要依赖的属性。</param>
-        /// <summary>
-        /// 添加对另一个 <see cref="GameProperty"/> 的依赖。
-        /// 当依赖属性变化时，本属性会被标记为脏并重新计算。
-        /// </summary>
-        /// <param name="dependency">要依赖的属性。</param>
-        public IProperty<float> AddDependency(GameProperty dependency)
+        /// <param name="dependency">依赖的属性</param>
+        /// <param name="calculator">计算函数：(dependency, newDependencyValue) => newThisValue</param>
+        public IProperty<float> AddDependency(GameProperty dependency, Func<GameProperty, float, float> calculator = null)
         {
-            // 检查是否为null或已经存在依赖
             if (dependency == null || !_dependencies.Add(dependency)) return this;
 
-            // 检测循环依赖
             if (WouldCreateCyclicDependency(dependency))
             {
                 _dependencies.Remove(dependency);
@@ -145,64 +132,76 @@ namespace EasyPack
                 return this;
             }
 
-            // 创建并注册值变化处理器
-            void handler(float oldVal, float newVal)
+            // 注册反向依赖
+            dependency._dependents.Add(this);
+
+            // 存储计算器（如果提供）
+            if (calculator != null)
             {
-                MakeDirty();
+                _dependencyCalculators[dependency] = calculator;
             }
 
-            _dependencyHandlers[dependency] = handler;
-            dependency.OnValueChanged += handler;
-
-            // 如果依赖有随机修饰器，确保本属性也会随之更新
             UpdateRandomDependencyState();
-
             return this;
         }
 
         /// <summary>
-        /// 移除对另一个 <see cref="GameProperty"/> 的依赖。
+        /// 添加简单依赖（仅标记为脏，不自动计算）
         /// </summary>
-        /// <param name="dependency">要移除依赖的属性。</param>
+        public IProperty<float> AddDependency(GameProperty dependency)
+        {
+            return AddDependency(dependency, null);
+        }
+
+        /// <summary>
+        /// 移除依赖
+        /// </summary>
         public IProperty<float> RemoveDependency(GameProperty dependency)
         {
             if (!_dependencies.Remove(dependency)) return this;
 
-            // 移除事件处理器
-            if (_dependencyHandlers.TryGetValue(dependency, out var handler))
-            {
-                dependency.OnValueChanged -= handler;
-                _dependencyHandlers.Remove(dependency);
-            }
+            // 移除反向依赖
+            dependency._dependents.Remove(this);
 
-            // 更新随机依赖状态
+            // 移除计算器
+            _dependencyCalculators.Remove(dependency);
+
             UpdateRandomDependencyState();
-
             return this;
         }
 
         /// <summary>
-        /// 检测是否有任何依赖项包含随机修饰器
+        /// 触发所有依赖此属性的属性更新
         /// </summary>
+        private void TriggerDependentUpdates()
+        {
+            foreach (var dependent in _dependents)
+            {
+                // 如果有自定义计算器，使用它
+                if (dependent._dependencyCalculators.TryGetValue(this, out var calculator))
+                {
+                    var newValue = calculator(this, _cacheValue);
+                    dependent.SetBaseValue(newValue);
+                }
+                else
+                {
+                    // 否则只标记为脏
+                    dependent.MakeDirty();
+                }
+            }
+        }
+
         private bool _hasRandomDependency = false;
 
-        /// <summary>
-        /// 更新随机依赖状态标记
-        /// </summary>
         private void UpdateRandomDependencyState()
         {
             _hasRandomDependency = _dependencies.Any(dep => dep.HasNonClampRangeModifiers() || dep._hasRandomDependency);
         }
 
-        /// <summary>
-        /// 检测添加依赖是否会导致循环依赖
-        /// </summary>
         private bool WouldCreateCyclicDependency(GameProperty dependency)
         {
-            // 如果依赖项就是自身，直接返回true
             if (dependency == this) return true;
 
-            // 检查依赖项的依赖是否包含自身（递归检查）
             var visited = new HashSet<GameProperty>();
             var toCheck = new Queue<GameProperty>();
             toCheck.Enqueue(dependency);
@@ -225,6 +224,9 @@ namespace EasyPack
         #endregion
 
         #region 脏数据追踪
+
+        private bool _isDirty = false;
+        private Action _onDirty;
 
         /// <summary>
         /// 将属性标记为脏，下次访问时会重新计算其值。
