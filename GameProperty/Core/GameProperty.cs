@@ -185,8 +185,18 @@ namespace EasyPack
                 }
                 else
                 {
-                    // 否则只标记为脏
+                    // 对于简单依赖，强制触发值变化事件
+                    // 即使基础值没有改变，也要让依赖属性知道需要重新计算
                     dependent.MakeDirty();
+
+                    // 强制触发依赖属性的重新计算和事件
+                    var oldValue = dependent._cacheValue;
+                    var newValue = dependent.GetValue(); // 这会重新计算值
+
+                    if (oldValue.Equals(newValue))
+                    {
+                        dependent.OnValueChanged?.Invoke(oldValue, newValue);
+                    }
                 }
             }
         }
