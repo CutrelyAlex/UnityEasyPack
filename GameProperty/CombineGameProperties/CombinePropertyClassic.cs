@@ -1,4 +1,7 @@
-﻿/// <summary>
+﻿using System;
+using System.Collections.Generic;
+
+/// <summary>
 /// CombinePropertyClassic 实现了 ICombineGameProperty，
 /// 用于组合多个 GameProperty（如基础值、Buff、Debuff 等），
 /// 并通过经典的计算方式计算最终属性值：
@@ -6,12 +9,9 @@
 /// 注意这些属性值可以是负的，所以-50%(最大生命值加成)之类的属性也可以正常计算
 ///     
 /// </summary>
-
-using System;
-using System.Collections.Generic;
 namespace EasyPack
 {
-    public class CombinePropertyClassic : ICombineGameProperty
+    public class CombinePropertyClassic : ICombineGameProperty, IDisposable
     {
         private Dictionary<string, GameProperty> GameProperties { get; set; } = new Dictionary<string, GameProperty>();
         public string ID { get; }
@@ -21,43 +21,46 @@ namespace EasyPack
         public GameProperty ResultHolder => _resultHolder;
 
         private float _cacheValue;
+        private readonly float _baseCombineValue;
 
+        // 事件处理器
+        private readonly Dictionary<GameProperty, Action<float, float>> _eventHandlers = new();
 
-        private float _baseCombineValue;
         public float GetBaseValue() => _baseCombineValue;
 
-
-        public float GetValue() 
+        public float GetValue()
         {
             _resultHolder.SetBaseValue(Calculater(this));
-
             return _resultHolder.GetValue();
         }
-  
 
         public CombinePropertyClassic(string id, float BaseValue, string ConfigProperty, string IncreaseValue, string IncreaseMul, string DecreaseValue, string DecreaseMul)
         {
-            _resultHolder = new GameProperty(0, id + "@ResultHolder");
+            _resultHolder = new GameProperty(id + "@ResultHolder", 0);
             ID = id;
             _baseCombineValue = BaseValue;
-            RegisterProperty(new GameProperty(BaseValue, ConfigProperty));
-            RegisterProperty(new GameProperty(0, IncreaseValue));
-            RegisterProperty(new GameProperty(0, IncreaseMul));
-            RegisterProperty(new GameProperty(0, DecreaseValue));
-            RegisterProperty(new GameProperty(0, DecreaseMul));
+
+            RegisterProperty(new GameProperty(ConfigProperty, BaseValue));
+            RegisterProperty(new GameProperty(IncreaseValue, 0));
+            RegisterProperty(new GameProperty(IncreaseMul, 0));
+            RegisterProperty(new GameProperty(DecreaseValue, 0));
+            RegisterProperty(new GameProperty(DecreaseMul, 0));
+
             GameProperty BaseProperty = GetProperty(ConfigProperty);
             GameProperty BaseBuffValue = GetProperty(IncreaseValue);
             GameProperty BaseBuffMul = GetProperty(IncreaseMul);
             GameProperty DeBuffValue = GetProperty(DecreaseValue);
             GameProperty DeBuffMul = GetProperty(DecreaseMul);
+
             Calculater = e =>
             {
                 return (BaseProperty.GetValue() + BaseBuffValue.GetValue()) * (BaseBuffMul.GetValue() + 1) - DeBuffValue.GetValue() * (1 + DeBuffMul.GetValue());
             };
 
+            // 事件处理
             foreach (var prop in GameProperties.Values)
             {
-                prop.OnValueChanged += (oldVal, newVal) =>
+                var handler = new Action<float, float>((oldVal, newVal) =>
                 {
                     var oldCombine = _cacheValue;
                     var newCombine = Calculater(this);
@@ -65,8 +68,12 @@ namespace EasyPack
                     {
                         _cacheValue = newCombine;
                     }
-                };
+                });
+
+                _eventHandlers[prop] = handler;
+                prop.OnValueChanged += handler;
             }
+
             // 初始化缓存值
             _cacheValue = Calculater(this);
         }
@@ -77,8 +84,25 @@ namespace EasyPack
             return gameProperty;
         }
 
-        public void UnRegisterProperty(GameProperty gameProperty) => GameProperties.Remove(gameProperty.ID);
+        public void UnRegisterProperty(GameProperty gameProperty)
+        {
+            if (GameProperties.Remove(gameProperty.ID) && _eventHandlers.TryGetValue(gameProperty, out var handler))
+            {
+                gameProperty.OnValueChanged -= handler;
+                _eventHandlers.Remove(gameProperty);
+            }
+        }
 
         public GameProperty GetProperty(string id) => GameProperties.TryGetValue(id, out var property) ? property : null;
+
+        public void Dispose()
+        {
+            foreach (var kvp in _eventHandlers)
+            {
+                kvp.Key.OnValueChanged -= kvp.Value;
+            }
+            _eventHandlers.Clear();
+            GameProperties.Clear();
+        }
     }
 }

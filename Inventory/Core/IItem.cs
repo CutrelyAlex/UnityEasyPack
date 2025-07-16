@@ -11,8 +11,9 @@ namespace EasyPack
         string Name { get; }
         string Type { get; } 
         string Description { get; }
-        float Weight { get; set; }
         bool IsStackable { get; }
+
+        float Weight { get; set; }
         int MaxStackCount { get; }
         bool IsMultiSlot { get; }
         Vector2Int Size { get; }
