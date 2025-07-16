@@ -16,5 +16,7 @@ namespace EasyPack
         GameProperty GetProperty(string id);
         Func<ICombineGameProperty, float> Calculater { get; }
         float GetValue();
+        bool IsValid();
+        public void Dispose();
     }
 }

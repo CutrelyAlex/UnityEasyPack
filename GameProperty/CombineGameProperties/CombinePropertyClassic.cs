@@ -1,14 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-/// <summary>
-/// CombinePropertyClassic 实现了 ICombineGameProperty，
-/// 用于组合多个 GameProperty（如基础值、Buff、Debuff 等），
-/// 并通过经典的计算方式计算最终属性值：
-/// 最终属性 = (属性 + 加法加成) × (1 + 乘法加成百分比) - 减益 × (1 + 乘法减益百分比)
-/// 注意这些属性值可以是负的，所以-50%(最大生命值加成)之类的属性也可以正常计算
-///     
-/// </summary>
 namespace EasyPack
 {
     public class CombinePropertyClassic : ICombineGameProperty, IDisposable
@@ -23,10 +15,12 @@ namespace EasyPack
         private float _cacheValue;
         private readonly float _baseCombineValue;
 
-        // 事件处理器
         private readonly Dictionary<GameProperty, Action<float, float>> _eventHandlers = new();
 
+        public bool IsValid() => !_isDisposed && _resultHolder != null;
         public float GetBaseValue() => _baseCombineValue;
+
+        private bool _isDisposed = false;
 
         public float GetValue()
         {
@@ -57,7 +51,15 @@ namespace EasyPack
                 return (BaseProperty.GetValue() + BaseBuffValue.GetValue()) * (BaseBuffMul.GetValue() + 1) - DeBuffValue.GetValue() * (1 + DeBuffMul.GetValue());
             };
 
-            // 事件处理
+            // 改进事件处理，避免内存泄漏
+            SubscribeToPropertyChanges();
+
+            // 初始化缓存值
+            _cacheValue = Calculater(this);
+        }
+
+        private void SubscribeToPropertyChanges()
+        {
             foreach (var prop in GameProperties.Values)
             {
                 var handler = new Action<float, float>((oldVal, newVal) =>
@@ -73,9 +75,6 @@ namespace EasyPack
                 _eventHandlers[prop] = handler;
                 prop.OnValueChanged += handler;
             }
-
-            // 初始化缓存值
-            _cacheValue = Calculater(this);
         }
 
         public GameProperty RegisterProperty(GameProperty gameProperty)
@@ -97,12 +96,16 @@ namespace EasyPack
 
         public void Dispose()
         {
+            if (_isDisposed) return;
+
             foreach (var kvp in _eventHandlers)
             {
                 kvp.Key.OnValueChanged -= kvp.Value;
             }
             _eventHandlers.Clear();
             GameProperties.Clear();
+
+            _isDisposed = true;
         }
     }
 }

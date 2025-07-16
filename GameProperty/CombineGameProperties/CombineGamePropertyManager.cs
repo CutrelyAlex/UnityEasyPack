@@ -1,10 +1,10 @@
 using EasyPack;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System;
 
 public static class CombineGamePropertyManager
 {
-    // 线程安全字典
     private static readonly ConcurrentDictionary<string, ICombineGameProperty> _properties = new ConcurrentDictionary<string, ICombineGameProperty>();
 
     /// <summary>
@@ -18,7 +18,12 @@ public static class CombineGamePropertyManager
             return;
         }
 
-        _properties.AddOrUpdate(property.ID, property, (key, oldValue) => property);
+        var oldProperty = _properties.AddOrUpdate(property.ID, property, (key, oldValue) =>
+        {
+            // 如果有旧值，先清理资源
+            oldValue?.Dispose();
+            return property;
+        });
     }
 
     /// <summary>
@@ -29,14 +34,14 @@ public static class CombineGamePropertyManager
         if (string.IsNullOrEmpty(id)) return null;
 
         _properties.TryGetValue(id, out var property);
-        return property;
+        return property?.IsValid() == true ? property : null;
     }
 
     public static GameProperty GetGameProperty(string combinePropertyID, string id = "")
     {
         if (string.IsNullOrEmpty(combinePropertyID)) return null;
 
-        _properties.TryGetValue(combinePropertyID, out var property);
+        var property = Get(combinePropertyID);
         return property?.GetProperty(id);
     }
 
@@ -49,20 +54,24 @@ public static class CombineGamePropertyManager
 
         var removed = _properties.TryRemove(id, out var property);
 
-        if (removed && property is System.IDisposable disposable)
+        if (removed)
         {
-            disposable.Dispose();
+            property?.Dispose();
         }
 
         return removed;
     }
 
     /// <summary>
-    /// 获取所有 ICombineGameProperty
+    /// 获取所有有效的 ICombineGameProperty
     /// </summary>
     public static IEnumerable<ICombineGameProperty> GetAll()
     {
-        return _properties.Values;
+        foreach (var property in _properties.Values)
+        {
+            if (property?.IsValid() == true)
+                yield return property;
+        }
     }
 
     /// <summary>
@@ -72,10 +81,7 @@ public static class CombineGamePropertyManager
     {
         foreach (var property in _properties.Values)
         {
-            if (property is System.IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
+            property?.Dispose();
         }
 
         _properties.Clear();
@@ -92,5 +98,28 @@ public static class CombineGamePropertyManager
     public static bool Contains(string id)
     {
         return !string.IsNullOrEmpty(id) && _properties.ContainsKey(id);
+    }
+
+    /// <summary>
+    /// 清理无效的属性
+    /// </summary>
+    public static int CleanupInvalidProperties()
+    {
+        var invalidKeys = new List<string>();
+
+        foreach (var kvp in _properties)
+        {
+            if (kvp.Value?.IsValid() != true)
+            {
+                invalidKeys.Add(kvp.Key);
+            }
+        }
+
+        foreach (var key in invalidKeys)
+        {
+            Remove(key);
+        }
+
+        return invalidKeys.Count;
     }
 }

@@ -103,6 +103,7 @@ namespace EasyPack
             {
                 _baseValue = value;
                 MakeDirty();
+                GetValue();
             }
             return this;
         }
@@ -145,7 +146,11 @@ namespace EasyPack
             }
 
             // 创建并注册值变化处理器
-            void handler(float oldVal, float newVal) => MakeDirty();
+            void handler(float oldVal, float newVal)
+            {
+                MakeDirty();
+            }
+
             _dependencyHandlers[dependency] = handler;
             dependency.OnValueChanged += handler;
 
@@ -404,6 +409,34 @@ namespace EasyPack
                     strategy.Apply(ref value, modifiers);
                 }
             }
+        }
+        #endregion
+
+        #region 查询
+        /// <summary>
+        /// 检查属性是否有任何修饰器
+        /// </summary>
+        public bool HasModifiers => Modifiers.Count > 0;
+
+        /// <summary>
+        /// 获取修饰器数量
+        /// </summary>
+        public int ModifierCount => Modifiers.Count;
+
+        /// <summary>
+        /// 检查是否有指定类型的修饰器
+        /// </summary>
+        public bool HasModifierOfType(ModifierType type)
+        {
+            return _groupedModifiers.ContainsKey(type) && _groupedModifiers[type].Count > 0;
+        }
+
+        /// <summary>
+        /// 获取指定类型的修饰器数量
+        /// </summary>
+        public int GetModifierCountOfType(ModifierType type)
+        {
+            return _groupedModifiers.TryGetValue(type, out var list) ? list.Count : 0;
         }
         #endregion
     }
