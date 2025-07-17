@@ -5,7 +5,7 @@ namespace EasyPack
 {
     public class CombinePropertyClassic : ICombineGameProperty, IDisposable
     {
-        private Dictionary<string, GameProperty> GameProperties { get; set; } = new Dictionary<string, GameProperty>();
+        public Dictionary<string, GameProperty> GameProperties { get; set; } = new Dictionary<string, GameProperty>();
         public string ID { get; }
         public Func<ICombineGameProperty, float> Calculater { get; }
 
