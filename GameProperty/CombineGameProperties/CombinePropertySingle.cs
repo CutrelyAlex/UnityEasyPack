@@ -5,7 +5,6 @@
 /// </summary>
 
 using System;
-using System.Collections.Generic;
 namespace EasyPack
 {
     public class CombinePropertySingle : ICombineGameProperty
@@ -16,10 +15,8 @@ namespace EasyPack
         private readonly GameProperty _resultHolder;
         public GameProperty ResultHolder => _resultHolder;
 
-        public Dictionary<string, GameProperty> GameProperties { get; set; }
         private bool _isDisposed = false;
         private readonly float _baseCombineValue;
-        private readonly string _resultHolderID;
 
         public float GetValue()
         {
@@ -36,10 +33,7 @@ namespace EasyPack
 
             ID = id;
             _baseCombineValue = baseValue;
-            _resultHolderID = id + "@ResultHolder";
-
-            _resultHolder = CombineGamePropertyManager.GetOrCreateGameProperty(_resultHolderID, baseValue);
-
+            _resultHolder = new GameProperty(id + "@ResultHolder", baseValue);
             Calculater = e => ResultHolder.GetValue();
         }
 
@@ -77,7 +71,7 @@ namespace EasyPack
 
             _resultHolder.SetBaseValue(value);
         }
-
+    
         /// <summary>
         /// 资源清理
         /// </summary>
@@ -88,8 +82,11 @@ namespace EasyPack
             // 清理ResultHolder的修饰器和依赖
             _resultHolder?.ClearModifiers();
 
-            // 减少ResultHolder的引用计数
-            CombineGamePropertyManager.ReleaseGameProperty(_resultHolderID);
+            // 如果GameProperty实现了IDisposable，也应该调用
+            if (_resultHolder is IDisposable disposableProperty)
+            {
+                disposableProperty.Dispose();
+            }
 
             _isDisposed = true;
         }
@@ -124,24 +121,6 @@ namespace EasyPack
         {
             if (_isDisposed) return;
             _resultHolder.ClearModifiers();
-        }
-
-        /// <summary>
-        /// 获取ResultHolder的修饰器数量
-        /// </summary>
-        public int GetModifierCount()
-        {
-            if (_isDisposed) return 0;
-            return _resultHolder.ModifierCount;
-        }
-
-        /// <summary>
-        /// 检查ResultHolder是否有修饰器
-        /// </summary>
-        public bool HasModifiers()
-        {
-            if (_isDisposed) return false;
-            return _resultHolder.HasModifiers;
         }
     }
 }

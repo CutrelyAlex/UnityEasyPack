@@ -1,6 +1,5 @@
 
 using System;
-using System.Collections.Generic;
 /// 这种组合式的Property，是为了应对例如这种需求：
 ///     策划：我想要一张卡牌，这张卡牌让 增益Buff 的 增益效果 翻倍 （套娃）
 ///     策划：我想要一张卡牌，这张卡牌让 乘法减益百分比 的 数值 增加 1% (复杂需求)
@@ -14,7 +13,6 @@ namespace EasyPack
     {
         string ID { get; }
         GameProperty ResultHolder { get; }
-        Dictionary<string, GameProperty> GameProperties { get; set; }
         GameProperty GetProperty(string id);
         Func<ICombineGameProperty, float> Calculater { get; }
         float GetValue();
