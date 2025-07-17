@@ -6,8 +6,10 @@ namespace EasyPack
 {
     public class GamePropertyExample : MonoBehaviour
     {
+        public CombineGamePropertyManager CombineGamePropertyManager;
         void Start()
         {
+            CombineGamePropertyManager = new();
             Test_RPG_AttackPower_Complex();
             Test_MultiCombinePropertyCustom_ShareGameProperty();
             Test_CyclicDependency_Detection();

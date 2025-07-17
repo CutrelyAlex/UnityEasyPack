@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System;
 
-public static class CombineGamePropertyManager
+public class CombineGamePropertyManager
 {
-    private static readonly ConcurrentDictionary<string, ICombineGameProperty> _properties = new ConcurrentDictionary<string, ICombineGameProperty>();
+    private readonly ConcurrentDictionary<string, ICombineGameProperty> _properties = new ConcurrentDictionary<string, ICombineGameProperty>();
 
     /// <summary>
     /// 新增或更新一个 ICombineGameProperty
     /// </summary>
-    public static void AddOrUpdate(ICombineGameProperty property)
+    public void AddOrUpdate(ICombineGameProperty property)
     {
         if (property == null)
         {
@@ -29,7 +29,7 @@ public static class CombineGamePropertyManager
     /// <summary>
     /// 根据ID查找 ICombineGameProperty
     /// </summary>
-    public static ICombineGameProperty Get(string id)
+    public ICombineGameProperty Get(string id)
     {
         if (string.IsNullOrEmpty(id)) return null;
 
@@ -37,7 +37,7 @@ public static class CombineGamePropertyManager
         return property?.IsValid() == true ? property : null;
     }
 
-    public static GameProperty GetGameProperty(string combinePropertyID, string id = "")
+    public GameProperty GetGamePropertyFromCombine(string combinePropertyID, string id = "")
     {
         if (string.IsNullOrEmpty(combinePropertyID)) return null;
 
@@ -48,7 +48,7 @@ public static class CombineGamePropertyManager
     /// <summary>
     /// 删除指定ID的 ICombineGameProperty
     /// </summary>
-    public static bool Remove(string id)
+    public bool Remove(string id)
     {
         if (string.IsNullOrEmpty(id)) return false;
 
@@ -65,7 +65,7 @@ public static class CombineGamePropertyManager
     /// <summary>
     /// 获取所有有效的 ICombineGameProperty
     /// </summary>
-    public static IEnumerable<ICombineGameProperty> GetAll()
+    public IEnumerable<ICombineGameProperty> GetAll()
     {
         foreach (var property in _properties.Values)
         {
@@ -77,7 +77,7 @@ public static class CombineGamePropertyManager
     /// <summary>
     /// 清空所有属性
     /// </summary>
-    public static void Clear()
+    public void Clear()
     {
         foreach (var property in _properties.Values)
         {
@@ -90,12 +90,12 @@ public static class CombineGamePropertyManager
     /// <summary>
     /// 获取属性数量
     /// </summary>
-    public static int Count => _properties.Count;
+    public int Count => _properties.Count;
 
     /// <summary>
     /// 检查是否包含指定ID的属性
     /// </summary>
-    public static bool Contains(string id)
+    public bool Contains(string id)
     {
         return !string.IsNullOrEmpty(id) && _properties.ContainsKey(id);
     }
@@ -103,7 +103,7 @@ public static class CombineGamePropertyManager
     /// <summary>
     /// 清理无效的属性
     /// </summary>
-    public static int CleanupInvalidProperties()
+    public int CleanupInvalidProperties()
     {
         var invalidKeys = new List<string>();
 

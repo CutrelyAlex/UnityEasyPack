@@ -9,11 +9,13 @@ namespace EasyPack
         private BuffManager _buffManager;
         private GameObject _dummyTarget;
         private GameObject _dummyCreator;
+        CombineGamePropertyManager CombineGamePropertyManager;
         void Start()
         {
             _buffManager = new BuffManager();
             _dummyTarget = new GameObject("DummyTarget");
             _dummyCreator = new GameObject("DummyCreator");
+            CombineGamePropertyManager = new CombineGamePropertyManager();
 
             Debug.Log("开始Buff系统单元测试");
             TestCastModifierToPropertyAdd();
