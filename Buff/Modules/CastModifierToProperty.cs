@@ -87,7 +87,7 @@ namespace EasyPack
         /// </summary>
         private void AddModifier()
         {
-            var property = CombineGamePropertyManager.GetGameProperty(CombinePropertyID, PropertyID);
+            var property = CombineGamePropertyManager.GetGamePropertyFromCombine(CombinePropertyID, PropertyID);
             if (property == null)
                 return;
 
@@ -104,7 +104,7 @@ namespace EasyPack
         /// </summary>
         private void RemoveSingleModifier()
         {
-            var property = CombineGamePropertyManager.GetGameProperty(CombinePropertyID, PropertyID);
+            var property = CombineGamePropertyManager.GetGamePropertyFromCombine(CombinePropertyID, PropertyID);
             if (property == null || _appliedModifiers.Count == 0)
                 return;
 
@@ -119,7 +119,7 @@ namespace EasyPack
         /// </summary>
         private void RemoveAllModifiers()
         {
-            var property = CombineGamePropertyManager.GetGameProperty(CombinePropertyID, PropertyID);
+            var property = CombineGamePropertyManager.GetGamePropertyFromCombine(CombinePropertyID, PropertyID);
             if (property == null)
                 return;
 

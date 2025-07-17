@@ -16,6 +16,7 @@ namespace EasyPack
         private readonly float _baseCombineValue;
 
         private readonly Dictionary<GameProperty, Action<float, float>> _eventHandlers = new();
+        private readonly List<string> _managedPropertyIds = new List<string>(); // 跟踪管理的属性ID
 
         public bool IsValid() => !_isDisposed && _resultHolder != null;
         public float GetBaseValue() => _baseCombineValue;
@@ -30,15 +31,22 @@ namespace EasyPack
 
         public CombinePropertyClassic(string id, float BaseValue, string ConfigProperty, string IncreaseValue, string IncreaseMul, string DecreaseValue, string DecreaseMul)
         {
-            _resultHolder = new GameProperty(id + "@ResultHolder", 0);
+            _resultHolder = CombineGamePropertyManager.GetOrCreateGameProperty(id + "@ResultHolder", 0);
             ID = id;
             _baseCombineValue = BaseValue;
 
-            RegisterProperty(new GameProperty(ConfigProperty, BaseValue));
-            RegisterProperty(new GameProperty(IncreaseValue, 0));
-            RegisterProperty(new GameProperty(IncreaseMul, 0));
-            RegisterProperty(new GameProperty(DecreaseValue, 0));
-            RegisterProperty(new GameProperty(DecreaseMul, 0));
+            RegisterProperty(CombineGamePropertyManager.GetOrCreateGameProperty(ConfigProperty, BaseValue));
+            RegisterProperty(CombineGamePropertyManager.GetOrCreateGameProperty(IncreaseValue, 0));
+            RegisterProperty(CombineGamePropertyManager.GetOrCreateGameProperty(IncreaseMul, 0));
+            RegisterProperty(CombineGamePropertyManager.GetOrCreateGameProperty(DecreaseValue, 0));
+            RegisterProperty(CombineGamePropertyManager.GetOrCreateGameProperty(DecreaseMul, 0));
+
+            _managedPropertyIds.Add(id + "@ResultHolder");
+            _managedPropertyIds.Add(ConfigProperty);
+            _managedPropertyIds.Add(IncreaseValue);
+            _managedPropertyIds.Add(IncreaseMul);
+            _managedPropertyIds.Add(DecreaseValue);
+            _managedPropertyIds.Add(DecreaseMul);
 
             GameProperty BaseProperty = GetProperty(ConfigProperty);
             GameProperty BaseBuffValue = GetProperty(IncreaseValue);
@@ -51,10 +59,8 @@ namespace EasyPack
                 return (BaseProperty.GetValue() + BaseBuffValue.GetValue()) * (BaseBuffMul.GetValue() + 1) - DeBuffValue.GetValue() * (1 + DeBuffMul.GetValue());
             };
 
-            // 改进事件处理，避免内存泄漏
             SubscribeToPropertyChanges();
 
-            // 初始化缓存值
             _cacheValue = Calculater(this);
         }
 
@@ -98,12 +104,20 @@ namespace EasyPack
         {
             if (_isDisposed) return;
 
+            // 取消订阅事件
             foreach (var kvp in _eventHandlers)
             {
                 kvp.Key.OnValueChanged -= kvp.Value;
             }
             _eventHandlers.Clear();
             GameProperties.Clear();
+
+            // 减少所有管理的GameProperty的引用计数
+            foreach (var propertyId in _managedPropertyIds)
+            {
+                CombineGamePropertyManager.ReleaseGameProperty(propertyId);
+            }
+            _managedPropertyIds.Clear();
 
             _isDisposed = true;
         }
