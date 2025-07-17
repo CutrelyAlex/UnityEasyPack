@@ -211,8 +211,11 @@ namespace EasyPack
             propA.GetValue(); // 强制刷新A，应该会触发A的变更
             propB.GetValue(); // 强制刷新B
 
-            // 只有A应该被更新，B不应受到循环依赖影响
-            Debug.Assert(aChanged, "A的值应该被B的改变影响");
+            // 对于简单依赖，只有当依赖属性的值实际改变时才会触发事件
+            // 由于A没有修饰器且基础值没变，A的值不会改变，所以不应该触发OnValueChanged
+            // 但A应该被标记为dirty并重新计算
+            Debug.Assert(!aChanged, "A的值没有实际改变，不应该触发OnValueChanged事件");
+            Debug.Assert(bChanged, "B的值改变了，应该触发OnValueChanged事件");
             Debug.Log("简单循环依赖检测测试通过");
 
             // 测试3：检测复杂的循环依赖（A -> B -> C -> A）
@@ -246,12 +249,40 @@ namespace EasyPack
             propB.GetValue();
             propC.GetValue();
 
-            // B依赖C，A依赖B，所以A和B都应该变化
-            Debug.Assert(bChanged, "B的值应该被C的改变影响");
-            Debug.Assert(aChanged, "A的值应该被B的改变影响");
+            // 对于简单依赖，只有实际值改变才会触发事件
+            // A和B的基础值没有改变，所以不应该触发OnValueChanged
+            Debug.Assert(!bChanged, "B的值没有实际改变，不应该触发OnValueChanged事件");
+            Debug.Assert(!aChanged, "A的值没有实际改变，不应该触发OnValueChanged事件");
+            Debug.Assert(cChanged, "C的值改变了，应该触发OnValueChanged事件");
             Debug.Log("复杂循环依赖检测测试通过");
 
-            // 测试4：正常的非循环多层依赖
+            // 测试4：测试有计算器的依赖关系
+            propA = new GameProperty("A", 10f);
+            propB = new GameProperty("B", 20f);
+
+            // 建立依赖关系: A依赖B，并且有计算器
+            propA.AddDependency(propB, (dep, newVal) => newVal * 2); // A的值 = B的值 * 2
+
+            // 重置事件标志
+            aChanged = false;
+            bChanged = false;
+
+            propA.OnValueChanged += (oldVal, newVal) => aChanged = true;
+            propB.OnValueChanged += (oldVal, newVal) => bChanged = true;
+
+            // 修改B的值
+            propB.SetBaseValue(25f);
+
+            // 获取A的值，应该触发计算器
+            var aValue = propA.GetValue();
+
+            // 有计算器的依赖关系：A的值应该被自动计算为B的值*2 = 25*2 = 50
+            Debug.Assert(Mathf.Approximately(aValue, 50f), $"A的值应该是50，但实际是{aValue}");
+            Debug.Assert(aChanged, "A的值通过计算器改变了，应该触发OnValueChanged事件");
+            Debug.Assert(bChanged, "B的值改变了，应该触发OnValueChanged事件");
+            Debug.Log("有计算器的依赖关系测试通过");
+
+            // 测试5：正常的非循环多层依赖
             propA = new GameProperty("A", 10f);
             propB = new GameProperty("B", 20f);
             propC = new GameProperty("C", 30f);
@@ -279,15 +310,16 @@ namespace EasyPack
             // 获取D的值，应该触发整个依赖链的计算
             propD.GetValue();
 
-            // 整个依赖链上的所有属性都应该更新
-            Debug.Assert(bChanged, "B的值应该被A的改变影响");
-            Debug.Assert(cChanged, "C的值应该被B的改变影响");
-            Debug.Assert(dChanged, "D的值应该被C的改变影响");
+            // 对于简单依赖，只有实际值改变才会触发事件
+            // B、C、D的基础值没有改变，所以不应该触发OnValueChanged
+            Debug.Assert(!bChanged, "B的值没有实际改变，不应该触发OnValueChanged事件");
+            Debug.Assert(!cChanged, "C的值没有实际改变，不应该触发OnValueChanged事件");
+            Debug.Assert(!dChanged, "D的值没有实际改变，不应该触发OnValueChanged事件");
+            Debug.Assert(aChanged, "A的值改变了，应该触发OnValueChanged事件");
             Debug.Log("多层依赖传播测试通过");
 
             Debug.Log("Test_CyclicDependency_Detection 所有测试通过");
         }
-
         /// <summary>
         /// 示例：属性依赖关系的高级用法
         /// 展示如何建立复杂的属性依赖链并处理更新
