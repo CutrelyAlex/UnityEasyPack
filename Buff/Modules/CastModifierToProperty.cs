@@ -89,10 +89,9 @@ namespace EasyPack
         private void AddModifier()
         {
             var property = CombineGamePropertyManager.GetGamePropertyFromCombine(CombinePropertyID, PropertyID);
-            if (property == null)
+            if (property == null || Modifier == null)
                 return;
 
-            // 克隆修饰器以避免多次应用相同实例
             var modifierClone = Modifier.Clone();
             property.AddModifier(modifierClone);
 
