@@ -5,8 +5,10 @@ using System;
 
 public class CombineGamePropertyManager
 {
+    
     private readonly ConcurrentDictionary<string, ICombineGameProperty> _properties = new ConcurrentDictionary<string, ICombineGameProperty>();
 
+    #region 基础增删
     /// <summary>
     /// 新增或更新一个 ICombineGameProperty
     /// </summary>
@@ -88,19 +90,6 @@ public class CombineGamePropertyManager
     }
 
     /// <summary>
-    /// 获取属性数量
-    /// </summary>
-    public int Count => _properties.Count;
-
-    /// <summary>
-    /// 检查是否包含指定ID的属性
-    /// </summary>
-    public bool Contains(string id)
-    {
-        return !string.IsNullOrEmpty(id) && _properties.ContainsKey(id);
-    }
-
-    /// <summary>
     /// 清理无效的属性
     /// </summary>
     public int CleanupInvalidProperties()
@@ -122,4 +111,22 @@ public class CombineGamePropertyManager
 
         return invalidKeys.Count;
     }
+    #endregion
+
+    #region 查询
+
+    /// <summary>
+    /// 获取属性数量
+    /// </summary>
+    public int Count => _properties.Count;
+
+    /// <summary>
+    /// 检查是否包含指定ID的属性
+    /// </summary>
+    public bool Contains(string id)
+    {
+        return !string.IsNullOrEmpty(id) && _properties.ContainsKey(id);
+    }
+
+    #endregion
 }

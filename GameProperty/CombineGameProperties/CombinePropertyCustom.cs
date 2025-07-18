@@ -3,52 +3,91 @@ using System.Collections.Generic;
 
 namespace EasyPack
 {
-    public class CombinePropertyCustom : ICombineGameProperty
+    /// <summary>
+    /// 自定义组合属性实现
+    /// 支持完全自定义的计算逻辑
+    /// </summary>
+    public class CombinePropertyCustom : CombineGameProperty
     {
-        private Dictionary<string, GameProperty> GameProperties { get; set; } = new Dictionary<string, GameProperty>();
-        public string ID { get; }
+        #region 私有字段
 
-        private readonly float _baseCombineValue;
-        public float GetBaseValue() => _baseCombineValue;
-        public Func<ICombineGameProperty, float> Calculater { get; set; }
+        /// <summary>
+        /// 子属性字典
+        /// </summary>
+        private readonly Dictionary<string, GameProperty> _gameProperties = new Dictionary<string, GameProperty>();
 
-        private readonly GameProperty _resultHolder;
-        public GameProperty ResultHolder => _resultHolder;
-
+        /// <summary>
+        /// 事件处理器字典
+        /// </summary>
         private readonly Dictionary<GameProperty, Action<float, float>> _eventHandlers = new();
-        private bool _isDisposed = false;
 
-        public bool IsValid() => !_isDisposed && _resultHolder != null;
+        #endregion
 
-        public float GetValue()
-        {
-            if (_isDisposed)
-                throw new ObjectDisposedException(nameof(CombinePropertyCustom));
+        #region 构造函数
 
-            _resultHolder.SetBaseValue(Calculater?.Invoke(this) ?? _baseCombineValue);
-            return _resultHolder.GetValue();
-        }
-
+        /// <summary>
+        /// 初始化自定义组合属性
+        /// </summary>
+        /// <param name="id">属性ID</param>
+        /// <param name="baseValue">基础值</param>
         public CombinePropertyCustom(string id, float baseValue = 0)
+            : base(id, baseValue)
         {
-            ID = id;
-            _baseCombineValue = baseValue;
-            _resultHolder = new GameProperty(id + "@ResultHolder", baseValue);
-            Calculater = e => _baseCombineValue;
+            // 自定义属性使用默认计算器
         }
 
+        #endregion
+
+        #region 重写方法
+
+        /// <summary>
+        /// 获取指定ID的子属性
+        /// </summary>
+        public override GameProperty GetProperty(string id)
+        {
+            if (_isDisposed) return null;
+            return _gameProperties.TryGetValue(id, out var property) ? property : null;
+        }
+
+        /// <summary>
+        /// 释放资源时的特定清理逻辑
+        /// </summary>
+        protected override void DisposeCore()
+        {
+            // 清理事件订阅
+            foreach (var kvp in _eventHandlers)
+            {
+                kvp.Key.OnValueChanged -= kvp.Value;
+            }
+            _eventHandlers.Clear();
+
+            // 清理子属性
+            _gameProperties.Clear();
+        }
+
+        #endregion
+
+        #region 属性管理
+
+        /// <summary>
+        /// 注册子属性
+        /// </summary>
+        /// <param name="gameProperty">要注册的属性</param>
+        /// <returns>注册的属性</returns>
         public GameProperty RegisterProperty(GameProperty gameProperty)
         {
-            if (_isDisposed)
-                throw new ObjectDisposedException(nameof(CombinePropertyCustom));
+            ThrowIfDisposed();
 
             if (gameProperty == null)
                 throw new ArgumentNullException(nameof(gameProperty));
 
-            GameProperties[gameProperty.ID] = gameProperty;
+            _gameProperties[gameProperty.ID] = gameProperty;
 
+            // 创建空的事件处理器（可以根据需要自定义）
             var handler = new Action<float, float>((oldVal, newVal) =>
             {
+                // 自定义属性的变化处理逻辑
+                // 子类可以重写此方法来添加特定的处理逻辑
             });
 
             _eventHandlers[gameProperty] = handler;
@@ -57,32 +96,21 @@ namespace EasyPack
             return gameProperty;
         }
 
+        /// <summary>
+        /// 取消注册子属性
+        /// </summary>
+        /// <param name="gameProperty">要取消注册的属性</param>
         public void UnRegisterProperty(GameProperty gameProperty)
         {
             if (gameProperty == null || _isDisposed) return;
 
-            if (GameProperties.Remove(gameProperty.ID) && _eventHandlers.TryGetValue(gameProperty, out var handler))
+            if (_gameProperties.Remove(gameProperty.ID) && _eventHandlers.TryGetValue(gameProperty, out var handler))
             {
                 gameProperty.OnValueChanged -= handler;
                 _eventHandlers.Remove(gameProperty);
             }
         }
 
-        public GameProperty GetProperty(string id) =>
-            _isDisposed ? null : GameProperties.TryGetValue(id, out var property) ? property : null;
-
-        public void Dispose()
-        {
-            if (_isDisposed) return;
-
-            foreach (var kvp in _eventHandlers)
-            {
-                kvp.Key.OnValueChanged -= kvp.Value;
-            }
-            _eventHandlers.Clear();
-            GameProperties.Clear();
-
-            _isDisposed = true;
-        }
+        #endregion
     }
 }

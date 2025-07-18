@@ -1,479 +1,599 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-
 namespace EasyPack
 {
+    /// <summary>
+    /// GameProperty 系统完整示例
+    /// 本示例按照从简单到复杂的顺序，演示了 GameProperty 系统的各种功能
+    /// </summary>
     public class GamePropertyExample : MonoBehaviour
     {
         public CombineGamePropertyManager CombineGamePropertyManager;
+
         void Start()
         {
             CombineGamePropertyManager = new();
-            Test_RPG_AttackPower_Complex();
-            Test_MultiCombinePropertyCustom_ShareGameProperty();
-            Test_CyclicDependency_Detection();
-            Example_PropertyWithDependencies();
-            Example();
 
-            Test_GameProperty_ModifierOperations();
+            Debug.Log("=== GameProperty 系统示例开始 ===\n");
+
+            // 按照学习顺序执行示例
+            Example_1_BasicGameProperty();
+            Example_2_ModifierSystem();
+            Example_3_PropertyDependencies();
+            Example_4_CombineProperties();
+            Example_5_PropertyManager();
+            Example_6_RealWorldRPGExample();
+            Example_7_SerializationExample();
+            Example_8_AdvancedFeatures();
+            Example_9_ErrorHandlingAndBestPractices();
+
+
+            Debug.Log("\n=== GameProperty 系统示例结束 ===");
         }
 
-        void Example()
+        /// <summary>
+        /// 示例1：基础 GameProperty 使用
+        /// 学习目标：了解 GameProperty 的基本概念和基础操作
+        /// </summary>
+        void Example_1_BasicGameProperty()
         {
-            // 示例1：单一属性 + 修饰器
-            var prop = new GameProperty("HP", 100f);
-            Debug.Log($"[单一属性] 初始HP: {prop.GetValue()}");
-            prop.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));
-            Debug.Log($"[单一属性] 加Add修饰器后HP: {prop.GetValue()}");
-            prop.AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.5f));
-            Debug.Log($"[单一属性] 加Mul修饰器后HP: {prop.GetValue()}");
-            prop.AddModifier(new RangeModifier(ModifierType.Clamp, 0, new Vector2(0, 150)));
-            Debug.Log($"[单一属性] 加Clamp修饰器后HP: {prop.GetValue()}");
+            Debug.Log("=== 示例1：基础 GameProperty 使用 ===");
 
-            // 示例2：CombinePropertySingle 用法
-            var single = new CombinePropertySingle("SingleProp");
-            single.ResultHolder.SetBaseValue(50f);
-            single.ResultHolder.AddModifier(new FloatModifier(ModifierType.Add, 0, 10f));
-            Debug.Log($"[CombinePropertySingle] 结果: {single.GetValue()}");
+            // 1.1 创建一个基础属性
+            var health = new GameProperty("Health", 100f);
+            Debug.Log($"创建角色生命值: {health.GetValue()}");
 
-            // 示例3：CombinePropertyClassic 用法
-            var classic = new CombinePropertyClassic(
-                "Atk",
-                100f,      // BaseValue
-                "Base",    // ConfigProperty
-                "Buff",    // BuffValue
-                "BuffMul", // BuffMul
-                "Debuff",  // deBuffValue
-                "DebuffMul"// deBuffMul
+            // 1.2 修改基础值
+            health.SetBaseValue(150f);
+            Debug.Log($"升级后生命值: {health.GetValue()}");
+
+            // 1.3 监听属性变化
+            health.OnValueChanged += (oldValue, newValue) => {
+                Debug.Log($"生命值变化: {oldValue} -> {newValue}");
+            };
+
+            health.SetBaseValue(200f);
+            Debug.Log("基础 GameProperty 示例完成\n");
+        }
+
+        /// <summary>
+        /// 示例2：修饰器系统
+        /// 学习目标：了解如何使用修饰器动态改变属性值
+        /// </summary>
+        void Example_2_ModifierSystem()
+        {
+            Debug.Log("=== 示例2：修饰器系统 ===");
+
+            var attack = new GameProperty("Attack", 50f);
+            Debug.Log($"基础攻击力: {attack.GetValue()}");
+
+            // 2.1 加法修饰器（装备加成）
+            var weaponBonus = new FloatModifier(ModifierType.Add, 0, 25f);
+            attack.AddModifier(weaponBonus);
+            Debug.Log($"装备武器后攻击力: {attack.GetValue()}");
+
+            // 2.2 乘法修饰器（技能加成）
+            var skillBonus = new FloatModifier(ModifierType.Mul, 0, 1.5f);
+            attack.AddModifier(skillBonus);
+            Debug.Log($"使用技能后攻击力: {attack.GetValue()}"); // (50+25)*1.5 = 112.5
+
+            // 2.3 范围限制修饰器
+            var attackCap = new RangeModifier(ModifierType.Clamp, 0, new Vector2(0, 100));
+            attack.AddModifier(attackCap);
+            Debug.Log($"应用攻击力上限后: {attack.GetValue()}"); // 被限制在100
+
+            // 2.4 移除修饰器
+            attack.RemoveModifier(attackCap);
+            Debug.Log($"移除攻击力上限后: {attack.GetValue()}"); // 回到112.5
+
+            // 2.5 批量操作修饰器
+            var tempBuffs = new List<IModifier> {
+                new FloatModifier(ModifierType.Add, 1, 20f),
+                new FloatModifier(ModifierType.Mul, 1, 1.2f)
+            };
+
+            attack.AddModifiers(tempBuffs);
+            Debug.Log($"临时Buff加成后: {attack.GetValue()}");
+
+            attack.RemoveModifiers(tempBuffs);
+            Debug.Log($"Buff结束后: {attack.GetValue()}");
+
+            Debug.Log("修饰器系统示例完成\n");
+        }
+
+        /// <summary>
+        /// 示例3：属性依赖关系
+        /// 学习目标：了解如何建立属性间的依赖关系
+        /// </summary>
+        void Example_3_PropertyDependencies()
+        {
+            Debug.Log("=== 示例3：属性依赖关系 ===");
+
+            // 3.1 简单依赖关系
+            var strength = new GameProperty("Strength", 10f);
+            var carryWeight = new GameProperty("CarryWeight", 0f);
+
+            // 建立依赖：负重依赖于力量
+            carryWeight.AddDependency(strength, (dep, newVal) => newVal * 5f);
+
+            Debug.Log($"力量: {strength.GetValue()}, 负重: {carryWeight.GetValue()}");
+
+            strength.SetBaseValue(15f);
+            Debug.Log($"力量提升后 - 力量: {strength.GetValue()}, 负重: {carryWeight.GetValue()}");
+
+            // 3.2 多重依赖关系
+            var agility = new GameProperty("Agility", 8f);
+            var attackSpeed = new GameProperty("AttackSpeed", 1f);
+
+            // 攻击速度依赖于敏捷和力量
+            attackSpeed.AddDependency(agility, (dep, newVal) => 1f + newVal * 0.1f);
+            attackSpeed.AddDependency(strength, (dep, newVal) => attackSpeed.GetBaseValue() + newVal * 0.05f);
+
+            Debug.Log($"敏捷: {agility.GetValue()}, 力量: {strength.GetValue()}, 攻击速度: {attackSpeed.GetValue()}");
+
+            agility.SetBaseValue(12f);
+            Debug.Log($"敏捷提升后 - 攻击速度: {attackSpeed.GetValue()}");
+
+            // 3.3 循环依赖检测
+            var propA = new GameProperty("PropA", 10f);
+            var propB = new GameProperty("PropB", 20f);
+
+            propA.AddDependency(propB);
+            // 尝试创建循环依赖（会被阻止）
+            propB.AddDependency(propA);
+
+            Debug.Log("循环依赖检测测试完成");
+            Debug.Log("属性依赖关系示例完成\n");
+        }
+
+        /// <summary>
+        /// 示例4：组合属性系统
+        /// 学习目标：了解如何使用更高级的组合属性
+        /// </summary>
+        void Example_4_CombineProperties()
+        {
+            Debug.Log("=== 示例4：组合属性系统 ===");
+
+            // 4.1 单一组合属性
+            var singleProp = new CombinePropertySingle("MagicPower");
+            singleProp.ResultHolder.SetBaseValue(80f);
+            singleProp.ResultHolder.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));
+            Debug.Log($"单一组合属性值: {singleProp.GetValue()}");
+
+            // 4.2 经典组合属性（RPG常用）
+            var rpgAttack = new CombinePropertyClassic(
+                "RPGAttack",
+                100f,        // 基础攻击力
+                "Base",      // 基础加成（装备等）
+                "Buff",      // 正面Buff
+                "BuffMul",   // 正面Buff乘数
+                "Debuff",    // 负面Debuff
+                "DebuffMul"  // 负面Debuff乘数
             );
-            // 增加Buff
-            classic.GetProperty("Buff").SetBaseValue(30f);
-            // 增加Buff乘法
-            classic.GetProperty("BuffMul").SetBaseValue(0.2f);
-            // 增加Debuff
-            classic.GetProperty("Debuff").SetBaseValue(10f);
-            // 增加Debuff乘法
-            classic.GetProperty("DebuffMul").SetBaseValue(0.5f);
 
-            Debug.Log($"[CombinePropertyClassic] 计算结果: {classic.GetValue()}");
+            // 配置各个组件
+            rpgAttack.GetProperty("Base").SetBaseValue(20f);      // 重置为20攻击
+            rpgAttack.GetProperty("Buff").SetBaseValue(15f);      // Buff+15攻击
+            rpgAttack.GetProperty("BuffMul").SetBaseValue(0.3f);  // Buff +30%
+            rpgAttack.GetProperty("Debuff").SetBaseValue(5f);     // Debuff -5攻击
+            rpgAttack.GetProperty("DebuffMul").SetBaseValue(0.2f); // Debuff +20%
 
-            // 示例4：使用管理器管理属性
-            CombineGamePropertyManager.AddOrUpdate(classic);
-            CombineGamePropertyManager.AddOrUpdate(single);
+            // 计算公式：(base + buff) * (1 + buffMul) - debuff * (1 + debuffMul)
+            // (0 + 15) * (1 + 0.3) - 5 * (1 + 0.2) = 39.5
+            Debug.Log($"RPG攻击力: {rpgAttack.GetValue()}");
 
-            foreach (var p in CombineGamePropertyManager.GetAll())
+            // 4.3 自定义组合属性
+            var customProp = new CombinePropertyCustom("CustomDamage");
+
+            var baseDamage = new GameProperty("BaseDamage", 50f);
+            var critChance = new GameProperty("CritChance", 0.2f);
+            var critMultiplier = new GameProperty("CritMultiplier", 2f);
+
+            customProp.RegisterProperty(baseDamage);
+            customProp.RegisterProperty(critChance);
+            customProp.RegisterProperty(critMultiplier);
+
+            // 自定义计算逻辑：期望伤害 = 基础伤害 * (1 + 暴击率 * (暴击倍数 - 1))
+            customProp.Calculater = (combine) => {
+                var baseDmg = combine.GetProperty("BaseDamage").GetValue();
+                var critRate = combine.GetProperty("CritChance").GetValue();
+                var critMul = combine.GetProperty("CritMultiplier").GetValue();
+                return baseDmg * (1f + critRate * (critMul - 1f));
+            };
+
+            Debug.Log($"自定义期望伤害: {customProp.GetValue()}");
+
+            // 修改暴击率观察变化
+            critChance.SetBaseValue(0.5f);
+            Debug.Log($"暴击率提升后期望伤害: {customProp.GetValue()}");
+
+            Debug.Log("组合属性系统示例完成\n");
+        }
+
+        /// <summary>
+        /// 示例5：属性管理器
+        /// 学习目标：了解如何统一管理多个属性
+        /// </summary>
+        void Example_5_PropertyManager()
+        {
+            Debug.Log("=== 示例5：属性管理器 ===");
+
+            // 创建多个属性并添加到管理器
+            var healthProp = new CombinePropertySingle("PlayerHealth");
+            healthProp.ResultHolder.SetBaseValue(100f);
+
+            var manaProp = new CombinePropertySingle("PlayerMana");
+            manaProp.ResultHolder.SetBaseValue(50f);
+
+            var staminaProp = new CombinePropertySingle("PlayerStamina");
+            staminaProp.ResultHolder.SetBaseValue(80f);
+
+            // 添加到管理器
+            CombineGamePropertyManager.AddOrUpdate(healthProp);
+            CombineGamePropertyManager.AddOrUpdate(manaProp);
+            CombineGamePropertyManager.AddOrUpdate(staminaProp);
+
+            Debug.Log($"管理器中的属性数量: {CombineGamePropertyManager.Count}");
+
+            // 遍历所有属性
+            foreach (var prop in CombineGamePropertyManager.GetAll())
             {
-                Debug.Log($"[Manager] 属性ID: {p.ID}, 当前值: {p.GetValue()}");
+                Debug.Log($"属性 {prop.ID}: {prop.GetValue()}");
             }
 
-            // 示例5：修改属性基础值并观察变化
-            // 注意，不建议在游戏中动态修改本值，通常是通过修饰器来动态调整
-            classic.GetProperty("Buff").SetBaseValue(100f);
-            Debug.Log($"[动态变化] Buff提升后: {classic.GetValue()}");
-            classic.GetProperty("Debuff").SetBaseValue(50f);
-            Debug.Log($"[动态变化] Debuff提升后: {classic.GetValue()}");
+            // 通过ID获取特定属性
+            var health = CombineGamePropertyManager.Get("PlayerHealth");
+            if (health != null)
+            {
+                Debug.Log($"获取到生命值属性: {health.GetValue()}");
+            }
 
-            // 示例6：序列化与反序列化 GameProperty
-            var prop2 = new GameProperty("MP", 80f);
-            prop2.AddModifier(new FloatModifier(ModifierType.Add, 1, 10f));
-            prop2.AddModifier(new FloatModifier(ModifierType.Mul, 2, 2f));
-            Debug.Log($"[序列化] 原始MP: {prop2.GetValue()}");
+            // 直接获取属性内部的GameProperty
+            var healthGameProp = CombineGamePropertyManager.GetGamePropertyFromCombine("PlayerHealth");
+            if (healthGameProp != null)
+            {
+                healthGameProp.AddModifier(new FloatModifier(ModifierType.Add, 0, 50f));
+                Debug.Log($"添加修饰器后生命值: {health.GetValue()}");
+            }
+
+            Debug.Log("属性管理器示例完成\n");
+        }
+
+        /// <summary>
+        /// 示例6：真实RPG游戏案例
+        /// 学习目标：了解在实际游戏中如何应用GameProperty系统
+        /// </summary>
+        void Example_6_RealWorldRPGExample()
+        {
+            Debug.Log("=== 示例6：真实RPG游戏案例 ===");
+
+            // 创建角色基础属性
+            var strength = new GameProperty("Strength", 15f);
+            var agility = new GameProperty("Agility", 12f);
+            var intelligence = new GameProperty("Intelligence", 10f);
+            var vitality = new GameProperty("Vitality", 18f);
+
+            // 创建派生属性
+            var maxHealth = new GameProperty("MaxHealth", 0f);
+            var maxMana = new GameProperty("MaxMana", 0f);
+            var physicalAttack = new GameProperty("PhysicalAttack", 0f);
+            var magicAttack = new GameProperty("MagicAttack", 0f);
+            var defense = new GameProperty("Defense", 0f);
+            var attackSpeed = new GameProperty("AttackSpeed", 1f);
+
+            // 建立属性依赖关系
+            maxHealth.AddDependency(vitality, (dep, newVal) => newVal* 10f + 50f);
+            maxMana.AddDependency(intelligence, (dep, newVal) => newVal * 5f + 20f);
+            physicalAttack.AddDependency(strength, (dep, newVal) => newVal * 2f + 10f);
+            magicAttack.AddDependency(intelligence, (dep, newVal) => newVal * 1.5f + 5f);
+            defense.AddDependency(vitality, (dep, newVal) => newVal * 1.2f + 8f);
+            attackSpeed.AddDependency(agility, (dep, newVal) => 1f + newVal * 0.08f);
+
+            Debug.Log("=== 角色初始属性 ===");
+            Debug.Log($"力量: {strength.GetValue()}, 敏捷: {agility.GetValue()}, 智力: {intelligence.GetValue()}, 体力: {vitality.GetValue()}");
+            Debug.Log($"最大生命: {maxHealth.GetValue()}, 最大法力: {maxMana.GetValue()}");
+            Debug.Log($"物理攻击: {physicalAttack.GetValue()}, 魔法攻击: {magicAttack.GetValue()}");
+            Debug.Log($"防御力: {defense.GetValue()}, 攻击速度: {attackSpeed.GetValue()}");
+
+            // 模拟装备系统
+            Debug.Log("\n=== 装备武器和防具 ===");
+            physicalAttack.AddModifier(new FloatModifier(ModifierType.Add, 0, 25f)); // 武器+25攻击
+            defense.AddModifier(new FloatModifier(ModifierType.Add, 0, 15f));        // 防具+15防御
+            attackSpeed.AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.1f));   // 装备+10%攻击速度
+
+            Debug.Log($"装备后 - 物理攻击: {physicalAttack.GetValue()}, 防御: {defense.GetValue()}, 攻击速度: {attackSpeed.GetValue()}");
+
+            // 模拟技能/魔法Buff系统
+            Debug.Log("\n=== 施放强化魔法 ===");
+            var strengthBuff = new FloatModifier(ModifierType.Add, 1, 8f);  // 力量+8
+            var speedBuff = new FloatModifier(ModifierType.Mul, 1, 1.3f);   // 攻击速度+30%
+
+            strength.AddModifier(strengthBuff);
+            attackSpeed.AddModifier(speedBuff);
+
+            Debug.Log($"Buff后 - 力量: {strength.GetValue()}, 物理攻击: {physicalAttack.GetValue()}, 攻击速度: {attackSpeed.GetValue()}");
+
+            // 模拟角色升级
+            Debug.Log("\n=== 角色升级 ===");
+            strength.SetBaseValue(18f);
+            agility.SetBaseValue(15f);
+            intelligence.SetBaseValue(12f);
+            vitality.SetBaseValue(22f);
+
+            Debug.Log($"升级后 - 力量: {strength.GetValue()}, 敏捷: {agility.GetValue()}, 智力: {intelligence.GetValue()}, 体力: {vitality.GetValue()}");
+            Debug.Log($"升级后 - 最大生命: {maxHealth.GetValue()}, 物理攻击: {physicalAttack.GetValue()}, 防御: {defense.GetValue()}");
+
+            // 计算最终DPS
+            var finalDPS = physicalAttack.GetValue() * attackSpeed.GetValue();
+            Debug.Log($"最终DPS: {finalDPS}");
+
+            Debug.Log("真实RPG游戏案例完成\n");
+        }
+
+        /// <summary>
+        /// 示例7：序列化与反序列化
+        /// 学习目标：了解如何保存和加载属性数据
+        /// </summary>
+        void Example_7_SerializationExample()
+        {
+            Debug.Log("=== 示例7：序列化与反序列化 ===");
+
+            // 创建一个复杂的属性
+            var playerPower = new GameProperty("PlayerPower", 100f);
+            playerPower.AddModifier(new FloatModifier(ModifierType.Add, 0, 50f));
+            playerPower.AddModifier(new FloatModifier(ModifierType.Mul, 1, 1.5f));
+            playerPower.AddModifier(new RangeModifier(ModifierType.Clamp, 2, new Vector2(0, 300)));
+
+            Debug.Log($"原始属性值: {playerPower.GetValue()}");
 
             // 序列化
-            var serialized = GamePropertySerializer.Serialize(prop2);
-            Debug.Log($"[序列化] SerializableGameProperty: ID={serialized.ID}, BaseValue={serialized.BaseValue}, Modifiers={serialized.ModifierList?.Modifiers?.Count}");
+            var serializedData = GamePropertySerializer.Serialize(playerPower);
+            Debug.Log($"序列化成功 - ID: {serializedData.ID}, 基础值: {serializedData.BaseValue}, 修饰器数量: {serializedData.ModifierList?.Modifiers?.Count}");
 
             // 反序列化
-            var deserialized = GamePropertySerializer.FromSerializable(serialized);
-            Debug.Log($"[反序列化] 还原MP: {deserialized.GetValue()}");
+            var deserializedProp = GamePropertySerializer.FromSerializable(serializedData);
+            Debug.Log($"反序列化后属性值: {deserializedProp.GetValue()}");
 
-            // 项目暂时不支持直接序列化 CombineProperty
+            // 验证序列化完整性
+            bool isEqual = Mathf.Approximately(playerPower.GetValue(), deserializedProp.GetValue());
+            Debug.Log($"序列化完整性验证: {(isEqual ? "成功" : "失败")}");
+
+            Debug.Log("序列化与反序列化示例完成\n");
         }
 
         /// <summary>
-        /// 验证一个比较复杂的案例
+        /// 示例8：高级特性
+        /// 学习目标：了解一些高级用法和最佳实践
         /// </summary>
-        void Test_RPG_AttackPower_Complex()
+        void Example_8_AdvancedFeatures()
         {
-            // 创建组合属性：基础攻击=50，武器加成=20，Buff=10，BuffMul=0.2（+20%），Debuff=5，DebuffMul=0.5（+50%）
-            var combine = new CombinePropertyClassic(
-                "AttackPower", 50f, "Base", "Buff", "BuffMul", "Debuff", "DebuffMul"
-            );
-            // 武器加成
-            combine.GetProperty("Base").AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));
-            // Buff
-            combine.GetProperty("Buff").AddModifier(new FloatModifier(ModifierType.Add, 0, 10f));
-            // Buff百分比
-            combine.GetProperty("BuffMul").AddModifier(new FloatModifier(ModifierType.Add, 0, 0.2f));
-            // Debuff
-            combine.GetProperty("Debuff").AddModifier(new FloatModifier(ModifierType.Add, 0, 5f));
-            // Debuff百分比
-            combine.GetProperty("DebuffMul").AddModifier(new FloatModifier(ModifierType.Add, 0, 0.5f));
+            Debug.Log("=== 示例8：高级特性 ===");
 
-            // 计算：(50+20+10)*(1+0.2) - 5*(1+0.5) = 80*1.2 - 5*1.5 = 96 - 7.5 = 88.5
-            float result = combine.GetValue();
-            Debug.Assert(Mathf.Approximately(result, 88.5f), "RPG AttackPower Complex Test Failed");
-            Debug.Log($"Test_RPG_AttackPower_Complex passed, value={result}");
+            // 8.1 脏数据追踪
+            var trackedProp = new GameProperty("TrackedProp", 50f);
+            trackedProp.OnDirty(() => Debug.Log("属性被标记为脏数据"));
+
+            trackedProp.AddModifier(new FloatModifier(ModifierType.Add, 0, 10f));
+            trackedProp.GetValue(); // 触发脏数据回调
+
+            // 8.2 属性查询功能
+            var queryProp = new GameProperty("QueryProp", 80f);
+            queryProp.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));
+            queryProp.AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.5f));
+            queryProp.AddModifier(new FloatModifier(ModifierType.Add, 1, 30f));
+
+            Debug.Log($"是否有修饰器: {queryProp.HasModifiers}");
+            Debug.Log($"修饰器总数: {queryProp.ModifierCount}");
+            Debug.Log($"Add类型修饰器数量: {queryProp.GetModifierCountOfType(ModifierType.Add)}");
+            Debug.Log($"是否有Mul类型修饰器: {queryProp.HasModifierOfType(ModifierType.Mul)}");
+
+            // 8.3 复杂依赖链
+            var chainA = new GameProperty("ChainA", 10f);
+            var chainB = new GameProperty("ChainB", 0f);
+            var chainC = new GameProperty("ChainC", 0f);
+            var chainD = new GameProperty("ChainD", 0f);
+
+            // 建立依赖链: A -> B -> C -> D
+            chainB.AddDependency(chainA, (dep, newVal) => newVal * 2f);
+            chainC.AddDependency(chainB, (dep, newVal) => newVal + 5f);
+            chainD.AddDependency(chainC, (dep, newVal) => newVal * 1.5f);
+
+            Debug.Log($"依赖链初始值 - A: {chainA.GetValue()}, B: {chainB.GetValue()}, C: {chainC.GetValue()}, D: {chainD.GetValue()}");
+
+            chainA.SetBaseValue(15f);
+            Debug.Log($"修改A后 - A: {chainA.GetValue()}, B: {chainB.GetValue()}, C: {chainC.GetValue()}, D: {chainD.GetValue()}");
+
+            // 8.4 共享属性应用
+            var sharedStat = new GameProperty("SharedStat", 100f);
+
+            var derivedProp1 = new CombinePropertyCustom("Derived1");
+            var derivedProp2 = new CombinePropertyCustom("Derived2");
+
+            derivedProp1.RegisterProperty(sharedStat);
+            derivedProp2.RegisterProperty(sharedStat);
+
+            derivedProp1.Calculater = (combine) => combine.GetProperty("SharedStat").GetValue() * 0.8f;
+            derivedProp2.Calculater = (combine) => combine.GetProperty("SharedStat").GetValue() * 1.2f;
+
+            Debug.Log($"共享属性应用 - 原始: {sharedStat.GetValue()}, 派生1: {derivedProp1.GetValue()}, 派生2: {derivedProp2.GetValue()}");
+
+            sharedStat.SetBaseValue(150f);
+            Debug.Log($"修改共享属性后 - 原始: {sharedStat.GetValue()}, 派生1: {derivedProp1.GetValue()}, 派生2: {derivedProp2.GetValue()}");
+
+            Debug.Log("高级特性示例完成\n");
         }
 
         /// <summary>
-        /// 验证多个CombinePropertyCustom实例可以同时引用并监听同一个GameProperty
+        /// 示例9：错误处理和最佳实践
+        /// 学习目标：了解各种错误情况以及如何正确处理它们
         /// </summary>
-        void Test_MultiCombinePropertyCustom_ShareGameProperty()
+        void Example_9_ErrorHandlingAndBestPractices()
         {
-            Debug.Log("=== Test_MultiCombinePropertyCustom_ShareGameProperty ===");
-            // 创建一个被共享的GameProperty
-            var sharedProp = new GameProperty("Shared", 100f);
+            Debug.Log("=== 示例9：错误处理和最佳实践 ===");
 
-            // 创建第一个组合属性，计算为 sharedProp + 10
-            var combineA = new CombinePropertyCustom("A");
-            combineA.RegisterProperty(sharedProp);
-            combineA.Calculater = c => c.GetProperty("Shared").GetValue() + 10;
+            // 9.1 访问已释放的对象 (ObjectDisposedException)
+            Debug.Log("9.1 测试访问已释放的对象");
+            var disposableProperty = new CombinePropertySingle("DisposableTest", 100f);
+            Debug.Log($"释放前属性值: {disposableProperty.GetValue()}");
 
-            // 创建第二个组合属性，计算为 sharedProp * 2
-            var combineB = new CombinePropertyCustom("B");
-            combineB.RegisterProperty(sharedProp);
-            combineB.Calculater = c => c.GetProperty("Shared").GetValue() * 2;
+            // 释放对象
+            disposableProperty.Dispose();
+            Debug.Log("对象已释放");
 
-            // 初始断言
-            float vA1 = combineA.GetValue();
-            float vB1 = combineB.GetValue();
-            Debug.Assert(Mathf.Approximately(vA1, 110f), $"combineA初始值错误: {vA1}");
-            Debug.Assert(Mathf.Approximately(vB1, 200f), $"combineB初始值错误: {vB1}");
+            // 尝试访问已释放的对象
+            try
+            {
+                var value = disposableProperty.GetValue();
+                Debug.Log($"意外成功获取值: {value}");
+            }
+            catch (System.ObjectDisposedException ex)
+            {
+                Debug.Log($"✓ 正确捕获ObjectDisposedException: {ex.Message}");
+            }
 
-            // 修改sharedProp的值
-            sharedProp.SetBaseValue(50f);
+            // 尝试访问已释放对象的子属性
+            var disposableClassic = new CombinePropertyClassic("DisposableClassic", 50f, "Base", "Buff", "BuffMul", "Debuff", "DebuffMul");
+            disposableClassic.Dispose();
 
-            // 两个组合属性都应感知到变化
-            float vA2 = combineA.GetValue();
-            float vB2 = combineB.GetValue();
-            Debug.Assert(Mathf.Approximately(vA2, 60f), $"combineA变更后值错误: {vA2}");
-            Debug.Assert(Mathf.Approximately(vB2, 100f), $"combineB变更后值错误: {vB2}");
+            try
+            {
+                var prop = disposableClassic.GetProperty("Base");
+                Debug.Log($"意外获取到属性: {prop}");
+            }
+            catch (System.ObjectDisposedException ex)
+            {
+                Debug.Log($"✓ 正确捕获GetProperty的ObjectDisposedException: {ex.Message}");
+            }
 
-            // 再次修改sharedProp
-            sharedProp.SetBaseValue(123f);
-            float vA3 = combineA.GetValue();
-            float vB3 = combineB.GetValue();
-            Debug.Assert(Mathf.Approximately(vA3, 133f), $"combineA再次变更后值错误: {vA3}");
-            Debug.Assert(Mathf.Approximately(vB3, 246f), $"combineB再次变更后值错误: {vB3}");
-
-            Debug.Log("Test_MultiCombinePropertyCustom_ShareGameProperty passed");
-        }
-
-        /// <summary>
-        /// 测试循环依赖和自依赖是错的
-        /// </summary>
-        void Test_CyclicDependency_Detection()
-        {
-            Debug.Log("=== Test_CyclicDependency_Detection ===");
-
-            // 测试1：检测自依赖（自己依赖自己）
-            var selfDep = new GameProperty("SelfDep", 100f);
-
-            // 尝试添加自依赖
-            selfDep.AddDependency(selfDep);
-
-            // 间接测试自依赖的效果：创建监听器
-            bool valueChanged = false;
-            selfDep.OnValueChanged += (oldVal, newVal) => valueChanged = true;
-
-            // 修改值，如果自依赖被成功阻止，不会引起无限递归
-            selfDep.SetBaseValue(200f);
-            selfDep.GetValue(); // 触发计算和事件
-
-            // 检查事件是否正常触发（如果没有触发，可能是由于无限递归导致的崩溃）
-            Debug.Assert(valueChanged, "自依赖测试失败：事件未被触发");
-            Debug.Log("自依赖检测测试通过");
-
-            // 测试2：检测简单的循环依赖（A -> B -> A）
-            var propA = new GameProperty("A", 10f);
-            var propB = new GameProperty("B", 20f);
-
-            // 建立依赖关系: A -> B
-            propA.AddDependency(propB);
-
-            // 创建监听器检查循环依赖影响
-            bool aChanged = false;
-            bool bChanged = false;
-            propA.OnValueChanged += (oldVal, newVal) => aChanged = true;
-            propB.OnValueChanged += (oldVal, newVal) => bChanged = true;
-
-            // 尝试建立循环依赖: B -> A
-            propB.AddDependency(propA); // 应该被拒绝
-
-            // 重置标志
-            aChanged = false;
-            bChanged = false;
-
-            // 修改B的值
-            propB.SetBaseValue(25f);
-            propA.GetValue(); // 强制刷新A，应该会触发A的变更
-            propB.GetValue(); // 强制刷新B
-
-            // 对于简单依赖，只有当依赖属性的值实际改变时才会触发事件
-            // 由于A没有修饰器且基础值没变，A的值不会改变，所以不应该触发OnValueChanged
-            // 但A应该被标记为dirty并重新计算
-            Debug.Assert(!aChanged, "A的值没有实际改变，不应该触发OnValueChanged事件");
-            Debug.Assert(bChanged, "B的值改变了，应该触发OnValueChanged事件");
-            Debug.Log("简单循环依赖检测测试通过");
-
-            // 测试3：检测复杂的循环依赖（A -> B -> C -> A）
-            var propC = new GameProperty("C", 30f);
+            // 9.2 循环依赖错误处理
+            Debug.Log("\n9.2 测试循环依赖检测");
+            var circularA = new GameProperty("CircularA", 10f);
+            var circularB = new GameProperty("CircularB", 20f);
+            var circularC = new GameProperty("CircularC", 30f);
 
             // 建立依赖链: A -> B -> C
-            propA = new GameProperty("A", 10f);
-            propB = new GameProperty("B", 20f);
-            propC = new GameProperty("C", 30f);
+            circularA.AddDependency(circularB, (dep, newVal) => newVal * 2f);
+            circularB.AddDependency(circularC, (dep, newVal) => newVal + 5f);
+            Debug.Log($"建立依赖链 A->B->C: A={circularA.GetValue()}, B={circularB.GetValue()}, C={circularC.GetValue()}");
 
-            propA.AddDependency(propB);
-            propB.AddDependency(propC);
+            // 尝试创建循环依赖: C -> A (这会形成循环)
+            try
+            {
+                circularC.AddDependency(circularA, (dep, newVal) => newVal * 0.5f);
+                Debug.Log($"循环依赖创建后: A={circularA.GetValue()}, B={circularB.GetValue()}, C={circularC.GetValue()}");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.Log($"✓ 循环依赖被正确阻止: {ex.Message}");
+            }
 
-            // 尝试建立循环依赖: C -> A
-            propC.AddDependency(propA); // 应该被阻止
+            // 9.3 自依赖错误处理
+            Debug.Log("\n9.3 测试自依赖检测");
+            var selfDependentProp = new GameProperty("SelfDependent", 100f);
 
-            // 设置监听器
-            bool cChanged = false;
-            aChanged = false;
-            bChanged = false;
+            try
+            {
+                selfDependentProp.AddDependency(selfDependentProp, (dep, newVal) => newVal * 2f);
+                Debug.Log($"自依赖创建后值: {selfDependentProp.GetValue()}");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.Log($"✓ 自依赖被正确阻止: {ex.Message}");
+            }
 
-            propA.OnValueChanged += (oldVal, newVal) => aChanged = true;
-            propB.OnValueChanged += (oldVal, newVal) => bChanged = true;
-            propC.OnValueChanged += (oldVal, newVal) => cChanged = true;
+            // 9.4 空值处理
+            Debug.Log("\n9.4 测试空值处理");
+            var nullTestProp = new GameProperty("NullTest", 50f);
 
-            // 修改C的值
-            propC.SetBaseValue(35f);
+            try
+            {
+                nullTestProp.AddDependency(null);
+                Debug.Log("空依赖意外成功添加");
+            }
+            catch (System.ArgumentNullException ex)
+            {
+                Debug.Log($"✓ 正确处理空依赖: {ex.Message}");
+            }
 
-            // 获取所有值以触发计算
-            propA.GetValue();
-            propB.GetValue();
-            propC.GetValue();
+            try
+            {
+                nullTestProp.AddModifier(null);
+                Debug.Log("空修饰器意外成功添加");
+            }
+            catch (System.ArgumentNullException ex)
+            {
+                Debug.Log($"✓ 正确处理空修饰器: {ex.Message}");
+            }
 
-            // 对于简单依赖，只有实际值改变才会触发事件
-            // A和B的基础值没有改变，所以不应该触发OnValueChanged
-            Debug.Assert(!bChanged, "B的值没有实际改变，不应该触发OnValueChanged事件");
-            Debug.Assert(!aChanged, "A的值没有实际改变，不应该触发OnValueChanged事件");
-            Debug.Assert(cChanged, "C的值改变了，应该触发OnValueChanged事件");
-            Debug.Log("复杂循环依赖检测测试通过");
+            // 9.5 管理器错误处理
+            Debug.Log("\n9.5 测试管理器错误处理");
+            var testManager = new CombineGamePropertyManager();
 
-            // 测试4：测试有计算器的依赖关系
-            propA = new GameProperty("A", 10f);
-            propB = new GameProperty("B", 20f);
+            // 添加空属性
+            testManager.AddOrUpdate(null);
+            Debug.Log($"添加空属性后管理器数量: {testManager.Count}");
 
-            // 建立依赖关系: A依赖B，并且有计算器
-            propA.AddDependency(propB, (dep, newVal) => newVal * 2); // A的值 = B的值 * 2
+            // 获取不存在的属性
+            var nonExistentProp = testManager.Get("NonExistent");
+            Debug.Log($"获取不存在属性结果: {(nonExistentProp == null ? "null" : nonExistentProp.ID)}");
 
-            // 重置事件标志
-            aChanged = false;
-            bChanged = false;
+            // 获取空ID的属性
+            var nullIdProp = testManager.Get(null);
+            Debug.Log($"获取空ID属性结果: {(nullIdProp == null ? "null" : nullIdProp.ID)}");
 
-            propA.OnValueChanged += (oldVal, newVal) => aChanged = true;
-            propB.OnValueChanged += (oldVal, newVal) => bChanged = true;
+            // 9.6 最佳实践示例
+            Debug.Log("\n9.6 最佳实践示例");
 
-            // 修改B的值
-            propB.SetBaseValue(25f);
+            // 安全的属性访问模式
+            var safeProperty = new CombinePropertySingle("SafeTest", 100f);
+            CombineGamePropertyManager.AddOrUpdate(safeProperty);
 
-            // 获取A的值，应该触发计算器
-            var aValue = propA.GetValue();
+            // 使用IsValid检查对象状态
+            if (safeProperty.IsValid())
+            {
+                Debug.Log($"✓ 安全访问属性值: {safeProperty.GetValue()}");
+            }
 
-            // 有计算器的依赖关系：A的值应该被自动计算为B的值*2 = 25*2 = 50
-            Debug.Assert(Mathf.Approximately(aValue, 50f), $"A的值应该是50，但实际是{aValue}");
-            Debug.Assert(aChanged, "A的值通过计算器改变了，应该触发OnValueChanged事件");
-            Debug.Assert(bChanged, "B的值改变了，应该触发OnValueChanged事件");
-            Debug.Log("有计算器的依赖关系测试通过");
+            // 安全的依赖建立
+            var baseProp = new GameProperty("BaseProp", 10f);
+            var dependentProp = new GameProperty("DependentProp", 0f);
 
-            // 测试5：正常的非循环多层依赖
-            propA = new GameProperty("A", 10f);
-            propB = new GameProperty("B", 20f);
-            propC = new GameProperty("C", 30f);
-            var propD = new GameProperty("D", 40f);
+            if (baseProp != null && dependentProp != null && baseProp != dependentProp)
+            {
+                dependentProp.AddDependency(baseProp, (dep, newVal) => newVal * 3f);
+                Debug.Log($"✓ 安全建立依赖: {dependentProp.GetValue()}");
+            }
 
-            // 建立依赖链：D -> C -> B -> A
-            propB.AddDependency(propA);
-            propC.AddDependency(propB);
-            propD.AddDependency(propC);
+            // 安全的管理器操作
+            var retrievedProp = CombineGamePropertyManager.Get("SafeTest");
+            if (retrievedProp != null && retrievedProp.IsValid())
+            {
+                Debug.Log($"✓ 安全从管理器获取属性: {retrievedProp.GetValue()}");
+            }
 
-            // 重置事件标志
-            bool dChanged = false;
-            cChanged = false;
-            bChanged = false;
-            aChanged = false;
+            // 9.7 资源清理最佳实践
+            Debug.Log("\n9.7 资源清理最佳实践");
 
-            propA.OnValueChanged += (oldVal, newVal) => aChanged = true;
-            propB.OnValueChanged += (oldVal, newVal) => bChanged = true;
-            propC.OnValueChanged += (oldVal, newVal) => cChanged = true;
-            propD.OnValueChanged += (oldVal, newVal) => dChanged = true;
+            // 创建临时属性
+            var tempProp = new CombinePropertySingle("TempProp", 50f);
+            CombineGamePropertyManager.AddOrUpdate(tempProp);
 
-            // 修改基础属性A
-            propA.SetBaseValue(15f);
+            Debug.Log($"临时属性创建: {tempProp.GetValue()}");
 
-            // 获取D的值，应该触发整个依赖链的计算
-            propD.GetValue();
+            // 手动清理
+            tempProp.Dispose();
+            Debug.Log("手动释放临时属性");
 
-            // 对于简单依赖，只有实际值改变才会触发事件
-            // B、C、D的基础值没有改变，所以不应该触发OnValueChanged
-            Debug.Assert(!bChanged, "B的值没有实际改变，不应该触发OnValueChanged事件");
-            Debug.Assert(!cChanged, "C的值没有实际改变，不应该触发OnValueChanged事件");
-            Debug.Assert(!dChanged, "D的值没有实际改变，不应该触发OnValueChanged事件");
-            Debug.Assert(aChanged, "A的值改变了，应该触发OnValueChanged事件");
-            Debug.Log("多层依赖传播测试通过");
+            // 清理管理器中的无效属性
+            int cleanedCount = CombineGamePropertyManager.CleanupInvalidProperties();
+            Debug.Log($"✓ 清理无效属性数量: {cleanedCount}");
 
-            Debug.Log("Test_CyclicDependency_Detection 所有测试通过");
-        }
-        /// <summary>
-        /// 示例：属性依赖关系的高级用法
-        /// 展示如何建立复杂的属性依赖链并处理更新
-        /// </summary>
-        void Example_PropertyWithDependencies()
-        {
-            Debug.Log("=== 属性依赖关系的高级用法 ===");
+            // 最终清理
+            CombineGamePropertyManager.Clear();
+            Debug.Log("✓ 管理器已清理");
 
-            // 创建基础属性
-            var strength = new GameProperty("Strength", 10f); // 力量
-            var agility = new GameProperty("Agility", 8f);    // 敏捷
-            var intelligence = new GameProperty("Intelligence", 12f); // 智力
-
-            // 创建依赖于基础属性的二级属性
-            var attackPower = new GameProperty("AttackPower", 0f); // 攻击力 = 力量*2 + 敏捷*0.5 = 
-            var attackSpeed = new GameProperty("AttackSpeed", 0f); // 攻击速度 = 敏捷*0.1 + 1
-            var spellPower = new GameProperty("SpellPower", 0f);   // 法术强度 = 智力*3
-
-            // 建立依赖关系
-            attackPower.AddDependency(strength);
-            attackPower.AddDependency(agility);
-            attackSpeed.AddDependency(agility);
-            spellPower.AddDependency(intelligence);
-
-            // 设置计算方式
-            strength.OnValueChanged += (_, __) => {
-                attackPower.SetBaseValue(strength.GetValue() * 2 + agility.GetValue() * 0.5f);
-            };
-
-            agility.OnValueChanged += (_, __) => {
-                attackPower.SetBaseValue(strength.GetValue() * 2 + agility.GetValue() * 0.5f);
-                attackSpeed.SetBaseValue(agility.GetValue() * 0.1f + 1f);
-            };
-
-            intelligence.OnValueChanged += (_, __) => {
-                spellPower.SetBaseValue(intelligence.GetValue() * 3);
-            };
-
-            // 初始计算一次
-            attackPower.SetBaseValue(strength.GetValue() * 2 + agility.GetValue() * 0.5f);
-            attackSpeed.SetBaseValue(agility.GetValue() * 0.1f + 1f);
-            spellPower.SetBaseValue(intelligence.GetValue() * 3);
-
-            // 打印初始状态
-            Debug.Log($"初始状态:");
-            Debug.Log($"  力量: {strength.GetValue()}, 敏捷: {agility.GetValue()}, 智力: {intelligence.GetValue()}");
-            Debug.Log($"  攻击力: {attackPower.GetValue()}, 攻击速度: {attackSpeed.GetValue()}, 法术强度: {spellPower.GetValue()}");
-
-            // 创建三级属性：DPS(每秒伤害)，依赖于攻击力和攻击速度
-            var dps = new GameProperty("DPS", 0f); // DPS = 攻击力 * 攻击速度
-            dps.AddDependency(attackPower);
-            dps.AddDependency(attackSpeed);
-
-            attackPower.OnValueChanged += (_, __) => {
-                dps.SetBaseValue(attackPower.GetValue() * attackSpeed.GetValue());
-            };
-
-            attackSpeed.OnValueChanged += (_, __) => {
-                dps.SetBaseValue(attackPower.GetValue() * attackSpeed.GetValue());
-            };
-
-            // 初始计算DPS
-            dps.SetBaseValue(attackPower.GetValue() * attackSpeed.GetValue());
-            Debug.Log($"  每秒伤害(DPS): {dps.GetValue()}");
-
-            // 模拟属性成长
-            Debug.Log("\n属性提升后:");
-            strength.SetBaseValue(15f); // 力量+5
-            agility.SetBaseValue(12f);  // 敏捷+4
-            intelligence.SetBaseValue(18f); // 智力+6
-
-            // 打印最终状态
-            Debug.Log($"  力量: {strength.GetValue()}, 敏捷: {agility.GetValue()}, 智力: {intelligence.GetValue()}");
-            Debug.Log($"  攻击力: {attackPower.GetValue()}, 攻击速度: {attackSpeed.GetValue()}, 法术强度: {spellPower.GetValue()}");
-            Debug.Log($"  每秒伤害(DPS): {dps.GetValue()}");
-
-            // 演示属性连锁反应
-            Debug.Log("\n装备特效触发，力量翻倍!");
-            strength.AddModifier(new FloatModifier(ModifierType.Mul, 0, 2.0f)); // 力量翻倍
-            Debug.Log($"  力量: {strength.GetValue()}, 攻击力: {attackPower.GetValue()}, DPS: {dps.GetValue()}");
-        }
-
-        /// <summary>
-        /// 测试GameProperty添加和移除修饰器的各种操作
-        /// </summary>
-        void Test_GameProperty_ModifierOperations()
-        {
-            Debug.Log("=== Test_GameProperty_ModifierOperations ===");
-
-            // 创建一个基本属性
-            var prop = new GameProperty("TestProp", 100f);
-            Debug.Log($"初始值: {prop.GetValue()}");
-
-            // 添加一些修饰器
-            var addMod = new FloatModifier(ModifierType.Add, 0, 50f);  // +50
-            var mulMod = new FloatModifier(ModifierType.Mul, 0, 1.5f); // ×1.5
-            var clampMod = new RangeModifier(ModifierType.Clamp, 0, new Vector2(0, 200)); // 限制范围0-200
-
-            // 添加Add修饰器并测试
-            prop.AddModifier(addMod);
-            float value1 = prop.GetValue();
-            Debug.Log($"添加Add修饰器后: {value1}");
-            Debug.Assert(Mathf.Approximately(value1, 150f), $"添加Add修饰器后值错误: {value1}，期望值: 150");
-
-            // 添加Mul修饰器并测试
-            prop.AddModifier(mulMod);
-            float value2 = prop.GetValue();
-            Debug.Log($"添加Mul修饰器后: {value2}");
-            Debug.Assert(Mathf.Approximately(value2, 225f), $"添加Mul修饰器后值错误: {value2}，期望值: 225");
-
-            // 添加Clamp修饰器并测试
-            prop.AddModifier(clampMod);
-            float value3 = prop.GetValue();
-            Debug.Log($"添加Clamp修饰器后: {value3}");
-            Debug.Assert(Mathf.Approximately(value3, 200f), $"添加Clamp修饰器后值错误: {value3}，期望值: 200");
-
-            // 移除Clamp修饰器并测试
-            prop.RemoveModifier(clampMod);
-            float value4 = prop.GetValue();
-            Debug.Log($"移除Clamp修饰器后: {value4}");
-            Debug.Assert(Mathf.Approximately(value4, 225f), $"移除Clamp修饰器后值错误: {value4}，期望值: 225");
-
-            // 清除所有修饰器并测试
-            prop.ClearModifiers();
-            float value6 = prop.GetValue();
-            Debug.Log($"清除所有修饰器后: {value6}");
-            Debug.Assert(Mathf.Approximately(value6, 100f), $"清除所有修饰器后值错误: {value6}，期望值: 100");
-
-            // 测试批量添加和移除修饰器
-            var modifiers = new List<IModifier> {
-        new FloatModifier(ModifierType.Add, 0, 30f),
-        new FloatModifier(ModifierType.Mul, 0, 2.0f)
-    };
-
-            // 批量添加
-            prop.AddModifiers(modifiers);
-            float value7 = prop.GetValue();
-            Debug.Log($"批量添加修饰器后: {value7}");
-            Debug.Assert(Mathf.Approximately(value7, 260f), $"批量添加修饰器后值错误: {value7}，期望值: 260"); // (100+30)*2=260
-
-            // 批量移除
-            prop.RemoveModifiers(modifiers);
-            float value8 = prop.GetValue();
-            Debug.Log($"批量移除修饰器后: {value8}");
-            Debug.Assert(Mathf.Approximately(value8, 100f), $"批量移除修饰器后值错误: {value8}，期望值: 100");
-
-            // 测试添加相同类型多个修饰器
-            prop.AddModifier(new FloatModifier(ModifierType.Add, 1, 10f)); // +10，优先级1
-            prop.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f)); // +20，优先级0
-            float value9 = prop.GetValue();
-            Debug.Log($"添加多个同类型修饰器后: {value9}");
-            Debug.Assert(Mathf.Approximately(value9, 130f), $"添加多个同类型修饰器后值错误: {value9}，期望值: 130");
-
-            Debug.Log("Test_GameProperty_ModifierOperations 所有测试通过");
+            Debug.Log("错误处理和最佳实践示例完成\n");
         }
     }
 }

@@ -123,7 +123,10 @@ namespace EasyPack
         /// <param name="calculator">计算函数：(dependency, newDependencyValue) => newThisValue</param>
         public IProperty<float> AddDependency(GameProperty dependency, Func<GameProperty, float, float> calculator = null)
         {
-            if (dependency == null || !_dependencies.Add(dependency)) return this;
+            if (dependency == null)
+                throw new ArgumentNullException(nameof(dependency));
+
+            if (!_dependencies.Add(dependency)) return this;
 
             if (WouldCreateCyclicDependency(dependency))
             {
@@ -139,6 +142,10 @@ namespace EasyPack
             if (calculator != null)
             {
                 _dependencyCalculators[dependency] = calculator;
+                // 触发初始计算
+                var dependencyValue = dependency.GetValue();
+                var newValue = calculator(dependency, dependencyValue);
+                SetBaseValue(newValue);
             }
 
             UpdateRandomDependencyState();
@@ -146,7 +153,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// 添加简单依赖（仅标记为脏，不自动计算）
+        /// 添加简单依赖
         /// </summary>
         public IProperty<float> AddDependency(GameProperty dependency)
         {
@@ -189,9 +196,8 @@ namespace EasyPack
                     // 即使基础值没有改变，也要让依赖属性知道需要重新计算
                     dependent.MakeDirty();
 
-                    //// 强制触发依赖属性的重新计算和事件
-                    //var oldValue = dependent._cacheValue;
-                    //var newValue = dependent.GetValue(); // 这会重新计算值
+                    var oldValue = dependent._cacheValue;
+                    var newValue = dependent.GetValue(); // 这会重新计算值
 
                     //if (oldValue.Equals(newValue))
                     //{

@@ -1,251 +1,306 @@
-# GameProperty ÏµÍ³Ê¹ÓÃÖ¸ÄÏ
-** ±¾ÎÄÓÉ Claude Sonnet 3.7 Éú³É£¬×¢ÒâÕç±ğ¡£**
-## Ä¿Â¼
-- [ÏµÍ³¸ÅÊö](#ÏµÍ³¸ÅÊö)
-- [ºËĞÄ×é¼ş](#ºËĞÄ×é¼ş)
-- [»ù±¾Ê¹ÓÃÁ÷³Ì](#»ù±¾Ê¹ÓÃÁ÷³Ì)
-  - [´´½¨»ù´¡ÊôĞÔ](#´´½¨»ù´¡ÊôĞÔ)
-  - [Ìí¼ÓĞŞÊÎÆ÷](#Ìí¼ÓĞŞÊÎÆ÷)
-  - [¹ÜÀíÊôĞÔÒÀÀµ](#¹ÜÀíÊôĞÔÒÀÀµ)
-- [×éºÏÊôĞÔ](#×éºÏÊôĞÔ)
+ï»¿# GameProperty ç³»ç»Ÿä½¿ç”¨æŒ‡å—
+** æœ¬æ–‡ç”± Claude Sonnet 3.7 ç”Ÿæˆï¼Œæ³¨æ„ç”„åˆ«ã€‚**
+## ç›®å½•
+- [ç³»ç»Ÿæ¦‚è¿°](#ç³»ç»Ÿæ¦‚è¿°)
+- [æ ¸å¿ƒç»„ä»¶](#æ ¸å¿ƒç»„ä»¶)
+- [åŸºæœ¬ä½¿ç”¨æµç¨‹](#åŸºæœ¬ä½¿ç”¨æµç¨‹)
+  - [åˆ›å»ºåŸºç¡€å±æ€§](#åˆ›å»ºåŸºç¡€å±æ€§)
+  - [æ·»åŠ ä¿®é¥°å™¨](#æ·»åŠ ä¿®é¥°å™¨)
+  - [ç®¡ç†å±æ€§ä¾èµ–](#ç®¡ç†å±æ€§ä¾èµ–)
+- [ç»„åˆå±æ€§](#ç»„åˆå±æ€§)
   - [CombinePropertySingle](#combinepropertysingle)
   - [CombinePropertyClassic](#combinepropertyclassic)
   - [CombinePropertyCustom](#combinepropertycustom)
-- [ÊôĞÔ¹ÜÀíÆ÷](#ÊôĞÔ¹ÜÀíÆ÷)
-- [ĞŞÊÎÆ÷ÀàĞÍÓë²ßÂÔ](#ĞŞÊÎÆ÷ÀàĞÍÓë²ßÂÔ)
-- [¸ß¼¶ÓÃ·¨](#¸ß¼¶ÓÃ·¨)
-  - [ÊôĞÔÒÀÀµÁ´](#ÊôĞÔÒÀÀµÁ´)
-  - [Ñ­»·ÒÀÀµ¼ì²â](#Ñ­»·ÒÀÀµ¼ì²â)
-  - [ÔàÊı¾İ×·×Ù](#ÔàÊı¾İ×·×Ù)
-  - [ÊôĞÔĞòÁĞ»¯](#ÊôĞÔĞòÁĞ»¯)
-- [ÓëBuffÏµÍ³¼¯³É](#ÓëbuffÏµÍ³¼¯³É)
-- [×î¼ÑÊµ¼ùÓëĞÔÄÜÓÅ»¯](#×î¼ÑÊµ¼ùÓëĞÔÄÜÓÅ»¯)
-- [³£¼ûÓÃÀı](#³£¼ûÓÃÀı)
-  - [½ÇÉ«ÊôĞÔÏµÍ³](#½ÇÉ«ÊôĞÔÏµÍ³)
-  - [×°±¸¼Ó³ÉÏµÍ³](#×°±¸¼Ó³ÉÏµÍ³)
-  - [¼¼ÄÜĞ§¹ûÏµÍ³](#¼¼ÄÜĞ§¹ûÏµÍ³)
+- [å±æ€§ç®¡ç†å™¨](#å±æ€§ç®¡ç†å™¨)
+- [ä¿®é¥°å™¨ç±»å‹ä¸ç­–ç•¥](#ä¿®é¥°å™¨ç±»å‹ä¸ç­–ç•¥)
+- [ä½¿ç”¨è§„èŒƒ](#ä½¿ç”¨è§„èŒƒ)
+- [é«˜çº§ç”¨æ³•](#é«˜çº§ç”¨æ³•)
+  - [å±æ€§ä¾èµ–é“¾](#å±æ€§ä¾èµ–é“¾)
+  - [å¾ªç¯ä¾èµ–æ£€æµ‹](#å¾ªç¯ä¾èµ–æ£€æµ‹)
+  - [è„æ•°æ®è¿½è¸ª](#è„æ•°æ®è¿½è¸ª)
+  - [å±æ€§åºåˆ—åŒ–](#å±æ€§åºåˆ—åŒ–)
+- [ä¸Buffç³»ç»Ÿé›†æˆ](#ä¸buffç³»ç»Ÿé›†æˆ)
+- [æœ€ä½³å®è·µä¸æ€§èƒ½ä¼˜åŒ–](#æœ€ä½³å®è·µä¸æ€§èƒ½ä¼˜åŒ–)
+- [å¸¸è§ç”¨ä¾‹](#å¸¸è§ç”¨ä¾‹)
+  - [è§’è‰²å±æ€§ç³»ç»Ÿ](#è§’è‰²å±æ€§ç³»ç»Ÿ)
+  - [è£…å¤‡åŠ æˆç³»ç»Ÿ](#è£…å¤‡åŠ æˆç³»ç»Ÿ)
+  - [æŠ€èƒ½æ•ˆæœç³»ç»Ÿ](#æŠ€èƒ½æ•ˆæœç³»ç»Ÿ)
 
-## ÏµÍ³¸ÅÊö
+## ç³»ç»Ÿæ¦‚è¿°
 
-GamePropertyÏµÍ³ÊÇÒ»¸öÁé»îµÄÓÎÏ·ÊôĞÔ¹ÜÀí¿ò¼Ü£¬×¨ÎªRPG¡¢²ßÂÔµÈÓÎÏ·ÀàĞÍÉè¼Æ¡£ËüÌá¹©ÁË´¦ÀíÊıÖµÊôĞÔµÄ¸÷ÖÖ¹¦ÄÜ£¬°üÀ¨ĞŞÊÎÆ÷Ó¦ÓÃ¡¢ÊôĞÔÒÀÀµ¹ØÏµ¡¢ÊÂ¼ş¼àÌıµÈ¡£ÏµÍ³»ùÓÚ×é¼ş»¯Éè¼Æ£¬Í¨¹ı²»Í¬µÄĞŞÊÎÆ÷ºÍÊôĞÔ×éºÏ·½Ê½£¬¿ÉÒÔÊµÏÖ¸÷ÖÖ¸´ÔÓµÄÊôĞÔ¼ÆËãÂß¼­¡£
+GamePropertyç³»ç»Ÿæ˜¯ä¸€ä¸ªçµæ´»çš„æ¸¸æˆå±æ€§ç®¡ç†æ¡†æ¶ï¼Œä¸“ä¸ºRPGã€ç­–ç•¥ç­‰æ¸¸æˆç±»å‹è®¾è®¡ã€‚å®ƒæä¾›äº†å¤„ç†æ•°å€¼å±æ€§çš„å„ç§åŠŸèƒ½ï¼ŒåŒ…æ‹¬ä¿®é¥°å™¨åº”ç”¨ã€å±æ€§ä¾èµ–å…³ç³»ã€äº‹ä»¶ç›‘å¬ç­‰ã€‚ç³»ç»ŸåŸºäºç»„ä»¶åŒ–è®¾è®¡ï¼Œé€šè¿‡ä¸åŒçš„ä¿®é¥°å™¨å’Œå±æ€§ç»„åˆæ–¹å¼ï¼Œå¯ä»¥å®ç°å„ç§å¤æ‚çš„å±æ€§è®¡ç®—é€»è¾‘ã€‚
 
-## ºËĞÄ×é¼ş
+## æ ¸å¿ƒç»„ä»¶
 
-- **GameProperty**: µ¥Ò»µÄ¿ÉĞŞÊÎÊıÖµÊôĞÔ£¬Ö§³ÖĞŞÊÎÆ÷¡¢ÒÀÀµ¹ØÏµºÍÔàÊı¾İ×·×Ù
-- **CombinePropertyÏµÁĞ**: ×éºÏ¶à¸öGamePropertyµÄ²»Í¬ÊµÏÖ·½Ê½
-- **CombineGamePropertyManager**: È«¾ÖÊôĞÔ¹ÜÀíÆ÷£¬´¦ÀíÊôĞÔµÄ×¢²áÓë²éÑ¯
-- **ĞŞÊÎÆ÷(IModifier)**: ¶¨ÒåÈçºÎĞŞ¸ÄÊôĞÔÖµµÄ½Ó¿Ú£¬ÓĞ¶àÖÖ¾ßÌåÊµÏÖ
-- **GamePropertySerializer**: ´¦ÀíÊôĞÔµÄĞòÁĞ»¯Óë·´ĞòÁĞ»¯
+- **GameProperty**: å•ä¸€çš„å¯ä¿®é¥°æ•°å€¼å±æ€§ï¼Œæ”¯æŒä¿®é¥°å™¨ã€ä¾èµ–å…³ç³»å’Œè„æ•°æ®è¿½è¸ª
+- **CombinePropertyç³»åˆ—**: ç»„åˆå¤šä¸ªGamePropertyçš„ä¸åŒå®ç°æ–¹å¼
+- **CombineGamePropertyManager**: å…¨å±€å±æ€§ç®¡ç†å™¨ï¼Œå¤„ç†å±æ€§çš„æ³¨å†Œä¸æŸ¥è¯¢
+- **ä¿®é¥°å™¨(IModifier)**: å®šä¹‰å¦‚ä½•ä¿®æ”¹å±æ€§å€¼çš„æ¥å£ï¼Œæœ‰å¤šç§å…·ä½“å®ç°
+- **GamePropertySerializer**: å¤„ç†å±æ€§çš„åºåˆ—åŒ–ä¸ååºåˆ—åŒ–
 
-## »ù±¾Ê¹ÓÃÁ÷³Ì
+## åŸºæœ¬ä½¿ç”¨æµç¨‹
 
-### ´´½¨»ù´¡ÊôĞÔ
+### åˆ›å»ºåŸºç¡€å±æ€§
 
 ```
-// ´´½¨Ò»¸ö»ù´¡ÊôĞÔ£¬ÉèÖÃIDºÍ³õÊ¼Öµ
+// åˆ›å»ºä¸€ä¸ªåŸºç¡€å±æ€§ï¼Œè®¾ç½®IDå’Œåˆå§‹å€¼
 var hp = new GameProperty("HP", 100f);
 
-// »ñÈ¡»ù´¡ÊôĞÔÖµ
+// è·å–åŸºç¡€å±æ€§å€¼
 float baseValue = hp.GetBaseValue(); // 100
 
-// ÉèÖÃ»ù´¡ÊôĞÔÖµ
+// è®¾ç½®åŸºç¡€å±æ€§å€¼
 hp.SetBaseValue(120f);
 ```
 
-### Ìí¼ÓĞŞÊÎÆ÷
+### æ·»åŠ ä¿®é¥°å™¨
 
 ```
-// Ìí¼Ó¼Ó·¨ĞŞÊÎÆ÷£ºÔö¼Ó20µãÉúÃüÖµ
+// æ·»åŠ åŠ æ³•ä¿®é¥°å™¨ï¼šå¢åŠ 20ç‚¹ç”Ÿå‘½å€¼
 hp.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));
 
-// Ìí¼Ó³Ë·¨ĞŞÊÎÆ÷£ºÔö¼Ó50%ÉúÃüÖµ
+// æ·»åŠ ä¹˜æ³•ä¿®é¥°å™¨ï¼šå¢åŠ 50%ç”Ÿå‘½å€¼
 hp.AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.5f));
 
-// Ìí¼Ó·¶Î§ÏŞÖÆĞŞÊÎÆ÷£ºÏŞÖÆÉúÃüÖµÔÚ0-200Ö®¼ä
+// æ·»åŠ èŒƒå›´é™åˆ¶ä¿®é¥°å™¨ï¼šé™åˆ¶ç”Ÿå‘½å€¼åœ¨0-200ä¹‹é—´
 hp.AddModifier(new RangeModifier(ModifierType.Clamp, 0, new Vector2(0, 200)));
 
-// »ñÈ¡Ó¦ÓÃËùÓĞĞŞÊÎÆ÷ºóµÄ×îÖÕÖµ
-float finalValue = hp.GetValue(); // ½á¹û£ºmin(180, 200) = 180
+// è·å–åº”ç”¨æ‰€æœ‰ä¿®é¥°å™¨åçš„æœ€ç»ˆå€¼
+float finalValue = hp.GetValue(); // ç»“æœï¼šmin(180, 200) = 180
 
-// ÒÆ³ıÌØ¶¨ĞŞÊÎÆ÷
+// ç§»é™¤ç‰¹å®šä¿®é¥°å™¨
 hp.RemoveModifier(someModifier);
 
-// Çå³ıËùÓĞĞŞÊÎÆ÷
+// æ¸…é™¤æ‰€æœ‰ä¿®é¥°å™¨
 hp.ClearModifiers();
 ```
 
-### ¹ÜÀíÊôĞÔÒÀÀµ
+### ç®¡ç†å±æ€§ä¾èµ–
 
 ```
-// ´´½¨Á½¸öÊôĞÔ
-var strength = new GameProperty("Strength", 10f); // Á¦Á¿
-var attackPower = new GameProperty("AttackPower", 0f); // ¹¥»÷Á¦
+// åˆ›å»ºä¸¤ä¸ªå±æ€§
+var strength = new GameProperty("Strength", 10f); // åŠ›é‡
+var attackPower = new GameProperty("AttackPower", 0f); // æ”»å‡»åŠ›
 
-// Ìí¼ÓÒÀÀµ¹ØÏµ£º¹¥»÷Á¦ÒÀÀµÓÚÁ¦Á¿
+// æ·»åŠ ä¾èµ–å…³ç³»ï¼šæ”»å‡»åŠ›ä¾èµ–äºåŠ›é‡
 attackPower.AddDependency(strength);
 
-// ÉèÖÃÁ¦Á¿±ä»¯Ê±¸üĞÂ¹¥»÷Á¦µÄÂß¼­
+// è®¾ç½®åŠ›é‡å˜åŒ–æ—¶æ›´æ–°æ”»å‡»åŠ›çš„é€»è¾‘
 strength.OnValueChanged += (oldVal, newVal) => {
     attackPower.SetBaseValue(strength.GetValue() * 2);
 };
 
-// ³õÊ¼¼ÆËã¹¥»÷Á¦
+// åˆå§‹è®¡ç®—æ”»å‡»åŠ›
 attackPower.SetBaseValue(strength.GetValue() * 2);
 
-// µ±Á¦Á¿±ä»¯Ê±£¬¹¥»÷Á¦»á×Ô¶¯¸üĞÂ
+// å½“åŠ›é‡å˜åŒ–æ—¶ï¼Œæ”»å‡»åŠ›ä¼šè‡ªåŠ¨æ›´æ–°
 strength.SetBaseValue(15f);
 float newAttack = attackPower.GetValue(); // 30
 ```
 
-## ×éºÏÊôĞÔ
+## ç»„åˆå±æ€§
 
-×éºÏÊôĞÔÓÃÓÚ½«¶à¸öGamePropertyÒÔÌØ¶¨·½Ê½×éºÏ£¬Ìá¹©ÁËÈıÖÖ²»Í¬µÄÊµÏÖ·½Ê½¡£
+ç»„åˆå±æ€§ç”¨äºå°†å¤šä¸ªGamePropertyä»¥ç‰¹å®šæ–¹å¼ç»„åˆï¼Œæä¾›äº†ä¸‰ç§ä¸åŒçš„å®ç°æ–¹å¼ã€‚
 
 ### CombinePropertySingle
 
-×î¼òµ¥µÄ×éºÏÊôĞÔ£¬±¾ÖÊÉÏÊÇµ¥Ò»GamePropertyµÄ°ü×°Æ÷¡£
+æœ€ç®€å•çš„ç»„åˆå±æ€§ï¼Œæœ¬è´¨ä¸Šæ˜¯å•ä¸€GamePropertyçš„åŒ…è£…å™¨ã€‚
 
 ```
-// ´´½¨µ¥Ò»×éºÏÊôĞÔ
+// åˆ›å»ºå•ä¸€ç»„åˆå±æ€§
 var single = new CombinePropertySingle("SingleProp");
 
-// ÉèÖÃ»ù´¡Öµ
+// è®¾ç½®åŸºç¡€å€¼
 single.ResultHolder.SetBaseValue(50f);
 
-// Ìí¼ÓĞŞÊÎÆ÷
+// æ·»åŠ ä¿®é¥°å™¨
 single.ResultHolder.AddModifier(new FloatModifier(ModifierType.Add, 0, 10f));
 
-// »ñÈ¡×îÖÕÖµ
+// è·å–æœ€ç»ˆå€¼
 float value = single.GetValue(); // 60
 ```
 
 ### CombinePropertyClassic
 
-¾­µäµÄÊôĞÔ×éºÏ·½Ê½£¬ÊÊÓÃÓÚRPGÓÎÏ·ÖĞ³£¼ûµÄÊôĞÔ¼ÆËã¹«Ê½¡£
+ç»å…¸çš„å±æ€§ç»„åˆæ–¹å¼ï¼Œé€‚ç”¨äºRPGæ¸¸æˆä¸­å¸¸è§çš„å±æ€§è®¡ç®—å…¬å¼ã€‚
 
-¹«Ê½£º×îÖÕÊôĞÔ = (»ù´¡+¼Ó³É) ¡Á (1+¼Ó³É°Ù·Ö±È) - ¼õÒæ ¡Á (1+¼õÒæ°Ù·Ö±È)
+å…¬å¼ï¼šæœ€ç»ˆå±æ€§ = (åŸºç¡€+åŠ æˆ) Ã— (1+åŠ æˆç™¾åˆ†æ¯”) - å‡ç›Š Ã— (1+å‡ç›Šç™¾åˆ†æ¯”)
 
 ```
-// ´´½¨¾­µä×éºÏÊôĞÔ
+// åˆ›å»ºç»å…¸ç»„åˆå±æ€§
 var classic = new CombinePropertyClassic(
     "AttackPower", // ID
-    50f,           // ³õÊ¼»ù´¡Öµ
-    "Base",        // »ù´¡ÊôĞÔÃû
-    "Buff",        // BuffÊôĞÔÃû
-    "BuffMul",     // Buff°Ù·Ö±ÈÃû
-    "Debuff",      // DebuffÊôĞÔÃû
-    "DebuffMul"    // Debuff°Ù·Ö±ÈÃû
+    50f,           // åˆå§‹åŸºç¡€å€¼
+    "Base",        // åŸºç¡€å±æ€§å
+    "Buff",        // Buffå±æ€§å
+    "BuffMul",     // Buffç™¾åˆ†æ¯”å
+    "Debuff",      // Debuffå±æ€§å
+    "DebuffMul"    // Debuffç™¾åˆ†æ¯”å
 );
 
-// ÉèÖÃ¸÷²¿·ÖÖµ
-classic.GetProperty("Base").AddModifier(new FloatModifier(ModifierType.Add, 0, 20f)); // ÎäÆ÷¼Ó³É
-classic.GetProperty("Buff").SetBaseValue(10f);  // Buff¼Ó³É
-classic.GetProperty("BuffMul").SetBaseValue(0.2f);  // Buff°Ù·Ö±È(+20%)
-classic.GetProperty("Debuff").SetBaseValue(5f);  // Debuff¼õÒæ
-classic.GetProperty("DebuffMul").SetBaseValue(0.5f);  // Debuff°Ù·Ö±È(+50%)
+// è®¾ç½®å„éƒ¨åˆ†å€¼
+classic.GetProperty("Base").AddModifier(new FloatModifier(ModifierType.Add, 0, 20f)); // æ­¦å™¨åŠ æˆ
+classic.GetProperty("Buff").SetBaseValue(10f);  // BuffåŠ æˆ
+classic.GetProperty("BuffMul").SetBaseValue(0.2f);  // Buffç™¾åˆ†æ¯”(+20%)
+classic.GetProperty("Debuff").SetBaseValue(5f);  // Debuffå‡ç›Š
+classic.GetProperty("DebuffMul").SetBaseValue(0.5f);  // Debuffç™¾åˆ†æ¯”(+50%)
 
-// ¼ÆËã×îÖÕÖµ: (50+20+10)*(1+0.2) - 5*(1+0.5) = 80*1.2 - 5*1.5 = 96 - 7.5 = 88.5
+// è®¡ç®—æœ€ç»ˆå€¼: (50+20+10)*(1+0.2) - 5*(1+0.5) = 80*1.2 - 5*1.5 = 96 - 7.5 = 88.5
 float finalAttack = classic.GetValue(); // 88.5
 ```
 
 ### CombinePropertyCustom
 
-ÍêÈ«×Ô¶¨ÒåµÄ×éºÏ·½Ê½£¬Í¨¹ıÎ¯ÍĞº¯ÊıÁé»î¶¨ÒåÊôĞÔ×éºÏÂß¼­¡£
+å®Œå…¨è‡ªå®šä¹‰çš„ç»„åˆæ–¹å¼ï¼Œé€šè¿‡å§”æ‰˜å‡½æ•°çµæ´»å®šä¹‰å±æ€§ç»„åˆé€»è¾‘ã€‚
 
 ```
-// ´´½¨±»¹²ÏíµÄ»ù´¡ÊôĞÔ
+// åˆ›å»ºè¢«å…±äº«çš„åŸºç¡€å±æ€§
 var sharedProp = new GameProperty("Shared", 100f);
 
-// ´´½¨×Ô¶¨Òå×éºÏÊôĞÔA
+// åˆ›å»ºè‡ªå®šä¹‰ç»„åˆå±æ€§A
 var combineA = new CombinePropertyCustom("A");
 combineA.RegisterProperty(sharedProp);
 combineA.Calculater = c => c.GetProperty("Shared").GetValue() + 10;
 
-// ´´½¨×Ô¶¨Òå×éºÏÊôĞÔB
+// åˆ›å»ºè‡ªå®šä¹‰ç»„åˆå±æ€§B
 var combineB = new CombinePropertyCustom("B");
 combineB.RegisterProperty(sharedProp);
 combineB.Calculater = c => c.GetProperty("Shared").GetValue() * 2;
 
-// »ñÈ¡¸÷×ÔµÄ¼ÆËã½á¹û
+// è·å–å„è‡ªçš„è®¡ç®—ç»“æœ
 float valueA = combineA.GetValue(); // 110
 float valueB = combineB.GetValue(); // 200
 
-// ĞŞ¸Ä¹²ÏíÊôĞÔºó£¬Á½¸ö×éºÏÊôĞÔ¶¼»áÏàÓ¦¸üĞÂ
+// ä¿®æ”¹å…±äº«å±æ€§åï¼Œä¸¤ä¸ªç»„åˆå±æ€§éƒ½ä¼šç›¸åº”æ›´æ–°
 sharedProp.SetBaseValue(50f);
 valueA = combineA.GetValue(); // 60
 valueB = combineB.GetValue(); // 100
 ```
 
-## ÊôĞÔ¹ÜÀíÆ÷
+## å±æ€§ç®¡ç†å™¨
 
-CombineGamePropertyManagerÌá¹©ÁËÈ«¾Ö¹ÜÀí×éºÏÊôĞÔµÄ¹¦ÄÜ¡£
+CombineGamePropertyManageræä¾›äº†å…¨å±€ç®¡ç†ç»„åˆå±æ€§çš„åŠŸèƒ½ã€‚
 
 ```
-// ×¢²á×éºÏÊôĞÔ
+// æ³¨å†Œç»„åˆå±æ€§
 CombineGamePropertyManager.AddOrUpdate(classic);
 CombineGamePropertyManager.AddOrUpdate(single);
 
-// Í¨¹ıID»ñÈ¡×éºÏÊôĞÔ
+// é€šè¿‡IDè·å–ç»„åˆå±æ€§
 var prop = CombineGamePropertyManager.Get("AttackPower");
 
-// ±éÀúËùÓĞ×¢²áµÄ×éºÏÊôĞÔ
+// éå†æ‰€æœ‰æ³¨å†Œçš„ç»„åˆå±æ€§
 foreach (var p in CombineGamePropertyManager.GetAll())
 {
-    Debug.Log($"ÊôĞÔID: {p.ID}, µ±Ç°Öµ: {p.GetValue()}");
+    Debug.Log($"å±æ€§ID: {p.ID}, å½“å‰å€¼: {p.GetValue()}");
 }
 
-// ÒÆ³ı×éºÏÊôĞÔ
+// ç§»é™¤ç»„åˆå±æ€§
 CombineGamePropertyManager.Remove("SingleProp");
 ```
 
-## ĞŞÊÎÆ÷ÀàĞÍÓë²ßÂÔ
+## ä¿®é¥°å™¨ç±»å‹ä¸ç­–ç•¥
 
-GamePropertyÏµÍ³Ö§³Ö¶àÖÖĞŞÊÎÆ÷ÀàĞÍ£¬Ã¿ÖÖÀàĞÍÓĞÌØ¶¨µÄÓ¦ÓÃ²ßÂÔ£º
+GamePropertyç³»ç»Ÿæ”¯æŒå¤šç§ä¿®é¥°å™¨ç±»å‹ï¼Œæ¯ç§ç±»å‹æœ‰ç‰¹å®šçš„åº”ç”¨ç­–ç•¥ï¼š
 
-1. **Add**: Ö±½ÓÌí¼ÓÖµ
-2. **PriorityAdd**: °´ÓÅÏÈ¼¶Ìí¼ÓÖµ
-3. **Mul**: Ö±½Ó³ËÒÔÖµ
-4. **PriorityMul**: °´ÓÅÏÈ¼¶³ËÒÔÖµ
-5. **AfterAdd**: ÔÚ³Ë·¨ĞŞÊÎºóÔÙÌí¼ÓÖµ
-6. **Override**: Ö±½Ó¸²¸ÇÊôĞÔÖµ
-7. **Clamp**: ÏŞÖÆÊôĞÔÖµ·¶Î§
+1. **Add**: ç›´æ¥æ·»åŠ å€¼
+2. **PriorityAdd**: æŒ‰ä¼˜å…ˆçº§æ·»åŠ å€¼
+3. **Mul**: ç›´æ¥ä¹˜ä»¥å€¼
+4. **PriorityMul**: æŒ‰ä¼˜å…ˆçº§ä¹˜ä»¥å€¼
+5. **AfterAdd**: åœ¨ä¹˜æ³•ä¿®é¥°åå†æ·»åŠ å€¼
+6. **Override**: ç›´æ¥è¦†ç›–å±æ€§å€¼
+7. **Clamp**: é™åˆ¶å±æ€§å€¼èŒƒå›´
 
 ```
-// ´´½¨²»Í¬ÀàĞÍµÄĞŞÊÎÆ÷
+// åˆ›å»ºä¸åŒç±»å‹çš„ä¿®é¥°å™¨
 var addMod = new FloatModifier(ModifierType.Add, 0, 50f);  // +50
-var mulMod = new FloatModifier(ModifierType.Mul, 0, 1.5f); // ¡Á1.5
-var clampMod = new RangeModifier(ModifierType.Clamp, 0, new Vector2(0, 200)); // ÏŞÖÆ·¶Î§0-200
-var overrideMod = new FloatModifier(ModifierType.Override, 0, 100f); // Ö±½ÓÉèÎª100
+var mulMod = new FloatModifier(ModifierType.Mul, 0, 1.5f); // Ã—1.5
+var clampMod = new RangeModifier(ModifierType.Clamp, 0, new Vector2(0, 200)); // é™åˆ¶èŒƒå›´0-200
+var overrideMod = new FloatModifier(ModifierType.Override, 0, 100f); // ç›´æ¥è®¾ä¸º100
 
-// ĞŞÊÎÆ÷ÓÅÏÈ¼¶Ó°ÏìÓ¦ÓÃË³Ğò
-var highPriorityAdd = new FloatModifier(ModifierType.Add, 10, 20f); // ¸ßÓÅÏÈ¼¶£¬ÏÈÓ¦ÓÃ
-var lowPriorityAdd = new FloatModifier(ModifierType.Add, 0, 10f);  // µÍÓÅÏÈ¼¶£¬ºóÓ¦ÓÃ
+// ä¿®é¥°å™¨ä¼˜å…ˆçº§å½±å“åº”ç”¨é¡ºåº
+var highPriorityAdd = new FloatModifier(ModifierType.Add, 10, 20f); // é«˜ä¼˜å…ˆçº§ï¼Œå…ˆåº”ç”¨
+var lowPriorityAdd = new FloatModifier(ModifierType.Add, 0, 10f);  // ä½ä¼˜å…ˆçº§ï¼Œååº”ç”¨
+```
+## ä½¿ç”¨è§„èŒƒ
+### åŸºæœ¬
+```
+CombineGamePropertyManager (å…¨å±€ç®¡ç†å™¨)
+â”œâ”€â”€ CombineProperty (ç»„åˆå±æ€§å±‚)
+â”‚   â”œâ”€â”€ CombinePropertySingle (å•ä¸€å±æ€§åŒ…è£…)
+â”‚   â”œâ”€â”€ CombinePropertyClassic (ç»å…¸RPGå…¬å¼)
+â”‚   â””â”€â”€ CombinePropertyCustom (è‡ªå®šä¹‰ç»„åˆ)
+â””â”€â”€ GameProperty (æ ¸å¿ƒå±æ€§å±‚)
+    â”œâ”€â”€ åŸºç¡€å€¼ (BaseValue)
+    â”œâ”€â”€ ä¿®é¥°å™¨ (Modifiers)
+    â””â”€â”€ ä¾èµ–å…³ç³» (Dependencies)
+
+```
+â€¢	ä¼˜å…ˆä½¿ç”¨ CombineProperty è€Œéç›´æ¥ä½¿ç”¨ GameProperty
+â€¢	ä¾èµ–ç”¨äºç®€å•çš„ä¸€å¯¹ä¸€å…³ç³»
+â€¢	ç»„åˆç”¨äºå¤æ‚çš„å¤šå¯¹ä¸€è®¡ç®—
+â€¢	ä¿®é¥°å™¨ç”¨äºåŠ¨æ€çš„ä¸´æ—¶æ•ˆæœ
+### ä½•æ—¶ä½¿ç”¨ä¾èµ– vs ç»„åˆ
+ä½¿ç”¨ä¾èµ–çš„åœºæ™¯:
+```
+// ç®€å•ä¸€å¯¹ä¸€å…³ç³»ï¼šè´Ÿé‡ = åŠ›é‡ Ã— 5
+var strength = new GameProperty("Strength", 10f);
+var carryWeight = new GameProperty("CarryWeight", 0f);
+carryWeight.AddDependency(strength, (dep, newVal) => newVal * 5f);
+
+// ç®€å•ä¾èµ–é“¾ï¼šA â†’ B â†’ C
+var baseAttack = new GameProperty("BaseAttack", 50f);
+var weaponAttack = new GameProperty("WeaponAttack", 0f);
+var finalAttack = new GameProperty("FinalAttack", 0f);
+
+weaponAttack.AddDependency(baseAttack, (dep, newVal) => newVal + 25f);
+finalAttack.AddDependency(weaponAttack, (dep, newVal) => newVal * 1.2f);
 ```
 
-## ¸ß¼¶ÓÃ·¨
+ä½¿ç”¨ç»„åˆçš„åœºæ™¯ï¼š
+```
+// å¤šå±æ€§ç»„åˆï¼šæ”»å‡»åŠ› = åŠ›é‡Ã—2 + æ•æ·Ã—0.5 + ç­‰çº§Ã—1.5
+var customAttack = new CombinePropertyCustom("AttackPower");
+customAttack.RegisterProperty(strength);
+customAttack.RegisterProperty(agility);
+customAttack.RegisterProperty(level);
 
-### ÊôĞÔÒÀÀµÁ´
+customAttack.Calculater = (combine) => {
+    var str = combine.GetProperty("Strength").GetValue();
+    var agi = combine.GetProperty("Agility").GetValue();
+    var lvl = combine.GetProperty("Level").GetValue();
+    return str * 2f + agi * 0.5f + lvl * 1.5f;
+};
+```
+### GamePropertyçš„ä½¿ç”¨è§„èŒƒå»ºè®®
+- æä¾›æœ‰æ„ä¹‰çš„IDå’Œåˆç†çš„åˆå§‹å€¼
+- ä½¿ç”¨OnValueChangedäº‹ä»¶ç›‘å¬å±æ€§å˜åŒ–ï¼Œè€Œéè½®è¯¢ï¼Œè®°å¾—ç§»é™¤äº‹ä»¶ç›‘å¬
+- é¿å…ä½¿ç”¨SetBaseValue()ç›´æ¥ä¿®æ”¹åŸºç¡€å€¼ï¼Œä¼˜å…ˆä½¿ç”¨ä¿®é¥°å™¨
 
-GamePropertyÖ§³Ö¹¹½¨¸´ÔÓµÄÊôĞÔÒÀÀµÁ´£¬±ãÓÚÊµÏÖRPGÓÎÏ·ÖĞµÄÊôĞÔ¹ØÁª¼ÆËã¡£
+## é«˜çº§ç”¨æ³•
+
+### å±æ€§ä¾èµ–é“¾
+
+GamePropertyæ”¯æŒæ„å»ºå¤æ‚çš„å±æ€§ä¾èµ–é“¾ï¼Œä¾¿äºå®ç°RPGæ¸¸æˆä¸­çš„å±æ€§å…³è”è®¡ç®—ã€‚
 
 ```
-// ´´½¨»ù´¡ÊôĞÔ
-var strength = new GameProperty("Strength", 10f); // Á¦Á¿
-var agility = new GameProperty("Agility", 8f);    // Ãô½İ
-var intelligence = new GameProperty("Intelligence", 12f); // ÖÇÁ¦
+// åˆ›å»ºåŸºç¡€å±æ€§
+var strength = new GameProperty("Strength", 10f); // åŠ›é‡
+var agility = new GameProperty("Agility", 8f);    // æ•æ·
+var intelligence = new GameProperty("Intelligence", 12f); // æ™ºåŠ›
 
-// ´´½¨¶ş¼¶ÊôĞÔ
-var attackPower = new GameProperty("AttackPower", 0f); // ¹¥»÷Á¦ = Á¦Á¿*2 + Ãô½İ*0.5
-var attackSpeed = new GameProperty("AttackSpeed", 0f); // ¹¥»÷ËÙ¶È = Ãô½İ*0.1 + 1
-var spellPower = new GameProperty("SpellPower", 0f);   // ·¨ÊõÇ¿¶È = ÖÇÁ¦*3
+// åˆ›å»ºäºŒçº§å±æ€§
+var attackPower = new GameProperty("AttackPower", 0f); // æ”»å‡»åŠ› = åŠ›é‡*2 + æ•æ·*0.5
+var attackSpeed = new GameProperty("AttackSpeed", 0f); // æ”»å‡»é€Ÿåº¦ = æ•æ·*0.1 + 1
+var spellPower = new GameProperty("SpellPower", 0f);   // æ³•æœ¯å¼ºåº¦ = æ™ºåŠ›*3
 
-// ½¨Á¢ÒÀÀµ¹ØÏµ
+// å»ºç«‹ä¾èµ–å…³ç³»
 attackPower.AddDependency(strength);
 attackPower.AddDependency(agility);
 attackSpeed.AddDependency(agility);
 spellPower.AddDependency(intelligence);
 
-// ÉèÖÃ¼ÆËãÂß¼­
+// è®¾ç½®è®¡ç®—é€»è¾‘
 strength.OnValueChanged += (_, __) => {
     attackPower.SetBaseValue(strength.GetValue() * 2 + agility.GetValue() * 0.5f);
 };
@@ -259,7 +314,7 @@ intelligence.OnValueChanged += (_, __) => {
     spellPower.SetBaseValue(intelligence.GetValue() * 3);
 };
 
-// ´´½¨Èı¼¶ÊôĞÔ£ºDPS(Ã¿ÃëÉËº¦) = ¹¥»÷Á¦ * ¹¥»÷ËÙ¶È
+// åˆ›å»ºä¸‰çº§å±æ€§ï¼šDPS(æ¯ç§’ä¼¤å®³) = æ”»å‡»åŠ› * æ”»å‡»é€Ÿåº¦
 var dps = new GameProperty("DPS", 0f); 
 dps.AddDependency(attackPower);
 dps.AddDependency(attackSpeed);
@@ -273,107 +328,107 @@ attackSpeed.OnValueChanged += (_, __) => {
 };
 ```
 
-### Ñ­»·ÒÀÀµ¼ì²â
+### å¾ªç¯ä¾èµ–æ£€æµ‹
 
-ÏµÍ³×Ô¶¯¼ì²â²¢·ÀÖ¹Ñ­»·ÒÀÀµ£¬±ÜÃâÎŞÏŞµİ¹éÔì³ÉµÄ±ÀÀ£¡£
+ç³»ç»Ÿè‡ªåŠ¨æ£€æµ‹å¹¶é˜²æ­¢å¾ªç¯ä¾èµ–ï¼Œé¿å…æ— é™é€’å½’é€ æˆçš„å´©æºƒã€‚
 
 ```
 var propA = new GameProperty("A", 10f);
 var propB = new GameProperty("B", 20f);
 
-// ½¨Á¢ÒÀÀµ¹ØÏµ: A -> B
+// å»ºç«‹ä¾èµ–å…³ç³»: A -> B
 propA.AddDependency(propB);
 
-// ³¢ÊÔ½¨Á¢Ñ­»·ÒÀÀµ: B -> A£¨»á±»ÏµÍ³×èÖ¹£©
-propB.AddDependency(propA); // ²»»áÉúĞ§£¬¿ØÖÆÌ¨»áÊä³ö¾¯¸æ
+// å°è¯•å»ºç«‹å¾ªç¯ä¾èµ–: B -> Aï¼ˆä¼šè¢«ç³»ç»Ÿé˜»æ­¢ï¼‰
+propB.AddDependency(propA); // ä¸ä¼šç”Ÿæ•ˆï¼Œæ§åˆ¶å°ä¼šè¾“å‡ºè­¦å‘Š
 ```
 
-### ÔàÊı¾İ×·×Ù
+### è„æ•°æ®è¿½è¸ª
 
-GamePropertyÍ¨¹ıÔà±ê¼Ç»úÖÆ£¬±ÜÃâ²»±ØÒªµÄÖØ¸´¼ÆËã£¬Ìá¸ßĞÔÄÜ¡£
+GamePropertyé€šè¿‡è„æ ‡è®°æœºåˆ¶ï¼Œé¿å…ä¸å¿…è¦çš„é‡å¤è®¡ç®—ï¼Œæé«˜æ€§èƒ½ã€‚
 
 ```
-// ¼àÌıÊôĞÔ±»±ê¼ÇÎªÔàµÄÊÂ¼ş
+// ç›‘å¬å±æ€§è¢«æ ‡è®°ä¸ºè„çš„äº‹ä»¶
 property.OnDirty(() => {
-    Debug.Log("ÊôĞÔĞèÒªÖØĞÂ¼ÆËã");
+    Debug.Log("å±æ€§éœ€è¦é‡æ–°è®¡ç®—");
 });
 
-// ÊÖ¶¯½«ÊôĞÔ±ê¼ÇÎªÔà£¨Í¨³£²»ĞèÒªÊÖ¶¯µ÷ÓÃ£©
+// æ‰‹åŠ¨å°†å±æ€§æ ‡è®°ä¸ºè„ï¼ˆé€šå¸¸ä¸éœ€è¦æ‰‹åŠ¨è°ƒç”¨ï¼‰
 property.MakeDirty();
 
-// ÒÆ³ıÔàÊı¾İ¼àÌı
+// ç§»é™¤è„æ•°æ®ç›‘å¬
 property.RemoveOnDirty(someAction);
 ```
 
-### ÊôĞÔĞòÁĞ»¯
+### å±æ€§åºåˆ—åŒ–
 
-GamePropertyÖ§³ÖĞòÁĞ»¯Óë·´ĞòÁĞ»¯£¬±ãÓÚ´æµµºÍ¼ÓÔØ¡£
+GamePropertyæ”¯æŒåºåˆ—åŒ–ä¸ååºåˆ—åŒ–ï¼Œä¾¿äºå­˜æ¡£å’ŒåŠ è½½ã€‚
 
 ```
-// ´´½¨´øĞŞÊÎÆ÷µÄÊôĞÔ
+// åˆ›å»ºå¸¦ä¿®é¥°å™¨çš„å±æ€§
 var prop = new GameProperty("MP", 80f);
 prop.AddModifier(new FloatModifier(ModifierType.Add, 1, 10f));
 prop.AddModifier(new FloatModifier(ModifierType.Mul, 2, 2f));
 
-// ĞòÁĞ»¯
+// åºåˆ—åŒ–
 var serialized = GamePropertySerializer.Serialize(prop);
 
-// ·´ĞòÁĞ»¯
+// ååºåˆ—åŒ–
 var deserialized = GamePropertySerializer.FromSerializable(serialized);
 
-// ÑéÖ¤ÖµÊÇ·ñÒ»ÖÂ
+// éªŒè¯å€¼æ˜¯å¦ä¸€è‡´
 float originalValue = prop.GetValue();
 float deserializedValue = deserialized.GetValue();
 ```
 
-## ÓëBuffÏµÍ³¼¯³É
+## ä¸Buffç³»ç»Ÿé›†æˆ
 
-GamePropertyÏµÍ³¿ÉÒÔÓëBuffÏµÍ³ÎŞ·ì¼¯³É£¬ÊµÏÖÊôĞÔµÄ¶¯Ì¬ĞŞ¸Ä¡£
+GamePropertyç³»ç»Ÿå¯ä»¥ä¸Buffç³»ç»Ÿæ— ç¼é›†æˆï¼Œå®ç°å±æ€§çš„åŠ¨æ€ä¿®æ”¹ã€‚
 
 ```
-// ´´½¨Ò»¸öĞŞ¸ÄÁ¦Á¿ÊôĞÔµÄBuff
+// åˆ›å»ºä¸€ä¸ªä¿®æ”¹åŠ›é‡å±æ€§çš„Buff
 var buffData = new BuffData
 {
     ID = "Buff_Strength",
-    Name = "Á¦Á¿ÔöÒæ",
-    Description = "Ôö¼Ó½ÇÉ«µÄÁ¦Á¿ÊôĞÔ",
-    Duration = 10f  // ³ÖĞø10Ãë
+    Name = "åŠ›é‡å¢ç›Š",
+    Description = "å¢åŠ è§’è‰²çš„åŠ›é‡å±æ€§",
+    Duration = 10f  // æŒç»­10ç§’
 };
 
-// ´´½¨Ò»¸öĞŞ¸ÄÁ¦Á¿ÊôĞÔµÄĞŞÊÎ·û
-var strengthModifier = new FloatModifier(ModifierType.Add, 0, 5f);  // Ôö¼Ó5µãÁ¦Á¿
+// åˆ›å»ºä¸€ä¸ªä¿®æ”¹åŠ›é‡å±æ€§çš„ä¿®é¥°ç¬¦
+var strengthModifier = new FloatModifier(ModifierType.Add, 0, 5f);  // å¢åŠ 5ç‚¹åŠ›é‡
 
-// ´´½¨Module²¢Ìí¼Óµ½BuffData
+// åˆ›å»ºModuleå¹¶æ·»åŠ åˆ°BuffData
 var propertyModule = new CastModifierToProperty(strengthModifier, "Strength");
 buffData.BuffModules.Add(propertyModule);
 
-// Í¨¹ıBuffManagerÓ¦ÓÃÕâ¸öBuff
+// é€šè¿‡BuffManageråº”ç”¨è¿™ä¸ªBuff
 buffManager.AddBuff(buffData, caster, target);
 ```
 
-## ×î¼ÑÊµ¼ùÓëĞÔÄÜÓÅ»¯
+## æœ€ä½³å®è·µä¸æ€§èƒ½ä¼˜åŒ–
 
-1. **ÓÅÏÈÊ¹ÓÃ×éºÏÊôĞÔ**£º¶ÔÓÚ¸´ÔÓÊôĞÔ¼ÆËã£¬ÓÅÏÈÊ¹ÓÃCombineProperty¶ø·ÇÖ±½ÓÊ¹ÓÃGameProperty¡£
+1. **ä¼˜å…ˆä½¿ç”¨ç»„åˆå±æ€§**ï¼šå¯¹äºå¤æ‚å±æ€§è®¡ç®—ï¼Œä¼˜å…ˆä½¿ç”¨CombinePropertyè€Œéç›´æ¥ä½¿ç”¨GamePropertyã€‚
 
-2. **±ÜÃâÆµ·±ĞŞ¸Ä»ù´¡Öµ**£º¶ÔÓÚ¾²Ì¬ÊôĞÔ£¨Èç×î´óÉúÃüÖµ¡¢»ù´¡¹¥»÷Á¦£©£¬Ó¦Í¨¹ıĞŞÊÎÆ÷¶¯Ì¬µ÷Õû£¬¶ø·ÇÖ±½ÓĞŞ¸Ä»ù´¡Öµ¡£
+2. **é¿å…é¢‘ç¹ä¿®æ”¹åŸºç¡€å€¼**ï¼šå¯¹äºé™æ€å±æ€§ï¼ˆå¦‚æœ€å¤§ç”Ÿå‘½å€¼ã€åŸºç¡€æ”»å‡»åŠ›ï¼‰ï¼Œåº”é€šè¿‡ä¿®é¥°å™¨åŠ¨æ€è°ƒæ•´ï¼Œè€Œéç›´æ¥ä¿®æ”¹åŸºç¡€å€¼ã€‚
 
-3. **ºÏÀíÉèÖÃĞŞÊÎÆ÷ÓÅÏÈ¼¶**£ºĞŞÊÎÆ÷µÄÓ¦ÓÃË³Ğò¿ÉÄÜÓ°Ïì×îÖÕ½á¹û£¬ÌØ±ğÊÇÔÚ»ìºÏÊ¹ÓÃ²»Í¬ÀàĞÍµÄĞŞÊÎÆ÷Ê±¡£
+3. **åˆç†è®¾ç½®ä¿®é¥°å™¨ä¼˜å…ˆçº§**ï¼šä¿®é¥°å™¨çš„åº”ç”¨é¡ºåºå¯èƒ½å½±å“æœ€ç»ˆç»“æœï¼Œç‰¹åˆ«æ˜¯åœ¨æ··åˆä½¿ç”¨ä¸åŒç±»å‹çš„ä¿®é¥°å™¨æ—¶ã€‚
 
-4. **É÷ÓÃÊôĞÔÒÀÀµ**£ºËäÈ»ÏµÍ³Ö§³Ö¸´ÔÓµÄÊôĞÔÒÀÀµÁ´£¬µ«¹ı¶È¸´ÔÓµÄÒÀÀµ¹ØÏµ¿ÉÄÜµ¼ÖÂÎ¬»¤À§ÄÑºÍĞÔÄÜÎÊÌâ¡£
+4. **æ…ç”¨å±æ€§ä¾èµ–**ï¼šè™½ç„¶ç³»ç»Ÿæ”¯æŒå¤æ‚çš„å±æ€§ä¾èµ–é“¾ï¼Œä½†è¿‡åº¦å¤æ‚çš„ä¾èµ–å…³ç³»å¯èƒ½å¯¼è‡´ç»´æŠ¤å›°éš¾å’Œæ€§èƒ½é—®é¢˜ã€‚
 
-5. **ÀûÓÃÔà±ê¼Ç»úÖÆ**£ºÏµÍ³ÄÚÖÃµÄÔà±ê¼Ç»úÖÆ¿ÉÒÔ±ÜÃâ²»±ØÒªµÄÖØ¸´¼ÆËã£¬Ìá¸ßĞÔÄÜ¡£
+5. **åˆ©ç”¨è„æ ‡è®°æœºåˆ¶**ï¼šç³»ç»Ÿå†…ç½®çš„è„æ ‡è®°æœºåˆ¶å¯ä»¥é¿å…ä¸å¿…è¦çš„é‡å¤è®¡ç®—ï¼Œæé«˜æ€§èƒ½ã€‚
 
-## ³£¼ûÓÃÀı
+## å¸¸è§ç”¨ä¾‹
 
-### ½ÇÉ«ÊôĞÔÏµÍ³
+### è§’è‰²å±æ€§ç³»ç»Ÿ
 
 ```
-// ´´½¨»ù´¡ÊôĞÔ
+// åˆ›å»ºåŸºç¡€å±æ€§
 var strength = new GameProperty("Strength", 10f);
 var agility = new GameProperty("Agility", 8f);
 var intelligence = new GameProperty("Intelligence", 12f);
 
-// ´´½¨ÅÉÉúÊôĞÔ
+// åˆ›å»ºæ´¾ç”Ÿå±æ€§
 var health = new CombinePropertyCustom("Health");
 health.RegisterProperty(strength);
 health.Calculater = c => c.GetProperty("Strength").GetValue() * 10;
@@ -382,70 +437,70 @@ var mana = new CombinePropertyCustom("Mana");
 mana.RegisterProperty(intelligence);
 mana.Calculater = c => c.GetProperty("Intelligence").GetValue() * 10;
 
-// ×¢²áµ½È«¾Ö¹ÜÀíÆ÷
+// æ³¨å†Œåˆ°å…¨å±€ç®¡ç†å™¨
 CombineGamePropertyManager.AddOrUpdate(health);
 CombineGamePropertyManager.AddOrUpdate(mana);
 ```
 
-### ×°±¸¼Ó³ÉÏµÍ³
-°¸Àı¾­¹©²Î¿¼
+### è£…å¤‡åŠ æˆç³»ç»Ÿ
+æ¡ˆä¾‹ç»ä¾›å‚è€ƒ
 ```
-// ½ÇÉ«»ù´¡ÊôĞÔ
+// è§’è‰²åŸºç¡€å±æ€§
 var baseStrength = new GameProperty("BaseStrength", 10f);
 
-// ´´½¨¾­µä×éºÏÊôĞÔ¼ÆËã×ÜÁ¦Á¿
+// åˆ›å»ºç»å…¸ç»„åˆå±æ€§è®¡ç®—æ€»åŠ›é‡
 var totalStrength = new CombinePropertyClassic(
     "TotalStrength", baseStrength.GetValue(), "Base", "Equipment", "EquipmentMul", "Debuff", "DebuffMul"
 );
 
-// ×°±¸Ìá¹©µÄÁ¦Á¿¼Ó³É
+// è£…å¤‡æä¾›çš„åŠ›é‡åŠ æˆ
 void EquipItem(Item item)
 {
-    // ¼ÙÉèitem.StrengthBonusÊÇ×°±¸Ìá¹©µÄÁ¦Á¿¼Ó³É
+    // å‡è®¾item.StrengthBonusæ˜¯è£…å¤‡æä¾›çš„åŠ›é‡åŠ æˆ
     totalStrength.GetProperty("Equipment").AddModifier(
         new FloatModifier(ModifierType.Add, item.Priority, item.StrengthBonus)
     );
     
-    // Ë¢ĞÂÏÔÊ¾
+    // åˆ·æ–°æ˜¾ç¤º
     UpdateUI();
 }
 
-// Ğ¶ÏÂ×°±¸
+// å¸ä¸‹è£…å¤‡
 void UnequipItem(Item item)
 {
-    // ÒÆ³ı×°±¸Ìá¹©µÄ¼Ó³É
+    // ç§»é™¤è£…å¤‡æä¾›çš„åŠ æˆ
     totalStrength.GetProperty("Equipment").RemoveModifier(
         new FloatModifier(ModifierType.Add, item.Priority, item.StrengthBonus)
     );
     
-    // Ë¢ĞÂÏÔÊ¾
+    // åˆ·æ–°æ˜¾ç¤º
     UpdateUI();
 }
 ```
 
-### ¼¼ÄÜĞ§¹ûÏµÍ³
-°¸Àı¾­¹©²Î¿¼£¬Êµ¼ÊµÄ¼¼ÄÜÏµÍ³»á¸ü¼Ó¸´ÔÓ
+### æŠ€èƒ½æ•ˆæœç³»ç»Ÿ
+æ¡ˆä¾‹ç»ä¾›å‚è€ƒï¼Œå®é™…çš„æŠ€èƒ½ç³»ç»Ÿä¼šæ›´åŠ å¤æ‚
 ```
-// ¶¨Òå¼¼ÄÜĞ§¹û
+// å®šä¹‰æŠ€èƒ½æ•ˆæœ
 void ApplyFireballEffect(Character target)
 {
-    // »ñÈ¡Ä¿±êµÄÄ§·¨¿¹ĞÔ
+    // è·å–ç›®æ ‡çš„é­”æ³•æŠ—æ€§
     var magicResist = CombineGamePropertyManager.Get("MagicResist");
     float resistValue = magicResist != null ? magicResist.GetValue() : 0;
     
-    // »ñÈ¡Ê©·¨ÕßµÄ·¨ÊõÇ¿¶È
+    // è·å–æ–½æ³•è€…çš„æ³•æœ¯å¼ºåº¦
     var spellPower = CombineGamePropertyManager.Get("SpellPower");
     float spellPowerValue = spellPower != null ? spellPower.GetValue() : 0;
     
-    // ¼ÆËãÉËº¦
+    // è®¡ç®—ä¼¤å®³
     float baseDamage = 50;
     float finalDamage = baseDamage + spellPowerValue * 0.8f;
     finalDamage *= (1 - resistValue / 100);
     
-    // Ó¦ÓÃÉËº¦
+    // åº”ç”¨ä¼¤å®³
     target.TakeDamage(finalDamage);
     
-    // Ìí¼Ó×ÆÉÕĞ§¹ûBuff
+    // æ·»åŠ ç¼çƒ§æ•ˆæœBuff
     var burnBuff = new BuffData { ID = "Burn", Duration = 3f };
     burnBuff.BuffModules.Add(new DamageOverTimeModule(finalDamage * 0.1f));
     buffManager.AddBuff(burnBuff, caster, target);
@@ -454,4 +509,4 @@ void ApplyFireballEffect(Character target)
 
 ---
 
-Í¨¹ıºÏÀí×éºÏGamePropertyÏµÍ³µÄ¸÷ÖÖ¹¦ÄÜ£¬¿ÉÒÔ¹¹½¨³ö¸´ÔÓ¶øÁé»îµÄÓÎÏ·ÊôĞÔÏµÍ³£¬Âú×ã²»Í¬ÀàĞÍÓÎÏ·µÄĞèÇó¡£ÏµÍ³µÄÄ£¿é»¯Éè¼ÆÊ¹²»Í¬µÄÊôĞÔÂß¼­¿ÉÒÔ·ÖÀë²¢ÖØ¸´Ê¹ÓÃ£¬·½±ãÀ©Õ¹ºÍÎ¬»¤¡£
+é€šè¿‡åˆç†ç»„åˆGamePropertyç³»ç»Ÿçš„å„ç§åŠŸèƒ½ï¼Œå¯ä»¥æ„å»ºå‡ºå¤æ‚è€Œçµæ´»çš„æ¸¸æˆå±æ€§ç³»ç»Ÿï¼Œæ»¡è¶³ä¸åŒç±»å‹æ¸¸æˆçš„éœ€æ±‚ã€‚ç³»ç»Ÿçš„æ¨¡å—åŒ–è®¾è®¡ä½¿ä¸åŒçš„å±æ€§é€»è¾‘å¯ä»¥åˆ†ç¦»å¹¶é‡å¤ä½¿ç”¨ï¼Œæ–¹ä¾¿æ‰©å±•å’Œç»´æŠ¤ã€‚
