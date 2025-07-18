@@ -45,7 +45,7 @@ namespace EasyPack
         /// </summary>
         public override GameProperty GetProperty(string id)
         {
-            if (_isDisposed) return null;
+            ThrowIfDisposed();
             return _gameProperties.TryGetValue(id, out var property) ? property : null;
         }
 
