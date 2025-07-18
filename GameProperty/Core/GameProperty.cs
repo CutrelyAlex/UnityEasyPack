@@ -448,7 +448,7 @@ namespace EasyPack
         /// <summary>
         /// 检查是否有指定类型的修饰器
         /// </summary>
-        public bool HasModifierOfType(ModifierType type)
+        public bool ContainModifierOfType(ModifierType type)
         {
             return _groupedModifiers.ContainsKey(type) && _groupedModifiers[type].Count > 0;
         }

@@ -386,7 +386,7 @@ namespace EasyPack
             Debug.Log($"是否有修饰器: {queryProp.HasModifiers}");
             Debug.Log($"修饰器总数: {queryProp.ModifierCount}");
             Debug.Log($"Add类型修饰器数量: {queryProp.GetModifierCountOfType(ModifierType.Add)}");
-            Debug.Log($"是否有Mul类型修饰器: {queryProp.HasModifierOfType(ModifierType.Mul)}");
+            Debug.Log($"是否有Mul类型修饰器: {queryProp.ContainModifierOfType(ModifierType.Mul)}");
 
             // 8.3 复杂依赖链
             var chainA = new GameProperty("ChainA", 10f);

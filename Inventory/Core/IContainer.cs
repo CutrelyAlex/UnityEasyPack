@@ -44,8 +44,8 @@ namespace EasyPack
 
         RemoveItemResult RemoveItem(string itemID, int count = 1);
         RemoveItemResult RemoveItemAtIndex(int index, int count = 1, string itemID = null);
-        bool ContainsItem(string itemID);
-        int GetItemCount(string itemID);
+        bool HasItem(string itemID);
+        int GetItemTotalCount(string itemID);
 
         // 添加物品方法
         (AddItemResult result, int addedCount) AddItems(IItem item, int count, int slotIndex = -1);

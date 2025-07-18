@@ -91,7 +91,7 @@ public abstract class Container : IContainer
     /// <summary>
     /// 触发槽位物品数量变更事件
     /// </summary>
-    protected virtual void RaiseSlotItemCountChangedEvent(int slotIndex, IItem item, int oldCount, int newCount)
+    protected virtual void OnSlotQuantityChanged(int slotIndex, IItem item, int oldCount, int newCount)
     {
         OnSlotCountChanged?.Invoke(slotIndex, item, oldCount, newCount);
     }
@@ -111,10 +111,10 @@ public abstract class Container : IContainer
     /// <summary>
     /// 检查并触发物品总数变化事件
     /// </summary>
-    protected virtual void CheckAndRaiseItemTotalCountChanged(string itemId, IItem itemRef = null)
+    protected virtual void UpdateItemTotalCount(string itemId, IItem itemRef = null)
     {
         // 获取最新总数
-        int newTotal = GetItemCount(itemId);
+        int newTotal = GetItemTotalCount(itemId);
 
         // 获取旧总数，如果字典中不存在则为0
         int oldTotal = _itemTotalCounts.ContainsKey(itemId) ? _itemTotalCounts[itemId] : 0;
@@ -186,11 +186,11 @@ public abstract class Container : IContainer
     /// <summary>
     /// 检查物品是否满足容器条件
     /// </summary>
-    protected bool CheckContainerCondition(IItem item)
+    protected bool ValidateItemCondition(IItem item)
     {
         if (item == null)
         {
-            Debug.LogWarning("CheckContainerCondition: item is null.");
+            Debug.LogWarning("ValidateItemCondition: item is null.");
             return false;
         }
 
@@ -216,7 +216,7 @@ public abstract class Container : IContainer
         if (item == null)
             return AddItemResult.ItemIsNull;
 
-        if (!CheckContainerCondition(item))
+        if (!ValidateItemCondition(item))
             return AddItemResult.ItemConditionNotMet;
 
         // 如果容器已满，需要检查是否有可堆叠的槽位
@@ -444,7 +444,7 @@ public abstract class Container : IContainer
     /// </summary>
     /// <param name="itemId">物品ID</param>
     /// <returns>如果包含返回true，否则返回false</returns>
-    public bool ContainsItem(string itemId)
+    public bool HasItem(string itemId)
     {
         if (string.IsNullOrEmpty(itemId))
             return false;
@@ -457,7 +457,7 @@ public abstract class Container : IContainer
     /// </summary>
     /// <param name="itemId">物品ID</param>
     /// <returns>物品总数量</returns>
-    public int GetItemCount(string itemId)
+    public int GetItemTotalCount(string itemId)
     {
         if (string.IsNullOrEmpty(itemId))
             return 0;
@@ -515,7 +515,7 @@ public abstract class Container : IContainer
     /// </summary>
     /// <param name="itemType">物品类型</param>
     /// <returns>符合类型的物品列表，包含槽位索引、物品引用和数量</returns>
-    public List<(int slotIndex, IItem item, int count)> FindItemsByType(string itemType)
+    public List<(int slotIndex, IItem item, int count)> GetItemsByType(string itemType)
     {
         var result = new List<(int slotIndex, IItem item, int count)>();
 
@@ -560,7 +560,7 @@ public abstract class Container : IContainer
     /// <param name="attributeName">属性名称</param>
     /// <param name="attributeValue">属性值</param>
     /// <returns>符合属性条件的物品列表，包含槽位索引、物品引用和数量</returns>
-    public List<(int slotIndex, IItem item, int count)> FindItemsByAttribute(string attributeName, object attributeValue)
+    public List<(int slotIndex, IItem item, int count)> GetItemsByAttribute  (string attributeName, object attributeValue)
     {
         var result = new List<(int slotIndex, IItem item, int count)>();
 
@@ -613,7 +613,7 @@ public abstract class Container : IContainer
     /// </summary>
     /// <param name="condition">条件委托</param>
     /// <returns>符合条件的物品列表，包含槽位索引、物品引用和数量</returns>
-    public List<(int slotIndex, IItem item, int count)> FindItemsCustom(System.Func<IItem, bool> condition)
+    public List<(int slotIndex, IItem item, int count)> GetItemsWhere(System.Func<IItem, bool> condition)
     {
         var result = new List<(int slotIndex, IItem item, int count)>();
 
@@ -660,7 +660,7 @@ public abstract class Container : IContainer
     /// </summary>
     /// <param name="itemId">物品ID</param>
     /// <returns>物品所在的槽位索引列表</returns>
-    public List<int> GetItemSlotIndices(string itemId)
+    public List<int> FindSlotIndices(string itemId)
     {
         if (string.IsNullOrEmpty(itemId))
             return new List<int>();
@@ -723,7 +723,7 @@ public abstract class Container : IContainer
     /// </summary>
     /// <param name="itemId">物品ID</param>
     /// <returns>找到的槽位索引，如果没找到返回-1</returns>
-    public int GetFirstItemSlotIndex(string itemId)
+    public int FindFirstSlotIndex(string itemId)
     {
         if (string.IsNullOrEmpty(itemId))
             return -1;
@@ -881,7 +881,7 @@ public abstract class Container : IContainer
     /// <returns>如果有足够数量返回true，否则返回false</returns>
     public bool HasEnoughItems(string itemId, int requiredCount)
     {
-        return GetItemCount(itemId) >= requiredCount;
+        return GetItemTotalCount(itemId) >= requiredCount;
     }
 
     /// <summary>
@@ -889,7 +889,7 @@ public abstract class Container : IContainer
     /// </summary>
     /// <param name="namePattern">名称模式，支持部分匹配</param>
     /// <returns>符合名称模式的物品列表</returns>
-    public List<(int slotIndex, IItem item, int count)> FindItemsByName(string namePattern)
+    public List<(int slotIndex, IItem item, int count)> GetItemsByName(string namePattern)
     {
         var result = new List<(int slotIndex, IItem item, int count)>();
 
@@ -932,7 +932,7 @@ public abstract class Container : IContainer
         }
 
         // 先检查物品总数是否足够
-        int totalCount = GetItemCount(itemId);
+        int totalCount = GetItemTotalCount(itemId);
         if (totalCount < count && totalCount != 0)
         {
             OnItemRemoveFailed?.Invoke(itemId, count, RemoveItemResult.InsufficientQuantity);
@@ -991,12 +991,12 @@ public abstract class Container : IContainer
                 affectedSlots.Add(slotIndex);
 
                 // 槽位物品数量变更事件
-                RaiseSlotItemCountChangedEvent(slotIndex, item, oldCount, slot.ItemCount);
+                OnSlotQuantityChanged(slotIndex, item, oldCount, slot.ItemCount);
             }
 
             // 移除成功事件
             OnItemRemoved?.Invoke(itemId, count, affectedSlots);
-            CheckAndRaiseItemTotalCountChanged(itemId);
+            UpdateItemTotalCount(itemId);
             return RemoveItemResult.Success;
         }
 
@@ -1076,11 +1076,11 @@ public abstract class Container : IContainer
         UpdateItemCountCache(itemId, -count);
 
         // 触发物品数量变更事件
-        RaiseSlotItemCountChangedEvent(index, item, oldCount, slot.ItemCount);
+        OnSlotQuantityChanged(index, item, oldCount, slot.ItemCount);
 
         // 触发物品移除事件
         OnItemRemoved?.Invoke(itemId, count, new List<int> { index });
-        CheckAndRaiseItemTotalCountChanged(itemId, item);
+        UpdateItemTotalCount(itemId, item);
 
         return RemoveItemResult.Success;
     }
@@ -1110,7 +1110,7 @@ public abstract class Container : IContainer
         if (count <= 0)
             return (AddItemResult.AddNothingLOL, 0);
 
-        if (!CheckContainerCondition(item))
+        if (!ValidateItemCondition(item))
         {
             OnItemAddFailed?.Invoke(item, count, AddItemResult.ItemConditionNotMet);
             return (AddItemResult.ItemConditionNotMet, 0);
@@ -1138,10 +1138,10 @@ public abstract class Container : IContainer
                 {
                     int slotIdx = change.Key;
                     var slot = _slots[slotIdx];
-                    RaiseSlotItemCountChangedEvent(slotIdx, slot.Item, change.Value.oldCount, change.Value.newCount);
+                    OnSlotQuantityChanged(slotIdx, slot.Item, change.Value.oldCount, change.Value.newCount);
                 }
 
-                CheckAndRaiseItemTotalCountChanged(item.ID, item);
+                UpdateItemTotalCount(item.ID, item);
 
                 if (remainingCount <= 0)
                 {
@@ -1169,7 +1169,7 @@ public abstract class Container : IContainer
                 UpdateItemTypeCache(item.Type, slotIndex, true);
                 UpdateEmptySlotCache(slotIndex, false);
 
-                CheckAndRaiseItemTotalCountChanged(item.ID, item);
+                UpdateItemTotalCount(item.ID, item);
 
                 if (remainingCount <= 0)
                 {
@@ -1209,7 +1209,7 @@ public abstract class Container : IContainer
                 if (remainingCount <= 0)
                 {
                     OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
-                    CheckAndRaiseItemTotalCountChanged(item.ID, item);
+                    UpdateItemTotalCount(item.ID, item);
                     return (AddItemResult.Success, totalAdded);
                 }
 
@@ -1231,7 +1231,7 @@ public abstract class Container : IContainer
                 UpdateItemCache(item.ID, newSlotIndex, true);
                 UpdateItemTypeCache(item.Type, newSlotIndex, true);
 
-                CheckAndRaiseItemTotalCountChanged(item.ID, item);
+                UpdateItemTotalCount(item.ID, item);
 
                 if (remainingCount <= 0)
                 {
@@ -1263,7 +1263,7 @@ public abstract class Container : IContainer
 
         // 所有物品都成功添加
         OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
-        CheckAndRaiseItemTotalCountChanged(item.ID, item);
+        UpdateItemTotalCount(item.ID, item);
         return (AddItemResult.Success, totalAdded);
     }
 
@@ -1409,7 +1409,7 @@ public abstract class Container : IContainer
             if (targetSlot.SetItem(targetSlot.Item, targetSlot.ItemCount + canAddCount))
             {
                 // 触发数量变更
-                RaiseSlotItemCountChangedEvent(slotIndex, targetSlot.Item, oldCount, targetSlot.ItemCount);
+                OnSlotQuantityChanged(slotIndex, targetSlot.Item, oldCount, targetSlot.ItemCount);
                 return (true, canAddCount, remainingCount - canAddCount);
             }
         }
@@ -1428,7 +1428,7 @@ public abstract class Container : IContainer
             if (targetSlot.SetItem(item, addCount))
             {
                 // 触发数量变更
-                RaiseSlotItemCountChangedEvent(slotIndex, targetSlot.Item, 0, targetSlot.ItemCount);
+                OnSlotQuantityChanged(slotIndex, targetSlot.Item, 0, targetSlot.ItemCount);
                 return (true, addCount, remainingCount - addCount);
             }
         }
@@ -1469,7 +1469,7 @@ public abstract class Container : IContainer
                         UpdateItemTypeCache(item.Type, i, true);
 
                         // 触发数量变更
-                        RaiseSlotItemCountChangedEvent(i, slot.Item, 0, slot.ItemCount);
+                        OnSlotQuantityChanged(i, slot.Item, 0, slot.ItemCount);
                         return (true, addCount, remainingCount - addCount, i);
                     }
                 }
@@ -1494,7 +1494,7 @@ public abstract class Container : IContainer
                         UpdateItemTypeCache(item.Type, i, true);
 
                         // 触发数量变更
-                        RaiseSlotItemCountChangedEvent(i, slot.Item, 0, slot.ItemCount);
+                        OnSlotQuantityChanged(i, slot.Item, 0, slot.ItemCount);
                         return (true, addCount, remainingCount - addCount, i);
                     }
                 }
@@ -1533,7 +1533,7 @@ public abstract class Container : IContainer
                 UpdateItemTypeCache(item.Type, newSlotIndex, true);
 
                 // 触发数量变更
-                RaiseSlotItemCountChangedEvent(newSlotIndex, newSlot.Item, 0, newSlot.ItemCount);
+                OnSlotQuantityChanged(newSlotIndex, newSlot.Item, 0, newSlot.ItemCount);
                 return (true, addCount, remainingCount - addCount, newSlotIndex);
             }
         }

@@ -123,7 +123,7 @@ public class InventoryExample : MonoBehaviour
 
         if (backpack_slot != -1)
         {
-            Debug.Log($"移除小背包前，内部物品数量：药水x{innerContainer.GetItemCount("potion")}，苹果x{innerContainer.GetItemCount("apple")}，面包x{innerContainer.GetItemCount("bread")}");
+            Debug.Log($"移除小背包前，内部物品数量：药水x{innerContainer.GetItemTotalCount("potion")}，苹果x{innerContainer.GetItemTotalCount("apple")}，面包x{innerContainer.GetItemTotalCount("bread")}");
             var removeResult2 = playerBackpack.RemoveItemAtIndex(backpack_slot);
             Debug.Log($"移除小背包结果: {removeResult2}");
             DisplayInventoryContents(playerBackpack);
