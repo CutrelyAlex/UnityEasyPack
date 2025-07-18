@@ -53,7 +53,7 @@ namespace EasyPack
             };
 
             // 5. 创建 Buff
-            var buff = _buffManager.AddBuff(buffData, _dummyCreator, _dummyTarget);
+            var buff = _buffManager.CreateBuff(buffData, _dummyCreator, _dummyTarget);
 
             // 6. 验证修饰符已被应用到属性
             float modifiedValue = property.GetValue();
@@ -77,9 +77,9 @@ namespace EasyPack
             // 9. 测试多层叠加效果
             // 创建具有两层堆叠的Buff
             buffData.MaxStacks = 2;
-            buff = _buffManager.AddBuff(buffData, _dummyCreator, _dummyTarget);
+            buff = _buffManager.CreateBuff(buffData, _dummyCreator, _dummyTarget);
             // 添加第二层
-            _buffManager.AddBuff(buffData, _dummyCreator, _dummyTarget);
+            _buffManager.CreateBuff(buffData, _dummyCreator, _dummyTarget);
 
             // 验证修饰符已被叠加两次
             float valueWithTwoStacks = property.GetValue();

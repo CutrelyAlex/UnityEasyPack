@@ -6,23 +6,24 @@ using UnityEngine;
 namespace EasyPack
 {
     /// <summary>
-    /// 只负责Buff的生命周期管理和事件，不直接操作IProperty。
-    /// Buff的应用与移除由BuffHandle负责。
+    /// Buff生命周期管理器，负责Buff的创建、更新、移除和查询
+    /// 不直接操作IProperty，Buff的应用与移除由BuffHandle负责
     /// </summary>
     public class BuffManager
     {
+        #region 核心数据结构
+
+        // 主要存储结构
         private readonly Dictionary<object, List<Buff>> _targetToBuffs = new Dictionary<object, List<Buff>>();
         private readonly List<Buff> _allBuffs = new List<Buff>();
         private readonly List<Buff> _removedBuffs = new List<Buff>();
 
-        // 分离有持续时间的Buff和永久Buff
+        // 按生命周期分类的Buff列表
         private readonly List<Buff> _timedBuffs = new List<Buff>();
         private readonly List<Buff> _permanentBuffs = new List<Buff>();
 
-        // 缓存需要触发的Buff
+        // 更新循环缓存
         private readonly List<Buff> _triggeredBuffs = new List<Buff>();
-
-        // 模块执行缓存
         private readonly List<BuffModule> _moduleCache = new List<BuffModule>();
 
         // 快速查找索引
@@ -30,65 +31,62 @@ namespace EasyPack
         private readonly Dictionary<string, List<Buff>> _buffsByTag = new Dictionary<string, List<Buff>>();
         private readonly Dictionary<string, List<Buff>> _buffsByLayer = new Dictionary<string, List<Buff>>();
 
-        // Buff位置索引
+        // 位置索引用于快速移除
         private readonly Dictionary<Buff, int> _buffPositions = new Dictionary<Buff, int>();
         private readonly Dictionary<Buff, int> _timedBuffPositions = new Dictionary<Buff, int>();
         private readonly Dictionary<Buff, int> _permanentBuffPositions = new Dictionary<Buff, int>();
-        // 批量移除缓存
+
+        // 批量移除优化
         private readonly HashSet<Buff> _buffsToRemove = new HashSet<Buff>();
         private readonly List<int> _removalIndices = new List<int>();
 
+        #endregion
 
-        #region BUFF管理
+        #region Buff创建与添加
+
         /// <summary>
-        /// 创建一个新的Buff
+        /// 创建并添加新的Buff，处理重复ID的叠加策略
         /// </summary>
-        public Buff AddBuff(BuffData buffData, GameObject creator, GameObject target)
+        public Buff CreateBuff(BuffData buffData, GameObject creator, GameObject target)
         {
             if (buffData == null)
                 return null;
 
-            // 将Buff添加到管理列表中
             if (!_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
                 buffs = new List<Buff>();
                 _targetToBuffs[target] = buffs;
             }
 
-            // 检查已有相同ID的Buff
+            // 检查是否存在相同ID的Buff，处理叠加逻辑
             Buff existingBuff = buffs.FirstOrDefault(b => b.BuffData.ID == buffData.ID);
             if (existingBuff != null)
             {
-                // 处理已存在的Buff的持续时间
+                // 处理持续时间叠加策略
                 switch (buffData.BuffSuperpositionStrategy)
                 {
                     case BuffSuperpositionDurationType.Add:
-                        // 叠加持续时间
                         existingBuff.DurationTimer += buffData.Duration;
                         break;
                     case BuffSuperpositionDurationType.ResetThenAdd:
-                        // 重置持续时间后再叠加
                         existingBuff.DurationTimer = 2 * buffData.Duration;
                         break;
                     case BuffSuperpositionDurationType.Reset:
                         existingBuff.DurationTimer = buffData.Duration;
-                        // 重置持续时间   
                         break;
                     case BuffSuperpositionDurationType.Keep:
                         break;
                 }
 
-                // 处理堆叠数
+                // 处理堆叠数叠加策略
                 switch (buffData.BuffSuperpositionStacksStrategy)
                 {
                     case BuffSuperpositionStacksType.Add:
-                        // 叠加堆叠数
-                        AddStackToBuff(existingBuff);
+                        IncreaseBuffStacks(existingBuff);
                         break;
                     case BuffSuperpositionStacksType.ResetThenAdd:
-                        // 重置堆叠数后再叠加
                         existingBuff.CurrentStacks = 1;
-                        AddStackToBuff(existingBuff);
+                        IncreaseBuffStacks(existingBuff);
                         break;
                     case BuffSuperpositionStacksType.Reset:
                         existingBuff.CurrentStacks = 1;
@@ -97,11 +95,11 @@ namespace EasyPack
                         break;
                 }
 
-                return existingBuff; // 返回已存在的Buff，不添加新Buff
+                return existingBuff;
             }
             else
             {
-                // 创建新的Buff
+                // 创建全新的Buff实例
                 Buff buff = new()
                 {
                     BuffData = buffData,
@@ -109,16 +107,15 @@ namespace EasyPack
                     Target = target,
                     DurationTimer = buffData.Duration > 0 ? buffData.Duration : -1f,
                     TriggerTimer = buffData.TriggerInterval,
-                    CurrentStacks = 1 // 确保初始堆叠为1
+                    CurrentStacks = 1
                 };
 
-                // 添加新的Buff
+                // 添加到各种管理列表和索引
                 buffs.Add(buff);
-
                 _buffPositions[buff] = _allBuffs.Count;
                 _allBuffs.Add(buff);
 
-                // 根据持续时间分类
+                // 根据持续时间分类存储
                 if (buff.DurationTimer > 0)
                 {
                     _timedBuffs.Add(buff);
@@ -128,18 +125,17 @@ namespace EasyPack
                     _permanentBuffs.Add(buff);
                 }
 
-                // 添加到索引
-                AddBuffToIndexes(buff);
+                RegisterBuffInIndexes(buff);
 
-                // 执行Buff创建回调
+                // 执行创建回调
                 buff.OnCreate?.Invoke(buff);
-                ExecuteBuffModules(buff, BuffCallBackType.OnCreate);
+                InvokeBuffModules(buff, BuffCallBackType.OnCreate);
 
-                // 如果Buff需要在创建时触发一次
+                // 处理创建时立即触发
                 if (buffData.TriggerOnCreate)
                 {
                     buff.OnTrigger?.Invoke(buff);
-                    ExecuteBuffModules(buff, BuffCallBackType.OnTick);
+                    InvokeBuffModules(buff, BuffCallBackType.OnTick);
                 }
 
                 return buff;
@@ -147,9 +143,9 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// 将Buff添加到各种索引中
+        /// 将Buff添加到快速查找索引中
         /// </summary>
-        private void AddBuffToIndexes(Buff buff)
+        private void RegisterBuffInIndexes(Buff buff)
         {
             // 添加到ID索引
             if (!_buffsByID.TryGetValue(buff.BuffData.ID, out var idList))
@@ -188,34 +184,248 @@ namespace EasyPack
             }
         }
 
-        /// <summary>
-        /// 移除指定目标的所有Buff
-        /// </summary>
-        public BuffManager RemoveAllBuffs(object target)
-        {
-            if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
-            {
-                // 批量移除优化
-                foreach (var buff in buffs)
-                {
-                    _buffsToRemove.Add(buff);
-                }
+        #endregion
 
-                // 执行批量移除
-                BatchRemoveBuffs();
-            }
+        #region 堆叠管理
+
+        /// <summary>
+        /// 增加Buff堆叠数，不超过最大值
+        /// </summary>
+        private BuffManager IncreaseBuffStacks(Buff buff, int stack = 1)
+        {
+            if (buff == null || buff.CurrentStacks >= buff.BuffData.MaxStacks)
+                return this;
+
+            buff.CurrentStacks += stack;
+            buff.CurrentStacks = Mathf.Min(buff.CurrentStacks, buff.BuffData.MaxStacks);
+
+            buff.OnAddStack?.Invoke(buff);
+            InvokeBuffModules(buff, BuffCallBackType.OnAddStack);
+
             return this;
         }
 
         /// <summary>
-        /// 从各种索引中移除Buff
+        /// 减少Buff堆叠数，为0时移除Buff
         /// </summary>
-        private void RemoveBuffFromIndexes(Buff buff)
+        private BuffManager DecreaseBuffStacks(Buff buff, int stack = 1)
+        {
+            if (buff == null || buff.CurrentStacks <= 1)
+            {
+                QueueBuffForRemoval(buff);
+                return this;
+            }
+
+            buff.CurrentStacks -= stack;
+            if (buff.CurrentStacks <= 0)
+            {
+                QueueBuffForRemoval(buff);
+                return this;
+            }
+
+            buff.OnReduceStack?.Invoke(buff);
+            InvokeBuffModules(buff, BuffCallBackType.OnReduceStack);
+            return this;
+        }
+
+        #endregion
+
+        #region 单个Buff移除
+
+        public BuffManager RemoveBuff(Buff buff)
+        {
+            if (buff == null)
+                return this;
+
+            switch (buff.BuffData.BuffRemoveStrategy)
+            {
+                case BuffRemoveType.All:
+                    QueueBuffForRemoval(buff);
+                    break;
+                case BuffRemoveType.OneStack:
+                    DecreaseBuffStacks(buff);
+                    break;
+                case BuffRemoveType.Manual:
+                    break;
+            }
+
+            return this;
+        }
+
+        private BuffManager QueueBuffForRemoval(Buff buff)
+        {
+            if (buff == null)
+                return this;
+
+            _buffsToRemove.Add(buff);
+            ProcessBuffRemovals();
+
+            return this;
+        }
+
+        #endregion
+
+        #region 目标相关移除操作
+
+        public BuffManager RemoveAllBuffs(object target)
+        {
+            if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
+            {
+                foreach (var buff in buffs)
+                {
+                    _buffsToRemove.Add(buff);
+                }
+                ProcessBuffRemovals();
+            }
+            return this;
+        }
+
+        public BuffManager RemoveBuffByID(object target, string buffID)
+        {
+            if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
+            {
+                Buff buff = buffs.FirstOrDefault(b => b.BuffData.ID == buffID);
+                if (buff != null)
+                {
+                    _buffsToRemove.Add(buff);
+                    ProcessBuffRemovals();
+                }
+            }
+            return this;
+        }
+
+        public BuffManager RemoveBuffsByTag(object target, string tag)
+        {
+            if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
+            {
+                foreach (var buff in buffs.Where(b => b.BuffData.HasTag(tag)))
+                {
+                    _buffsToRemove.Add(buff);
+                }
+                ProcessBuffRemovals();
+            }
+            return this;
+        }
+
+        public BuffManager RemoveBuffsByLayer(object target, string layer)
+        {
+            if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
+            {
+                foreach (var buff in buffs.Where(b => b.BuffData.InLayer(layer)))
+                {
+                    _buffsToRemove.Add(buff);
+                }
+                ProcessBuffRemovals();
+            }
+            return this;
+        }
+
+        #endregion
+
+        #region 全局移除操作
+
+        public BuffManager RemoveAllBuffsByID(string buffID)
+        {
+            if (_buffsByID.TryGetValue(buffID, out var buffs))
+            {
+                foreach (var buff in buffs)
+                {
+                    _buffsToRemove.Add(buff);
+                }
+                ProcessBuffRemovals();
+            }
+            return this;
+        }
+
+        public BuffManager RemoveAllBuffsByTag(string tag)
+        {
+            if (_buffsByTag.TryGetValue(tag, out var buffs))
+            {
+                foreach (var buff in buffs)
+                {
+                    _buffsToRemove.Add(buff);
+                }
+                ProcessBuffRemovals();
+            }
+            return this;
+        }
+
+        public BuffManager RemoveAllBuffsByLayer(string layer)
+        {
+            if (_buffsByLayer.TryGetValue(layer, out var buffs))
+            {
+                foreach (var buff in buffs)
+                {
+                    _buffsToRemove.Add(buff);
+                }
+                ProcessBuffRemovals();
+            }
+            return this;
+        }
+
+        public BuffManager FlushPendingRemovals()
+        {
+            ProcessBuffRemovals();
+            return this;
+        }
+
+        #endregion
+
+        #region 批量移除核心实现
+
+        /// <summary>
+        /// 批量移除Buff的核心实现，处理回调和索引更新
+        /// </summary>
+        private void ProcessBuffRemovals()
+        {
+            if (_buffsToRemove.Count == 0)
+                return;
+
+            // 执行移除回调
+            foreach (var buff in _buffsToRemove)
+            {
+                buff.OnRemove?.Invoke(buff);
+                InvokeBuffModules(buff, BuffCallBackType.OnRemove);
+            }
+
+            // 批量从各个列表移除
+            BatchRemoveFromList(_allBuffs, _buffPositions, _buffsToRemove);
+            BatchRemoveFromList(_timedBuffs, _timedBuffPositions, _buffsToRemove);
+            BatchRemoveFromList(_permanentBuffs, _permanentBuffPositions, _buffsToRemove);
+
+            // 从目标索引移除
+            var targetGroups = _buffsToRemove.GroupBy(b => b.Target);
+            foreach (var group in targetGroups)
+            {
+                if (_targetToBuffs.TryGetValue(group.Key, out List<Buff> targetBuffs))
+                {
+                    foreach (var buff in group)
+                    {
+                        SwapRemoveFromList(targetBuffs, buff);
+                    }
+
+                    if (targetBuffs.Count == 0)
+                    {
+                        _targetToBuffs.Remove(group.Key);
+                    }
+                }
+            }
+
+            // 从快速查找索引移除
+            foreach (var buff in _buffsToRemove)
+            {
+                UnregisterBuffFromIndexes(buff);
+            }
+
+            _buffsToRemove.Clear();
+        }
+
+        private void UnregisterBuffFromIndexes(Buff buff)
         {
             // 从ID索引中移除
             if (_buffsByID.TryGetValue(buff.BuffData.ID, out var idList))
             {
-                FastRemoveFromList(idList, buff);
+                SwapRemoveFromList(idList, buff);
                 if (idList.Count == 0)
                 {
                     _buffsByID.Remove(buff.BuffData.ID);
@@ -229,7 +439,7 @@ namespace EasyPack
                 {
                     if (_buffsByTag.TryGetValue(tag, out var tagList))
                     {
-                        FastRemoveFromList(tagList, buff);
+                        SwapRemoveFromList(tagList, buff);
                         if (tagList.Count == 0)
                         {
                             _buffsByTag.Remove(tag);
@@ -245,7 +455,7 @@ namespace EasyPack
                 {
                     if (_buffsByLayer.TryGetValue(layer, out var layerList))
                     {
-                        FastRemoveFromList(layerList, buff);
+                        SwapRemoveFromList(layerList, buff);
                         if (layerList.Count == 0)
                         {
                             _buffsByLayer.Remove(layer);
@@ -255,61 +465,8 @@ namespace EasyPack
             }
         }
 
-
         /// <summary>
-        /// 批量移除Buff
-        /// </summary>
-        private void BatchRemoveBuffs()
-        {
-            if (_buffsToRemove.Count == 0)
-                return;
-
-            // 执行移除回调
-            foreach (var buff in _buffsToRemove)
-            {
-                buff.OnRemove?.Invoke(buff);
-                ExecuteBuffModules(buff, BuffCallBackType.OnRemove);
-            }
-
-            // 批量从主列表移除
-            BatchRemoveFromList(_allBuffs, _buffPositions, _buffsToRemove);
-
-            // 批量从时间列表移除
-            BatchRemoveFromList(_timedBuffs, _timedBuffPositions, _buffsToRemove);
-
-            // 批量从永久列表移除
-            BatchRemoveFromList(_permanentBuffs, _permanentBuffPositions, _buffsToRemove);
-
-            // 从目标索引移除
-            var targetGroups = _buffsToRemove.GroupBy(b => b.Target);
-            foreach (var group in targetGroups)
-            {
-                if (_targetToBuffs.TryGetValue(group.Key, out List<Buff> targetBuffs))
-                {
-                    foreach (var buff in group)
-                    {
-                        FastRemoveFromList(targetBuffs, buff);
-                    }
-
-                    if (targetBuffs.Count == 0)
-                    {
-                        _targetToBuffs.Remove(group.Key);
-                    }
-                }
-            }
-
-            // 从快速索引移除
-            foreach (var buff in _buffsToRemove)
-            {
-                RemoveBuffFromIndexes(buff);
-            }
-
-            _buffsToRemove.Clear();
-        }
-
-
-        /// <summary>
-        /// 批量从列表中移除元素
+        /// 批量从带位置索引的列表中移除元素，使用O(1)的swap-remove优化
         /// </summary>
         private void BatchRemoveFromList(List<Buff> list, Dictionary<Buff, int> positions, HashSet<Buff> itemsToRemove)
         {
@@ -330,7 +487,7 @@ namespace EasyPack
             if (_removalIndices.Count == 0)
                 return;
 
-            // 排序索引，从高到低移除
+            // 从高到低排序索引，避免移除时索引变化
             _removalIndices.Sort((a, b) => b.CompareTo(a));
 
             // 批量移除
@@ -343,13 +500,12 @@ namespace EasyPack
 
                     if (index != lastIndex)
                     {
-                        // 将最后一个元素移到当前位置
+                        // swap-remove优化：用最后元素替换当前元素
                         Buff lastBuff = list[lastIndex];
                         list[index] = lastBuff;
                         positions[lastBuff] = index;
                     }
 
-                    // 移除最后一个元素
                     list.RemoveAt(lastIndex);
                     positions.Remove(removedBuff);
                 }
@@ -357,15 +513,15 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// 快速从列表中移除元素
+        /// 快速从无位置索引的列表中移除元素
         /// </summary>
-        private void FastRemoveFromList(List<Buff> list, Buff item)
+        private void SwapRemoveFromList(List<Buff> list, Buff item)
         {
             for (int i = 0; i < list.Count; i++)
             {
                 if (list[i] == item)
                 {
-                    // 将最后一个元素移到当前位置，然后移除最后一个元素
+                    // swap-remove优化
                     list[i] = list[list.Count - 1];
                     list.RemoveAt(list.Count - 1);
                     break;
@@ -373,164 +529,11 @@ namespace EasyPack
             }
         }
 
-        /// <summary>
-        /// 移除指定的Buff
-        /// </summary>
-        public BuffManager RemoveBuff(Buff buff)
-        {
-            if (buff == null)
-                return this;
-
-            switch (buff.BuffData.BuffRemoveStrategy)
-            {
-                case BuffRemoveType.All:
-                    // 完全移除Buff
-                    InternalRemoveBuff(buff);
-                    break;
-
-                case BuffRemoveType.OneStack:
-                    // 减少一层
-                    ReduceStackFromBuff(buff);
-                    break;
-
-                case BuffRemoveType.Manual:
-                    break;
-            }
-
-            return this;
-        }
-
-        /// <summary>
-        /// 从管理列表中移除Buff
-        /// </summary>
-        private BuffManager InternalRemoveBuff(Buff buff)
-        {
-            if (buff == null)
-                return this;
-
-            _buffsToRemove.Add(buff);
-            BatchRemoveBuffs();
-
-            return this;
-        }
-
         #endregion
 
-        #region 删除操作
-        /// <summary>
-        /// 移除指定目标上指定ID的Buff
-        /// </summary>
-        public BuffManager RemoveBuffByID(object target, string buffID)
-        {
-            if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
-            {
-                Buff buff = buffs.FirstOrDefault(b => b.BuffData.ID == buffID);
-                if (buff != null)
-                {
-                    _buffsToRemove.Add(buff);
-                    BatchRemoveBuffs();
-                }
-            }
-            return this;
-        }
+        #region 目标查询操作
 
-        /// <summary>
-        /// 移除指定目标上带有特定标签的所有Buff
-        /// </summary>
-        public BuffManager RemoveBuffsByTag(object target, string tag)
-        {
-            if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
-            {
-                foreach (var buff in buffs.Where(b => b.BuffData.HasTag(tag)))
-                {
-                    _buffsToRemove.Add(buff);
-                }
-                BatchRemoveBuffs();
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// 移除指定目标上特定层级的所有Buff
-        /// </summary>
-        public BuffManager RemoveBuffsByLayer(object target, string layer)
-        {
-            if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
-            {
-                foreach (var buff in buffs.Where(b => b.BuffData.InLayer(layer)))
-                {
-                    _buffsToRemove.Add(buff);
-                }
-                BatchRemoveBuffs();
-            }
-            return this;
-        }
-
-
-        /// <summary>
-        /// 移除所有指定ID的Buff（所有目标）
-        /// </summary>
-        public BuffManager RemoveAllBuffsByID(string buffID)
-        {
-            if (_buffsByID.TryGetValue(buffID, out var buffs))
-            {
-                foreach (var buff in buffs)
-                {
-                    _buffsToRemove.Add(buff);
-                }
-                BatchRemoveBuffs();
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// 移除所有带有特定标签的Buff（所有目标）
-        /// </summary>
-        public BuffManager RemoveAllBuffsByTag(string tag)
-        {
-            if (_buffsByTag.TryGetValue(tag, out var buffs))
-            {
-                foreach (var buff in buffs)
-                {
-                    _buffsToRemove.Add(buff);
-                }
-                BatchRemoveBuffs();
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// 移除所有特定层级的Buff（所有目标）
-        /// </summary>
-        public BuffManager RemoveAllBuffsByLayer(string layer)
-        {
-            if (_buffsByLayer.TryGetValue(layer, out var buffs))
-            {
-                foreach (var buff in buffs)
-                {
-                    _buffsToRemove.Add(buff);
-                }
-                BatchRemoveBuffs();
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// 立即执行所有待移除的Buff
-        /// </summary>
-        public BuffManager FlushPendingRemovals()
-        {
-            BatchRemoveBuffs();
-            return this;
-        }
-
-        #endregion
-
-        #region 查询操作
-        /// <summary>
-        /// 检查指定目标是否有特定ID的Buff
-        /// </summary>
-        public bool HasBuff(object target, string buffID)
+        public bool ContainsBuff(object target, string buffID)
         {
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
@@ -539,9 +542,6 @@ namespace EasyPack
             return false;
         }
 
-        /// <summary>
-        /// 获取指定目标特定ID的Buff
-        /// </summary>
         public Buff GetBuff(object target, string buffID)
         {
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
@@ -551,10 +551,7 @@ namespace EasyPack
             return null;
         }
 
-        /// <summary>
-        /// 获取指定目标上所有的Buff
-        /// </summary>
-        public List<Buff> GetAllBuffs(object target)
+        public List<Buff> GetTargetBuffs(object target)
         {
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
@@ -563,9 +560,6 @@ namespace EasyPack
             return new List<Buff>();
         }
 
-        /// <summary>
-        /// 获取指定目标上带有特定标签的所有Buff
-        /// </summary>
         public List<Buff> GetBuffsByTag(object target, string tag)
         {
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
@@ -575,9 +569,6 @@ namespace EasyPack
             return new List<Buff>();
         }
 
-        /// <summary>
-        /// 获取指定目标上特定层级的所有Buff
-        /// </summary>
         public List<Buff> GetBuffsByLayer(object target, string layer)
         {
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
@@ -587,9 +578,10 @@ namespace EasyPack
             return new List<Buff>();
         }
 
-        /// <summary>
-        /// 获取所有指定ID的Buff（所有目标）
-        /// </summary>
+        #endregion
+
+        #region 全局查询操作
+
         public List<Buff> GetAllBuffsByID(string buffID)
         {
             if (_buffsByID.TryGetValue(buffID, out var buffs))
@@ -599,9 +591,6 @@ namespace EasyPack
             return new List<Buff>();
         }
 
-        /// <summary>
-        /// 获取所有带有特定标签的Buff（所有目标）
-        /// </summary>
         public List<Buff> GetAllBuffsByTag(string tag)
         {
             if (_buffsByTag.TryGetValue(tag, out var buffs))
@@ -611,9 +600,6 @@ namespace EasyPack
             return new List<Buff>();
         }
 
-        /// <summary>
-        /// 获取所有特定层级的Buff（所有目标）
-        /// </summary>
         public List<Buff> GetAllBuffsByLayer(string layer)
         {
             if (_buffsByLayer.TryGetValue(layer, out var buffs))
@@ -623,67 +609,53 @@ namespace EasyPack
             return new List<Buff>();
         }
 
-        /// <summary>
-        /// 检查是否存在指定ID的Buff（任何目标）
-        /// </summary>
-        public bool HasBuffByID(string buffID)
+        public bool ContainsBuffWithID(string buffID)
         {
             return _buffsByID.ContainsKey(buffID) && _buffsByID[buffID].Count > 0;
         }
 
-        /// <summary>
-        /// 检查是否存在带有特定标签的Buff（任何目标）
-        /// </summary>
-        public bool HasBuffByTag(string tag)
+        public bool ContainsBuffWithTag(string tag)
         {
             return _buffsByTag.ContainsKey(tag) && _buffsByTag[tag].Count > 0;
         }
 
-        /// <summary>
-        /// 检查是否存在特定层级的Buff（任何目标）
-        /// </summary>
-        public bool HasBuffByLayer(string layer)
+        public bool ContainsBuffWithLayer(string layer)
         {
             return _buffsByLayer.ContainsKey(layer) && _buffsByLayer[layer].Count > 0;
         }
 
-
         #endregion
 
-        #region 更新
-        // <summary>
-        /// 更新所有Buff
+        #region 更新循环
+
+        /// <summary>
+        /// 主更新循环，处理时间Buff和永久Buff的时间更新与触发
         /// </summary>
         public BuffManager Update(float deltaTime)
         {
             _removedBuffs.Clear();
             _triggeredBuffs.Clear();
 
-            // 只更新有时间限制的Buff
-            UpdateTimedBuffs(deltaTime);
+            // 更新有时间限制的Buff
+            ProcessTimedBuffs(deltaTime);
 
-            // 分别处理永久Buff的触发
-            UpdatePermanentBuffs(deltaTime);
+            // 更新永久Buff的触发时间
+            ProcessPermanentBuffs(deltaTime);
 
-            // 批量触发Buff
-            BatchTriggerBuffs();
-
-            // 批量执行更新回调
-            BatchUpdateBuffs();
+            // 批量执行触发和更新回调
+            ExecuteTriggeredBuffs();
+            ExecuteBuffUpdates();
 
             // 移除过期的Buff
             foreach (var buff in _removedBuffs)
             {
-                InternalRemoveBuff(buff);
+                QueueBuffForRemoval(buff);
             }
 
             return this;
         }
 
-        /// <summary>
-        /// 更新有时间限制的Buff
-        /// </summary>
-        private void UpdateTimedBuffs(float deltaTime)
+        private void ProcessTimedBuffs(float deltaTime)
         {
             for (int i = _timedBuffs.Count - 1; i >= 0; i--)
             {
@@ -707,10 +679,7 @@ namespace EasyPack
             }
         }
 
-        /// <summary>
-        /// 更新永久Buff
-        /// </summary>
-        private void UpdatePermanentBuffs(float deltaTime)
+        private void ProcessPermanentBuffs(float deltaTime)
         {
             for (int i = 0; i < _permanentBuffs.Count; i++)
             {
@@ -726,22 +695,16 @@ namespace EasyPack
             }
         }
 
-        /// <summary>
-        /// 批量触发Buff
-        /// </summary>
-        private void BatchTriggerBuffs()
+        private void ExecuteTriggeredBuffs()
         {
             foreach (var buff in _triggeredBuffs)
             {
                 buff.OnTrigger?.Invoke(buff);
-                ExecuteBuffModules(buff, BuffCallBackType.OnTick);
+                InvokeBuffModules(buff, BuffCallBackType.OnTick);
             }
         }
 
-        /// <summary>
-        /// 批量执行更新回调
-        /// </summary>
-        private void BatchUpdateBuffs()
+        private void ExecuteBuffUpdates()
         {
             // 处理有时间限制的Buff
             foreach (var buff in _timedBuffs)
@@ -749,7 +712,7 @@ namespace EasyPack
                 if (!_removedBuffs.Contains(buff))
                 {
                     buff.OnUpdate?.Invoke(buff);
-                    ExecuteBuffModules(buff, BuffCallBackType.OnUpdate);
+                    InvokeBuffModules(buff, BuffCallBackType.OnUpdate);
                 }
             }
 
@@ -757,66 +720,24 @@ namespace EasyPack
             foreach (var buff in _permanentBuffs)
             {
                 buff.OnUpdate?.Invoke(buff);
-                ExecuteBuffModules(buff, BuffCallBackType.OnUpdate);
+                InvokeBuffModules(buff, BuffCallBackType.OnUpdate);
             }
-        }
-        #endregion
-
-        #region 层级操作
-        /// <summary>
-        /// 给Buff增加层，并检查是否超过最大层数
-        /// </summary>
-        private BuffManager AddStackToBuff(Buff buff, int stack = 1)
-        {
-            if (buff == null || buff.CurrentStacks >= buff.BuffData.MaxStacks)
-                return this;
-            
-            buff.CurrentStacks += stack;
-            buff.CurrentStacks = Mathf.Min(buff.CurrentStacks, buff.BuffData.MaxStacks);
-
-            buff.OnAddStack?.Invoke(buff);
-            ExecuteBuffModules(buff, BuffCallBackType.OnAddStack);
-
-            return this;
-        }
-
-        /// <summary>
-        /// 从Buff减少层，如果减至0则移除
-        /// </summary>
-        private BuffManager ReduceStackFromBuff(Buff buff, int stack = 1)
-        {
-            if (buff == null || buff.CurrentStacks <= 1)
-            {
-                InternalRemoveBuff(buff);
-                return this;
-            }
-
-            buff.CurrentStacks -= stack;
-            if(buff.CurrentStacks <= 0)
-            {
-                InternalRemoveBuff(buff);
-                return this;
-            }
-
-            buff.OnReduceStack?.Invoke(buff);
-            ExecuteBuffModules(buff, BuffCallBackType.OnReduceStack);
-            return this;
         }
 
         #endregion
 
-        #region 模块执行
+        #region 模块执行系统
+
         /// <summary>
-        /// 执行Buff上对应类型的所有模块
+        /// 执行Buff模块，支持优先级排序和条件筛选
         /// </summary>
-        private void ExecuteBuffModules(Buff buff, BuffCallBackType callBackType, string customCallbackName = "", params object[] parameters)
+        private void InvokeBuffModules(Buff buff, BuffCallBackType callBackType, string customCallbackName = "", params object[] parameters)
         {
             if (buff.BuffData.BuffModules == null || buff.BuffData.BuffModules.Count == 0)
                 return;
 
-            // 使用缓存列表
+            // 筛选需要执行的模块
             _moduleCache.Clear();
-
             var modules = buff.BuffData.BuffModules;
             for (int i = 0; i < modules.Count; i++)
             {
@@ -826,7 +747,7 @@ namespace EasyPack
                 }
             }
 
-            // 插排
+            // 按优先级插入排序
             for (int i = 1; i < _moduleCache.Count; i++)
             {
                 var key = _moduleCache[i];
