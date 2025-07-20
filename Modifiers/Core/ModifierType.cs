@@ -7,10 +7,10 @@ namespace EasyPack
     {
         None,
         Add,
-        AfterAdd,
         PriorityAdd,
         Mul,
         PriorityMul,
+        AfterAdd,
         Override,
         Clamp,
     }
