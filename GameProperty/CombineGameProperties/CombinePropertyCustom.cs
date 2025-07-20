@@ -33,7 +33,6 @@ namespace EasyPack
         public CombinePropertyCustom(string id, float baseValue = 0)
             : base(id, baseValue)
         {
-            // 自定义属性使用默认计算器
         }
 
         #endregion

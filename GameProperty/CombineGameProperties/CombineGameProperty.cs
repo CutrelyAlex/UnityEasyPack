@@ -51,9 +51,19 @@ namespace EasyPack
 
             ID = id;
             _baseCombineValue = baseValue;
-            ResultHolder = new GameProperty(id + "@ResultHolder", baseValue);
+            ResultHolder = new GameProperty(id , baseValue);
 
             // ÉèÖÃÄ¬ÈÏ¼ÆËãÆ÷
+            Calculater = e => _baseCombineValue;
+        }
+
+        protected CombineGameProperty(GameProperty gameProperty, float baseValue = 0)
+        {
+            if (gameProperty == null) return;
+            ID = gameProperty.ID;
+            _baseCombineValue = baseValue;
+            ResultHolder = gameProperty;
+
             Calculater = e => _baseCombineValue;
         }
 
