@@ -82,8 +82,17 @@ namespace EasyPack
 
             _gameProperties[gameProperty.ID] = gameProperty;
 
-            _eventHandlers[gameProperty] = handler;
-            gameProperty.OnValueChanged += handler;
+            Action<float, float> autoSyncHandler = (oldVal, newVal) => {
+                // 重新计算并更新 ResultHolder
+                var newCalculatedValue = GetCalculatedValue();
+                // GetCalculatedValue() 内部已经会更新 ResultHolder 并触发事件
+
+                // 如果用户提供了自定义处理器，也要调用
+                handler?.Invoke(oldVal, newVal);
+            };
+
+            _eventHandlers[gameProperty] = autoSyncHandler;
+            gameProperty.OnValueChanged += autoSyncHandler;
 
             return gameProperty;
         }

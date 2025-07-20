@@ -265,6 +265,8 @@ var agility = new GameProperty("Agility", 8f);
 attackPower.AddDependency(agility);
 
 // 监听变化事件手动处理复杂依赖
+// 注意，这种情况下1.	事件链不完整：只监听了 strength 的变化，但 agility 变化时不会触发重计算
+// 如果需要复杂的属性计算，建议使用组合属性
 strength.OnValueChanged += (oldVal, newVal) => {
     // 复杂计算：攻击力 = 力量×2 + 敏捷×0.5
     float newAttackPower = strength.GetValue() * 2f + agility.GetValue() * 0.5f;
@@ -470,16 +472,12 @@ public class MultiStageCalculationExample
             return intel * 2f + agi * 0.3f;
         };
         
-        // 第三阶段：终极属性
+        // 第三阶段：最终属性
         var combatRating = new CombinePropertyCustom("CombatRating", 0f);
         
-        // 注册第二阶段的结果作为输入
-        combatRating.RegisterProperty(physicalPower.ResultHolder);
-        combatRating.RegisterProperty(magicalPower.ResultHolder);
-        
         combatRating.Calculater = combine => {
-            var physical = combine.GetProperty("PhysicalPower@ResultHolder").GetValue();
-            var magical = combine.GetProperty("MagicalPower@ResultHolder").GetValue();
+            var physical = physicalPower.GetValue();
+            var magical = magicalPower.GetValue();
             
             // 物理和魔法威力的综合评分
             return Mathf.Sqrt(physical * magical) * 2f;

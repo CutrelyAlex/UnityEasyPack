@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace EasyPack
 {
@@ -105,15 +106,23 @@ namespace EasyPack
         #endregion
 
         #region 保护方法
-
         /// <summary>
         /// 获取计算后的值，由子类重写以实现不同的计算逻辑
         /// </summary>
         protected virtual float GetCalculatedValue()
         {
             var calculatedValue = Calculater?.Invoke(this) ?? _baseCombineValue;
+
+            // 先获取当前的 ResultHolder 值
+            var currentValue = ResultHolder.GetValue();
+
+            // 设置新的基础值
             ResultHolder.SetBaseValue(calculatedValue);
-            return ResultHolder.GetValue();
+
+            // 获取应用修饰器后的最终值
+            var finalValue = ResultHolder.GetValue();
+
+            return finalValue;
         }
 
         /// <summary>
