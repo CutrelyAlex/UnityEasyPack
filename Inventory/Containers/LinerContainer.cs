@@ -50,15 +50,15 @@ public class LinerContainer : Container
         if (!sourceSlot.IsOccupied || sourceSlot.Item == null)
             return false;
 
-        var item = sourceSlot.Item;
-        int count = sourceSlot.ItemCount;
+        IItem sourceItem = sourceSlot.Item;
+        int sourceCount = sourceSlot.ItemCount;
 
-        bool isStackable = item.IsStackable;
+        bool isStackable = sourceItem.IsStackable;
 
         IItem itemToAdd;
         if (!isStackable)
         {
-            if (item is Item itemObj)
+            if (sourceItem is Item itemObj)
             {
                 itemToAdd = itemObj.Clone();
             }
@@ -66,34 +66,34 @@ public class LinerContainer : Container
             {
                 itemToAdd = new Item
                 {
-                    ID = item.ID,
-                    Name = item.Name,
-                    Type = item.Type,
-                    Description = item.Description,
-                    Weight = item.Weight,
+                    ID = sourceItem.ID,
+                    Name = sourceItem.Name,
+                    Type = sourceItem.Type,
+                    Description = sourceItem.Description,
+                    Weight = sourceItem.Weight,
                     IsStackable = false,
-                    MaxStackCount = item.MaxStackCount,
-                    IsMultiSlot = item.IsMultiSlot,
-                    Size = item.Size
+                    MaxStackCount = sourceItem.MaxStackCount,
+                    IsMultiSlot = sourceItem.IsMultiSlot,
+                    Size = sourceItem.Size
                 };
 
-                if (item.Attributes != null)
+                if (sourceItem.Attributes != null)
                 {
-                    ((Item)itemToAdd).Attributes = new Dictionary<string, object>(item.Attributes);
+                    ((Item)itemToAdd).Attributes = new Dictionary<string, object>(sourceItem.Attributes);
                 }
             }
         }
         else
         {
-            itemToAdd = item;
+            itemToAdd = sourceItem;
         }
 
-        var (result, addedCount) = targetContainer.AddItems(itemToAdd, count);
+        var (result, addedCount) = targetContainer.AddItems(itemToAdd, sourceCount);
 
         if (result == AddItemResult.Success)
         {
             // 完全移动
-            if (addedCount == count)
+            if (addedCount == sourceCount)
             {
                 // 清除源槽位
                 sourceSlot.ClearSlot();
@@ -103,7 +103,7 @@ public class LinerContainer : Container
             else if (addedCount > 0)
             {
                 // 更新源槽位的物品数量
-                sourceSlot.SetItem(item, count - addedCount);
+                sourceSlot.SetItem(sourceItem, sourceCount - addedCount);
                 return true;
             }
         }

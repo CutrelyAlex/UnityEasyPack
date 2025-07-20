@@ -38,11 +38,12 @@ namespace EasyPack
         /// <param name="modifier">要应用的修饰器</param>
         /// <param name="combinePropertyID">组合属性ID</param>
         /// <param name="propertyID">具体属性ID(可选)</param>
-        public CastModifierToProperty(IModifier modifier, string combinePropertyID, string propertyID = "")
+        public CastModifierToProperty(IModifier modifier, string combinePropertyID,CombineGamePropertyManager combineGamePropertyManager, string propertyID = "")
         {
             Modifier = modifier;
             CombinePropertyID = combinePropertyID;
             PropertyID = propertyID;
+            CombineGamePropertyManager = combineGamePropertyManager;
 
             // 注册各种生命周期回调
             RegisterCallback(BuffCallBackType.OnCreate, OnCreate);

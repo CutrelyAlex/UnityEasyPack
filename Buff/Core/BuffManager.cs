@@ -535,6 +535,8 @@ namespace EasyPack
 
         public bool ContainsBuff(object target, string buffID)
         {
+            if (target == null || string.IsNullOrEmpty(buffID))
+                return false;
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
                 return buffs.Any(b => b.BuffData.ID == buffID);
@@ -544,6 +546,8 @@ namespace EasyPack
 
         public Buff GetBuff(object target, string buffID)
         {
+            if (target == null || string.IsNullOrEmpty(buffID))
+                return null;
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
                 return buffs.FirstOrDefault(b => b.BuffData.ID == buffID);
@@ -553,6 +557,9 @@ namespace EasyPack
 
         public List<Buff> GetTargetBuffs(object target)
         {
+            if (target == null)
+                return new List<Buff>();
+
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
                 return new List<Buff>(buffs);
@@ -562,6 +569,9 @@ namespace EasyPack
 
         public List<Buff> GetBuffsByTag(object target, string tag)
         {
+            if (target == null || string.IsNullOrEmpty(tag))
+                return new List<Buff>();
+
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
                 return buffs.Where(b => b.BuffData.HasTag(tag)).ToList();
@@ -571,6 +581,9 @@ namespace EasyPack
 
         public List<Buff> GetBuffsByLayer(object target, string layer)
         {
+            if (target == null || string.IsNullOrEmpty(layer))
+                return new List<Buff>();
+
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
                 return buffs.Where(b => b.BuffData.InLayer(layer)).ToList();
