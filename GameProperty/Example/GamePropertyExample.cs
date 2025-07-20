@@ -161,29 +161,7 @@ namespace EasyPack
             singleProp.ResultHolder.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));
             Debug.Log($"单一组合属性值: {singleProp.GetValue()}");
 
-            // 4.2 经典组合属性（RPG常用）
-            var rpgAttack = new CombinePropertyClassic(
-                "RPGAttack",
-                100f,        // 基础攻击力
-                "Base",      // 基础加成（装备等）
-                "Buff",      // 正面Buff
-                "BuffMul",   // 正面Buff乘数
-                "Debuff",    // 负面Debuff
-                "DebuffMul"  // 负面Debuff乘数
-            );
-
-            // 配置各个组件
-            rpgAttack.GetProperty("Base").SetBaseValue(20f);      // 重置为20攻击
-            rpgAttack.GetProperty("Buff").SetBaseValue(15f);      // Buff+15攻击
-            rpgAttack.GetProperty("BuffMul").SetBaseValue(0.3f);  // Buff +30%
-            rpgAttack.GetProperty("Debuff").SetBaseValue(5f);     // Debuff -5攻击
-            rpgAttack.GetProperty("DebuffMul").SetBaseValue(0.2f); // Debuff +20%
-
-            // 计算公式：(base + buff) * (1 + buffMul) - debuff * (1 + debuffMul)
-            // (0 + 15) * (1 + 0.3) - 5 * (1 + 0.2) = 39.5
-            Debug.Log($"RPG攻击力: {rpgAttack.GetValue()}");
-
-            // 4.3 自定义组合属性
+            // 4.2 自定义组合属性
             var customProp = new CombinePropertyCustom("CustomDamage");
 
             var baseDamage = new GameProperty("BaseDamage", 50f);
@@ -450,20 +428,6 @@ namespace EasyPack
             catch (System.ObjectDisposedException ex)
             {
                 Debug.Log($"✓ 正确捕获ObjectDisposedException: {ex.Message}");
-            }
-
-            // 尝试访问已释放对象的子属性
-            var disposableClassic = new CombinePropertyClassic("DisposableClassic", 50f, "Base", "Buff", "BuffMul", "Debuff", "DebuffMul");
-            disposableClassic.Dispose();
-
-            try
-            {
-                var prop = disposableClassic.GetProperty("Base");
-                Debug.Log($"意外获取到属性: {prop}");
-            }
-            catch (System.ObjectDisposedException ex)
-            {
-                Debug.Log($"✓ 正确捕获GetProperty的ObjectDisposedException: {ex.Message}");
             }
 
             // 9.2 循环依赖错误处理

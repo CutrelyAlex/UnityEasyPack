@@ -87,6 +87,11 @@ namespace EasyPack
         /// </summary>
         public virtual bool IsValid() => !_isDisposed && ResultHolder != null;
 
+        public virtual Func<ICombineGameProperty, float> GetCalculater()
+        {
+            return Calculater;
+        }
+
         #endregion
 
         #region 保护方法

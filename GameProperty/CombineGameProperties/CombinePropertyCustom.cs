@@ -74,7 +74,7 @@ namespace EasyPack
         /// </summary>
         /// <param name="gameProperty">要注册的属性</param>
         /// <returns>注册的属性</returns>
-        public GameProperty RegisterProperty(GameProperty gameProperty)
+        public GameProperty RegisterProperty(GameProperty gameProperty, Action<float, float> handler = null)
         {
             ThrowIfDisposed();
 
@@ -82,13 +82,6 @@ namespace EasyPack
                 throw new ArgumentNullException(nameof(gameProperty));
 
             _gameProperties[gameProperty.ID] = gameProperty;
-
-            // 创建空的事件处理器（可以根据需要自定义）
-            var handler = new Action<float, float>((oldVal, newVal) =>
-            {
-                // 自定义属性的变化处理逻辑
-                // 子类可以重写此方法来添加特定的处理逻辑
-            });
 
             _eventHandlers[gameProperty] = handler;
             gameProperty.OnValueChanged += handler;

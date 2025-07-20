@@ -1,5 +1,5 @@
 ﻿# GameProperty 系统使用指南
-** 本文由 Claude Sonnet 3.7 生成，注意甄别。**
+** 本文档适应Claude Sonnet 4 编写 注意核对 **
 
 ## 目录
 - [系统概述](#系统概述)
@@ -16,7 +16,6 @@
   - [管理属性依赖](#管理属性依赖)
 - [组合属性详解](#组合属性详解)
   - [CombinePropertySingle](#combinepropertysingle)
-  - [CombinePropertyClassic](#combinepropertyclassic)
   - [CombinePropertyCustom](#combinepropertycustom)
 - [属性管理器](#属性管理器)
 - [修饰器系统](#修饰器系统)
@@ -131,27 +130,20 @@ void ClearModifiersFromHolder()                            // 清空ResultHolder
 ```
 CombinePropertySingle(string id, float baseValue = 0f)     // 构造函数
 GameProperty ResultHolder { get; }                         // 内部属性持有者
-```
-
-#### CombinePropertyClassic
-```
-CombinePropertyClassic(string id, float baseValue,         // 构造函数
-    string basePropertyId, string buffPropertyId, 
-    string buffMulPropertyId, string debuffPropertyId, 
-    string debuffMulPropertyId)
+GameProperty GetProperty()                                  // 获取ResultHolder
 ```
 
 #### CombinePropertyCustom
 ```
-CombinePropertyCustom(string id)                           // 构造函数
-void RegisterProperty(GameProperty gameProperty)           // 注册属性
+CombinePropertyCustom(string id, float baseValue = 0f)     // 构造函数
+GameProperty RegisterProperty(GameProperty gameProperty, Action<float, float> handler = null)  // 注册属性
 void UnRegisterProperty(GameProperty gameProperty)         // 注销属性
 Func<ICombineGameProperty, float> Calculater { get; set; } // 计算函数
 ```
 
 ### CombineGamePropertyManager API
 
-#### 静态方法
+#### 实例方法
 ```
 void AddOrUpdate(ICombineGameProperty property)                        // 添加或更新属性
 ICombineGameProperty Get(string id)                                   // 获取属性
@@ -160,6 +152,8 @@ bool Remove(string id)                                                 // 移除
 IEnumerable<ICombineGameProperty> GetAll()                            // 获取所有属性
 void Clear()                                                           // 清空所有属性
 int CleanupInvalidProperties()                                        // 清理无效属性
+int Count { get; }                                                     // 属性总数
+bool Contains(string id)                                               // 检查是否包含指定ID的属性
 ```
 
 ### 修饰器 API
@@ -280,7 +274,7 @@ strength.OnValueChanged += (oldVal, newVal) => {
 
 ## 组合属性详解
 
-组合属性用于将多个GameProperty以特定方式组合，提供了三种不同的实现方式。
+组合属性用于将多个GameProperty以特定方式组合，目前提供两种不同的实现方式。
 
 ### CombinePropertySingle
 
@@ -305,54 +299,31 @@ single.OnValueChanged += (oldVal, newVal) => {
 };
 
 // 注册到管理器
-CombineGamePropertyManager.AddOrUpdate(single);
-```
-
-### CombinePropertyClassic
-
-经典的属性组合方式，适用于RPG游戏中常见的属性计算公式。
-
-**公式**: `最终属性 = (基础+加成) × (1+加成百分比) - 减益 × (1+减益百分比)`
-
-```
-// 创建经典组合属性
-var classic = new CombinePropertyClassic(
-    "AttackPower", // ID
-    50f,           // 初始基础值
-    "Base",        // 基础属性名
-    "Buff",        // Buff属性名
-    "BuffMul",     // Buff百分比名
-    "Debuff",      // Debuff属性名
-    "DebuffMul"    // Debuff百分比名
-);
-
-// 设置各部分值
-classic.GetProperty("Base").AddModifier(new FloatModifier(ModifierType.Add, 0, 20f)); // 武器加成
-classic.GetProperty("Buff").SetBaseValue(10f);  // Buff加成
-classic.GetProperty("BuffMul").SetBaseValue(0.2f);  // Buff百分比(+20%)
-classic.GetProperty("Debuff").SetBaseValue(5f);  // Debuff减益
-classic.GetProperty("DebuffMul").SetBaseValue(0.5f);  // Debuff百分比(+50%)
-
-// 计算最终值: (50+20+10)*(1+0.2) - 5*(1+0.5) = 80*1.2 - 5*1.5 = 96 - 7.5 = 88.5
-float finalAttack = classic.GetValue(); // 88.5
+var manager = new CombineGamePropertyManager();
+manager.AddOrUpdate(single);
 ```
 
 ### CombinePropertyCustom
 
-完全自定义的组合方式，通过委托函数灵活定义属性组合逻辑。
+完全自定义的组合方式，通过委托函数灵活定义属性组合逻辑。这是系统中最强大和灵活的组合属性实现。
+
+#### 基础使用
 
 ```
-// 创建共享的基础属性
+// 创建自定义组合属性
+var customAttack = new CombinePropertyCustom("AttackPower", 0f);
+
+// 创建基础属性
 var strength = new GameProperty("Strength", 10f);
 var agility = new GameProperty("Agility", 8f);
 var level = new GameProperty("Level", 5f);
 
-// 创建自定义组合属性：攻击力 = 力量×2 + 敏捷×0.5 + 等级×1.5
-var customAttack = new CombinePropertyCustom("CustomAttack");
+// 注册属性到组合属性中
 customAttack.RegisterProperty(strength);
 customAttack.RegisterProperty(agility);
 customAttack.RegisterProperty(level);
 
+// 设置自定义计算逻辑：攻击力 = 力量×2 + 敏捷×0.5 + 等级×1.5
 customAttack.Calculater = (combine) => {
     var str = combine.GetProperty("Strength").GetValue();
     var agi = combine.GetProperty("Agility").GetValue();
@@ -362,13 +333,267 @@ customAttack.Calculater = (combine) => {
 
 // 获取计算结果
 float attackValue = customAttack.GetValue(); // 10*2 + 8*0.5 + 5*1.5 = 31.5
+```
 
-// 修改基础属性后自动更新
-strength.SetBaseValue(15f);
-attackValue = customAttack.GetValue(); // 15*2 + 8*0.5 + 5*1.5 = 41.5
+#### 事件处理与自动更新
 
-// 注销不需要的属性
-customAttack.UnRegisterProperty(level);
+```
+// 创建带事件处理的自定义属性
+var healthSystem = new CombinePropertyCustom("TotalHealth", 0f);
+
+var constitution = new GameProperty("Constitution", 20f);
+var endurance = new GameProperty("Endurance", 15f);
+
+// 注册属性时可以指定事件处理器
+healthSystem.RegisterProperty(constitution, (oldVal, newVal) => {
+    Debug.Log($"体质从 {oldVal} 变为 {newVal}，重新计算生命值");
+});
+
+healthSystem.RegisterProperty(endurance, (oldVal, newVal) => {
+    Debug.Log($"耐力从 {oldVal} 变为 {newVal}，重新计算生命值");
+});
+
+// 设置复杂的生命值计算公式
+healthSystem.Calculater = (combine) => {
+    var con = combine.GetProperty("Constitution").GetValue();
+    var end = combine.GetProperty("Endurance").GetValue();
+    
+    // 复杂计算：基础生命 + 体质加成 + 耐力加成 + 组合加成
+    float baseHealth = 100f;
+    float conBonus = con * 5f;
+    float endBonus = end * 3f;
+    float synergyBonus = (con + end) * 0.1f; // 体质和耐力的协同加成
+    
+    return baseHealth + conBonus + endBonus + synergyBonus;
+};
+
+// 当基础属性变化时，组合属性会自动重新计算
+constitution.SetBaseValue(25f); // 触发事件和重新计算
+```
+
+#### 经典RPG属性计算示例
+
+```
+// 模拟经典RPG的复杂属性计算
+public class RPGAttackPowerSystem
+{
+    private CombinePropertyCustom _finalAttackPower;
+    private CombineGamePropertyManager _manager;
+    
+    public void Initialize()
+    {
+        _manager = new CombineGamePropertyManager();
+        
+        // 创建基础属性
+        var baseAttack = new GameProperty("BaseAttack", 50f);
+        var weaponDamage = new GameProperty("WeaponDamage", 30f);
+        var strengthMod = new GameProperty("StrengthModifier", 0f);
+        var criticalPower = new GameProperty("CriticalPower", 0f);
+        
+        // 创建自定义组合属性
+        _finalAttackPower = new CombinePropertyCustom("FinalAttackPower", 0f);
+        
+        // 注册所有相关属性
+        _finalAttackPower.RegisterProperty(baseAttack);
+        _finalAttackPower.RegisterProperty(weaponDamage);
+        _finalAttackPower.RegisterProperty(strengthMod);
+        _finalAttackPower.RegisterProperty(criticalPower);
+        
+        // 设置复杂的攻击力计算公式
+        _finalAttackPower.Calculater = (combine) => {
+            var baseAtk = combine.GetProperty("BaseAttack").GetValue();
+            var weaponDmg = combine.GetProperty("WeaponDamage").GetValue();
+            var strMod = combine.GetProperty("StrengthModifier").GetValue();
+            var critPower = combine.GetProperty("CriticalPower").GetValue();
+            
+            // 经典RPG计算：(基础攻击 + 武器伤害) × (1 + 力量修正) × (1 + 暴击强度)
+            float totalAttack = (baseAtk + weaponDmg) * (1f + strMod) * (1f + critPower);
+            
+            // 应用其他复杂逻辑
+            if (totalAttack > 1000f)
+            {
+                // 高攻击力惩罚
+                totalAttack = 1000f + (totalAttack - 1000f) * 0.8f;
+            }
+            
+            return Mathf.Max(totalAttack, 1f); // 最小攻击力为1
+        };
+        
+        // 注册到管理器
+        _manager.AddOrUpdate(_finalAttackPower);
+    }
+    
+    public float GetCurrentAttackPower()
+    {
+        return _finalAttackPower.GetValue();
+    }
+    
+    public void ApplyStrengthBonus(float strengthValue)
+    {
+        var strMod = _finalAttackPower.GetProperty("StrengthModifier");
+        strMod?.SetBaseValue(strengthValue * 0.05f); // 每点力量提供5%攻击加成
+    }
+}
+```
+
+#### 多阶段计算系统
+
+```
+// 构建多阶段的复杂计算系统
+public class MultiStageCalculationExample
+{
+    public void BuildComplexSystem()
+    {
+        var manager = new CombineGamePropertyManager();
+        
+        // 第一阶段：基础属性
+        var strength = new GameProperty("Strength", 20f);
+        var agility = new GameProperty("Agility", 15f);
+        var intelligence = new GameProperty("Intelligence", 18f);
+        
+        // 第二阶段：派生属性
+        var physicalPower = new CombinePropertyCustom("PhysicalPower", 0f);
+        physicalPower.RegisterProperty(strength);
+        physicalPower.RegisterProperty(agility);
+        physicalPower.Calculater = combine => {
+            var str = combine.GetProperty("Strength").GetValue();
+            var agi = combine.GetProperty("Agility").GetValue();
+            return str * 1.5f + agi * 0.8f;
+        };
+        
+        var magicalPower = new CombinePropertyCustom("MagicalPower", 0f);
+        magicalPower.RegisterProperty(intelligence);
+        magicalPower.RegisterProperty(agility); // 敏捷也影响法术威力
+        magicalPower.Calculater = combine => {
+            var intel = combine.GetProperty("Intelligence").GetValue();
+            var agi = combine.GetProperty("Agility").GetValue();
+            return intel * 2f + agi * 0.3f;
+        };
+        
+        // 第三阶段：终极属性
+        var combatRating = new CombinePropertyCustom("CombatRating", 0f);
+        
+        // 注册第二阶段的结果作为输入
+        combatRating.RegisterProperty(physicalPower.ResultHolder);
+        combatRating.RegisterProperty(magicalPower.ResultHolder);
+        
+        combatRating.Calculater = combine => {
+            var physical = combine.GetProperty("PhysicalPower@ResultHolder").GetValue();
+            var magical = combine.GetProperty("MagicalPower@ResultHolder").GetValue();
+            
+            // 物理和魔法威力的综合评分
+            return Mathf.Sqrt(physical * magical) * 2f;
+        };
+        
+        // 注册所有属性
+        manager.AddOrUpdate(physicalPower);
+        manager.AddOrUpdate(magicalPower);
+        manager.AddOrUpdate(combatRating);
+        
+        // 测试系统
+        Debug.Log($"初始战斗力评分: {combatRating.GetValue()}");
+        
+        // 修改基础属性，观察级联更新
+        strength.SetBaseValue(25f);
+        Debug.Log($"提升力量后战斗力评分: {combatRating.GetValue()}");
+    }
+}
+```
+
+#### 条件性计算
+
+```
+// 实现带条件逻辑的属性计算
+public class ConditionalCalculationExample
+{
+    public void SetupConditionalSystem()
+    {
+        var manager = new CombineGamePropertyManager();
+        
+        // 基础属性
+        var health = new GameProperty("Health", 100f);
+        var maxHealth = new GameProperty("MaxHealth", 100f);
+        var rage = new GameProperty("Rage", 0f);
+        
+        // 狂暴状态下的攻击力
+        var berserkerAttack = new CombinePropertyCustom("BerserkerAttack", 50f);
+        berserkerAttack.RegisterProperty(health);
+        berserkerAttack.RegisterProperty(maxHealth);
+        berserkerAttack.RegisterProperty(rage);
+        
+        berserkerAttack.Calculater = combine => {
+            var currentHp = combine.GetProperty("Health").GetValue();
+            var maxHp = combine.GetProperty("MaxHealth").GetValue();
+            var currentRage = combine.GetProperty("Rage").GetValue();
+            
+            float baseAttack = combine.GetBaseValue(); // 50f
+            
+            // 血量越低，攻击力越高
+            float healthRatio = currentHp / maxHp;
+            float lowHealthBonus = 1f + (1f - healthRatio) * 2f; // 最多3倍攻击力
+            
+            // 狂暴值加成
+            float rageBonus = 1f + currentRage * 0.01f; // 每点狂暴+1%攻击
+            
+            // 条件性加成：血量低于25%时激活狂暴模式
+            if (healthRatio < 0.25f)
+            {
+                lowHealthBonus *= 1.5f; // 额外50%加成
+                Debug.Log("狂暴模式激活！");
+            }
+            
+            return baseAttack * lowHealthBonus * rageBonus;
+        };
+        
+        manager.AddOrUpdate(berserkerAttack);
+        
+        // 测试条件系统
+        Debug.Log($"满血攻击力: {berserkerAttack.GetValue()}");
+        
+        health.SetBaseValue(20f); // 血量降至20%
+        rage.SetBaseValue(50f);   // 增加狂暴值
+        Debug.Log($"低血量+狂暴攻击力: {berserkerAttack.GetValue()}");
+    }
+}
+```
+
+#### 属性注销和清理
+
+```
+// 正确的属性注销和资源清理
+public void PropertyManagementExample()
+{
+    var customProp = new CombinePropertyCustom("TestProp", 0f);
+    
+    var prop1 = new GameProperty("Prop1", 10f);
+    var prop2 = new GameProperty("Prop2", 20f);
+    
+    // 注册属性
+    customProp.RegisterProperty(prop1);
+    customProp.RegisterProperty(prop2);
+    
+    // 设置计算器
+    customProp.Calculater = combine => {
+        return combine.GetProperty("Prop1").GetValue() + 
+               combine.GetProperty("Prop2").GetValue();
+    };
+    
+    Debug.Log($"注册后的值: {customProp.GetValue()}"); // 30
+    
+    // 注销一个属性
+    customProp.UnRegisterProperty(prop1);
+    
+    // 更新计算器以适应变化
+    customProp.Calculater = combine => {
+        var p2 = combine.GetProperty("Prop2");
+        return p2?.GetValue() ?? 0f;
+    };
+    
+    Debug.Log($"注销Prop1后的值: {customProp.GetValue()}"); // 20
+    
+    // 清理资源
+    customProp.Dispose(); // 自动清理所有注册的属性和事件处理器
+}
 ```
 
 ## 属性管理器
@@ -376,22 +601,29 @@ customAttack.UnRegisterProperty(level);
 CombineGamePropertyManager提供了全局管理组合属性的功能，使用线程安全的设计。
 
 ```
+// 创建管理器实例
+var manager = new CombineGamePropertyManager();
+
 // 注册组合属性
-CombineGamePropertyManager.AddOrUpdate(classic);
-CombineGamePropertyManager.AddOrUpdate(single);
+var single = new CombinePropertySingle("SingleProp", 100f);
+var custom = new CombinePropertyCustom("CustomProp", 50f);
+
+manager.AddOrUpdate(single);
+manager.AddOrUpdate(custom);
 
 // 通过ID获取组合属性
-var prop = CombineGamePropertyManager.Get("AttackPower");
+var prop = manager.Get("SingleProp");
 if (prop != null && prop.IsValid())
 {
-    Debug.Log($"攻击力: {prop.GetValue()}");
+    Debug.Log($"单一属性值: {prop.GetValue()}");
 }
 
 // 获取组合属性中的子属性
-var baseProperty = CombineGamePropertyManager.GetGamePropertyFromCombine("AttackPower", "Base");
+var resultHolder = manager.GetGamePropertyFromCombine("SingleProp"); // 获取ResultHolder
+var subProperty = manager.GetGamePropertyFromCombine("CustomProp", "SomeChildProp"); // 获取子属性
 
 // 遍历所有注册的组合属性
-foreach (var p in CombineGamePropertyManager.GetAll())
+foreach (var p in manager.GetAll())
 {
     if (p.IsValid())
     {
@@ -399,14 +631,25 @@ foreach (var p in CombineGamePropertyManager.GetAll())
     }
 }
 
+// 检查属性是否存在
+if (manager.Contains("CustomProp"))
+{
+    Debug.Log("CustomProp 存在");
+}
+
+// 获取属性总数
+Debug.Log($"管理器中有 {manager.Count} 个属性");
+
 // 移除组合属性
-bool removed = CombineGamePropertyManager.Remove("SingleProp");
+bool removed = manager.Remove("SingleProp");
+Debug.Log($"移除操作结果: {removed}");
 
 // 清理无效属性
-int cleanedCount = CombineGamePropertyManager.CleanupInvalidProperties();
+int cleanedCount = manager.CleanupInvalidProperties();
+Debug.Log($"清理了 {cleanedCount} 个无效属性");
 
 // 清空所有属性
-CombineGamePropertyManager.Clear();
+manager.Clear();
 ```
 
 ## 修饰器系统
@@ -463,7 +706,6 @@ Debug.Log($"加法修饰器数量: {property.GetModifierCountOfType(ModifierType
 CombineGamePropertyManager (全局管理器)
 ├── CombineProperty (组合属性层)
 │   ├── CombinePropertySingle (单一属性包装)
-│   ├── CombinePropertyClassic (经典RPG公式)
 │   └── CombinePropertyCustom (自定义组合)
 └── GameProperty (核心属性层)
     ├── 基础值 (BaseValue)
@@ -502,7 +744,7 @@ finalAttack.AddDependency(weaponAttack, (dep, newVal) => newVal * 1.2f);
 **使用组合的场景**:
 ```
 // 多属性组合：攻击力 = 力量×2 + 敏捷×0.5 + 等级×1.5
-var customAttack = new CombinePropertyCustom("AttackPower");
+var customAttack = new CombinePropertyCustom("AttackPower", 0f);
 customAttack.RegisterProperty(strength);
 customAttack.RegisterProperty(agility);
 customAttack.RegisterProperty(level);
@@ -682,9 +924,16 @@ buffManager.CreateBuff(buffData, caster, target);
 // 装备系统示例
 public class EquipmentSystem
 {
+    private CombineGamePropertyManager _manager;
+    
+    public EquipmentSystem(CombineGamePropertyManager manager)
+    {
+        _manager = manager;
+    }
+    
     public void EquipItem(Item item, string propertyId)
     {
-        var property = CombineGamePropertyManager.Get(propertyId);
+        var property = _manager.Get(propertyId);
         if (property != null && property.IsValid())
         {
             var subProperty = property.GetProperty("Equipment");
@@ -702,7 +951,7 @@ public class EquipmentSystem
     
     public void UnequipItem(Item item, string propertyId)
     {
-        var property = CombineGamePropertyManager.Get(propertyId);
+        var property = _manager.Get(propertyId);
         if (property != null && property.IsValid())
         {
             var subProperty = property.GetProperty("Equipment");
@@ -785,6 +1034,8 @@ void OnDestroy()
 ```
 public class CharacterAttributes
 {
+    private CombineGamePropertyManager _manager;
+    
     // 基础属性
     public CombinePropertySingle Strength { get; private set; }
     public CombinePropertySingle Agility { get; private set; }
@@ -797,36 +1048,38 @@ public class CharacterAttributes
     
     public CharacterAttributes()
     {
+        _manager = new CombineGamePropertyManager();
+        
         // 创建基础属性
         Strength = new CombinePropertySingle("Strength", 10f);
         Agility = new CombinePropertySingle("Agility", 8f);
         Intelligence = new CombinePropertySingle("Intelligence", 12f);
         
         // 创建派生属性
-        Health = new CombinePropertyCustom("Health");
+        Health = new CombinePropertyCustom("Health", 0f);
         Health.RegisterProperty(Strength.ResultHolder);
-        Health.Calculater = c => c.GetProperty("Strength").GetValue() * 10;
+        Health.Calculater = c => c.GetProperty("Strength@ResultHolder").GetValue() * 10;
         
-        Mana = new CombinePropertyCustom("Mana");
+        Mana = new CombinePropertyCustom("Mana", 0f);
         Mana.RegisterProperty(Intelligence.ResultHolder);
-        Mana.Calculater = c => c.GetProperty("Intelligence").GetValue() * 10;
+        Mana.Calculater = c => c.GetProperty("Intelligence@ResultHolder").GetValue() * 10;
         
-        AttackPower = new CombinePropertyCustom("AttackPower");
+        AttackPower = new CombinePropertyCustom("AttackPower", 0f);
         AttackPower.RegisterProperty(Strength.ResultHolder);
         AttackPower.RegisterProperty(Agility.ResultHolder);
         AttackPower.Calculater = c => {
-            var str = c.GetProperty("Strength").GetValue();
-            var agi = c.GetProperty("Agility").GetValue();
+            var str = c.GetProperty("Strength@ResultHolder").GetValue();
+            var agi = c.GetProperty("Agility@ResultHolder").GetValue();
             return str * 2f + agi * 0.5f;
         };
         
         // 注册到全局管理器
-        CombineGamePropertyManager.AddOrUpdate(Strength);
-        CombineGamePropertyManager.AddOrUpdate(Agility);
-        CombineGamePropertyManager.AddOrUpdate(Intelligence);
-        CombineGamePropertyManager.AddOrUpdate(Health);
-        CombineGamePropertyManager.AddOrUpdate(Mana);
-        CombineGamePropertyManager.AddOrUpdate(AttackPower);
+        _manager.AddOrUpdate(Strength);
+        _manager.AddOrUpdate(Agility);
+        _manager.AddOrUpdate(Intelligence);
+        _manager.AddOrUpdate(Health);
+        _manager.AddOrUpdate(Mana);
+        _manager.AddOrUpdate(AttackPower);
     }
     
     public void Dispose()
@@ -838,28 +1091,64 @@ public class CharacterAttributes
         Health?.Dispose();
         Mana?.Dispose();
         AttackPower?.Dispose();
+        
+        _manager?.Clear();
     }
 }
 ```
 
-### 装备加成系统
+### 复杂装备加成系统
 
 ```
-public class EquipmentManager
+public class AdvancedEquipmentSystem
 {
-    private Dictionary<string, CombinePropertyClassic> _attributes;
+    private CombineGamePropertyManager _manager;
+    private Dictionary<string, CombinePropertyCustom> _attributes;
     
-    public EquipmentManager()
+    public AdvancedEquipmentSystem()
     {
-        _attributes = new Dictionary<string, CombinePropertyClassic>();
+        _manager = new CombineGamePropertyManager();
+        _attributes = new Dictionary<string, CombinePropertyCustom>();
         
-        // 创建经典组合属性用于装备系统
-        var totalStrength = new CombinePropertyClassic(
-            "TotalStrength", 10f, "Base", "Equipment", "EquipmentMul", "Debuff", "DebuffMul"
-        );
+        InitializeAttributes();
+    }
+    
+    private void InitializeAttributes()
+    {
+        // 创建复杂的力量属性系统
+        var strengthSystem = new CombinePropertyCustom("TotalStrength", 10f);
         
-        _attributes["Strength"] = totalStrength;
-        CombineGamePropertyManager.AddOrUpdate(totalStrength);
+        // 基础属性
+        var baseStrength = new GameProperty("BaseStrength", 10f);
+        var raceBonus = new GameProperty("RaceBonus", 0f);
+        var classBonus = new GameProperty("ClassBonus", 0f);
+        var equipmentBonus = new GameProperty("EquipmentBonus", 0f);
+        var temporaryBonus = new GameProperty("TemporaryBonus", 0f);
+        
+        // 注册所有子属性
+        strengthSystem.RegisterProperty(baseStrength);
+        strengthSystem.RegisterProperty(raceBonus);
+        strengthSystem.RegisterProperty(classBonus);
+        strengthSystem.RegisterProperty(equipmentBonus);
+        strengthSystem.RegisterProperty(temporaryBonus);
+        
+        // 设置复杂的计算逻辑
+        strengthSystem.Calculater = combine => {
+            var baseStr = combine.GetProperty("BaseStrength").GetValue();
+            var race = combine.GetProperty("RaceBonus").GetValue();
+            var cls = combine.GetProperty("ClassBonus").GetValue();
+            var equip = combine.GetProperty("EquipmentBonus").GetValue();
+            var temp = combine.GetProperty("TemporaryBonus").GetValue();
+            
+            // 复杂计算：基础值 + 种族加成 + 职业加成 + 装备加成 * 装备系数 + 临时加成
+            float total = baseStr + race + cls + equip * 1.2f + temp;
+            
+            // 属性上限限制
+            return Mathf.Min(total, 999f);
+        };
+        
+        _attributes["Strength"] = strengthSystem;
+        _manager.AddOrUpdate(strengthSystem);
     }
     
     public void EquipItem(EquipmentItem item)
@@ -868,22 +1157,12 @@ public class EquipmentManager
         {
             if (_attributes.TryGetValue(bonus.AttributeName, out var attribute))
             {
-                var equipProp = attribute.GetProperty("Equipment");
-                equipProp?.AddModifier(new FloatModifier(
-                    ModifierType.Add, 
-                    item.Priority, 
-                    bonus.Value
-                ));
-                
-                // 如果有百分比加成
-                if (bonus.PercentageBonus > 0)
+                var equipProp = attribute.GetProperty("EquipmentBonus");
+                if (equipProp != null)
                 {
-                    var equipMulProp = attribute.GetProperty("EquipmentMul");
-                    equipMulProp?.AddModifier(new FloatModifier(
-                        ModifierType.Add, 
-                        item.Priority, 
-                        bonus.PercentageBonus
-                    ));
+                    // 累加装备加成
+                    float currentBonus = equipProp.GetValue();
+                    equipProp.SetBaseValue(currentBonus + bonus.Value);
                 }
             }
         }
@@ -895,24 +1174,22 @@ public class EquipmentManager
         {
             if (_attributes.TryGetValue(bonus.AttributeName, out var attribute))
             {
-                var equipProp = attribute.GetProperty("Equipment");
-                equipProp?.RemoveModifier(new FloatModifier(
-                    ModifierType.Add, 
-                    item.Priority, 
-                    bonus.Value
-                ));
-                
-                if (bonus.PercentageBonus > 0)
+                var equipProp = attribute.GetProperty("EquipmentBonus");
+                if (equipProp != null)
                 {
-                    var equipMulProp = attribute.GetProperty("EquipmentMul");
-                    equipMulProp?.RemoveModifier(new FloatModifier(
-                        ModifierType.Add, 
-                        item.Priority, 
-                        bonus.PercentageBonus
-                    ));
+                    // 减去装备加成
+                    float currentBonus = equipProp.GetValue();
+                    equipProp.SetBaseValue(Mathf.Max(0f, currentBonus - bonus.Value));
                 }
             }
         }
+    }
+    
+    public float GetAttributeValue(string attributeName)
+    {
+        return _attributes.TryGetValue(attributeName, out var attribute) 
+            ? attribute.GetValue() 
+            : 0f;
     }
     
     public void Dispose()
@@ -922,6 +1199,7 @@ public class EquipmentManager
             attribute.Dispose();
         }
         _attributes.Clear();
+        _manager.Clear();
     }
 }
 ```
@@ -931,14 +1209,21 @@ public class EquipmentManager
 ```
 public class SkillSystem
 {
+    private CombineGamePropertyManager _manager;
+    
+    public SkillSystem(CombineGamePropertyManager manager)
+    {
+        _manager = manager;
+    }
+    
     public void ApplyFireballSkill(Character caster, Character target)
     {
         // 获取施法者的法术强度
-        var spellPower = CombineGamePropertyManager.Get("SpellPower");
+        var spellPower = _manager.Get("SpellPower");
         float spellPowerValue = spellPower?.GetValue() ?? 0;
         
         // 获取目标的魔法抗性
-        var magicResist = CombineGamePropertyManager.Get("MagicResist");
+        var magicResist = _manager.Get("MagicResist");
         float resistValue = magicResist?.GetValue() ?? 0;
         
         // 计算伤害
@@ -978,25 +1263,30 @@ public class SkillSystem
    - 检查是否正确设置了OnValueChanged事件监听
    - 确认依赖关系是否正确建立（使用带计算器的AddDependency）
    - 验证修饰器是否正确添加
+   - 检查CombinePropertyCustom的Calculater是否正确设置
 
 2. **内存泄漏**
    - 确保在适当时机移除事件监听
    - 对CombineProperty调用Dispose()方法释放资源
    - 检查依赖关系是否形成循环引用
+   - 确保UnRegisterProperty正确清理事件处理器
 
 3. **性能问题**
    - 避免过深的依赖链
    - 使用批量操作（AddModifiers/RemoveModifiers）
    - 使用脏标记机制监控性能热点
+   - 优化CombinePropertyCustom的Calculater函数
 
 4. **序列化失败**
    - 确保所有相关类型都可序列化
    - 检查修饰器类型是否支持序列化
+   - 注意Func<ICombineGameProperty, float>无法直接序列化
 
 5. **API调用错误**
    - GameProperty没有Dispose方法，只有CombineProperty有
    - 使用ModifierCount属性而不是GetModifierCount()方法
    - 没有ClearDependencies()方法
+   - CombineGamePropertyManager需要实例化，不是静态类
 
 ### 调试技巧
 
@@ -1031,15 +1321,38 @@ foreach (ModifierType type in Enum.GetValues(typeof(ModifierType)))
 }
 
 // 验证组合属性有效性
-var combineProperty = CombineGamePropertyManager.Get("SomeProperty");
+var manager = new CombineGamePropertyManager();
+var combineProperty = manager.Get("SomeProperty");
 if (combineProperty != null)
 {
     Debug.Log($"组合属性有效性: {combineProperty.IsValid()}");
     Debug.Log($"当前值: {combineProperty.GetValue()}");
     Debug.Log($"基础值: {combineProperty.GetBaseValue()}");
 }
+
+// 调试CombinePropertyCustom
+var customProp = combineProperty as CombinePropertyCustom;
+if (customProp != null)
+{
+    Debug.Log($"计算器函数是否为空: {customProp.Calculater == null}");
+    
+    // 测试各个子属性
+    foreach (var id in new[] { "Prop1", "Prop2", "Prop3" })
+    {
+        var subProp = customProp.GetProperty(id);
+        if (subProp != null)
+        {
+            Debug.Log($"子属性 {id}: {subProp.GetValue()}");
+        }
+        else
+        {
+            Debug.Log($"子属性 {id}: 不存在");
+        }
+    }
+}
 ```
 
 ---
 
-通过合理组合GameProperty系统的各种功能，可以构建出复杂而灵活的游戏属性系统，满足不同类型游戏的需求。系统的模块化设计使不同的属性逻辑可以分离并重复使用，方便扩展和维护。
+通过合理组合GameProperty系统的各种功能，特别是灵活使用CombinePropertyCustom，可以构建出复杂而灵活的游戏属性系统，满足不同类型游戏的需求。系统的模块化设计使不同的属性逻辑可以分离并重复使用，方便扩展和维护。
+```
