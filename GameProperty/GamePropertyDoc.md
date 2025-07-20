@@ -265,7 +265,7 @@ var agility = new GameProperty("Agility", 8f);
 attackPower.AddDependency(agility);
 
 // 监听变化事件手动处理复杂依赖
-// 注意，这种情况下1.	事件链不完整：只监听了 strength 的变化，但 agility 变化时不会触发重计算
+// 注意，这种情况下，事件链不完整：只监听了 strength 的变化，但 agility 变化时不会触发重计算
 // 如果需要复杂的属性计算，建议使用组合属性
 strength.OnValueChanged += (oldVal, newVal) => {
     // 复杂计算：攻击力 = 力量×2 + 敏捷×0.5
