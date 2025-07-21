@@ -17,15 +17,15 @@ namespace EasyPack
 
         public bool SetItem(IItem item, int count = 1)
         {
+            if (item == null)
+            {
+                return false;
+            }
 
             if (IsOccupied && Item != null && item != null && Item.ID == item.ID)
             {
                 ItemCount = count;
                 return true;
-            }
-            else if(item == null)
-            {
-                return false;
             }
 
             // 设置物品基本信息
@@ -45,14 +45,8 @@ namespace EasyPack
 
         public bool CheckSlotCondition(IItem item)
         {
-            if (item == null)
-                return false;
-
-            if (SlotCondition != null && !SlotCondition.IsCondition(item))
-                return false;
-
-
-            return true;
+            return item != null 
+                && (SlotCondition == null || SlotCondition.IsCondition(item));
         }
         public void ClearSlot()
         {

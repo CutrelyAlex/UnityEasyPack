@@ -1,4 +1,5 @@
 using EasyPack;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -75,7 +76,7 @@ public class LinerContainer : Container
                 UpdateItemCache(sourceItem.ID, sourceSlotIndex, false);
                 UpdateItemTypeCache(sourceItem.Type, sourceSlotIndex, false);
                 UpdateItemCountCache(sourceItem.ID, -sourceCount);
-                UpdateItemTotalCount(sourceItem.ID);
+                TriggerItemTotalCountChanged(sourceItem.ID);
             }
             else
             {
@@ -84,7 +85,7 @@ public class LinerContainer : Container
                 sourceSlot.SetItem(sourceItem, remainingCount);
 
                 UpdateItemCountCache(sourceItem.ID, -addedCount);
-                UpdateItemTotalCount(sourceItem.ID, sourceItem);
+                TriggerItemTotalCountChanged(sourceItem.ID, sourceItem);
 
                 OnSlotQuantityChanged(sourceSlotIndex, sourceItem, sourceCount, remainingCount);
             }
@@ -99,36 +100,71 @@ public class LinerContainer : Container
     /// </summary>
     public void SortInventory()
     {
-        // 1. 收集所有物品
-        var allItems = new List<(IItem item, int count)>();
-        foreach (var slot in _slots.ToArray())
+        if (_slots.Count < 2)
+            return;
+
+        var occupiedSlots = new List<(int index, IItem item, int count)>();
+        for (int i = 0; i < _slots.Count; i++)
         {
+            var slot = _slots[i];
             if (slot.IsOccupied && slot.Item != null)
             {
-                allItems.Add((slot.Item, slot.ItemCount));
-                slot.ClearSlot();
+                occupiedSlots.Add((i, slot.Item, slot.ItemCount));
             }
         }
 
-        // 2. 按物品ID分组并排序
-        var groupedItems = allItems
-            .GroupBy(x => x.item.ID)
-            .OrderBy(g => g.First().item.Type)
-            .ThenBy(g => g.First().item.Name)
-            .ToList();
+        if (occupiedSlots.Count < 2)
+            return;
 
-        // 3. 重新放回背包
-        foreach (var group in groupedItems)
+        occupiedSlots.Sort((a, b) => {
+            int typeCompare = string.Compare(a.item.Type, b.item.Type);
+            if (typeCompare != 0)
+                return typeCompare;
+            return string.Compare(a.item.Name, b.item.Name);
+        });
+
+        var originalData = new (IItem item, int count)[_slots.Count];
+        for (int i = 0; i < _slots.Count; i++)
         {
-            var itemTemplate = group.First().item;
-            int totalCount = group.Sum(x => x.count);
+            var slot = _slots[i];
+            originalData[i] = (slot.Item, slot.ItemCount);
+        }
 
-            // 添加回背包
-            var result = AddItems(itemTemplate, totalCount);
-            if (result.result != AddItemResult.Success)
+        BeginBatchUpdate();
+
+        try
+        {
+            // 先清空所有槽位
+            foreach (var slot in _slots)
             {
-                Debug.LogWarning($"排序背包时无法重新添加物品: {itemTemplate.Name}, 结果: {result.result}");
+                slot.ClearSlot();
             }
+
+            // 按排序后的顺序填充槽位
+            for (int i = 0; i < occupiedSlots.Count; i++)
+            {
+                var (_, item, count) = occupiedSlots[i];
+                _slots[i].SetItem(item, count);
+            }
+
+            RebuildCaches();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"排序背包时发生错误: {ex.Message}，正在恢复原始数据");
+            for (int i = 0; i < _slots.Count && i < originalData.Length; i++)
+            {
+                if (originalData[i].item != null)
+                    _slots[i].SetItem(originalData[i].item, originalData[i].count);
+                else
+                    _slots[i].ClearSlot();
+            }
+
+            RebuildCaches();
+        }
+        finally
+        {
+            EndBatchUpdate();
         }
     }
 }
