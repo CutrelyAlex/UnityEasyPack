@@ -494,6 +494,8 @@ public abstract class Container : IContainer
         {
             _emptySlotIndices.Remove(index);
         }
+
+        CleanupItemReferenceCache();
     }
 
     /// <summary>
@@ -1229,6 +1231,10 @@ public abstract class Container : IContainer
             int totalAdded = 0;
             int remainingCount = count;
 
+            // 将物品添加到待更新列表并缓存物品引用
+            _pendingTotalCountUpdates.Add(item.ID);
+            _itemRefCache[item.ID] = item;
+
             // 1. 堆叠处理
             if (item.IsStackable && slotIndex == -1)
             {
@@ -1249,9 +1255,6 @@ public abstract class Container : IContainer
                         var slot = _slots[slotIdx];
                         OnSlotQuantityChanged(slotIdx, slot.Item, change.Value.oldCount, change.Value.newCount);
                     }
-
-                    // 延迟更新总数
-                    TriggerItemTotalCountChanged(item.ID, item);
 
                     if (remainingCount <= 0)
                     {
@@ -1276,8 +1279,6 @@ public abstract class Container : IContainer
                     UpdateItemCache(item.ID, slotIndex, true);
                     UpdateItemTypeCache(item.Type, slotIndex, true);
                     UpdateEmptySlotCache(slotIndex, false);
-
-                    TriggerItemTotalCountChanged(item.ID, item);
 
                     if (remainingCount <= 0)
                     {
@@ -1315,7 +1316,7 @@ public abstract class Container : IContainer
                     if (remainingCount <= 0)
                     {
                         OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
-                        TriggerItemTotalCountChanged(item.ID, item);
+                        
                         return (AddItemResult.Success, totalAdded);
                     }
                     continue;
@@ -1333,8 +1334,6 @@ public abstract class Container : IContainer
                     UpdateItemCountCache(item.ID, newAddedCount);
                     UpdateItemCache(item.ID, newSlotIndex, true);
                     UpdateItemTypeCache(item.Type, newSlotIndex, true);
-
-                    TriggerItemTotalCountChanged(item.ID, item);
 
                     if (remainingCount <= 0)
                     {
@@ -1363,7 +1362,7 @@ public abstract class Container : IContainer
             }
 
             OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
-            TriggerItemTotalCountChanged(item.ID, item);
+            
             return (AddItemResult.Success, totalAdded);
         }
         finally
@@ -1397,6 +1396,39 @@ public abstract class Container : IContainer
         }
 
         return AddItems(item, count);
+    }
+
+    /// <summary>
+    /// 批量添加多种物品
+    /// </summary>
+    /// <param name="itemsToAdd">要添加的物品和数量列表</param>
+    /// <returns>每个物品的添加结果</returns>
+    public virtual List<(IItem item, AddItemResult result, int addedCount, int exceededCount)> AddItemsBatch(
+        List<(IItem item, int count)> itemsToAdd)
+    {
+        var results = new List<(IItem item, AddItemResult result, int addedCount, int exceededCount)>();
+
+        if (itemsToAdd == null || itemsToAdd.Count == 0)
+            return results;
+
+        // 开始批量更新模式
+        BeginBatchUpdate();
+
+        try
+        {
+            foreach (var (item, count) in itemsToAdd)
+            {
+                var (result, addedCount) = AddItemsWithCount(item, out int exceededCount, count);
+                results.Add((item, result, addedCount, exceededCount));
+            }
+        }
+        finally
+        {
+            // 结束批量更新，统一处理所有待更新项
+            EndBatchUpdate();
+        }
+
+        return results;
     }
     #endregion
 
