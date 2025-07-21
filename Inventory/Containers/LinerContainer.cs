@@ -43,6 +43,7 @@ public class LinerContainer : Container
     /// <returns>移动结果</returns>
     public bool MoveItemToContainer(int sourceSlotIndex, IContainer targetContainer)
     {
+        // 早期验证优化
         if (sourceSlotIndex < 0 || sourceSlotIndex >= _slots.Count)
             return false;
 
@@ -50,65 +51,48 @@ public class LinerContainer : Container
         if (!sourceSlot.IsOccupied || sourceSlot.Item == null)
             return false;
 
-        IItem sourceItem = sourceSlot.Item;
+        var sourceItem = sourceSlot.Item;
         int sourceCount = sourceSlot.ItemCount;
 
-        bool isStackable = sourceItem.IsStackable;
-
-        IItem itemToAdd;
-        if (!isStackable)
+        if (targetContainer is Container targetContainerImpl)
         {
-            if (sourceItem is Item itemObj)
+            if (!targetContainerImpl.ValidateItemCondition(sourceItem))
+                return false;
+        }
+
+        // 尝试添加到目标容器
+        var (result, addedCount) = targetContainer.AddItems(sourceItem, sourceCount);
+
+        // 根据添加结果更新源槽位
+        if (result == AddItemResult.Success && addedCount > 0)
+        {
+            if (addedCount == sourceCount)
             {
-                itemToAdd = itemObj.Clone();
+                // 完全移动直接清除槽位
+                sourceSlot.ClearSlot();
+
+                UpdateEmptySlotCache(sourceSlotIndex, true);
+                UpdateItemCache(sourceItem.ID, sourceSlotIndex, false);
+                UpdateItemTypeCache(sourceItem.Type, sourceSlotIndex, false);
+                UpdateItemCountCache(sourceItem.ID, -sourceCount);
+                UpdateItemTotalCount(sourceItem.ID);
             }
             else
             {
-                itemToAdd = new Item
-                {
-                    ID = sourceItem.ID,
-                    Name = sourceItem.Name,
-                    Type = sourceItem.Type,
-                    Description = sourceItem.Description,
-                    Weight = sourceItem.Weight,
-                    IsStackable = false,
-                    MaxStackCount = sourceItem.MaxStackCount,
-                    IsMultiSlot = sourceItem.IsMultiSlot,
-                    Size = sourceItem.Size
-                };
+                // 部分移动更新数量
+                int remainingCount = sourceCount - addedCount;
+                sourceSlot.SetItem(sourceItem, remainingCount);
 
-                if (sourceItem.Attributes != null)
-                {
-                    ((Item)itemToAdd).Attributes = new Dictionary<string, object>(sourceItem.Attributes);
-                }
+                UpdateItemCountCache(sourceItem.ID, -addedCount);
+                UpdateItemTotalCount(sourceItem.ID, sourceItem);
+
+                OnSlotQuantityChanged(sourceSlotIndex, sourceItem, sourceCount, remainingCount);
             }
-        }
-        else
-        {
-            itemToAdd = sourceItem;
+
+            return true;
         }
 
-        var (result, addedCount) = targetContainer.AddItems(itemToAdd, sourceCount);
-
-        if (result == AddItemResult.Success)
-        {
-            // 完全移动
-            if (addedCount == sourceCount)
-            {
-                // 清除源槽位
-                sourceSlot.ClearSlot();
-                return true;
-            }
-            // 部分移动
-            else if (addedCount > 0)
-            {
-                // 更新源槽位的物品数量
-                sourceSlot.SetItem(sourceItem, sourceCount - addedCount);
-                return true;
-            }
-        }
-
-        return true;
+        return false;
     }
     /// <summary>
     /// 整理容器

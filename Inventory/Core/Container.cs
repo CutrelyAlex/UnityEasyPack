@@ -186,7 +186,7 @@ public abstract class Container : IContainer
     /// <summary>
     /// 检查物品是否满足容器条件
     /// </summary>
-    protected bool ValidateItemCondition(IItem item)
+    public bool ValidateItemCondition(IItem item)
     {
         if (item == null)
         {
@@ -268,10 +268,8 @@ public abstract class Container : IContainer
     // 物品最大堆叠数缓存
     private readonly Dictionary<string, int> _itemMaxStackCache = new();
 
-    // 批量操作缓存
-    private readonly Dictionary<string, List<int>> _batchOperationCache = new();
 
-    private void UpdateItemCache(string itemId, int slotIndex, bool isAdding)
+    protected void UpdateItemCache(string itemId, int slotIndex, bool isAdding)
     {
         if (string.IsNullOrEmpty(itemId))
             return;
@@ -294,7 +292,7 @@ public abstract class Container : IContainer
         }
     }
 
-    private void UpdateEmptySlotCache(int slotIndex, bool isEmpty)
+    protected void UpdateEmptySlotCache(int slotIndex, bool isEmpty)
     {
         if (isEmpty)
         {
@@ -308,7 +306,7 @@ public abstract class Container : IContainer
     }
 
     // 更新物品类型索引缓存
-    private void UpdateItemTypeCache(string itemType, int slotIndex, bool isAdding)
+    protected void UpdateItemTypeCache(string itemType, int slotIndex, bool isAdding)
     {
         if (string.IsNullOrEmpty(itemType))
             return;
@@ -332,7 +330,7 @@ public abstract class Container : IContainer
     }
 
     // 更新物品数量缓存
-    private void UpdateItemCountCache(string itemId, int delta)
+    protected void UpdateItemCountCache(string itemId, int delta)
     {
         if (string.IsNullOrEmpty(itemId))
             return;

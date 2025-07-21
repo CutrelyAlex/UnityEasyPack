@@ -25,15 +25,16 @@ namespace EasyPack
                 ItemCount = count;
                 return true;
             }
+            else if(item == null)
+            {
+                return false;
+            }
 
-            if (item != null && item.IsMultiSlot)
+            if (item.IsMultiSlot)
             {
                 Debug.LogWarning($"Falied to Set {item.ID} at {Container.ID}.Use SetAsMultiSlotPart for multislot items Instead.");
                 return false;
             }
-
-            if (item == null || count <= 0)
-                return false;
 
             // 设置物品基本信息
             Item = item;
@@ -66,9 +67,6 @@ namespace EasyPack
         {
             if (item == null)
                 return false;
-
-            //if (IsOccupied)
-            //    return false;
 
             if (SlotCondition != null && !SlotCondition.IsCondition(item))
                 return false;
