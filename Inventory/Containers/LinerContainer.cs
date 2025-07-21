@@ -73,7 +73,7 @@ public class LinerContainer : Container
                 sourceSlot.ClearSlot();
 
                 UpdateEmptySlotCache(sourceSlotIndex, true);
-                UpdateItemCache(sourceItem.ID, sourceSlotIndex, false);
+                UpdateItemSlotIndexCache(sourceItem.ID, sourceSlotIndex, false);
                 UpdateItemTypeCache(sourceItem.Type, sourceSlotIndex, false);
                 UpdateItemCountCache(sourceItem.ID, -sourceCount);
                 TriggerItemTotalCountChanged(sourceItem.ID);
