@@ -15,8 +15,6 @@ namespace EasyPack
 
         float Weight { get; set; }
         int MaxStackCount { get; }
-        bool IsMultiSlot { get; }
-        Vector2Int Size { get; }
         Dictionary<string, object> Attributes { get; set; }
         IItem Clone();
     }

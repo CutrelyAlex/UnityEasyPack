@@ -29,13 +29,6 @@ namespace EasyPack
 
         #endregion
 
-        #region 多格物品
-
-        public bool IsMultiSlot { get; set; } = false;
-        public Vector2Int Size { get; set; } = new Vector2Int(1, 1);
-
-        #endregion
-
         /// <summary>
         /// 创建物品的深拷贝
         /// </summary>
@@ -51,8 +44,6 @@ namespace EasyPack
                 Weight = this.Weight,
                 IsStackable = this.IsStackable,
                 MaxStackCount = this.MaxStackCount,
-                IsMultiSlot = this.IsMultiSlot,
-                Size = this.Size,
                 isContanierItem = this.isContanierItem
             };
 
