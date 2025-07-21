@@ -416,7 +416,7 @@ public abstract class Container : IContainer
     /// <summary>
     /// 初始化或重建所有缓存
     /// </summary>
-    protected void RebuildCaches()
+    public void RebuildCaches()
     {
         // 清空所有缓存
         _itemSlotIndexCache.Clear();
@@ -455,7 +455,7 @@ public abstract class Container : IContainer
     /// <summary>
     /// 清除缓存中的无效条目
     /// </summary>
-    protected void ValidateCaches()
+    public void ValidateCaches()
     {
         // 验证物品索引缓存
         var itemsToRemove = new List<string>();

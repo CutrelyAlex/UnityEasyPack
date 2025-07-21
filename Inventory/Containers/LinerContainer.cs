@@ -167,4 +167,121 @@ public class LinerContainer : Container
             EndBatchUpdate();
         }
     }
+    /// <summary>
+    /// 合并相同物品到较少的槽位中
+    /// </summary>
+    public void ConsolidateItems()
+    {
+        if (_slots.Count < 2)
+            return;
+
+        // 记录原始数据以防出错时恢复
+        var originalData = new (IItem item, int count)[_slots.Count];
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            var slot = _slots[i];
+            originalData[i] = (slot.Item, slot.ItemCount);
+        }
+
+        BeginBatchUpdate();
+
+        try
+        {
+            // 按物品ID分组收集所有可堆叠物品
+            var itemGroups = new Dictionary<string, List<(int slotIndex, IItem item, int count)>>();
+
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                var slot = _slots[i];
+                if (slot.IsOccupied && slot.Item != null && slot.Item.IsStackable)
+                {
+                    string itemId = slot.Item.ID;
+                    if (!itemGroups.ContainsKey(itemId))
+                        itemGroups[itemId] = new List<(int, IItem, int)>();
+
+                    itemGroups[itemId].Add((i, slot.Item, slot.ItemCount));
+                }
+            }
+
+            // 对每种物品进行合并
+            foreach (var kvp in itemGroups)
+            {
+                var itemSlots = kvp.Value;
+                if (itemSlots.Count < 2) continue; // 只有一个槽位的物品不需要合并
+
+                var firstSlot = itemSlots[0];
+                IItem item = firstSlot.item;
+                int maxStackCount = item.MaxStackCount;
+
+                // 计算总数量
+                int totalCount = itemSlots.Sum(slot => slot.count);
+
+                // 清空所有相关槽位
+                foreach (var (slotIndex, _, _) in itemSlots)
+                {
+                    _slots[slotIndex].ClearSlot();
+                }
+
+                // 重新分配到尽可能少的槽位
+                var targetSlots = itemSlots.OrderBy(s => s.slotIndex).ToList();
+                int remainingCount = totalCount;
+                int targetIndex = 0;
+
+                while (remainingCount > 0 && targetIndex < targetSlots.Count)
+                {
+                    int slotIndex = targetSlots[targetIndex].slotIndex;
+
+                    // 确定本槽位放置的数量
+                    int countForThisSlot;
+                    if (maxStackCount <= 0) // 无限堆叠
+                    {
+                        countForThisSlot = remainingCount;
+                        remainingCount = 0;
+                    }
+                    else
+                    {
+                        countForThisSlot = Math.Min(remainingCount, maxStackCount);
+                        remainingCount -= countForThisSlot;
+                    }
+
+                    // 设置物品到槽位
+                    _slots[slotIndex].SetItem(item, countForThisSlot);
+                    targetIndex++;
+                }
+            }
+
+            // 重建缓存
+            RebuildCaches();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"合并物品时发生错误: {ex.Message}，正在恢复原始数据");
+
+            // 恢复原始数据
+            for (int i = 0; i < _slots.Count && i < originalData.Length; i++)
+            {
+                if (originalData[i].item != null)
+                    _slots[i].SetItem(originalData[i].item, originalData[i].count);
+                else
+                    _slots[i].ClearSlot();
+            }
+
+            RebuildCaches();
+        }
+        finally
+        {
+            EndBatchUpdate();
+        }
+    }
+    /// <summary>
+    /// 整理容器（排序 + 合并）
+    /// </summary>
+    public void OrganizeInventory()
+    {
+        // 先合并相同物品
+        ConsolidateItems();
+
+        // 再进行排序整理
+        SortInventory();
+    }
 }
