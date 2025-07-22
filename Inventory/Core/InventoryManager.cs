@@ -568,12 +568,6 @@ public class InventoryManager
     /// </summary>
     public event System.Action OnGlobalCacheValidated;
 
-    /// <summary>
-    /// 全局缓存清理事件
-    /// </summary>
-    public event System.Action OnGlobalCacheCleared;
-
-
     #endregion
 
     #region 跨容器物品操作
