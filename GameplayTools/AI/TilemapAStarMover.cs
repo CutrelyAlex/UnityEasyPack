@@ -12,9 +12,14 @@ namespace EasyPack
 
     public class TilemapAStarMover : MonoBehaviour
     {
+        #region 序列化字段和属性
+
         [Header("Tilemap 设置")]
         [Tooltip("包含所有可用于寻路的Tilemap组件，系统将扫描这些Tilemap中的瓦片作为可行走区域")]
         public List<Tilemap> allTilemaps = new List<Tilemap>();
+
+        [Tooltip("Grid GameObject，如果设置了Grid，将自动获取其下所有Tilemap组件")]
+        public List<Grid> gridObjects = new List<Grid>();
 
         [Header("寻路设置")]
         [Tooltip("执行寻路的物品对象如果为null，那么是否默认设置为自身")]
@@ -179,6 +184,10 @@ namespace EasyPack
         [Tooltip("障碍物的显示颜色")]
         public Color obstacleColor = Color.red;
 
+        #endregion
+
+        #region 私有字段
+
         // 统一地图数据结构
         private UnifiedMap unifiedMap;
         private List<Vector3Int> currentPath = new List<Vector3Int>();
@@ -213,12 +222,20 @@ namespace EasyPack
         private Vector3 lastTargetPosition;
         private bool hasInitializedTargetPosition = false;
 
+        #endregion
+
+        #region Unity生命周期
+
         private void Start()
         {
             // 如果未设置寻路对象，则默认使用自身
             if (ispathFindingObjectSelf && pathfindingObject == null)
             {
                 pathfindingObject = gameObject;
+            }
+            if (gridObjects.Count > 0)
+            {
+                GetTilemapsFromGrids();
             }
             BuildUnifiedMap();
             InitializeAutoRefresh();
@@ -231,212 +248,46 @@ namespace EasyPack
             HandleAutoRefresh();
         }
 
-        /// <summary>
-        /// 处理自动刷新逻辑
-        /// </summary>
-        private void HandleAutoRefresh()
-        {
-            // 频率刷新
-            refreshTimer += Time.deltaTime;
-            bool shouldRefreshByFrequency = refreshTimer >= 1f / refreshFrequency;
+        #endregion
 
-            // 目标移动刷新
-            bool shouldRefreshByTargetMove = false;
-            if (refreshOnTargetMove && targetObject != null)
+        #region 公共API接口
+
+        /// <summary>
+        /// 从所有Grid GameObject自动获取所有Tilemap
+        /// </summary>
+        [ContextMenu("从所有Grid获取Tilemap")]
+        public void GetTilemapsFromGrids()
+        {
+            if (gridObjects.Count == 0)
             {
-                if (!hasInitializedTargetPosition)
+                Debug.LogWarning("Grid对象列表为空！");
+                return;
+            }
+
+            int totalTilemaps = 0;
+
+            // 遍历所有Grid对象
+            foreach (var grid in gridObjects)
+            {
+                if (grid == null) continue;
+
+                // 获取当前Grid下的所有Tilemap组件（包括子对象）
+                Tilemap[] tilemaps = grid.GetComponentsInChildren<Tilemap>();
+
+                if (tilemaps.Length > 0)
                 {
-                    lastTargetPosition = targetObject.transform.position;
-                    hasInitializedTargetPosition = true;
+                    allTilemaps.AddRange(tilemaps);
+                    totalTilemaps += tilemaps.Length;
                 }
                 else
                 {
-                    float distance = Vector3.Distance(targetObject.transform.position, lastTargetPosition);
-                    if (distance >= targetMoveThreshold)
-                    {
-                        shouldRefreshByTargetMove = true;
-                        lastTargetPosition = targetObject.transform.position;
-                    }
+                    Debug.LogWarning($"在Grid '{grid.name}' 下未找到任何Tilemap组件！");
                 }
             }
 
-            // 执行刷新
-            if (shouldRefreshByFrequency || shouldRefreshByTargetMove)
+            if (totalTilemaps == 0)
             {
-                if (shouldRefreshByFrequency)
-                {
-                    refreshTimer = 0f;
-                }
-
-                AutoRefreshPathfinding();
-            }
-        }
-
-        /// <summary>
-        /// 自动刷新寻路
-        /// </summary>
-        private void AutoRefreshPathfinding()
-        {
-            // 只有在角色正在移动且目标有效时才刷新
-            if (!IsMoving || pathfindingObject == null || targetObject == null)
-                return;
-
-            Vector3Int startPos;
-            if (currentPath.Count > 0 && currentPathIndex < currentPath.Count)
-            {
-                // 如果正在移动到某个路径点，使用该路径点作为起点
-                startPos = currentPath[currentPathIndex];
-            }
-            else
-            {
-                // 备用方案：使用当前瓦片位置
-                startPos = GetTilePositionFromGameObject(pathfindingObject);
-            }
-
-            Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
-
-            // 如果目标位置没有改变，则不需要刷新
-            if (currentPath.Count > 0 && targetPos == currentPath[currentPath.Count - 1])
-                return;
-
-            var newPath = FindPath(startPos, targetPos);
-
-            if (newPath.Count > 0)
-            {
-                // 只有当新路径与当前路径显著不同时才更新
-                if (ShouldUpdatePath(newPath))
-                {
-                    // 使用平滑过渡而不是强制重置
-                    if (enableSmoothPathTransition)
-                    {
-                        SmoothTransitionToNewPath(newPath);
-                    }
-                    else
-                    {
-                        MoveAlongPath(newPath);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// 平滑过渡到新路径
-        /// </summary>
-        private void SmoothTransitionToNewPath(List<Vector3Int> newPath)
-        {
-            if (newPath == null || newPath.Count == 0) return;
-
-            Vector3 currentPosition = pathfindingObject.transform.position;
-
-            // 找到新路径中最接近当前位置的点
-            int bestIndex = FindClosestPathIndex(newPath, currentPosition);
-
-            // 如果找到合适的连接点
-            if (bestIndex >= 0)
-            {
-                // 计算从当前位置到最佳连接点的距离
-                Vector3 connectPoint = GetWorldPosition(newPath[bestIndex]);
-                float backtrackDistance = Vector3.Distance(currentPosition, connectPoint);
-
-                // 如果回退距离在可接受范围内，则从该点继续
-                if (backtrackDistance <= maxBacktrackDistance)
-                {
-                    // 更新路径从连接点开始
-                    currentPath = newPath;
-                    currentPathIndex = bestIndex;
-                    currentTarget = GetWorldPosition(newPath[currentPathIndex]);
-
-                    // 不需要重启协程，当前协程会自动使用新的路径和索引
-                    return;
-                }
-            }
-
-            // 如果无法平滑过渡，则重启移动
-            MoveAlongPath(newPath);
-        }
-
-        /// <summary>
-        /// 在新路径中找到最接近当前位置的路径点索引
-        /// </summary>
-        private int FindClosestPathIndex(List<Vector3Int> path, Vector3 currentPosition)
-        {
-            if (path == null || path.Count == 0) return -1;
-
-            float minDistance = float.MaxValue;
-            int bestIndex = -1;
-
-            // 从当前路径索引开始向前搜索，避免回退太远
-            int searchStart = Mathf.Max(0, currentPathIndex - 2);
-            int searchEnd = Mathf.Min(path.Count, currentPathIndex + 5);
-
-            for (int i = searchStart; i < searchEnd; i++)
-            {
-                Vector3 pathPoint = GetWorldPosition(path[i]);
-                float distance = Vector3.Distance(currentPosition, pathPoint);
-
-                if (distance < minDistance)
-                {
-                    minDistance = distance;
-                    bestIndex = i;
-                }
-            }
-
-            // 如果搜索范围内找不到合适点，则搜索整个路径
-            if (bestIndex == -1)
-            {
-                for (int i = 0; i < path.Count; i++)
-                {
-                    Vector3 pathPoint = GetWorldPosition(path[i]);
-                    float distance = Vector3.Distance(currentPosition, pathPoint);
-
-                    if (distance < minDistance)
-                    {
-                        minDistance = distance;
-                        bestIndex = i;
-                    }
-                }
-            }
-
-            return bestIndex;
-        }
-
-        /// <summary>
-        /// 判断是否应该更新路径
-        /// </summary>
-        private bool ShouldUpdatePath(List<Vector3Int> newPath)
-        {
-            if (currentPath.Count == 0) return true;
-            if (newPath.Count == 0) return false;
-
-            // 如果终点不同，需要更新
-            if (currentPath[currentPath.Count - 1] != newPath[newPath.Count - 1])
-                return true;
-
-            // 如果路径长度差异很大，需要更新
-            float lengthDifference = Mathf.Abs(newPath.Count - currentPath.Count) / (float)currentPath.Count;
-            if (lengthDifference > 0.3f) // 30%的差异
-                return true;
-
-            // 检查路径的前几步是否有显著差异
-            int checkSteps = Mathf.Min(3, Mathf.Min(currentPath.Count, newPath.Count));
-            for (int i = 0; i < checkSteps; i++)
-            {
-                if (currentPath[i] != newPath[i])
-                    return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// 初始化自动刷新
-        /// </summary>
-        private void InitializeAutoRefresh()
-        {
-            if (targetObject != null)
-            {
-                lastTargetPosition = targetObject.transform.position;
-                hasInitializedTargetPosition = true;
+                Debug.LogWarning("未从任何Grid对象中找到Tilemap组件！");
             }
         }
 
@@ -452,6 +303,14 @@ namespace EasyPack
                 return;
             }
 
+            GetTilemapsFromGrids();
+
+            if (allTilemaps == null || allTilemaps.Count == 0)
+            {
+                Debug.LogError("没有设置Tilemap！请设置Grid对象或手动添加Tilemap。");
+                return;
+            }
+
             unifiedMap = new UnifiedMap();
 
             // 扫描所有Tilemap，收集所有可行走的瓦片位置
@@ -460,128 +319,6 @@ namespace EasyPack
                 if (tilemap == null) continue;
                 ScanTilemap(tilemap);
             }
-        }
-
-        /// <summary>
-        /// 扫描单个Tilemap，添加到统一地图
-        /// </summary>
-        private void ScanTilemap(Tilemap tilemap)
-        {
-            BoundsInt bounds = tilemap.cellBounds;
-            int tileCount = 0;
-
-            for (int x = bounds.xMin; x < bounds.xMax; x++)
-            {
-                for (int y = bounds.yMin; y < bounds.yMax; y++)
-                {
-                    Vector3Int position = new Vector3Int(x, y, 0);
-                    TileBase tile = tilemap.GetTile(position);
-
-                    if (tile != null && IsTileWalkable(tile, position))
-                    {
-                        float cost = GetTileCost(tile);
-                        unifiedMap.AddWalkableTile(position, tilemap, cost);
-                        tileCount++;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// 检查瓦片是否可行走（可以重写此方法来自定义逻辑）
-        /// </summary>
-        protected virtual bool IsTileWalkable(TileBase tile, Vector3Int position)
-        {
-            // 非空瓦片即可行走
-            return tile != null;
-        }
-
-        /// <summary>
-        /// 获取瓦片移动代价
-        /// </summary>
-        protected virtual float GetTileCost(TileBase tile)
-        {
-            if (useTerrainCosts && tileCostMap.ContainsKey(tile))
-            {
-                return tileCostMap[tile];
-            }
-            return 1f; // 默认代价
-        }
-
-        /// <summary>
-        /// 检查动态障碍物
-        /// </summary>
-        private bool HasDynamicObstacle(Vector3Int position)
-        {
-            if (!considerDynamicObstacles) return false;
-
-            Vector3 worldPos = GetWorldPosition(position);
-
-            foreach (var obstacle in dynamicObstacles)
-            {
-                if (obstacle == null) continue;
-
-                float distance = Vector3.Distance(worldPos, obstacle.position);
-                if (distance <= obstacleCheckRadius)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// 设置自动刷新启用状态
-        /// </summary>
-        public void SetAutoRefreshEnabled(bool enabled)
-        {
-            enableAutoRefresh = enabled;
-            if (enabled)
-            {
-                refreshTimer = 0f;
-                InitializeAutoRefresh();
-            }
-        }
-
-        /// <summary>
-        /// 设置刷新频率
-        /// </summary>
-        public void SetRefreshFrequency(float frequency)
-        {
-            refreshFrequency = Mathf.Clamp(frequency, 0.1f, 10f);
-            refreshTimer = 0f; // 重置计时器
-        }
-
-        /// <summary>
-        /// 设置目标移动刷新
-        /// </summary>
-        public void SetRefreshOnTargetMove(bool enabled)
-        {
-            refreshOnTargetMove = enabled;
-            if (enabled && targetObject != null)
-            {
-                lastTargetPosition = targetObject.transform.position;
-                hasInitializedTargetPosition = true;
-            }
-        }
-
-        /// <summary>
-        /// 设置目标移动阈值
-        /// </summary>
-        public void SetTargetMoveThreshold(float threshold)
-        {
-            targetMoveThreshold = Mathf.Max(0.1f, threshold);
-        }
-
-        /// <summary>
-        /// 强制刷新寻路（忽略频率限制）
-        /// </summary>
-        [ContextMenu("强制刷新寻路")]
-        public void ForceRefreshPathfinding()
-        {
-            refreshTimer = 0f;
-            AutoRefreshPathfinding();
         }
 
         /// <summary>
@@ -675,12 +412,517 @@ namespace EasyPack
         }
 
         /// <summary>
+        /// 开始寻路并移动
+        /// </summary>
+        [ContextMenu("开始寻路并移动")]
+        public void StartPathfindingAndMove()
+        {
+            if (pathfindingObject == null)
+            {
+                Debug.LogError("寻路GameObject未设置！");
+                return;
+            }
+
+            if (targetObject == null)
+            {
+                Debug.LogError("目标GameObject未设置！");
+                return;
+            }
+
+            Vector3Int startPos = GetTilePositionFromGameObject(pathfindingObject);
+            Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
+
+            var path = FindPath(startPos, targetPos);
+
+            if (path.Count > 0)
+            {
+                MoveAlongPath(path);
+            }
+        }
+
+        /// <summary>
+        /// 沿路径移动GameObject
+        /// </summary>
+        public void MoveAlongPath(List<Vector3Int> path)
+        {
+            if (pathfindingObject == null || path.Count == 0) return;
+
+            // 停止之前的移动
+            if (moveCoroutine != null)
+            {
+                StopCoroutine(moveCoroutine);
+                OnMovementStopped?.Invoke();
+            }
+
+            currentPath = new List<Vector3Int>(path);
+            currentPathIndex = 0;
+            currentJitterOffset = Vector3.zero;
+            jitterTimer = 0f;
+            jitterHistory.Clear();
+            isMovingToTarget = false;
+
+            moveCoroutine = StartCoroutine(MoveCoroutine());
+            OnMovementStart?.Invoke(pathfindingObject.transform.position);
+        }
+
+        /// <summary>
+        /// 停止移动
+        /// </summary>
+        [ContextMenu("停止移动")]
+        public void StopMovement()
+        {
+            if (moveCoroutine != null)
+            {
+                StopCoroutine(moveCoroutine);
+                moveCoroutine = null;
+                OnMovementStopped?.Invoke();
+            }
+            currentPath.Clear();
+            currentPathIndex = 0;
+            currentJitterOffset = Vector3.zero;
+            jitterHistory.Clear();
+            isMovingToTarget = false;
+        }
+
+        /// <summary>
+        /// 添加动态障碍物
+        /// </summary>
+        public void AddDynamicObstacle(Transform obstacle)
+        {
+            if (!dynamicObstacles.Contains(obstacle))
+            {
+                dynamicObstacles.Add(obstacle);
+            }
+        }
+
+        /// <summary>
+        /// 移除动态障碍物
+        /// </summary>
+        public void RemoveDynamicObstacle(Transform obstacle)
+        {
+            dynamicObstacles.Remove(obstacle);
+        }
+
+        /// <summary>
+        /// 设置瓦片代价
+        /// </summary>
+        public void SetTileCost(TileBase tile, float cost)
+        {
+            tileCostMap[tile] = cost;
+        }
+
+        /// <summary>
+        /// 获取最后一次寻路的统计信息
+        /// </summary>
+        public PathfindingStats GetLastPathfindingStats()
+        {
+            return lastStats;
+        }
+
+        #endregion
+
+        #region 自动刷新相关
+
+        /// <summary>
+        /// 处理自动刷新逻辑
+        /// </summary>
+        private void HandleAutoRefresh()
+        {
+            // 频率刷新
+            refreshTimer += Time.deltaTime;
+            bool shouldRefreshByFrequency = refreshTimer >= 1f / refreshFrequency;
+
+            // 目标移动刷新
+            bool shouldRefreshByTargetMove = false;
+            if (refreshOnTargetMove && targetObject != null)
+            {
+                if (!hasInitializedTargetPosition)
+                {
+                    lastTargetPosition = targetObject.transform.position;
+                    hasInitializedTargetPosition = true;
+                }
+                else
+                {
+                    float distance = Vector3.Distance(targetObject.transform.position, lastTargetPosition);
+                    if (distance >= targetMoveThreshold)
+                    {
+                        shouldRefreshByTargetMove = true;
+                        lastTargetPosition = targetObject.transform.position;
+                    }
+                }
+            }
+
+            // 执行刷新
+            if (shouldRefreshByFrequency || shouldRefreshByTargetMove)
+            {
+                if (shouldRefreshByFrequency)
+                {
+                    refreshTimer = 0f;
+                }
+
+                AutoRefreshPathfinding();
+            }
+        }
+
+        /// <summary>
+        /// 自动刷新寻路
+        /// </summary>
+        private void AutoRefreshPathfinding()
+        {
+            // 只有在角色正在移动且目标有效时才刷新
+            if (!IsMoving || pathfindingObject == null || targetObject == null)
+                return;
+
+            Vector3Int startPos;
+            if (currentPath.Count > 0 && currentPathIndex < currentPath.Count)
+            {
+                // 如果正在移动到某个路径点，使用该路径点作为起点
+                startPos = currentPath[currentPathIndex];
+            }
+            else
+            {
+                // 备用方案：使用当前瓦片位置
+                startPos = GetTilePositionFromGameObject(pathfindingObject);
+            }
+
+            Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
+
+            // 如果目标位置没有改变，则不需要刷新
+            if (currentPath.Count > 0 && targetPos == currentPath[currentPath.Count - 1])
+                return;
+
+            var newPath = FindPath(startPos, targetPos);
+
+            if (newPath.Count > 0)
+            {
+                // 只有当新路径与当前路径显著不同时才更新
+                if (ShouldUpdatePath(newPath))
+                {
+                    // 使用平滑过渡而不是强制重置
+                    if (enableSmoothPathTransition)
+                    {
+                        SmoothTransitionToNewPath(newPath);
+                    }
+                    else
+                    {
+                        MoveAlongPath(newPath);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 初始化自动刷新
+        /// </summary>
+        private void InitializeAutoRefresh()
+        {
+            if (targetObject != null)
+            {
+                lastTargetPosition = targetObject.transform.position;
+                hasInitializedTargetPosition = true;
+            }
+        }
+
+        /// <summary>
+        /// 设置自动刷新启用状态
+        /// </summary>
+        public void SetAutoRefreshEnabled(bool enabled)
+        {
+            enableAutoRefresh = enabled;
+            if (enabled)
+            {
+                refreshTimer = 0f;
+                InitializeAutoRefresh();
+            }
+        }
+
+        /// <summary>
+        /// 设置刷新频率
+        /// </summary>
+        public void SetRefreshFrequency(float frequency)
+        {
+            refreshFrequency = Mathf.Clamp(frequency, 0.1f, 10f);
+            refreshTimer = 0f; // 重置计时器
+        }
+
+        /// <summary>
+        /// 设置目标移动刷新
+        /// </summary>
+        public void SetRefreshOnTargetMove(bool enabled)
+        {
+            refreshOnTargetMove = enabled;
+            if (enabled && targetObject != null)
+            {
+                lastTargetPosition = targetObject.transform.position;
+                hasInitializedTargetPosition = true;
+            }
+        }
+
+        /// <summary>
+        /// 设置目标移动阈值
+        /// </summary>
+        public void SetTargetMoveThreshold(float threshold)
+        {
+            targetMoveThreshold = Mathf.Max(0.1f, threshold);
+        }
+
+        /// <summary>
+        /// 强制刷新寻路（忽略频率限制）
+        /// </summary>
+        [ContextMenu("强制刷新寻路")]
+        public void ForceRefreshPathfinding()
+        {
+            refreshTimer = 0f;
+            AutoRefreshPathfinding();
+        }
+
+        #endregion
+
+        #region 地图相关
+
+        /// <summary>
+        /// 扫描单个Tilemap，添加到统一地图
+        /// </summary>
+        private void ScanTilemap(Tilemap tilemap)
+        {
+            BoundsInt bounds = tilemap.cellBounds;
+            int tileCount = 0;
+
+            for (int x = bounds.xMin; x < bounds.xMax; x++)
+            {
+                for (int y = bounds.yMin; y < bounds.yMax; y++)
+                {
+                    Vector3Int position = new Vector3Int(x, y, 0);
+                    TileBase tile = tilemap.GetTile(position);
+
+                    if (tile != null && IsTileWalkable(tile, position))
+                    {
+                        float cost = GetTileCost(tile);
+                        unifiedMap.AddWalkableTile(position, tilemap, cost);
+                        tileCount++;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 检查瓦片是否可行走（可以重写此方法来自定义逻辑）
+        /// </summary>
+        protected virtual bool IsTileWalkable(TileBase tile, Vector3Int position)
+        {
+            // 非空瓦片即可行走
+            return tile != null;
+        }
+
+        /// <summary>
+        /// 获取瓦片移动代价
+        /// </summary>
+        protected virtual float GetTileCost(TileBase tile)
+        {
+            if (useTerrainCosts && tileCostMap.ContainsKey(tile))
+            {
+                return tileCostMap[tile];
+            }
+            return 1f; // 默认代价
+        }
+
+        #endregion
+
+        #region 寻路算法
+
+        /// <summary>
         /// 检查位置是否有效
         /// </summary>
         private bool IsPositionValid(Vector3Int position)
         {
             return unifiedMap.IsWalkable(position);
         }
+
+        /// <summary>
+        /// 检查动态障碍物
+        /// </summary>
+        private bool HasDynamicObstacle(Vector3Int position)
+        {
+            if (!considerDynamicObstacles) return false;
+
+            Vector3 worldPos = GetWorldPosition(position);
+
+            foreach (var obstacle in dynamicObstacles)
+            {
+                if (obstacle == null) continue;
+
+                float distance = Vector3.Distance(worldPos, obstacle.position);
+                if (distance <= obstacleCheckRadius)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 执行A*寻路算法
+        /// </summary>
+        private List<Vector3Int> ExecuteAStar(Vector3Int start, Vector3Int target, PathfindingOptions options)
+        {
+            var openSet = new List<PathNode>();
+            var closedSet = new HashSet<Vector3Int>();
+            var allNodes = new Dictionary<Vector3Int, PathNode>();
+
+            var startNode = new PathNode(start, 0, GetHeuristic(start, target), null);
+            openSet.Add(startNode);
+            allNodes[start] = startNode;
+
+            Vector3Int[] directions = options.allowDiagonal ? directions8 : directions4;
+            int iterations = 0;
+
+            while (openSet.Count > 0 && iterations < options.maxIterations)
+            {
+                iterations++;
+                lastStats.nodesExplored++;
+
+                // 找到F值最小的节点
+                var currentNode = GetLowestFCostNode(openSet);
+                openSet.Remove(currentNode);
+                closedSet.Add(currentNode.position);
+
+                // 到达目标
+                if (currentNode.position == target)
+                {
+                    lastStats.iterations = iterations;
+                    return ReconstructPath(currentNode);
+                }
+
+                // 检查相邻节点
+                foreach (var direction in directions)
+                {
+                    Vector3Int neighborPos = currentNode.position + direction;
+
+                    if (closedSet.Contains(neighborPos) ||
+                        !IsPositionValid(neighborPos) ||
+                        HasDynamicObstacle(neighborPos))
+                        continue;
+
+                    // 计算移动代价
+                    float moveCost = GetMoveCost(direction, currentNode.position, neighborPos);
+                    float newGCost = currentNode.gCost + moveCost;
+
+                    if (!allNodes.TryGetValue(neighborPos, out PathNode neighborNode))
+                    {
+                        neighborNode = new PathNode(neighborPos, newGCost, GetHeuristic(neighborPos, target), currentNode);
+                        allNodes[neighborPos] = neighborNode;
+                        openSet.Add(neighborNode);
+                    }
+                    else if (newGCost < neighborNode.gCost)
+                    {
+                        neighborNode.gCost = newGCost;
+                        neighborNode.parent = currentNode;
+
+                        if (!openSet.Contains(neighborNode))
+                            openSet.Add(neighborNode);
+                    }
+                }
+            }
+
+            lastStats.iterations = iterations;
+            Debug.LogWarning($"寻路失败！迭代次数: {iterations}");
+            return new List<Vector3Int>();
+        }
+
+        /// <summary>
+        /// 跳点搜索算法（JPS优化）
+        /// </summary>
+        private List<Vector3Int> ExecuteJumpPointSearch(Vector3Int start, Vector3Int target, PathfindingOptions options)
+        {
+            // TODO:
+            return ExecuteAStar(start, target, options);
+        }
+
+        /// <summary>
+        /// 获取移动代价（考虑地形和方向）
+        /// </summary>
+        private float GetMoveCost(Vector3Int direction, Vector3Int from, Vector3Int to)
+        {
+            float baseCost = IsDiagonalMove(direction) ? diagonalMoveCost : straightMoveCost;
+
+            if (useTerrainCosts)
+            {
+                // 获取目标瓦片的地形代价
+                var tileInfo = unifiedMap.GetTileInfo(to);
+                if (tileInfo != null)
+                {
+                    baseCost *= tileInfo.cost;
+                }
+            }
+
+            return baseCost;
+        }
+
+        /// <summary>
+        /// 判断是否为对角线移动
+        /// </summary>
+        private bool IsDiagonalMove(Vector3Int direction)
+        {
+            return direction.x != 0 && direction.y != 0;
+        }
+
+        /// <summary>
+        /// 获取启发式距离
+        /// </summary>
+        private float GetHeuristic(Vector3Int a, Vector3Int b)
+        {
+            if (allowDiagonalMovement)
+            {
+                // 欧几里得距离
+                float dx = a.x - b.x;
+                float dy = a.y - b.y;
+                return Mathf.Sqrt(dx * dx + dy * dy);
+            }
+            else
+            {
+                // 曼哈顿距离
+                return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+            }
+        }
+
+        /// <summary>
+        /// 获取F值最小的节点
+        /// </summary>
+        private PathNode GetLowestFCostNode(List<PathNode> nodes)
+        {
+            PathNode lowest = nodes[0];
+            for (int i = 1; i < nodes.Count; i++)
+            {
+                if (nodes[i].fCost < lowest.fCost ||
+                    (nodes[i].fCost == lowest.fCost && nodes[i].hCost < lowest.hCost))
+                {
+                    lowest = nodes[i];
+                }
+            }
+            return lowest;
+        }
+
+        /// <summary>
+        /// 重构路径
+        /// </summary>
+        private List<Vector3Int> ReconstructPath(PathNode endNode)
+        {
+            var path = new List<Vector3Int>();
+            var current = endNode;
+
+            while (current != null)
+            {
+                path.Insert(0, current.position);
+                current = current.parent;
+            }
+
+            return path;
+        }
+
+        #endregion
+
+        #region 路径后处理
 
         /// <summary>
         /// 路径后处理（平滑等）
@@ -796,230 +1038,122 @@ namespace EasyPack
             return points;
         }
 
+        #endregion
+
+        #region 平滑路径过渡
+
         /// <summary>
-        /// 跳点搜索算法（JPS优化）
+        /// 平滑过渡到新路径
         /// </summary>
-        private List<Vector3Int> ExecuteJumpPointSearch(Vector3Int start, Vector3Int target, PathfindingOptions options)
+        private void SmoothTransitionToNewPath(List<Vector3Int> newPath)
         {
-            // TODO:
-            return ExecuteAStar(start, target, options);
+            if (newPath == null || newPath.Count == 0) return;
+
+            Vector3 currentPosition = pathfindingObject.transform.position;
+
+            // 找到新路径中最接近当前位置的点
+            int bestIndex = FindClosestPathIndex(newPath, currentPosition);
+
+            // 如果找到合适的连接点
+            if (bestIndex >= 0)
+            {
+                // 计算从当前位置到最佳连接点的距离
+                Vector3 connectPoint = GetWorldPosition(newPath[bestIndex]);
+                float backtrackDistance = Vector3.Distance(currentPosition, connectPoint);
+
+                // 如果回退距离在可接受范围内，则从该点继续
+                if (backtrackDistance <= maxBacktrackDistance)
+                {
+                    // 更新路径从连接点开始
+                    currentPath = newPath;
+                    currentPathIndex = bestIndex;
+                    currentTarget = GetWorldPosition(newPath[currentPathIndex]);
+
+                    // 不需要重启协程，当前协程会自动使用新的路径和索引
+                    return;
+                }
+            }
+
+            // 如果无法平滑过渡，则重启移动
+            MoveAlongPath(newPath);
         }
 
         /// <summary>
-        /// 执行A*寻路算法
+        /// 在新路径中找到最接近当前位置的路径点索引
         /// </summary>
-        private List<Vector3Int> ExecuteAStar(Vector3Int start, Vector3Int target, PathfindingOptions options)
+        private int FindClosestPathIndex(List<Vector3Int> path, Vector3 currentPosition)
         {
-            var openSet = new List<PathNode>();
-            var closedSet = new HashSet<Vector3Int>();
-            var allNodes = new Dictionary<Vector3Int, PathNode>();
+            if (path == null || path.Count == 0) return -1;
 
-            var startNode = new PathNode(start, 0, GetHeuristic(start, target), null);
-            openSet.Add(startNode);
-            allNodes[start] = startNode;
+            float minDistance = float.MaxValue;
+            int bestIndex = -1;
 
-            Vector3Int[] directions = options.allowDiagonal ? directions8 : directions4;
-            int iterations = 0;
+            // 从当前路径索引开始向前搜索，避免回退太远
+            int searchStart = Mathf.Max(0, currentPathIndex - 2);
+            int searchEnd = Mathf.Min(path.Count, currentPathIndex + 5);
 
-            while (openSet.Count > 0 && iterations < options.maxIterations)
+            for (int i = searchStart; i < searchEnd; i++)
             {
-                iterations++;
-                lastStats.nodesExplored++;
+                Vector3 pathPoint = GetWorldPosition(path[i]);
+                float distance = Vector3.Distance(currentPosition, pathPoint);
 
-                // 找到F值最小的节点
-                var currentNode = GetLowestFCostNode(openSet);
-                openSet.Remove(currentNode);
-                closedSet.Add(currentNode.position);
-
-                // 到达目标
-                if (currentNode.position == target)
+                if (distance < minDistance)
                 {
-                    lastStats.iterations = iterations;
-                    return ReconstructPath(currentNode);
+                    minDistance = distance;
+                    bestIndex = i;
                 }
+            }
 
-                // 检查相邻节点
-                foreach (var direction in directions)
+            // 如果搜索范围内找不到合适点，则搜索整个路径
+            if (bestIndex == -1)
+            {
+                for (int i = 0; i < path.Count; i++)
                 {
-                    Vector3Int neighborPos = currentNode.position + direction;
+                    Vector3 pathPoint = GetWorldPosition(path[i]);
+                    float distance = Vector3.Distance(currentPosition, pathPoint);
 
-                    if (closedSet.Contains(neighborPos) ||
-                        !IsPositionValid(neighborPos) ||
-                        HasDynamicObstacle(neighborPos))
-                        continue;
-
-                    // 计算移动代价
-                    float moveCost = GetMoveCost(direction, currentNode.position, neighborPos);
-                    float newGCost = currentNode.gCost + moveCost;
-
-                    if (!allNodes.TryGetValue(neighborPos, out PathNode neighborNode))
+                    if (distance < minDistance)
                     {
-                        neighborNode = new PathNode(neighborPos, newGCost, GetHeuristic(neighborPos, target), currentNode);
-                        allNodes[neighborPos] = neighborNode;
-                        openSet.Add(neighborNode);
-                    }
-                    else if (newGCost < neighborNode.gCost)
-                    {
-                        neighborNode.gCost = newGCost;
-                        neighborNode.parent = currentNode;
-
-                        if (!openSet.Contains(neighborNode))
-                            openSet.Add(neighborNode);
+                        minDistance = distance;
+                        bestIndex = i;
                     }
                 }
             }
 
-            lastStats.iterations = iterations;
-            Debug.LogWarning($"寻路失败！迭代次数: {iterations}");
-            return new List<Vector3Int>();
+            return bestIndex;
         }
 
         /// <summary>
-        /// 获取移动代价（考虑地形和方向）
+        /// 判断是否应该更新路径
         /// </summary>
-        private float GetMoveCost(Vector3Int direction, Vector3Int from, Vector3Int to)
+        private bool ShouldUpdatePath(List<Vector3Int> newPath)
         {
-            float baseCost = IsDiagonalMove(direction) ? diagonalMoveCost : straightMoveCost;
+            if (currentPath.Count == 0) return true;
+            if (newPath.Count == 0) return false;
 
-            if (useTerrainCosts)
+            // 如果终点不同，需要更新
+            if (currentPath[currentPath.Count - 1] != newPath[newPath.Count - 1])
+                return true;
+
+            // 如果路径长度差异很大，需要更新
+            float lengthDifference = Mathf.Abs(newPath.Count - currentPath.Count) / (float)currentPath.Count;
+            if (lengthDifference > 0.3f) // 30%的差异
+                return true;
+
+            // 检查路径的前几步是否有显著差异
+            int checkSteps = Mathf.Min(3, Mathf.Min(currentPath.Count, newPath.Count));
+            for (int i = 0; i < checkSteps; i++)
             {
-                // 获取目标瓦片的地形代价
-                var tileInfo = unifiedMap.GetTileInfo(to);
-                if (tileInfo != null)
-                {
-                    baseCost *= tileInfo.cost;
-                }
+                if (currentPath[i] != newPath[i])
+                    return true;
             }
 
-            return baseCost;
+            return false;
         }
 
-        /// <summary>
-        /// 判断是否为对角线移动
-        /// </summary>
-        private bool IsDiagonalMove(Vector3Int direction)
-        {
-            return direction.x != 0 && direction.y != 0;
-        }
+        #endregion
 
-        /// <summary>
-        /// 获取启发式距离
-        /// </summary>
-        private float GetHeuristic(Vector3Int a, Vector3Int b)
-        {
-            if (allowDiagonalMovement)
-            {
-                // 欧几里得距离
-                float dx = a.x - b.x;
-                float dy = a.y - b.y;
-                return Mathf.Sqrt(dx * dx + dy * dy);
-            }
-            else
-            {
-                // 曼哈顿距离
-                return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
-            }
-        }
-
-        /// <summary>
-        /// 获取F值最小的节点
-        /// </summary>
-        private PathNode GetLowestFCostNode(List<PathNode> nodes)
-        {
-            PathNode lowest = nodes[0];
-            for (int i = 1; i < nodes.Count; i++)
-            {
-                if (nodes[i].fCost < lowest.fCost ||
-                    (nodes[i].fCost == lowest.fCost && nodes[i].hCost < lowest.hCost))
-                {
-                    lowest = nodes[i];
-                }
-            }
-            return lowest;
-        }
-
-        /// <summary>
-        /// 重构路径
-        /// </summary>
-        private List<Vector3Int> ReconstructPath(PathNode endNode)
-        {
-            var path = new List<Vector3Int>();
-            var current = endNode;
-
-            while (current != null)
-            {
-                path.Insert(0, current.position);
-                current = current.parent;
-            }
-
-            return path;
-        }
-
-        /// <summary>
-        /// 获取GameObject下方的瓦片位置
-        /// </summary>
-        private Vector3Int GetTilePositionFromGameObject(GameObject obj)
-        {
-            if (obj == null || allTilemaps.Count == 0) return Vector3Int.zero;
-
-            Vector3 worldPos = obj.transform.position;
-            Vector3Int cellPos = allTilemaps[0].WorldToCell(worldPos);
-            return cellPos;
-        }
-
-        /// <summary>
-        /// 开始寻路并移动
-        /// </summary>
-        [ContextMenu("开始寻路并移动")]
-        public void StartPathfindingAndMove()
-        {
-            if (pathfindingObject == null)
-            {
-                Debug.LogError("寻路GameObject未设置！");
-                return;
-            }
-
-            if (targetObject == null)
-            {
-                Debug.LogError("目标GameObject未设置！");
-                return;
-            }
-
-            Vector3Int startPos = GetTilePositionFromGameObject(pathfindingObject);
-            Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
-
-            var path = FindPath(startPos, targetPos);
-
-            if (path.Count > 0)
-            {
-                MoveAlongPath(path);
-            }
-        }
-
-        /// <summary>
-        /// 沿路径移动GameObject
-        /// </summary>
-        public void MoveAlongPath(List<Vector3Int> path)
-        {
-            if (pathfindingObject == null || path.Count == 0) return;
-
-            // 停止之前的移动
-            if (moveCoroutine != null)
-            {
-                StopCoroutine(moveCoroutine);
-                OnMovementStopped?.Invoke();
-            }
-
-            currentPath = new List<Vector3Int>(path);
-            currentPathIndex = 0;
-            currentJitterOffset = Vector3.zero;
-            jitterTimer = 0f;
-            jitterHistory.Clear();
-            isMovingToTarget = false;
-
-            moveCoroutine = StartCoroutine(MoveCoroutine());
-            OnMovementStart?.Invoke(pathfindingObject.transform.position);
-        }
+        #region 移动相关
 
         /// <summary>
         /// 移动协程
@@ -1133,6 +1267,10 @@ namespace EasyPack
             moveCoroutine = null;
         }
 
+        #endregion
+
+        #region 抖动相关
+
         /// <summary>
         /// 生成抖动偏移
         /// </summary>
@@ -1179,6 +1317,22 @@ namespace EasyPack
             return randomOffset;
         }
 
+        #endregion
+
+        #region 工具方法
+
+        /// <summary>
+        /// 获取GameObject下方的瓦片位置
+        /// </summary>
+        private Vector3Int GetTilePositionFromGameObject(GameObject obj)
+        {
+            if (obj == null || allTilemaps.Count == 0) return Vector3Int.zero;
+
+            Vector3 worldPos = obj.transform.position;
+            Vector3Int cellPos = allTilemaps[0].WorldToCell(worldPos);
+            return cellPos;
+        }
+
         /// <summary>
         /// 将瓦片坐标转换为世界坐标
         /// </summary>
@@ -1202,59 +1356,25 @@ namespace EasyPack
             return worldPos;
         }
 
-        /// <summary>
-        /// 停止移动
-        /// </summary>
-        [ContextMenu("停止移动")]
-        public void StopMovement()
-        {
-            if (moveCoroutine != null)
-            {
-                StopCoroutine(moveCoroutine);
-                moveCoroutine = null;
-                OnMovementStopped?.Invoke();
-            }
-            currentPath.Clear();
-            currentPathIndex = 0;
-            currentJitterOffset = Vector3.zero;
-            jitterHistory.Clear();
-            isMovingToTarget = false;
-        }
+        #endregion
 
-        /// <summary>
-        /// 添加动态障碍物
-        /// </summary>
-        public void AddDynamicObstacle(Transform obstacle)
-        {
-            if (!dynamicObstacles.Contains(obstacle))
-            {
-                dynamicObstacles.Add(obstacle);
-            }
-        }
+        #region 设置接口
 
-        /// <summary>
-        /// 移除动态障碍物
-        /// </summary>
-        public void RemoveDynamicObstacle(Transform obstacle)
-        {
-            dynamicObstacles.Remove(obstacle);
-        }
+        public void SetTargetObject(GameObject target) => targetObject = target;
+        public void SetPathfindingObject(GameObject pathfinder) => pathfindingObject = pathfinder;
+        public bool IsMoving => moveCoroutine != null;
+        public int GetWalkableTileCount() => unifiedMap?.walkableTiles.Count ?? 0;
+        public void SetJitterEnabled(bool enabled) => enableMovementJitter = enabled;
+        public void SetJitterStrength(float strength) => jitterStrength = Mathf.Clamp01(strength);
+        public void SetJitterFrequency(float frequency) => jitterFrequency = Mathf.Max(0.1f, frequency);
 
-        /// <summary>
-        /// 设置瓦片代价
-        /// </summary>
-        public void SetTileCost(TileBase tile, float cost)
-        {
-            tileCostMap[tile] = cost;
-        }
+        // 平滑路径过渡设置
+        public void SetSmoothPathTransition(bool enabled) => enableSmoothPathTransition = enabled;
+        public void SetMaxBacktrackDistance(float distance) => maxBacktrackDistance = Mathf.Max(0.1f, distance);
 
-        /// <summary>
-        /// 获取最后一次寻路的统计信息
-        /// </summary>
-        public PathfindingStats GetLastPathfindingStats()
-        {
-            return lastStats;
-        }
+        #endregion
+
+        #region 调试相关
 
         // 调试绘制
         private void OnDrawGizmos()
@@ -1337,18 +1457,7 @@ namespace EasyPack
             }
         }
 
-        // 公共接口
-        public void SetTargetObject(GameObject target) => targetObject = target;
-        public void SetPathfindingObject(GameObject pathfinder) => pathfindingObject = pathfinder;
-        public bool IsMoving => moveCoroutine != null;
-        public int GetWalkableTileCount() => unifiedMap?.walkableTiles.Count ?? 0;
-        public void SetJitterEnabled(bool enabled) => enableMovementJitter = enabled;
-        public void SetJitterStrength(float strength) => jitterStrength = Mathf.Clamp01(strength);
-        public void SetJitterFrequency(float frequency) => jitterFrequency = Mathf.Max(0.1f, frequency);
-
-        // 平滑路径过渡设置
-        public void SetSmoothPathTransition(bool enabled) => enableSmoothPathTransition = enabled;
-        public void SetMaxBacktrackDistance(float distance) => maxBacktrackDistance = Mathf.Max(0.1f, distance);
+        #endregion
     }
 
     /// <summary>
