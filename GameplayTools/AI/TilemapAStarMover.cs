@@ -25,7 +25,7 @@ namespace EasyPack
         [Tooltip("寻路的目标游戏对象，作为寻路的终点")]
         public GameObject targetObject;
 
-        [Tooltip("是否启用瓦片中心偏移，让角色移动到瓦片中心而非左下角")]
+        [Tooltip("是否启用瓦片偏移")]
         public bool useTileCenterOffset = true;
 
         [Tooltip("瓦片偏移量，(0.5, 0.5)表示瓦片中心，范围0-1")]
@@ -116,6 +116,13 @@ namespace EasyPack
         [Tooltip("目标移动的最小距离阈值，超过此距离才触发刷新")]
         public float targetMoveThreshold = 0.5f;
 
+        [Header("平滑路径切换设置")]
+        [Tooltip("是否启用平滑路径切换，即不会停止再开始")]
+        public bool enableSmoothPathTransition = true;
+
+        [Tooltip("路径切换时的最大回退距离，超过此距离将直接切换到新路径")]
+        public float maxBacktrackDistance = 2f;
+
         [Header("事件")]
         [Tooltip("找到路径时触发的事件，参数为路径点列表")]
         public PathfindingEvent OnPathFound = new PathfindingEvent();
@@ -176,6 +183,11 @@ namespace EasyPack
         private UnifiedMap unifiedMap;
         private List<Vector3Int> currentPath = new List<Vector3Int>();
         private Coroutine moveCoroutine;
+
+        // 移动状态追踪
+        private int currentPathIndex = 0;
+        private Vector3 currentTarget = Vector3.zero;
+        public bool isMovingToTarget = false;
 
         // 抖动相关
         private Vector3 currentJitterOffset = Vector3.zero;
@@ -269,7 +281,18 @@ namespace EasyPack
             if (!IsMoving || pathfindingObject == null || targetObject == null)
                 return;
 
-            Vector3Int startPos = GetTilePositionFromGameObject(pathfindingObject);
+            Vector3Int startPos;
+            if (currentPath.Count > 0 && currentPathIndex < currentPath.Count)
+            {
+                // 如果正在移动到某个路径点，使用该路径点作为起点
+                startPos = currentPath[currentPathIndex];
+            }
+            else
+            {
+                // 备用方案：使用当前瓦片位置
+                startPos = GetTilePositionFromGameObject(pathfindingObject);
+            }
+
             Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
 
             // 如果目标位置没有改变，则不需要刷新
@@ -283,9 +306,98 @@ namespace EasyPack
                 // 只有当新路径与当前路径显著不同时才更新
                 if (ShouldUpdatePath(newPath))
                 {
-                    MoveAlongPath(newPath);
+                    // 使用平滑过渡而不是强制重置
+                    if (enableSmoothPathTransition)
+                    {
+                        SmoothTransitionToNewPath(newPath);
+                    }
+                    else
+                    {
+                        MoveAlongPath(newPath);
+                    }
                 }
             }
+        }
+
+        /// <summary>
+        /// 平滑过渡到新路径
+        /// </summary>
+        private void SmoothTransitionToNewPath(List<Vector3Int> newPath)
+        {
+            if (newPath == null || newPath.Count == 0) return;
+
+            Vector3 currentPosition = pathfindingObject.transform.position;
+
+            // 找到新路径中最接近当前位置的点
+            int bestIndex = FindClosestPathIndex(newPath, currentPosition);
+
+            // 如果找到合适的连接点
+            if (bestIndex >= 0)
+            {
+                // 计算从当前位置到最佳连接点的距离
+                Vector3 connectPoint = GetWorldPosition(newPath[bestIndex]);
+                float backtrackDistance = Vector3.Distance(currentPosition, connectPoint);
+
+                // 如果回退距离在可接受范围内，则从该点继续
+                if (backtrackDistance <= maxBacktrackDistance)
+                {
+                    // 更新路径从连接点开始
+                    currentPath = newPath;
+                    currentPathIndex = bestIndex;
+                    currentTarget = GetWorldPosition(newPath[currentPathIndex]);
+
+                    // 不需要重启协程，当前协程会自动使用新的路径和索引
+                    return;
+                }
+            }
+
+            // 如果无法平滑过渡，则重启移动
+            MoveAlongPath(newPath);
+        }
+
+        /// <summary>
+        /// 在新路径中找到最接近当前位置的路径点索引
+        /// </summary>
+        private int FindClosestPathIndex(List<Vector3Int> path, Vector3 currentPosition)
+        {
+            if (path == null || path.Count == 0) return -1;
+
+            float minDistance = float.MaxValue;
+            int bestIndex = -1;
+
+            // 从当前路径索引开始向前搜索，避免回退太远
+            int searchStart = Mathf.Max(0, currentPathIndex - 2);
+            int searchEnd = Mathf.Min(path.Count, currentPathIndex + 5);
+
+            for (int i = searchStart; i < searchEnd; i++)
+            {
+                Vector3 pathPoint = GetWorldPosition(path[i]);
+                float distance = Vector3.Distance(currentPosition, pathPoint);
+
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    bestIndex = i;
+                }
+            }
+
+            // 如果搜索范围内找不到合适点，则搜索整个路径
+            if (bestIndex == -1)
+            {
+                for (int i = 0; i < path.Count; i++)
+                {
+                    Vector3 pathPoint = GetWorldPosition(path[i]);
+                    float distance = Vector3.Distance(currentPosition, pathPoint);
+
+                    if (distance < minDistance)
+                    {
+                        minDistance = distance;
+                        bestIndex = i;
+                    }
+                }
+            }
+
+            return bestIndex;
         }
 
         /// <summary>
@@ -627,7 +739,7 @@ namespace EasyPack
         /// </summary>
         private List<Vector3Int> SmoothPathBezier(List<Vector3Int> path)
         {
-            // TODO
+            //TODO:
             return path;
         }
 
@@ -856,10 +968,10 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// 开始寻路
+        /// 开始寻路并移动
         /// </summary>
-        [ContextMenu("开始寻路")]
-        public void StartPathfinding()
+        [ContextMenu("开始寻路并移动")]
+        public void StartPathfindingAndMove()
         {
             if (pathfindingObject == null)
             {
@@ -899,9 +1011,11 @@ namespace EasyPack
             }
 
             currentPath = new List<Vector3Int>(path);
+            currentPathIndex = 0;
             currentJitterOffset = Vector3.zero;
             jitterTimer = 0f;
             jitterHistory.Clear();
+            isMovingToTarget = false;
 
             moveCoroutine = StartCoroutine(MoveCoroutine());
             OnMovementStart?.Invoke(pathfindingObject.transform.position);
@@ -912,27 +1026,34 @@ namespace EasyPack
         /// </summary>
         private System.Collections.IEnumerator MoveCoroutine()
         {
-            int currentIndex = 0;
-            float pathProgress = 0f;
-
-            while (currentIndex < currentPath.Count)
+            while (currentPathIndex < currentPath.Count)
             {
-                Vector3Int targetCell = currentPath[currentIndex];
+                Vector3Int targetCell = currentPath[currentPathIndex];
                 Vector3 targetWorld = GetWorldPosition(targetCell);
-                Vector3 startPos = pathfindingObject.transform.position;
-
-                float moveDistance = Vector3.Distance(startPos, targetWorld);
-                float moveTime = 0f;
+                currentTarget = targetWorld;
+                isMovingToTarget = true;
 
                 // 平滑移动到目标位置
                 while (Vector3.Distance(pathfindingObject.transform.position, targetWorld + currentJitterOffset) > 0.05f)
                 {
-                    moveTime += Time.deltaTime;
-                    pathProgress = moveTime / (moveDistance / moveSpeed);
+                    // 检查路径是否被更新（平滑过渡的情况）
+                    if (currentPathIndex < currentPath.Count)
+                    {
+                        targetCell = currentPath[currentPathIndex];
+                        targetWorld = GetWorldPosition(targetCell);
+                        currentTarget = targetWorld;
+                    }
 
-                    // 应用移动速度曲线
-                    float speedMultiplier = moveSpeedCurve.Evaluate(pathProgress);
-                    float currentSpeed = moveSpeed * speedMultiplier;
+                    // 计算移动速度
+                    float currentSpeed = moveSpeed;
+                    if (moveSpeedCurve.keys.Length > 1)
+                    {
+                        Vector3 startPos = currentPathIndex > 0 ? GetWorldPosition(currentPath[currentPathIndex - 1]) : pathfindingObject.transform.position;
+                        float pathProgress = 1f - (Vector3.Distance(pathfindingObject.transform.position, targetWorld) / Vector3.Distance(startPos, targetWorld));
+                        pathProgress = Mathf.Clamp01(pathProgress);
+                        float speedMultiplier = moveSpeedCurve.Evaluate(pathProgress);
+                        currentSpeed = moveSpeed * speedMultiplier;
+                    }
 
                     // 更新抖动
                     if (enableMovementJitter)
@@ -979,9 +1100,10 @@ namespace EasyPack
                     yield return null;
                 }
 
-                currentIndex++;
+                isMovingToTarget = false;
+                currentPathIndex++;
 
-                if (currentIndex < currentPath.Count)
+                if (currentPathIndex < currentPath.Count)
                 {
                     currentJitterOffset = GenerateJitterOffset(pathfindingObject.transform.position);
                 }
@@ -1005,6 +1127,7 @@ namespace EasyPack
 
             pathfindingObject.transform.position = finalTarget;
             currentJitterOffset = Vector3.zero;
+            isMovingToTarget = false;
 
             OnMovementComplete?.Invoke(finalTarget);
             moveCoroutine = null;
@@ -1092,8 +1215,10 @@ namespace EasyPack
                 OnMovementStopped?.Invoke();
             }
             currentPath.Clear();
+            currentPathIndex = 0;
             currentJitterOffset = Vector3.zero;
             jitterHistory.Clear();
+            isMovingToTarget = false;
         }
 
         /// <summary>
@@ -1158,6 +1283,14 @@ namespace EasyPack
                     Gizmos.DrawLine(from, to);
                     Gizmos.DrawWireSphere(from, 0.15f);
                 }
+
+                // 高亮当前目标点
+                if (currentPathIndex < currentPath.Count)
+                {
+                    Gizmos.color = Color.yellow;
+                    Vector3 currentTargetPos = GetWorldPosition(currentPath[currentPathIndex]);
+                    Gizmos.DrawWireSphere(currentTargetPos, 0.2f);
+                }
             }
 
             // 绘制动态障碍物
@@ -1212,6 +1345,10 @@ namespace EasyPack
         public void SetJitterEnabled(bool enabled) => enableMovementJitter = enabled;
         public void SetJitterStrength(float strength) => jitterStrength = Mathf.Clamp01(strength);
         public void SetJitterFrequency(float frequency) => jitterFrequency = Mathf.Max(0.1f, frequency);
+
+        // 平滑路径过渡设置
+        public void SetSmoothPathTransition(bool enabled) => enableSmoothPathTransition = enabled;
+        public void SetMaxBacktrackDistance(float distance) => maxBacktrackDistance = Mathf.Max(0.1f, distance);
     }
 
     /// <summary>
