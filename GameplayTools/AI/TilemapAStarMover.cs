@@ -17,6 +17,8 @@ namespace EasyPack
         public List<Tilemap> allTilemaps = new List<Tilemap>();
 
         [Header("寻路设置")]
+        [Tooltip("执行寻路的物品对象如果为null，那么是否默认设置为自身")]
+        public bool ispathFindingObjectSelf;
         [Tooltip("执行寻路的游戏对象，作为寻路的起点")]
         public GameObject pathfindingObject;
 
@@ -88,11 +90,11 @@ namespace EasyPack
         public List<Transform> dynamicObstacles = new List<Transform>();
 
         [Header("抖动设置")]
-        [Tooltip("是否启用移动抖动效果，让移动看起来更自然")]
-        public bool enableMovementJitter = true;
+        [Tooltip("是否启用移动抖动效果，让移动看起来更自然(或许)")]
+        public bool enableMovementJitter = false;
 
         [Tooltip("抖动强度，范围0-1，值越大抖动越明显")]
-        public float jitterStrength = 0.3f;
+        public float jitterStrength = 0.1f;
 
         [Tooltip("抖动频率，每秒产生抖动的次数")]
         public float jitterFrequency = 2f;
@@ -201,8 +203,12 @@ namespace EasyPack
 
         private void Start()
         {
+            // 如果未设置寻路对象，则默认使用自身
+            if (ispathFindingObjectSelf && pathfindingObject == null)
+            {
+                pathfindingObject = gameObject;
+            }
             BuildUnifiedMap();
-            InitializeTileCosts();
             InitializeAutoRefresh();
         }
 
@@ -308,16 +314,6 @@ namespace EasyPack
             }
 
             return false;
-        }
-
-
-        /// <summary>
-        /// 初始化瓦片代价
-        /// </summary>
-        private void InitializeTileCosts()
-        {
-            if (!useTerrainCosts) return;
-            // TODO:
         }
 
         /// <summary>
@@ -860,10 +856,10 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// 刷新寻路
+        /// 开始寻路
         /// </summary>
-        [ContextMenu("刷新寻路")]
-        public void RefreshPathfinding()
+        [ContextMenu("开始寻路")]
+        public void StartPathfinding()
         {
             if (pathfindingObject == null)
             {
