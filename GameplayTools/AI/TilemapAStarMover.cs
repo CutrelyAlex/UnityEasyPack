@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Tilemaps;
 using UnityEngine.Events;
+using UnityEngine.Tilemaps;
 namespace EasyPack
 {
     [System.Serializable]
@@ -100,6 +100,20 @@ namespace EasyPack
         [Tooltip("防止抖动进入无效区域，确保抖动不会让角色移动到不可行走的瓦片")]
         public bool preventJitterIntoNull = true;
 
+        [Header("自动刷新设置")]
+        [Tooltip("是否启用自动刷新功能，在Update中定期重新计算寻路")]
+        public bool enableAutoRefresh = false;
+
+        [Tooltip("自动刷新的频率，每秒刷新的次数")]
+        [Range(0.1f, 10f)]
+        public float refreshFrequency = 1f;
+
+        [Tooltip("是否在目标对象移动时触发刷新")]
+        public bool refreshOnTargetMove = true;
+
+        [Tooltip("目标移动的最小距离阈值，超过此距离才触发刷新")]
+        public float targetMoveThreshold = 0.5f;
+
         [Header("事件")]
         [Tooltip("找到路径时触发的事件，参数为路径点列表")]
         public PathfindingEvent OnPathFound = new PathfindingEvent();
@@ -171,20 +185,131 @@ namespace EasyPack
 
         // 方向数组
         private readonly Vector3Int[] directions8 = {
-        Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right,
-        new Vector3Int(1, 1, 0), new Vector3Int(-1, 1, 0),
-        new Vector3Int(1, -1, 0), new Vector3Int(-1, -1, 0)
-    };
+            Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right,
+            new Vector3Int(1, 1, 0), new Vector3Int(-1, 1, 0),
+            new Vector3Int(1, -1, 0), new Vector3Int(-1, -1, 0)
+        };
 
         private readonly Vector3Int[] directions4 = {
-        Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right
-    };
+            Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right
+        };
+
+        // 自动刷新相关
+        private float refreshTimer = 0f;
+        private Vector3 lastTargetPosition;
+        private bool hasInitializedTargetPosition = false;
 
         private void Start()
         {
             BuildUnifiedMap();
             InitializeTileCosts();
+            InitializeAutoRefresh();
         }
+
+        private void Update()
+        {
+            if (!enableAutoRefresh) return;
+
+            HandleAutoRefresh();
+        }
+
+        /// <summary>
+        /// 处理自动刷新逻辑
+        /// </summary>
+        private void HandleAutoRefresh()
+        {
+            // 频率刷新
+            refreshTimer += Time.deltaTime;
+            bool shouldRefreshByFrequency = refreshTimer >= 1f / refreshFrequency;
+
+            // 目标移动刷新
+            bool shouldRefreshByTargetMove = false;
+            if (refreshOnTargetMove && targetObject != null)
+            {
+                if (!hasInitializedTargetPosition)
+                {
+                    lastTargetPosition = targetObject.transform.position;
+                    hasInitializedTargetPosition = true;
+                }
+                else
+                {
+                    float distance = Vector3.Distance(targetObject.transform.position, lastTargetPosition);
+                    if (distance >= targetMoveThreshold)
+                    {
+                        shouldRefreshByTargetMove = true;
+                        lastTargetPosition = targetObject.transform.position;
+                    }
+                }
+            }
+
+            // 执行刷新
+            if (shouldRefreshByFrequency || shouldRefreshByTargetMove)
+            {
+                if (shouldRefreshByFrequency)
+                {
+                    refreshTimer = 0f;
+                }
+
+                AutoRefreshPathfinding();
+            }
+        }
+
+        /// <summary>
+        /// 自动刷新寻路
+        /// </summary>
+        private void AutoRefreshPathfinding()
+        {
+            // 只有在角色正在移动且目标有效时才刷新
+            if (!IsMoving || pathfindingObject == null || targetObject == null)
+                return;
+
+            Vector3Int startPos = GetTilePositionFromGameObject(pathfindingObject);
+            Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
+
+            // 如果目标位置没有改变，则不需要刷新
+            if (currentPath.Count > 0 && targetPos == currentPath[currentPath.Count - 1])
+                return;
+
+            var newPath = FindPath(startPos, targetPos);
+
+            if (newPath.Count > 0)
+            {
+                // 只有当新路径与当前路径显著不同时才更新
+                if (ShouldUpdatePath(newPath))
+                {
+                    MoveAlongPath(newPath);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 判断是否应该更新路径
+        /// </summary>
+        private bool ShouldUpdatePath(List<Vector3Int> newPath)
+        {
+            if (currentPath.Count == 0) return true;
+            if (newPath.Count == 0) return false;
+
+            // 如果终点不同，需要更新
+            if (currentPath[currentPath.Count - 1] != newPath[newPath.Count - 1])
+                return true;
+
+            // 如果路径长度差异很大，需要更新
+            float lengthDifference = Mathf.Abs(newPath.Count - currentPath.Count) / (float)currentPath.Count;
+            if (lengthDifference > 0.3f) // 30%的差异
+                return true;
+
+            // 检查路径的前几步是否有显著差异
+            int checkSteps = Mathf.Min(3, Mathf.Min(currentPath.Count, newPath.Count));
+            for (int i = 0; i < checkSteps; i++)
+            {
+                if (currentPath[i] != newPath[i])
+                    return true;
+            }
+
+            return false;
+        }
+
 
         /// <summary>
         /// 初始化瓦片代价
@@ -192,9 +317,19 @@ namespace EasyPack
         private void InitializeTileCosts()
         {
             if (!useTerrainCosts) return;
+            // TODO:
+        }
 
-            // 示例：为不同类型的瓦片设置代价
-            // 这可以通过Inspector或配置文件来设置
+        /// <summary>
+        /// 初始化自动刷新
+        /// </summary>
+        private void InitializeAutoRefresh()
+        {
+            if (targetObject != null)
+            {
+                lastTargetPosition = targetObject.transform.position;
+                hasInitializedTargetPosition = true;
+            }
         }
 
         /// <summary>
@@ -286,6 +421,59 @@ namespace EasyPack
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 设置自动刷新启用状态
+        /// </summary>
+        public void SetAutoRefreshEnabled(bool enabled)
+        {
+            enableAutoRefresh = enabled;
+            if (enabled)
+            {
+                refreshTimer = 0f;
+                InitializeAutoRefresh();
+            }
+        }
+
+        /// <summary>
+        /// 设置刷新频率
+        /// </summary>
+        public void SetRefreshFrequency(float frequency)
+        {
+            refreshFrequency = Mathf.Clamp(frequency, 0.1f, 10f);
+            refreshTimer = 0f; // 重置计时器
+        }
+
+        /// <summary>
+        /// 设置目标移动刷新
+        /// </summary>
+        public void SetRefreshOnTargetMove(bool enabled)
+        {
+            refreshOnTargetMove = enabled;
+            if (enabled && targetObject != null)
+            {
+                lastTargetPosition = targetObject.transform.position;
+                hasInitializedTargetPosition = true;
+            }
+        }
+
+        /// <summary>
+        /// 设置目标移动阈值
+        /// </summary>
+        public void SetTargetMoveThreshold(float threshold)
+        {
+            targetMoveThreshold = Mathf.Max(0.1f, threshold);
+        }
+
+        /// <summary>
+        /// 强制刷新寻路（忽略频率限制）
+        /// </summary>
+        [ContextMenu("强制刷新寻路")]
+        public void ForceRefreshPathfinding()
+        {
+            refreshTimer = 0f;
+            AutoRefreshPathfinding();
         }
 
         /// <summary>
@@ -701,7 +889,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// 沿路径移动GameObject - 增强版本
+        /// 沿路径移动GameObject
         /// </summary>
         public void MoveAlongPath(List<Vector3Int> path)
         {
