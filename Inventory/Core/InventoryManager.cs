@@ -689,6 +689,9 @@ public class InventoryManager
     {
         try
         {
+            if(string.IsNullOrEmpty(itemId))
+                return (MoveResult.ItemNotFound, 0);
+
             var sourceContainer = GetContainer(fromContainerId);
             if (sourceContainer == null)
                 return (MoveResult.SourceContainerNotFound, 0);
@@ -761,6 +764,9 @@ public class InventoryManager
     {
         try
         {
+            if (string.IsNullOrEmpty(itemId))
+                return (MoveResult.ItemNotFound, 0);
+
             var sourceContainer = GetContainer(fromContainerId);
             if (sourceContainer == null)
                 return (MoveResult.SourceContainerNotFound, 0);
