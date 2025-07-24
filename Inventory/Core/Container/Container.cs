@@ -91,16 +91,8 @@ public abstract class Container : IContainer
     /// </summary>
     protected void TriggerItemTotalCountChanged(string itemId, IItem itemRef = null)
     {
-        int newTotal;
-        if (_cacheManager.TryGetItemCount(itemId, out newTotal))
-        {
-            // 缓存命中，直接使用
-        }
-        else
-        {
-            newTotal = GetItemTotalCount(itemId);
-        }
-
+        int newTotal = GetItemTotalCount(itemId);
+        
         int oldTotal = _itemTotalCounts.TryGetValue(itemId, out int value) ? value : 0;
 
         // 只有总数有变化才继续处理
