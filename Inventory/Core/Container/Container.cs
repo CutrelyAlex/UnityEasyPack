@@ -1,4 +1,4 @@
-using EasyPack;
+ï»¿using EasyPack;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,19 +8,19 @@ using UnityEngine;
 
 public abstract class Container : IContainer
 {
-    #region »ù±¾ÊôĞÔ
+    #region åŸºæœ¬å±æ€§
     public string ID { get; }
     public string Name { get; }
     public string Type { get; set; } = "";
-    public int Capacity { get; set; } // -1±íÊ¾ÎŞÏŞÈİÁ¿
-    public abstract bool IsGrid { get; } // ×ÓÀàÊµÏÖ£¬¾ö¶¨ÊÇ·ñÎªÍø¸ñÈİÆ÷
-    public abstract Vector2 Grid { get; } // Íø¸ñÈİÆ÷ĞÎ×´
+    public int Capacity { get; set; } // -1è¡¨ç¤ºæ— é™å®¹é‡
+    public abstract bool IsGrid { get; } // å­ç±»å®ç°ï¼Œå†³å®šæ˜¯å¦ä¸ºç½‘æ ¼å®¹å™¨
+    public abstract Vector2 Grid { get; } // ç½‘æ ¼å®¹å™¨å½¢çŠ¶
 
     public List<IItemCondition> ContainerCondition { get; set; }
     protected List<ISlot> _slots = new();
     public IReadOnlyList<ISlot> Slots => _slots.AsReadOnly();
 
-    // »º´æ¹ÜÀíÆ÷
+    // ç¼“å­˜ç®¡ç†å™¨
     protected readonly ContainerCacheManager _cacheManager;
 
     public Container(string id, string name, string type, int capacity = -1)
@@ -36,39 +36,39 @@ public abstract class Container : IContainer
     }
     #endregion
 
-    #region ÈİÆ÷ÊÂ¼ş
+    #region å®¹å™¨äº‹ä»¶
 
     /// <summary>
-    /// Ìí¼ÓÎïÆ·²Ù×÷½á¹ûÊÂ¼ş£¨Í³Ò»´¦Àí³É¹¦ºÍÊ§°Ü£©
+    /// æ·»åŠ ç‰©å“æ“ä½œç»“æœäº‹ä»¶ï¼ˆç»Ÿä¸€å¤„ç†æˆåŠŸå’Œå¤±è´¥ï¼‰
     /// </summary>
-    /// <param name="item">²Ù×÷µÄÎïÆ·</param>
-    /// <param name="requestedCount">ÇëÇóÌí¼ÓµÄÊıÁ¿</param>
-    /// <param name="actualCount">Êµ¼ÊÌí¼ÓµÄÊıÁ¿</param>
-    /// <param name="result">²Ù×÷½á¹û</param>
-    /// <param name="affectedSlots">Éæ¼°µÄ²ÛÎ»Ë÷ÒıÁĞ±í£¨Ê§°ÜÊ±Îª¿ÕÁĞ±í£©</param>
+    /// <param name="item">æ“ä½œçš„ç‰©å“</param>
+    /// <param name="requestedCount">è¯·æ±‚æ·»åŠ çš„æ•°é‡</param>
+    /// <param name="actualCount">å®é™…æ·»åŠ çš„æ•°é‡</param>
+    /// <param name="result">æ“ä½œç»“æœ</param>
+    /// <param name="affectedSlots">æ¶‰åŠçš„æ§½ä½ç´¢å¼•åˆ—è¡¨ï¼ˆå¤±è´¥æ—¶ä¸ºç©ºåˆ—è¡¨ï¼‰</param>
     public event System.Action<IItem, int, int, AddItemResult, List<int>> OnItemAddResult;
 
     /// <summary>
-    /// ÒÆ³ıÎïÆ·²Ù×÷½á¹ûÊÂ¼ş£¨Í³Ò»´¦Àí³É¹¦ºÍÊ§°Ü£©
+    /// ç§»é™¤ç‰©å“æ“ä½œç»“æœäº‹ä»¶ï¼ˆç»Ÿä¸€å¤„ç†æˆåŠŸå’Œå¤±è´¥ï¼‰
     /// </summary>
-    /// <param name="itemId">²Ù×÷µÄÎïÆ·ID</param>
-    /// <param name="requestedCount">ÇëÇóÒÆ³ıµÄÊıÁ¿</param>
-    /// <param name="actualCount">Êµ¼ÊÒÆ³ıµÄÊıÁ¿</param>
-    /// <param name="result">²Ù×÷½á¹û</param>
-    /// <param name="affectedSlots">Éæ¼°µÄ²ÛÎ»Ë÷ÒıÁĞ±í£¨Ê§°ÜÊ±Îª¿ÕÁĞ±í£©</param>
+    /// <param name="itemId">æ“ä½œçš„ç‰©å“ID</param>
+    /// <param name="requestedCount">è¯·æ±‚ç§»é™¤çš„æ•°é‡</param>
+    /// <param name="actualCount">å®é™…ç§»é™¤çš„æ•°é‡</param>
+    /// <param name="result">æ“ä½œç»“æœ</param>
+    /// <param name="affectedSlots">æ¶‰åŠçš„æ§½ä½ç´¢å¼•åˆ—è¡¨ï¼ˆå¤±è´¥æ—¶ä¸ºç©ºåˆ—è¡¨ï¼‰</param>
     public event System.Action<string, int, int, RemoveItemResult, List<int>> OnItemRemoveResult;
 
     /// <summary>
-    /// ²ÛÎ»ÊıÁ¿±ä¸üÊÂ¼ş
+    /// æ§½ä½æ•°é‡å˜æ›´äº‹ä»¶
     /// </summary>
-    /// <param name="slotIndex">±ä¸üµÄ²ÛÎ»Ë÷Òı</param>
-    /// <param name="item">±ä¸üµÄÎïÆ·</param>
-    /// <param name="oldCount">Ô­ÊıÁ¿</param>
-    /// <param name="newCount">ĞÂÊıÁ¿</param>
+    /// <param name="slotIndex">å˜æ›´çš„æ§½ä½ç´¢å¼•</param>
+    /// <param name="item">å˜æ›´çš„ç‰©å“</param>
+    /// <param name="oldCount">åŸæ•°é‡</param>
+    /// <param name="newCount">æ–°æ•°é‡</param>
     public event System.Action<int, IItem, int, int> OnSlotCountChanged;
 
     /// <summary>
-    /// ´¥·¢²ÛÎ»ÎïÆ·ÊıÁ¿±ä¸üÊÂ¼ş
+    /// è§¦å‘æ§½ä½ç‰©å“æ•°é‡å˜æ›´äº‹ä»¶
     /// </summary>
     protected virtual void OnSlotQuantityChanged(int slotIndex, IItem item, int oldCount, int newCount)
     {
@@ -76,18 +76,18 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// ÎïÆ·×ÜÊı±ä¸üÊÂ¼ş
+    /// ç‰©å“æ€»æ•°å˜æ›´äº‹ä»¶
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <param name="item">ÎïÆ·ÒıÓÃ£¨¿ÉÄÜÎªnull£¬Èç¹ûÎïÆ·ÒÑÍêÈ«ÒÆ³ı£©</param>
-    /// <param name="oldTotalCount">¾É×ÜÊı</param>
-    /// <param name="newTotalCount">ĞÂ×ÜÊı</param>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <param name="item">ç‰©å“å¼•ç”¨ï¼ˆå¯èƒ½ä¸ºnullï¼Œå¦‚æœç‰©å“å·²å®Œå…¨ç§»é™¤ï¼‰</param>
+    /// <param name="oldTotalCount">æ—§æ€»æ•°</param>
+    /// <param name="newTotalCount">æ–°æ€»æ•°</param>
     public event System.Action<string, IItem, int, int> OnItemTotalCountChanged;
 
     private readonly Dictionary<string, int> _itemTotalCounts = new();
 
     /// <summary>
-    /// ´¥·¢ÎïÆ·×ÜÊı±ä¸ü
+    /// è§¦å‘ç‰©å“æ€»æ•°å˜æ›´
     /// </summary>
     protected void TriggerItemTotalCountChanged(string itemId, IItem itemRef = null)
     {
@@ -95,7 +95,7 @@ public abstract class Container : IContainer
         
         int oldTotal = _itemTotalCounts.TryGetValue(itemId, out int value) ? value : 0;
 
-        // Ö»ÓĞ×ÜÊıÓĞ±ä»¯²Å¼ÌĞø´¦Àí
+        // åªæœ‰æ€»æ•°æœ‰å˜åŒ–æ‰ç»§ç»­å¤„ç†
         if (newTotal == oldTotal) return;
 
         if (itemRef == null && newTotal > 0)
@@ -113,13 +113,13 @@ public abstract class Container : IContainer
 
     #endregion
 
-    #region Åú²Ù×÷
+    #region æ‰¹æ“ä½œ
     private readonly HashSet<string> _pendingTotalCountUpdates = new();
     private readonly Dictionary<string, IItem> _itemRefCache = new();
     private bool _batchUpdateMode = false;
 
     /// <summary>
-    /// ¿ªÊ¼ÅúÁ¿²Ù×÷Ä£Ê½
+    /// å¼€å§‹æ‰¹é‡æ“ä½œæ¨¡å¼
     /// </summary>
     protected void BeginBatchUpdate()
     {
@@ -129,13 +129,13 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// ½áÊøÅúÁ¿²Ù×÷Ä£Ê½²¢´¦ÀíËùÓĞ´ı¸üĞÂÏî
+    /// ç»“æŸæ‰¹é‡æ“ä½œæ¨¡å¼å¹¶å¤„ç†æ‰€æœ‰å¾…æ›´æ–°é¡¹
     /// </summary>
     protected void EndBatchUpdate()
     {
         if (_batchUpdateMode && _pendingTotalCountUpdates.Count > 0)
         {
-            // ÅúÁ¿´¦ÀíËùÓĞ´ı¸üĞÂµÄÎïÆ·
+            // æ‰¹é‡å¤„ç†æ‰€æœ‰å¾…æ›´æ–°çš„ç‰©å“
             foreach (string itemId in _pendingTotalCountUpdates)
             {
                 TriggerItemTotalCountChanged(itemId,
@@ -149,10 +149,10 @@ public abstract class Container : IContainer
     }
     #endregion
 
-    #region ×´Ì¬¼ì²é
+    #region çŠ¶æ€æ£€æŸ¥
     // <summary>
-    /// ¼ì²éÈİÆ÷ÊÇ·ñÒÑÂú
-    /// ½öµ±ËùÓĞ²ÛÎ»¶¼±»Õ¼ÓÃ£¬ÇÒÃ¿¸öÕ¼ÓÃµÄ²ÛÎ»ÎïÆ·¶¼²»¿É¶Ñµş»òÒÑ´ïµ½¶ÑµşÉÏÏŞÊ±£¬ÈİÆ÷²Å±»ÈÏÎªÊÇÂúµÄ
+    /// æ£€æŸ¥å®¹å™¨æ˜¯å¦å·²æ»¡
+    /// ä»…å½“æ‰€æœ‰æ§½ä½éƒ½è¢«å ç”¨ï¼Œä¸”æ¯ä¸ªå ç”¨çš„æ§½ä½ç‰©å“éƒ½ä¸å¯å †å æˆ–å·²è¾¾åˆ°å †å ä¸Šé™æ—¶ï¼Œå®¹å™¨æ‰è¢«è®¤ä¸ºæ˜¯æ»¡çš„
     /// </summary>
     public virtual bool Full
     {
@@ -172,7 +172,7 @@ public abstract class Container : IContainer
                 if (!slot.IsOccupied)
                     return false;
 
-                // Èç¹ûÎïÆ·¿É¶ÑµşÇÒÎ´´ïµ½¶ÑµşÉÏÏŞ£¬ÈİÆ÷²»Âú
+                // å¦‚æœç‰©å“å¯å †å ä¸”æœªè¾¾åˆ°å †å ä¸Šé™ï¼Œå®¹å™¨ä¸æ»¡
                 if (slot.Item.IsStackable && (slot.Item.MaxStackCount <= 0 || slot.ItemCount < slot.Item.MaxStackCount))
                     return false;
             }
@@ -182,7 +182,7 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// ¼ì²éÎïÆ·ÊÇ·ñÂú×ãÈİÆ÷Ìõ¼ş
+    /// æ£€æŸ¥ç‰©å“æ˜¯å¦æ»¡è¶³å®¹å™¨æ¡ä»¶
     /// </summary>
     public bool ValidateItemCondition(IItem item)
     {
@@ -205,10 +205,10 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// ¼ì²éÊÇ·ñ¿ÉÒÔÌí¼ÓÎïÆ·µ½ÈİÆ÷
+    /// æ£€æŸ¥æ˜¯å¦å¯ä»¥æ·»åŠ ç‰©å“åˆ°å®¹å™¨
     /// </summary>
-    /// <param name="item">ÒªÌí¼ÓµÄÎïÆ·</param>
-    /// <returns>Ìí¼Ó½á¹û£¬Èç¹û¿ÉÒÔÌí¼Ó·µ»ØSuccess£¬·ñÔò·µ»Ø¶ÔÓ¦µÄ´íÎóÔ­Òò</returns>
+    /// <param name="item">è¦æ·»åŠ çš„ç‰©å“</param>
+    /// <returns>æ·»åŠ ç»“æœï¼Œå¦‚æœå¯ä»¥æ·»åŠ è¿”å›Successï¼Œå¦åˆ™è¿”å›å¯¹åº”çš„é”™è¯¯åŸå› </returns>
     protected virtual AddItemResult CanAddItem(IItem item)
     {
         if (item == null)
@@ -217,10 +217,10 @@ public abstract class Container : IContainer
         if (!ValidateItemCondition(item))
             return AddItemResult.ItemConditionNotMet;
 
-        // Èç¹ûÈİÆ÷ÒÑÂú£¬ĞèÒª¼ì²éÊÇ·ñÓĞ¿É¶ÑµşµÄ²ÛÎ»
+        // å¦‚æœå®¹å™¨å·²æ»¡ï¼Œéœ€è¦æ£€æŸ¥æ˜¯å¦æœ‰å¯å †å çš„æ§½ä½
         if (Full)
         {
-            // Èç¹ûÎïÆ·¿É¶Ñµş£¬¼ì²éÊÇ·ñÓĞÏàÍ¬ÎïÆ·ÇÒÎ´´ïµ½¶ÑµşÉÏÏŞµÄ²ÛÎ»
+            // å¦‚æœç‰©å“å¯å †å ï¼Œæ£€æŸ¥æ˜¯å¦æœ‰ç›¸åŒç‰©å“ä¸”æœªè¾¾åˆ°å †å ä¸Šé™çš„æ§½ä½
             if (item.IsStackable)
             {
                 if (_cacheManager.TryGetItemSlotIndices(item.ID, out var indices))
@@ -250,18 +250,9 @@ public abstract class Container : IContainer
     }
     #endregion
 
-    #region »º´æÏà¹Ø·½·¨
+    #region ç¼“å­˜ç›¸å…³æ–¹æ³•
     /// <summary>
-    /// Ë¢ĞÂÎïÆ·ÒıÓÃ»º´æ
-    /// </summary>
-    /// <param name="itemId">ÌØ¶¨ÎïÆ·ID£¬null±íÊ¾Ë¢ĞÂËùÓĞ</param>
-    public void RefreshItemReferenceCache(string itemId = null)
-    {
-        _cacheManager.RefreshItemReferenceCache(_slots.AsReadOnly(), itemId);
-    }
-
-    /// <summary>
-    /// ³õÊ¼»¯»òÖØ½¨ËùÓĞ»º´æ
+    /// åˆå§‹åŒ–æˆ–é‡å»ºæ‰€æœ‰ç¼“å­˜
     /// </summary>
     public void RebuildCaches()
     {
@@ -269,27 +260,54 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// Çå³ı»º´æÖĞµÄÎŞĞ§ÌõÄ¿
+    /// æ¸…é™¤ç¼“å­˜ä¸­çš„æ— æ•ˆæ¡ç›®
     /// </summary>
     public void ValidateCaches()
     {
         _cacheManager.ValidateCaches(_slots.AsReadOnly());
     }
+
+    private void ApplyBatchCacheUpdates(BatchCacheUpdates updates)
+    {
+        // æ•°é‡ç¼“å­˜åªæ›´æ–°ä¸€æ¬¡
+        if (updates.TotalCountDelta != 0)
+        {
+            _cacheManager.UpdateItemCountCache(updates.ItemId, updates.TotalCountDelta);
+        }
+
+        // æ‰¹é‡æ›´æ–°æ§½ä½ç´¢å¼•ç¼“å­˜
+        foreach (var (slotIndex, isAdding) in updates.SlotIndexUpdates)
+        {
+            _cacheManager.UpdateItemSlotIndexCache(updates.ItemId, slotIndex, isAdding);
+        }
+
+        // æ‰¹é‡æ›´æ–°ç±»å‹ç´¢å¼•ç¼“å­˜
+        foreach (var (slotIndex, isAdding) in updates.TypeIndexUpdates)
+        {
+            _cacheManager.UpdateItemTypeCache(updates.ItemType, slotIndex, isAdding);
+        }
+
+        // æ‰¹é‡æ›´æ–°ç©ºæ§½ä½ç¼“å­˜
+        foreach (var (slotIndex, isEmpty) in updates.EmptySlotUpdates)
+        {
+            _cacheManager.UpdateEmptySlotCache(slotIndex, isEmpty);
+        }
+    }
     #endregion
 
-    #region ÎïÆ·²éÑ¯
+    #region ç‰©å“æŸ¥è¯¢
     /// <summary>
-    /// ¼ì²éÈİÆ÷ÖĞÊÇ·ñ°üº¬Ö¸¶¨IDµÄÎïÆ·
+    /// æ£€æŸ¥å®¹å™¨ä¸­æ˜¯å¦åŒ…å«æŒ‡å®šIDçš„ç‰©å“
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <returns>Èç¹û°üº¬·µ»Øtrue£¬·ñÔò·µ»Øfalse</returns>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <returns>å¦‚æœåŒ…å«è¿”å›trueï¼Œå¦åˆ™è¿”å›false</returns>
     public bool HasItem(string itemId)
     {
         return _cacheManager.HasItemInCache(itemId);
     }
 
     /// <summary>
-    /// »ñÈ¡ÎïÆ·ÒıÓÃ
+    /// è·å–ç‰©å“å¼•ç”¨
     /// </summary>
     private IItem GetItemReference(string itemId)
     {
@@ -313,19 +331,19 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// »ñÈ¡ÈİÆ÷ÖĞÖ¸¶¨IDÎïÆ·µÄ×ÜÊıÁ¿
+    /// è·å–å®¹å™¨ä¸­æŒ‡å®šIDç‰©å“çš„æ€»æ•°é‡
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <returns>ÎïÆ·×ÜÊıÁ¿</returns>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <returns>ç‰©å“æ€»æ•°é‡</returns>
     public int GetItemTotalCount(string itemId)
     {
-        // Ê×ÏÈ³¢ÊÔÊ¹ÓÃÊıÁ¿»º´æ
+        // é¦–å…ˆå°è¯•ä½¿ç”¨æ•°é‡ç¼“å­˜
         if (_cacheManager.TryGetItemCount(itemId, out int cachedCount))
         {
             return cachedCount;
         }
 
-        // Èç¹û»º´æÎ´ÃüÖĞ£¬Ê¹ÓÃË÷Òı»º´æ¼ÆËã
+        // å¦‚æœç¼“å­˜æœªå‘½ä¸­ï¼Œä½¿ç”¨ç´¢å¼•ç¼“å­˜è®¡ç®—
         if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices))
         {
             int totalCount = 0;
@@ -343,14 +361,14 @@ public abstract class Container : IContainer
                 }
             }
 
-            // ¸üĞÂ»º´æ
+            // æ›´æ–°ç¼“å­˜
             if (totalCount > 0)
                 _cacheManager.UpdateItemCountCache(itemId, totalCount);
 
             return totalCount;
         }
 
-        // »ØÍËµ½´«Í³·½·¨
+        // å›é€€åˆ°ä¼ ç»Ÿæ–¹æ³•
         int count = 0;
         for (int i = 0; i < _slots.Count; i++)
         {
@@ -358,7 +376,7 @@ public abstract class Container : IContainer
             if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
             {
                 count += slot.ItemCount;
-                // ¸üĞÂ»º´æ
+                // æ›´æ–°ç¼“å­˜
                 _cacheManager.UpdateItemSlotIndexCache(itemId, i, true);
             }
         }
@@ -370,14 +388,14 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// °´ÀàĞÍ²éÑ¯ÎïÆ·
+    /// æŒ‰ç±»å‹æŸ¥è¯¢ç‰©å“
     /// </summary>
-    /// <param name="itemType">ÎïÆ·ÀàĞÍ</param>
-    /// <returns>·ûºÏÀàĞÍµÄÎïÆ·ÁĞ±í£¬°üº¬²ÛÎ»Ë÷Òı¡¢ÎïÆ·ÒıÓÃºÍÊıÁ¿</returns>
+    /// <param name="itemType">ç‰©å“ç±»å‹</param>
+    /// <returns>ç¬¦åˆç±»å‹çš„ç‰©å“åˆ—è¡¨ï¼ŒåŒ…å«æ§½ä½ç´¢å¼•ã€ç‰©å“å¼•ç”¨å’Œæ•°é‡</returns>
     public List<(int slotIndex, IItem item, int count)> GetItemsByType(string itemType)
     {
         var result = new List<(int slotIndex, IItem item, int count)>();
-        // Ê¹ÓÃÀàĞÍË÷Òı»º´æ
+        // ä½¿ç”¨ç±»å‹ç´¢å¼•ç¼“å­˜
         if (_cacheManager.TryGetItemTypeIndices(itemType, out var indices))
         {
             foreach (int index in indices)
@@ -394,14 +412,14 @@ public abstract class Container : IContainer
             return result;
         }
 
-        // »º´æÎ´ÃüÖĞ
+        // ç¼“å­˜æœªå‘½ä¸­
         for (int i = 0; i < _slots.Count; i++)
         {
             var slot = _slots[i];
             if (slot.IsOccupied && slot.Item != null && slot.Item.Type == itemType)
             {
                 result.Add((i, slot.Item, slot.ItemCount));
-                // ¸üĞÂÀàĞÍ»º´æ
+                // æ›´æ–°ç±»å‹ç¼“å­˜
                 _cacheManager.UpdateItemTypeCache(itemType, i, true);
             }
         }
@@ -410,11 +428,11 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// °´ÊôĞÔ²éÑ¯ÎïÆ·
+    /// æŒ‰å±æ€§æŸ¥è¯¢ç‰©å“
     /// </summary>
-    /// <param name="attributeName">ÊôĞÔÃû³Æ</param>
-    /// <param name="attributeValue">ÊôĞÔÖµ</param>
-    /// <returns>·ûºÏÊôĞÔÌõ¼şµÄÎïÆ·ÁĞ±í£¬°üº¬²ÛÎ»Ë÷Òı¡¢ÎïÆ·ÒıÓÃºÍÊıÁ¿</returns>
+    /// <param name="attributeName">å±æ€§åç§°</param>
+    /// <param name="attributeValue">å±æ€§å€¼</param>
+    /// <returns>ç¬¦åˆå±æ€§æ¡ä»¶çš„ç‰©å“åˆ—è¡¨ï¼ŒåŒ…å«æ§½ä½ç´¢å¼•ã€ç‰©å“å¼•ç”¨å’Œæ•°é‡</returns>
     public List<(int slotIndex, IItem item, int count)> GetItemsByAttribute(string attributeName, object attributeValue)
     {
         var result = new List<(int slotIndex, IItem item, int count)>();
@@ -422,7 +440,7 @@ public abstract class Container : IContainer
         var slots = _slots;
         int slotCount = slots.Count;
 
-        // Èç¹û²ÛÎ»ÊıÁ¿½Ï´ó£¬Ê¹ÓÃ²¢ĞĞ´¦Àí
+        // å¦‚æœæ§½ä½æ•°é‡è¾ƒå¤§ï¼Œä½¿ç”¨å¹¶è¡Œå¤„ç†
         if (slotCount > 100)
         {
             var lockObject = new object();
@@ -443,7 +461,7 @@ public abstract class Container : IContainer
         }
         else
         {
-            // Ğ¡¹æÄ£Êı¾İÊ¹ÓÃµ¥Ïß³Ì
+            // å°è§„æ¨¡æ•°æ®ä½¿ç”¨å•çº¿ç¨‹
             for (int i = 0; i < slotCount; i++)
             {
                 var slot = slots[i];
@@ -461,10 +479,10 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// °´Ìõ¼ş²éÑ¯ÎïÆ·
+    /// æŒ‰æ¡ä»¶æŸ¥è¯¢ç‰©å“
     /// </summary>
-    /// <param name="condition">Ìõ¼şÎ¯ÍĞ</param>
-    /// <returns>·ûºÏÌõ¼şµÄÎïÆ·ÁĞ±í£¬°üº¬²ÛÎ»Ë÷Òı¡¢ÎïÆ·ÒıÓÃºÍÊıÁ¿</returns>
+    /// <param name="condition">æ¡ä»¶å§”æ‰˜</param>
+    /// <returns>ç¬¦åˆæ¡ä»¶çš„ç‰©å“åˆ—è¡¨ï¼ŒåŒ…å«æ§½ä½ç´¢å¼•ã€ç‰©å“å¼•ç”¨å’Œæ•°é‡</returns>
     public List<(int slotIndex, IItem item, int count)> GetItemsWhere(System.Func<IItem, bool> condition)
     {
         var result = new List<(int slotIndex, IItem item, int count)>();
@@ -472,7 +490,7 @@ public abstract class Container : IContainer
         var slots = _slots;
         int slotCount = slots.Count;
 
-        // Èç¹û²ÛÎ»ÊıÁ¿½Ï´ó£¬Ê¹ÓÃ²¢ĞĞ´¦Àí
+        // å¦‚æœæ§½ä½æ•°é‡è¾ƒå¤§ï¼Œä½¿ç”¨å¹¶è¡Œå¤„ç†
         if (slotCount > 100)
         {
             var lockObject = new object();
@@ -490,7 +508,7 @@ public abstract class Container : IContainer
         }
         else
         {
-            // Ğ¡¹æÄ£Êı¾İÊ¹ÓÃµ¥Ïß³Ì
+            // å°è§„æ¨¡æ•°æ®ä½¿ç”¨å•çº¿ç¨‹
             for (int i = 0; i < slotCount; i++)
             {
                 var slot = slots[i];
@@ -505,16 +523,16 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// »ñÈ¡ÎïÆ·ËùÔÚµÄ²ÛÎ»Ë÷Òı
+    /// è·å–ç‰©å“æ‰€åœ¨çš„æ§½ä½ç´¢å¼•
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <returns>ÎïÆ·ËùÔÚµÄ²ÛÎ»Ë÷ÒıÁĞ±í</returns>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <returns>ç‰©å“æ‰€åœ¨çš„æ§½ä½ç´¢å¼•åˆ—è¡¨</returns>
     public List<int> FindSlotIndices(string itemId)
     {
-        // Ê¹ÓÃ»º´æ
+        // ä½¿ç”¨ç¼“å­˜
         if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices))
         {
-            // ÑéÖ¤»º´æÓĞĞ§ĞÔ
+            // éªŒè¯ç¼“å­˜æœ‰æ•ˆæ€§
             var validIndices = new List<int>(indices.Count);
             bool needsUpdate = false;
 
@@ -538,7 +556,7 @@ public abstract class Container : IContainer
                 }
             }
 
-            // Èç¹ûĞèÒª¸üĞÂ»º´æ
+            // å¦‚æœéœ€è¦æ›´æ–°ç¼“å­˜
             if (needsUpdate)
             {
                 foreach (int idx in indices)
@@ -554,7 +572,7 @@ public abstract class Container : IContainer
             return validIndices;
         }
 
-        // »º´æÎ´ÃüÖĞ£¬Ê¹ÓÃÔ­Ê¼·½·¨²¢¸üĞÂ»º´æ
+        // ç¼“å­˜æœªå‘½ä¸­ï¼Œä½¿ç”¨åŸå§‹æ–¹æ³•å¹¶æ›´æ–°ç¼“å­˜
         var result = new List<int>();
         for (int i = 0; i < _slots.Count; i++)
         {
@@ -562,7 +580,7 @@ public abstract class Container : IContainer
             if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
             {
                 result.Add(i);
-                // ¸üĞÂ»º´æ
+                // æ›´æ–°ç¼“å­˜
                 _cacheManager.UpdateItemSlotIndexCache(itemId, i, true);
             }
         }
@@ -570,13 +588,13 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// »ñÈ¡µÚÒ»¸ö°üº¬Ö¸¶¨ÎïÆ·IDµÄ²ÛÎ»Ë÷Òı
+    /// è·å–ç¬¬ä¸€ä¸ªåŒ…å«æŒ‡å®šç‰©å“IDçš„æ§½ä½ç´¢å¼•
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <returns>ÕÒµ½µÄ²ÛÎ»Ë÷Òı£¬Èç¹ûÃ»ÕÒµ½·µ»Ø-1</returns>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <returns>æ‰¾åˆ°çš„æ§½ä½ç´¢å¼•ï¼Œå¦‚æœæ²¡æ‰¾åˆ°è¿”å›-1</returns>
     public int FindFirstSlotIndex(string itemId)
     {
-        // Ê¹ÓÃ»º´æ¿ìËÙ²éÕÒ
+        // ä½¿ç”¨ç¼“å­˜å¿«é€ŸæŸ¥æ‰¾
         if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices) && indices.Count > 0)
         {
             int firstIndex = indices.Min();
@@ -590,13 +608,13 @@ public abstract class Container : IContainer
             }
         }
 
-        // »ØÍËµ½´«Í³·½·¨
+        // å›é€€åˆ°ä¼ ç»Ÿæ–¹æ³•
         for (int i = 0; i < _slots.Count; i++)
         {
             var slot = _slots[i];
             if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
             {
-                // ¸üĞÂ»º´æ
+                // æ›´æ–°ç¼“å­˜
                 _cacheManager.UpdateItemSlotIndexCache(itemId, i, true);
                 return i;
             }
@@ -606,18 +624,18 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// »ñÈ¡ÈİÆ÷ÖĞËùÓĞÎïÆ·µÄIDºÍ×ÜÊıÁ¿
+    /// è·å–å®¹å™¨ä¸­æ‰€æœ‰ç‰©å“çš„IDå’Œæ€»æ•°é‡
     /// </summary>
-    /// <returns>ÎïÆ·IDºÍ×ÜÊıÁ¿µÄ×Öµä</returns>
+    /// <returns>ç‰©å“IDå’Œæ€»æ•°é‡çš„å­—å…¸</returns>
     public Dictionary<string, int> GetAllItemCountsDict()
     {
-        // Èç¹ûÊıÁ¿»º´æÍêÕû£¬Ö±½Ó·µ»Ø»º´æ¸±±¾
+        // å¦‚æœæ•°é‡ç¼“å­˜å®Œæ•´ï¼Œç›´æ¥è¿”å›ç¼“å­˜å‰¯æœ¬
         var cachedCounts = _cacheManager.GetAllItemCounts();
         if (cachedCounts.Count > 0)
         {
             var result = new Dictionary<string, int>(cachedCounts);
 
-            // ÑéÖ¤»º´æÊÇ·ñÍêÕû
+            // éªŒè¯ç¼“å­˜æ˜¯å¦å®Œæ•´
             bool cacheComplete = true;
             foreach (var slot in _slots)
             {
@@ -635,7 +653,7 @@ public abstract class Container : IContainer
                 return result;
         }
 
-        // ÖØĞÂ¼ÆËã²¢¸üĞÂ»º´æ
+        // é‡æ–°è®¡ç®—å¹¶æ›´æ–°ç¼“å­˜
         var counts = new Dictionary<string, int>();
         foreach (var slot in _slots)
         {
@@ -661,9 +679,9 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// »ñÈ¡ÈİÆ÷ÖĞËùÓĞµÄÎïÆ·£¬°´²ÛÎ»Ë³Ğò
+    /// è·å–å®¹å™¨ä¸­æ‰€æœ‰çš„ç‰©å“ï¼ŒæŒ‰æ§½ä½é¡ºåº
     /// </summary>
-    /// <returns>²ÛÎ»Ë÷Òı¡¢ÎïÆ·ºÍÊıÁ¿µÄÁĞ±í</returns>
+    /// <returns>æ§½ä½ç´¢å¼•ã€ç‰©å“å’Œæ•°é‡çš„åˆ—è¡¨</returns>
     public List<(int slotIndex, IItem item, int count)> GetAllItems()
     {
         var result = new List<(int slotIndex, IItem item, int count)>();
@@ -681,27 +699,27 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// »ñÈ¡ÈİÆ÷ÖĞËùÓĞ²»Í¬ÀàĞÍµÄÎïÆ·ÊıÁ¿
+    /// è·å–å®¹å™¨ä¸­æ‰€æœ‰ä¸åŒç±»å‹çš„ç‰©å“æ•°é‡
     /// </summary>
-    /// <returns>²»Í¬ÀàĞÍµÄÎïÆ·×ÜÊı</returns>
+    /// <returns>ä¸åŒç±»å‹çš„ç‰©å“æ€»æ•°</returns>
     public int GetUniqueItemCount()
     {
         return GetAllItemCountsDict().Count;
     }
 
     /// <summary>
-    /// ¼ì²éÈİÆ÷ÊÇ·ñÎª¿Õ
+    /// æ£€æŸ¥å®¹å™¨æ˜¯å¦ä¸ºç©º
     /// </summary>
-    /// <returns>Èç¹ûÈİÆ÷Îª¿Õ·µ»Øtrue£¬·ñÔò·µ»Øfalse</returns>
+    /// <returns>å¦‚æœå®¹å™¨ä¸ºç©ºè¿”å›trueï¼Œå¦åˆ™è¿”å›false</returns>
     public bool IsEmpty()
     {
         return _cacheManager.GetCachedItemCount() == 0;
     }
 
     /// <summary>
-    /// »ñÈ¡ÈİÆ÷µ±Ç°Õ¼ÓÃµÄ×ÜÖØÁ¿
+    /// è·å–å®¹å™¨å½“å‰å ç”¨çš„æ€»é‡é‡
     /// </summary>
-    /// <returns>×ÜÖØÁ¿</returns>
+    /// <returns>æ€»é‡é‡</returns>
     public float GetTotalWeight()
     {
         float totalWeight = 0;
@@ -718,21 +736,21 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// ¼ì²éÈİÆ÷ÖĞÊÇ·ñÓĞ×ã¹»ÊıÁ¿µÄÖ¸¶¨ÎïÆ·
+    /// æ£€æŸ¥å®¹å™¨ä¸­æ˜¯å¦æœ‰è¶³å¤Ÿæ•°é‡çš„æŒ‡å®šç‰©å“
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <param name="requiredCount">ĞèÒªµÄÊıÁ¿</param>
-    /// <returns>Èç¹ûÓĞ×ã¹»ÊıÁ¿·µ»Øtrue£¬·ñÔò·µ»Øfalse</returns>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <param name="requiredCount">éœ€è¦çš„æ•°é‡</param>
+    /// <returns>å¦‚æœæœ‰è¶³å¤Ÿæ•°é‡è¿”å›trueï¼Œå¦åˆ™è¿”å›false</returns>
     public bool HasEnoughItems(string itemId, int requiredCount)
     {
         return GetItemTotalCount(itemId) >= requiredCount;
     }
 
     /// <summary>
-    /// Í¨¹ıÃû³ÆÄ£ºı²éÑ¯ÎïÆ·
+    /// é€šè¿‡åç§°æ¨¡ç³ŠæŸ¥è¯¢ç‰©å“
     /// </summary>
-    /// <param name="namePattern">Ãû³ÆÄ£Ê½£¬Ö§³Ö²¿·ÖÆ¥Åä</param>
-    /// <returns>·ûºÏÃû³ÆÄ£Ê½µÄÎïÆ·ÁĞ±í</returns>
+    /// <param name="namePattern">åç§°æ¨¡å¼ï¼Œæ”¯æŒéƒ¨åˆ†åŒ¹é…</param>
+    /// <returns>ç¬¦åˆåç§°æ¨¡å¼çš„ç‰©å“åˆ—è¡¨</returns>
     public List<(int slotIndex, IItem item, int count)> GetItemsByName(string namePattern)
     {
         var result = new List<(int slotIndex, IItem item, int count)>();
@@ -754,13 +772,13 @@ public abstract class Container : IContainer
     }
     #endregion
 
-    #region ÒÆ³ıÎïÆ·
+    #region ç§»é™¤ç‰©å“
     /// <summary>
-    /// ÒÆ³ıÖ¸¶¨IDµÄÎïÆ·
+    /// ç§»é™¤æŒ‡å®šIDçš„ç‰©å“
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <param name="count">ÒÆ³ıÊıÁ¿</param>
-    /// <returns>ÒÆ³ı½á¹û</returns>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <param name="count">ç§»é™¤æ•°é‡</param>
+    /// <returns>ç§»é™¤ç»“æœ</returns>
     public virtual RemoveItemResult RemoveItem(string itemId, int count = 1)
     {
         var emptySlots = new List<int>();
@@ -770,7 +788,7 @@ public abstract class Container : IContainer
             return RemoveItemResult.InvalidItemId;
         }
 
-        // ÏÈ¼ì²éÎïÆ·×ÜÊıÊÇ·ñ×ã¹»
+        // å…ˆæ£€æŸ¥ç‰©å“æ€»æ•°æ˜¯å¦è¶³å¤Ÿ
         int totalCount = GetItemTotalCount(itemId);
         if (totalCount < count && totalCount != 0)
         {
@@ -778,18 +796,18 @@ public abstract class Container : IContainer
             return RemoveItemResult.InsufficientQuantity;
         }
 
-        // Èç¹ûÎïÆ·²»´æÔÚ
+        // å¦‚æœç‰©å“ä¸å­˜åœ¨
         if (totalCount == 0)
         {
             OnItemRemoveResult?.Invoke(itemId, count, 0, RemoveItemResult.ItemNotFound, emptySlots);
             return RemoveItemResult.ItemNotFound;
         }
 
-        // Ö»ÓĞÈ·ÈÏÄÜ¹»ÍêÈ«ÒÆ³ıÖ¸¶¨ÊıÁ¿µÄÎïÆ·Ê±£¬²ÅÖ´ĞĞÒÆ³ı²Ù×÷
+        // åªæœ‰ç¡®è®¤èƒ½å¤Ÿå®Œå…¨ç§»é™¤æŒ‡å®šæ•°é‡çš„ç‰©å“æ—¶ï¼Œæ‰æ‰§è¡Œç§»é™¤æ“ä½œ
         int remainingCount = count;
         List<(ISlot slot, int removeAmount, int slotIndex)> removals = new();
 
-        // µÚÒ»²½£º¼ÆËãÒª´ÓÃ¿¸ö²ÛÎ»ÒÆ³ıµÄÊıÁ¿
+        // ç¬¬ä¸€æ­¥ï¼šè®¡ç®—è¦ä»æ¯ä¸ªæ§½ä½ç§»é™¤çš„æ•°é‡
         for (int i = 0; i < _slots.Count && remainingCount > 0; i++)
         {
             var slot = _slots[i];
@@ -802,7 +820,7 @@ public abstract class Container : IContainer
         }
 
         var affectedSlots = new List<int>();
-        // µÚ¶ş²½£ºÈ·ÈÏ¿ÉÒÔÍêÈ«ÒÆ³ıÖ¸¶¨ÊıÁ¿ºó£¬Ö´ĞĞÊµ¼ÊµÄÒÆ³ı²Ù×÷
+        // ç¬¬äºŒæ­¥ï¼šç¡®è®¤å¯ä»¥å®Œå…¨ç§»é™¤æŒ‡å®šæ•°é‡åï¼Œæ‰§è¡Œå®é™…çš„ç§»é™¤æ“ä½œ
         if (remainingCount == 0)
         {
             bool itemCompletelyRemoved = false;
@@ -829,42 +847,37 @@ public abstract class Container : IContainer
                     slot.SetItem(slot.Item, slot.ItemCount - removeAmount);
                 }
 
-                // ¸üĞÂÊıÁ¿»º´æ
+                // æ›´æ–°æ•°é‡ç¼“å­˜
                 _cacheManager.UpdateItemCountCache(itemId, -removeAmount);
 
                 affectedSlots.Add(slotIndex);
 
-                // ²ÛÎ»ÎïÆ·ÊıÁ¿±ä¸üÊÂ¼ş
+                // æ§½ä½ç‰©å“æ•°é‡å˜æ›´äº‹ä»¶
                 OnSlotQuantityChanged(slotIndex, item, oldCount, slot.ItemCount);
             }
-            // Èç¹ûÎïÆ·ÍêÈ«ÒÆ³ı£¬Çå³ıÒıÓÃ»º´æ
-            if (itemCompletelyRemoved)
-            {
-                _cacheManager.UpdateItemReferenceCache(itemId, null);
-            }
 
-            // ÒÆ³ı³É¹¦ÊÂ¼ş
+            // ç§»é™¤æˆåŠŸäº‹ä»¶
             OnItemRemoveResult?.Invoke(itemId, count, count, RemoveItemResult.Success, affectedSlots);
             TriggerItemTotalCountChanged(itemId);
             return RemoveItemResult.Success;
         }
 
-        // ·¢ÉúÎ´Öª´íÎó£¬²ÅÄÜ±¯²ÒµÃ×ßµ½ÁËÕâÒ»²½
+        // å‘ç”ŸæœªçŸ¥é”™è¯¯ï¼Œæ‰èƒ½æ‚²æƒ¨å¾—èµ°åˆ°äº†è¿™ä¸€æ­¥
         OnItemRemoveResult?.Invoke(itemId, count, 0, RemoveItemResult.Failed, emptySlots);
         return RemoveItemResult.Failed;
     }
 
     /// <summary>
-    /// ´ÓÖ¸¶¨²ÛÎ»ÒÆ³ıÎïÆ·
+    /// ä»æŒ‡å®šæ§½ä½ç§»é™¤ç‰©å“
     /// </summary>
-    /// <param name="index">²ÛÎ»Ë÷Òı</param>
-    /// <param name="count">ÒÆ³ıÊıÁ¿</param>
-    /// <param name="expectedItemId">Ô¤ÆÚÎïÆ·ID£¬ÓÃÓÚÑéÖ¤</param>
-    /// <returns>ÒÆ³ı½á¹û</returns>
+    /// <param name="index">æ§½ä½ç´¢å¼•</param>
+    /// <param name="count">ç§»é™¤æ•°é‡</param>
+    /// <param name="expectedItemId">é¢„æœŸç‰©å“IDï¼Œç”¨äºéªŒè¯</param>
+    /// <returns>ç§»é™¤ç»“æœ</returns>
     public virtual RemoveItemResult RemoveItemAtIndex(int index, int count = 1, string expectedItemId = null)
     {
         var emptySlots = new List<int>();
-        // ¼ì²é²ÛÎ»Ë÷ÒıÊÇ·ñÓĞĞ§
+        // æ£€æŸ¥æ§½ä½ç´¢å¼•æ˜¯å¦æœ‰æ•ˆ
         if (index < 0 || index >= _slots.Count)
         {
             OnItemRemoveResult?.Invoke(expectedItemId ?? "unknown", count, 0, RemoveItemResult.SlotNotFound, emptySlots);
@@ -873,36 +886,36 @@ public abstract class Container : IContainer
 
         var slot = _slots[index];
 
-        // ¼ì²é²ÛÎ»ÊÇ·ñÓĞÎïÆ·
+        // æ£€æŸ¥æ§½ä½æ˜¯å¦æœ‰ç‰©å“
         if (!slot.IsOccupied || slot.Item == null)
         {
             OnItemRemoveResult?.Invoke(expectedItemId ?? "unknown", count, 0, RemoveItemResult.ItemNotFound, emptySlots);
             return RemoveItemResult.ItemNotFound;
         }
 
-        // ±£´æÎïÆ·ÒıÓÃºÍID
+        // ä¿å­˜ç‰©å“å¼•ç”¨å’ŒID
         IItem item = slot.Item;
         string itemId = item.ID;
         string itemType = item.Type;
 
-        // Èç¹ûÌá¹©ÁËÔ¤ÆÚµÄÎïÆ·ID£¬ÔòÑéÖ¤
+        // å¦‚æœæä¾›äº†é¢„æœŸçš„ç‰©å“IDï¼Œåˆ™éªŒè¯
         if (!string.IsNullOrEmpty(expectedItemId) && itemId != expectedItemId)
         {
             OnItemRemoveResult?.Invoke(expectedItemId, count, 0, RemoveItemResult.InvalidItemId, emptySlots);
             return RemoveItemResult.InvalidItemId;
         }
 
-        // ¼ì²éÎïÆ·ÊıÁ¿ÊÇ·ñ×ã¹»
+        // æ£€æŸ¥ç‰©å“æ•°é‡æ˜¯å¦è¶³å¤Ÿ
         if (slot.ItemCount < count)
         {
             OnItemRemoveResult?.Invoke(itemId, count, 0, RemoveItemResult.InsufficientQuantity, emptySlots);
             return RemoveItemResult.InsufficientQuantity;
         }
 
-        // ¼ÇÂ¼¾ÉÊıÁ¿
+        // è®°å½•æ—§æ•°é‡
         int oldCount = slot.ItemCount;
 
-        // ËùÓĞ¼ì²é¶¼Í¨¹ı£¬Ö´ĞĞÒÆ³ı²Ù×÷
+        // æ‰€æœ‰æ£€æŸ¥éƒ½é€šè¿‡ï¼Œæ‰§è¡Œç§»é™¤æ“ä½œ
         if (slot.ItemCount - count <= 0)
         {
             slot.ClearSlot();
@@ -915,13 +928,13 @@ public abstract class Container : IContainer
             slot.SetItem(item, slot.ItemCount - count);
         }
 
-        // ¸üĞÂÊıÁ¿»º´æ
+        // æ›´æ–°æ•°é‡ç¼“å­˜
         _cacheManager.UpdateItemCountCache(itemId, -count);
 
-        // ´¥·¢ÎïÆ·ÊıÁ¿±ä¸üÊÂ¼ş
+        // è§¦å‘ç‰©å“æ•°é‡å˜æ›´äº‹ä»¶
         OnSlotQuantityChanged(index, item, oldCount, slot.ItemCount);
 
-        // ´¥·¢ÎïÆ·ÒÆ³ıÊÂ¼ş
+        // è§¦å‘ç‰©å“ç§»é™¤äº‹ä»¶
         var affectedSlots = new List<int> { index };
         OnItemRemoveResult?.Invoke(itemId, count, count, RemoveItemResult.Success, affectedSlots);
         TriggerItemTotalCountChanged(itemId, item);
@@ -930,15 +943,15 @@ public abstract class Container : IContainer
     }
     #endregion
 
-    #region Ìí¼ÓÎïÆ·
+    #region æ·»åŠ ç‰©å“
     /// <summary>
-    /// Ìí¼ÓÖ¸¶¨ÊıÁ¿µÄÎïÆ·µ½ÈİÆ÷
+    /// æ·»åŠ æŒ‡å®šæ•°é‡çš„ç‰©å“åˆ°å®¹å™¨
     /// </summary>
-    /// <param name="item">ÒªÌí¼ÓµÄÎïÆ·</param>
-    /// <param name="count">ÒªÌí¼ÓµÄÊıÁ¿</param>
-    /// <param name="slotIndex">Ö¸¶¨µÄ²ÛÎ»Ë÷Òı£¬-1±íÊ¾×Ô¶¯Ñ°ÕÒºÏÊÊµÄ²ÛÎ»</param>
-    /// <param name="exceededCount">³¬³ö¶ÑµşÉÏÏŞµÄÊıÁ¿</param>
-    /// <returns>Ìí¼Ó½á¹ûºÍ³É¹¦Ìí¼ÓµÄÊıÁ¿</returns>
+    /// <param name="item">è¦æ·»åŠ çš„ç‰©å“</param>
+    /// <param name="count">è¦æ·»åŠ çš„æ•°é‡</param>
+    /// <param name="slotIndex">æŒ‡å®šçš„æ§½ä½ç´¢å¼•ï¼Œ-1è¡¨ç¤ºè‡ªåŠ¨å¯»æ‰¾åˆé€‚çš„æ§½ä½</param>
+    /// <param name="exceededCount">è¶…å‡ºå †å ä¸Šé™çš„æ•°é‡</param>
+    /// <returns>æ·»åŠ ç»“æœå’ŒæˆåŠŸæ·»åŠ çš„æ•°é‡</returns>
     public virtual (AddItemResult result, int addedCount)
     AddItemsWithCount(IItem item, out int exceededCount, int count = 1, int slotIndex = -1)
     {
@@ -946,7 +959,7 @@ public abstract class Container : IContainer
         List<int> affectedSlots = new(12);
         var emptySlots = new List<int>();
 
-        // »ù±¾ÑéÖ¤
+        // åŸºæœ¬éªŒè¯
         if (item == null)
         {
             OnItemAddResult?.Invoke(item, count, 0, AddItemResult.ItemIsNull, emptySlots);
@@ -961,7 +974,7 @@ public abstract class Container : IContainer
             OnItemAddResult?.Invoke(item, count, 0, AddItemResult.ItemConditionNotMet, emptySlots);
             return (AddItemResult.ItemConditionNotMet, 0);
         }
-        // ¿ªÊ¼ÅúÁ¿¸üĞÂÄ£Ê½
+        // å¼€å§‹æ‰¹é‡æ›´æ–°æ¨¡å¼
         BeginBatchUpdate();
 
         try
@@ -969,11 +982,14 @@ public abstract class Container : IContainer
             int totalAdded = 0;
             int remainingCount = count;
 
-            // ½«ÎïÆ·Ìí¼Óµ½´ı¸üĞÂÁĞ±í²¢»º´æÎïÆ·ÒıÓÃ
+            // æ‰¹é‡ç¼“å­˜æ›´æ–°æ•°æ®
+            var cacheUpdates = new BatchCacheUpdates(item.ID, item.Type);
+
+            // å°†ç‰©å“æ·»åŠ åˆ°å¾…æ›´æ–°åˆ—è¡¨å¹¶ç¼“å­˜ç‰©å“å¼•ç”¨
             _pendingTotalCountUpdates.Add(item.ID);
             _itemRefCache[item.ID] = item;
 
-            // 1. ¶Ñµş´¦Àí
+            // 1. å †å å¤„ç†
             if (item.IsStackable && slotIndex == -1)
             {
                 var (stackedCount, stackedSlots, slotChanges) = TryStackItems(item, remainingCount);
@@ -984,9 +1000,9 @@ public abstract class Container : IContainer
                     remainingCount -= stackedCount;
                     affectedSlots.AddRange(stackedSlots);
 
-                    _cacheManager.UpdateItemCountCache(item.ID, stackedCount);
+                    cacheUpdates.TotalCountDelta += stackedCount;
 
-                    // ÅúÁ¿ÊÂ¼ş´¥·¢
+                    // æ‰¹é‡äº‹ä»¶è§¦å‘
                     foreach (var change in slotChanges)
                     {
                         int slotIdx = change.Key;
@@ -996,13 +1012,14 @@ public abstract class Container : IContainer
 
                     if (remainingCount <= 0)
                     {
+                        ApplyBatchCacheUpdates(cacheUpdates);
                         OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                         return (AddItemResult.Success, totalAdded);
                     }
                 }
             }
 
-            // 2. Ö¸¶¨²ÛÎ»´¦Àí
+            // 2. æŒ‡å®šæ§½ä½å¤„ç†
             if (slotIndex >= 0 && remainingCount > 0)
             {
                 var (success, addedCount, newRemaining) = TryAddToSpecificSlot(item, slotIndex, remainingCount);
@@ -1013,13 +1030,15 @@ public abstract class Container : IContainer
                     remainingCount = newRemaining;
                     affectedSlots.Add(slotIndex);
 
-                    _cacheManager.UpdateItemCountCache(item.ID, addedCount);
-                    _cacheManager.UpdateItemSlotIndexCache(item.ID, slotIndex, true);
-                    _cacheManager.UpdateItemTypeCache(item.Type, slotIndex, true);
-                    _cacheManager.UpdateEmptySlotCache(slotIndex, false);
+                    // ç¼“å­˜æ›´æ–°
+                    cacheUpdates.TotalCountDelta += addedCount;
+                    cacheUpdates.SlotIndexUpdates.Add((slotIndex, true));
+                    cacheUpdates.TypeIndexUpdates.Add((slotIndex, true));
+                    cacheUpdates.EmptySlotUpdates.Add((slotIndex, false));
 
                     if (remainingCount <= 0)
                     {
+                        ApplyBatchCacheUpdates(cacheUpdates);
                         OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                         return (AddItemResult.Success, totalAdded);
                     }
@@ -1028,6 +1047,7 @@ public abstract class Container : IContainer
                 {
                     if (totalAdded > 0)
                     {
+                        ApplyBatchCacheUpdates(cacheUpdates);
                         OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                     }
                     OnItemAddResult?.Invoke(item, remainingCount, 0, AddItemResult.NoSuitableSlotFound, emptySlots);
@@ -1035,7 +1055,7 @@ public abstract class Container : IContainer
                 }
             }
 
-            // 3. ¿Õ²ÛÎ»ºÍĞÂ²ÛÎ»´¦Àí
+            // 3. ç©ºæ§½ä½å’Œæ–°æ§½ä½å¤„ç†
             while (remainingCount > 0)
             {
                 var (emptySlotSuccess, emptyAddedCount, emptyRemaining, emptySlotIndex) =
@@ -1047,14 +1067,14 @@ public abstract class Container : IContainer
                     remainingCount = emptyRemaining;
                     affectedSlots.Add(emptySlotIndex);
 
-                    _cacheManager.UpdateItemCountCache(item.ID, emptyAddedCount);
-                    _cacheManager.UpdateItemSlotIndexCache(item.ID, emptySlotIndex, true);
-                    _cacheManager.UpdateItemTypeCache(item.Type, emptySlotIndex, true);
+                    cacheUpdates.TotalCountDelta += emptyAddedCount;
+                    cacheUpdates.SlotIndexUpdates.Add((emptySlotIndex, true));
+                    cacheUpdates.TypeIndexUpdates.Add((emptySlotIndex, true));
 
                     if (remainingCount <= 0)
                     {
+                        ApplyBatchCacheUpdates(cacheUpdates);
                         OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
-
                         return (AddItemResult.Success, totalAdded);
                     }
                     continue;
@@ -1069,22 +1089,24 @@ public abstract class Container : IContainer
                     remainingCount = newRemaining;
                     affectedSlots.Add(newSlotIndex);
 
-                    _cacheManager.UpdateItemCountCache(item.ID, newAddedCount);
-                    _cacheManager.UpdateItemSlotIndexCache(item.ID, newSlotIndex, true);
-                    _cacheManager.UpdateItemTypeCache(item.Type, newSlotIndex, true);
+                    cacheUpdates.TotalCountDelta += newAddedCount;
+                    cacheUpdates.SlotIndexUpdates.Add((newSlotIndex, true));
+                    cacheUpdates.TypeIndexUpdates.Add((newSlotIndex, true));
 
                     if (remainingCount <= 0)
                     {
+                        ApplyBatchCacheUpdates(cacheUpdates);
                         OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                         return (AddItemResult.Success, totalAdded);
                     }
                     continue;
                 }
 
-                // ÎŞ·¨¼ÌĞøÌí¼Ó
+                // æ— æ³•ç»§ç»­æ·»åŠ 
                 if (totalAdded > 0)
                 {
                     exceededCount = remainingCount;
+                    ApplyBatchCacheUpdates(cacheUpdates);
                     OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                     OnItemAddResult?.Invoke(item, remainingCount, 0, AddItemResult.ContainerIsFull, emptySlots);
                     return (AddItemResult.ContainerIsFull, totalAdded);
@@ -1099,31 +1121,31 @@ public abstract class Container : IContainer
                 }
             }
 
+            ApplyBatchCacheUpdates(cacheUpdates);
             OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
-
             return (AddItemResult.Success, totalAdded);
         }
         finally
         {
-            // ½áÊøÅúÁ¿¸üĞÂ£¬Í³Ò»´¦ÀíËùÓĞ´ı¸üĞÂÏî
+            // ç»“æŸæ‰¹é‡æ›´æ–°ï¼Œç»Ÿä¸€å¤„ç†æ‰€æœ‰å¾…æ›´æ–°é¡¹
             EndBatchUpdate();
         }
     }
 
     /// <summary>
-    /// Ìí¼ÓÖ¸¶¨ÊıÁ¿µÄÎïÆ·µ½ÈİÆ÷
+    /// æ·»åŠ æŒ‡å®šæ•°é‡çš„ç‰©å“åˆ°å®¹å™¨
     /// </summary>
-    /// <param name="item">ÒªÌí¼ÓµÄÎïÆ·</param>
-    /// <param name="count">ÒªÌí¼ÓµÄÊıÁ¿</param>
-    /// <param name="slotIndex">Ö¸¶¨µÄ²ÛÎ»Ë÷Òı£¬-1±íÊ¾×Ô¶¯Ñ°ÕÒºÏÊÊµÄ²ÛÎ»</param>
-    /// <returns>Ìí¼Ó½á¹ûºÍ³É¹¦Ìí¼ÓµÄÊıÁ¿</returns>
+    /// <param name="item">è¦æ·»åŠ çš„ç‰©å“</param>
+    /// <param name="count">è¦æ·»åŠ çš„æ•°é‡</param>
+    /// <param name="slotIndex">æŒ‡å®šçš„æ§½ä½ç´¢å¼•ï¼Œ-1è¡¨ç¤ºè‡ªåŠ¨å¯»æ‰¾åˆé€‚çš„æ§½ä½</param>
+    /// <returns>æ·»åŠ ç»“æœå’ŒæˆåŠŸæ·»åŠ çš„æ•°é‡</returns>
     public virtual (AddItemResult result, int addedCount) AddItems(IItem item, int count = 1, int slotIndex = -1)
     {
         return AddItemsWithCount(item, out _, count, slotIndex);
     }
 
     /// <summary>
-    /// Òì²½Ìí¼ÓÎïÆ·
+    /// å¼‚æ­¥æ·»åŠ ç‰©å“
     /// </summary>
     public async Task<(AddItemResult result, int addedCount)> AddItemsAsync(
         IItem item, int count, CancellationToken cancellationToken = default)
@@ -1137,10 +1159,10 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// ÅúÁ¿Ìí¼Ó¶àÖÖÎïÆ·
+    /// æ‰¹é‡æ·»åŠ å¤šç§ç‰©å“
     /// </summary>
-    /// <param name="itemsToAdd">ÒªÌí¼ÓµÄÎïÆ·ºÍÊıÁ¿ÁĞ±í</param>
-    /// <returns>Ã¿¸öÎïÆ·µÄÌí¼Ó½á¹û</returns>
+    /// <param name="itemsToAdd">è¦æ·»åŠ çš„ç‰©å“å’Œæ•°é‡åˆ—è¡¨</param>
+    /// <returns>æ¯ä¸ªç‰©å“çš„æ·»åŠ ç»“æœ</returns>
     public virtual List<(IItem item, AddItemResult result, int addedCount, int exceededCount)> AddItemsBatch(
         List<(IItem item, int count)> itemsToAdd)
     {
@@ -1149,7 +1171,7 @@ public abstract class Container : IContainer
         if (itemsToAdd == null || itemsToAdd.Count == 0)
             return results;
 
-        // ¿ªÊ¼ÅúÁ¿¸üĞÂÄ£Ê½
+        // å¼€å§‹æ‰¹é‡æ›´æ–°æ¨¡å¼
         BeginBatchUpdate();
 
         try
@@ -1162,7 +1184,7 @@ public abstract class Container : IContainer
         }
         finally
         {
-            // ½áÊøÅúÁ¿¸üĞÂ£¬Í³Ò»´¦ÀíËùÓĞ´ı¸üĞÂÏî
+            // ç»“æŸæ‰¹é‡æ›´æ–°ï¼Œç»Ÿä¸€å¤„ç†æ‰€æœ‰å¾…æ›´æ–°é¡¹
             EndBatchUpdate();
         }
 
@@ -1170,15 +1192,15 @@ public abstract class Container : IContainer
     }
     #endregion
 
-    #region ÖĞ¼ä´¦ÀíAPI
+    #region ä¸­é—´å¤„ç†API
 
     /// <summary>
-    /// ³¢ÊÔ½«ÎïÆ·¶Ñµşµ½ÒÑÓĞÏàÍ¬ÎïÆ·µÄ²ÛÎ»ÖĞ - ¼«ÖÂÓÅ»¯°æ±¾
+    /// å°è¯•å°†ç‰©å“å †å åˆ°å·²æœ‰ç›¸åŒç‰©å“çš„æ§½ä½ä¸­ - æè‡´ä¼˜åŒ–ç‰ˆæœ¬
     /// </summary>
     protected virtual (int stackedCount, List<int> affectedSlots, Dictionary<int, (int oldCount, int newCount)> changes)
         TryStackItems(IItem item, int remainingCount)
     {
-        // ÔçÆÚÍË³ö
+        // æ—©æœŸé€€å‡º
         if (remainingCount <= 0 || !item.IsStackable)
             return (0, new List<int>(0), new Dictionary<int, (int oldCount, int newCount)>(0));
 
@@ -1187,12 +1209,12 @@ public abstract class Container : IContainer
         if (maxStack <= 1 || !_cacheManager.TryGetItemSlotIndices(item.ID, out var indices) || indices.Count == 0)
             return (0, new List<int>(0), new Dictionary<int, (int oldCount, int newCount)>(0));
 
-        // Êı×é³Ø»¯
+        // æ•°ç»„æ± åŒ–
         int estimatedSize = Math.Min(indices.Count, 16);
         var affectedSlots = new List<int>(estimatedSize);
         var slotChanges = new Dictionary<int, (int oldCount, int newCount)>(estimatedSize);
 
-        // ÊÕ¼¯ÓĞĞ§²ÛÎ»ĞÅÏ¢
+        // æ”¶é›†æœ‰æ•ˆæ§½ä½ä¿¡æ¯
         bool isInfiniteStack = maxStack <= 0;
         var stackableSlots = new List<(int index, int space)>(Math.Min(indices.Count, 64));
 
@@ -1211,11 +1233,11 @@ public abstract class Container : IContainer
 
         if (stackableSlots.Count > 20)
         {
-            // °´¿ÉÓÃ¿Õ¼ä½µĞòÅÅĞò£¬ÓÅÏÈÌîÂú´ó¿Õ¼ä²ÛÎ»
+            // æŒ‰å¯ç”¨ç©ºé—´é™åºæ’åºï¼Œä¼˜å…ˆå¡«æ»¡å¤§ç©ºé—´æ§½ä½
             stackableSlots.Sort((a, b) => b.space.CompareTo(a.space));
         }
 
-        // ¶ÑµşÊµÏÖ
+        // å †å å®ç°
         int stackedCount = 0;
         int currentRemaining = remainingCount;
 
@@ -1240,7 +1262,7 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// ³¢ÊÔ½«ÎïÆ·Ìí¼Óµ½Ö¸¶¨²ÛÎ»
+    /// å°è¯•å°†ç‰©å“æ·»åŠ åˆ°æŒ‡å®šæ§½ä½
     /// </summary>
     protected virtual (bool success, int addedCount, int remainingCount)
     TryAddToSpecificSlot(IItem item, int slotIndex, int remainingCount)
@@ -1252,7 +1274,7 @@ public abstract class Container : IContainer
 
         var targetSlot = _slots[slotIndex];
 
-        // Èç¹û²ÛÎ»ÒÑ±»Õ¼ÓÃ£¬¼ì²éÊÇ·ñ¿ÉÒÔ¶ÑµşÎïÆ·
+        // å¦‚æœæ§½ä½å·²è¢«å ç”¨ï¼Œæ£€æŸ¥æ˜¯å¦å¯ä»¥å †å ç‰©å“
         if (targetSlot.IsOccupied)
         {
             if (targetSlot.Item.ID != item.ID)
@@ -1265,35 +1287,35 @@ public abstract class Container : IContainer
                 return (false, 0, remainingCount);
             }
 
-            // ¼ÆËã¿ÉÌí¼ÓÊıÁ¿
+            // è®¡ç®—å¯æ·»åŠ æ•°é‡
             int oldCount = targetSlot.ItemCount;
             int canAddCount;
 
             if (item.MaxStackCount <= 0)
             {
-                canAddCount = remainingCount; // ÎŞÏŞ¶Ñµş
+                canAddCount = remainingCount; // æ— é™å †å 
             }
             else
             {
-                // ¿¼ÂÇ²ÛÎ»ÒÑÓĞÊıÁ¿£¬È·±£²»³¬¹ı×î´ó¶ÑµşÊı
+                // è€ƒè™‘æ§½ä½å·²æœ‰æ•°é‡ï¼Œç¡®ä¿ä¸è¶…è¿‡æœ€å¤§å †å æ•°
                 canAddCount = Mathf.Min(remainingCount, item.MaxStackCount - targetSlot.ItemCount);
                 if (canAddCount <= 0)
                 {
-                    return (false, 0, remainingCount); // ÒÑ´ïµ½×î´ó¶ÑµşÊı
+                    return (false, 0, remainingCount); // å·²è¾¾åˆ°æœ€å¤§å †å æ•°
                 }
             }
 
-            // ÉèÖÃÎïÆ·
+            // è®¾ç½®ç‰©å“
             if (targetSlot.SetItem(targetSlot.Item, targetSlot.ItemCount + canAddCount))
             {
-                // ´¥·¢ÊıÁ¿±ä¸ü
+                // è§¦å‘æ•°é‡å˜æ›´
                 OnSlotQuantityChanged(slotIndex, targetSlot.Item, oldCount, targetSlot.ItemCount);
                 return (true, canAddCount, remainingCount - canAddCount);
             }
         }
         else
         {
-            // ²ÛÎ»Îª¿Õ£¬Ö±½ÓÌí¼Ó
+            // æ§½ä½ä¸ºç©ºï¼Œç›´æ¥æ·»åŠ 
             if (!targetSlot.CheckSlotCondition(item))
             {
                 return (false, 0, remainingCount);
@@ -1305,7 +1327,7 @@ public abstract class Container : IContainer
 
             if (targetSlot.SetItem(item, addCount))
             {
-                // ´¥·¢ÊıÁ¿±ä¸ü
+                // è§¦å‘æ•°é‡å˜æ›´
                 OnSlotQuantityChanged(slotIndex, targetSlot.Item, 0, targetSlot.ItemCount);
                 return (true, addCount, remainingCount - addCount);
             }
@@ -1321,14 +1343,14 @@ public abstract class Container : IContainer
 
         int maxStack = item.MaxStackCount;
 
-        // ¿ÉÒÔÌí¼ÓµÄÊıÁ¿
+        // å¯ä»¥æ·»åŠ çš„æ•°é‡
         int addCount = isStackable && maxStack > 0
             ? Math.Min(remainingCount, maxStack)
             : (isStackable ? remainingCount : 1);
 
         var emptySlotIndices = _cacheManager.GetEmptySlotIndices();
 
-        // Ê¹ÓÃ¿Õ²ÛÎ»»º´æ
+        // ä½¿ç”¨ç©ºæ§½ä½ç¼“å­˜
         foreach (int i in emptySlotIndices)
         {
             if (i >= _slots.Count) continue;
@@ -1340,11 +1362,10 @@ public abstract class Container : IContainer
 
             if (slot.SetItem(item, addCount))
             {
-                // ÅúÁ¿¸üĞÂ»º´æ
+                // æ‰¹é‡æ›´æ–°ç¼“å­˜
                 _cacheManager.UpdateEmptySlotCache(i, false);
                 _cacheManager.UpdateItemSlotIndexCache(item.ID, i, true);
                 _cacheManager.UpdateItemTypeCache(item.Type, i, true);
-                _cacheManager.UpdateItemReferenceCache(item.ID, item);
 
                 OnSlotQuantityChanged(i, slot.Item, 0, slot.ItemCount);
                 return (true, addCount, remainingCount - addCount, i);
@@ -1355,18 +1376,17 @@ public abstract class Container : IContainer
 
         for (int i = 0; i < _slots.Count; i++)
         {
-            if (emptySlotSet.Contains(i)) continue; // ÒÑÔÚ¸Õ²Å¼ì²é¹ıµÄ²ÛÎ»Ìø¹ı
+            if (emptySlotSet.Contains(i)) continue; // å·²åœ¨åˆšæ‰æ£€æŸ¥è¿‡çš„æ§½ä½è·³è¿‡
 
             var slot = _slots[i];
             if (slot.IsOccupied || !slot.CheckSlotCondition(item)) continue;
 
             if (slot.SetItem(item, addCount))
             {
-                // ¸üĞÂ»º´æ×´Ì¬
+                // æ›´æ–°ç¼“å­˜çŠ¶æ€
                 _cacheManager.UpdateItemSlotIndexCache(item.ID, i, true);
                 _cacheManager.UpdateItemTypeCache(item.Type, i, true);
-                _cacheManager.UpdateItemReferenceCache(item.ID, item);
-
+               
                 OnSlotQuantityChanged(i, slot.Item, 0, slot.ItemCount);
                 return (true, addCount, remainingCount - addCount, i);
             }
@@ -1376,7 +1396,7 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// ³¢ÊÔ´´½¨ĞÂ²ÛÎ»²¢Ìí¼ÓÎïÆ·
+    /// å°è¯•åˆ›å»ºæ–°æ§½ä½å¹¶æ·»åŠ ç‰©å“
     /// </summary>
     protected virtual (bool success, int addedCount, int remainingCount, int slotIndex)
         TryAddToNewSlot(IItem item, int remainingCount)
@@ -1392,18 +1412,17 @@ public abstract class Container : IContainer
 
             int addCount = item.IsStackable && item.MaxStackCount > 0 ?
                           Mathf.Min(remainingCount, item.MaxStackCount) :
-                          1; // ²»¿É¶ÑµşÎïÆ·
+                          1; // ä¸å¯å †å ç‰©å“
 
             if (newSlot.CheckSlotCondition(item) && newSlot.SetItem(item, addCount))
             {
                 _slots.Add(newSlot);
 
-                // ¸üĞÂ»º´æ
+                // æ›´æ–°ç¼“å­˜
                 _cacheManager.UpdateItemSlotIndexCache(item.ID, newSlotIndex, true);
                 _cacheManager.UpdateItemTypeCache(item.Type, newSlotIndex, true);
-                _cacheManager.UpdateItemReferenceCache(item.ID, item);
 
-                // ´¥·¢ÊıÁ¿±ä¸ü
+                // è§¦å‘æ•°é‡å˜æ›´
                 OnSlotQuantityChanged(newSlotIndex, newSlot.Item, 0, newSlot.ItemCount);
                 return (true, addCount, remainingCount - addCount, newSlotIndex);
             }

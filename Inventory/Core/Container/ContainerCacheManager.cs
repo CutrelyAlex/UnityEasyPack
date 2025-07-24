@@ -22,9 +22,6 @@ namespace EasyPack
 
         // 物品数量缓存
         private readonly Dictionary<string, int> _itemCountCache = new();
-
-        // 物品引用缓存
-        private readonly Dictionary<string, WeakReference<IItem>> _itemReferenceCache = new();
         #endregion
 
         #region 构造函数
@@ -116,21 +113,6 @@ namespace EasyPack
                 _itemCountCache[itemId] = delta;
             }
         }
-
-        public void UpdateItemReferenceCache(string itemId, IItem item = null)
-        {
-            if (string.IsNullOrEmpty(itemId))
-                return;
-
-            if (item != null)
-            {
-                _itemReferenceCache[itemId] = new WeakReference<IItem>(item);
-            }
-            else
-            {
-                _itemReferenceCache.Remove(itemId);
-            }
-        }
         #endregion
 
         #region 缓存查询方法
@@ -154,25 +136,23 @@ namespace EasyPack
             return _itemCountCache.TryGetValue(itemId, out count);
         }
 
-        public IItem GetCachedItemReference(string itemId, System.Func<string, IItem> fallbackGetter)
+        public IItem GetItemReference(string itemId, IReadOnlyList<ISlot> slots)
         {
-            if (_itemReferenceCache.TryGetValue(itemId, out var weakRef) &&
-                weakRef.TryGetTarget(out var item))
+            if (_itemSlotIndexCache.TryGetValue(itemId, out var indices) && indices.Count > 0)
             {
-                return item;
+                foreach (int index in indices)
+                {
+                    if (index < slots.Count)
+                    {
+                        var slot = slots[index];
+                        if (slot.IsOccupied && slot.Item?.ID == itemId)
+                        {
+                            return slot.Item;
+                        }
+                    }
+                }
             }
-
-            var newItem = fallbackGetter?.Invoke(itemId);
-            if (newItem != null)
-            {
-                _itemReferenceCache[itemId] = new WeakReference<IItem>(newItem);
-            }
-            else
-            {
-                _itemReferenceCache.Remove(itemId);
-            }
-
-            return newItem;
+            return null;
         }
 
         public SortedSet<int> GetEmptySlotIndices()
@@ -192,50 +172,6 @@ namespace EasyPack
         #endregion
 
         #region 缓存维护方法
-        public void RefreshItemReferenceCache(IReadOnlyList<ISlot> slots, string itemId = null)
-        {
-            if (itemId != null)
-            {
-                // 刷新特定物品
-                var item = GetItemReferenceFromSlots(slots, itemId);
-                UpdateItemReferenceCache(itemId, item);
-            }
-            else
-            {
-                // 刷新所有物品引用缓存
-                _itemReferenceCache.Clear();
-
-                var processedItems = new HashSet<string>();
-                foreach (var slot in slots)
-                {
-                    if (slot.IsOccupied && slot.Item != null && !processedItems.Contains(slot.Item.ID))
-                    {
-                        _itemReferenceCache[slot.Item.ID] = new WeakReference<IItem>(slot.Item);
-                        processedItems.Add(slot.Item.ID);
-                    }
-                }
-            }
-        }
-
-        private IItem GetItemReferenceFromSlots(IReadOnlyList<ISlot> slots, string itemId)
-        {
-            if (_itemSlotIndexCache.TryGetValue(itemId, out var indices) && indices.Count > 0)
-            {
-                foreach (int index in indices)
-                {
-                    if (index < slots.Count)
-                    {
-                        var slot = slots[index];
-                        if (slot.IsOccupied && slot.Item?.ID == itemId)
-                        {
-                            return slot.Item;
-                        }
-                    }
-                }
-            }
-            return null;
-        }
-
         public void RebuildCaches(IReadOnlyList<ISlot> slots)
         {
             // 清空所有缓存
@@ -258,13 +194,6 @@ namespace EasyPack
 
                     // 更新物品数量缓存
                     UpdateItemCountCache(slot.Item.ID, slot.ItemCount);
-
-                    // 更新物品引用缓存
-                    if (!processedItems.Contains(itemId))
-                    {
-                        _itemReferenceCache[itemId] = new WeakReference<IItem>(slot.Item);
-                        processedItems.Add(itemId);
-                    }
                 }
                 else
                 {
@@ -313,26 +242,6 @@ namespace EasyPack
             {
                 _emptySlotIndices.Remove(index);
             }
-
-            CleanupItemReferenceCache();
-        }
-
-        private void CleanupItemReferenceCache()
-        {
-            var keysToRemove = new List<string>();
-
-            foreach (var kvp in _itemReferenceCache)
-            {
-                if (!kvp.Value.TryGetTarget(out _))
-                {
-                    keysToRemove.Add(kvp.Key);
-                }
-            }
-
-            foreach (var key in keysToRemove)
-            {
-                _itemReferenceCache.Remove(key);
-            }
         }
 
         public void ClearAllCaches()
@@ -341,8 +250,27 @@ namespace EasyPack
             _emptySlotIndices.Clear();
             _itemTypeIndexCache.Clear();
             _itemCountCache.Clear();
-            _itemReferenceCache.Clear();
         }
         #endregion
+    }
+
+    public struct BatchCacheUpdates
+    {
+        public string ItemId;
+        public string ItemType;
+        public int TotalCountDelta;
+        public List<(int slotIndex, bool isAdding)> SlotIndexUpdates;
+        public List<(int slotIndex, bool isAdding)> TypeIndexUpdates;
+        public List<(int slotIndex, bool isEmpty)> EmptySlotUpdates;
+
+        public BatchCacheUpdates(string itemId, string itemType)
+        {
+            ItemId = itemId;
+            ItemType = itemType;
+            TotalCountDelta = 0;
+            SlotIndexUpdates = new List<(int, bool)>();
+            TypeIndexUpdates = new List<(int, bool)>();
+            EmptySlotUpdates = new List<(int, bool)>();
+        }
     }
 }
