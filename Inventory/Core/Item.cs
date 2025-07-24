@@ -5,6 +5,19 @@ using UnityEngine;
 
 namespace EasyPack
 {
+    public interface IItem
+    {
+        string ID { get; }
+        string Name { get; }
+        string Type { get; }
+        string Description { get; }
+        bool IsStackable { get; }
+
+        float Weight { get; set; }
+        int MaxStackCount { get; }
+        Dictionary<string, object> Attributes { get; set; }
+        IItem Clone();
+    }
     public class Item : IItem
     {
         #region »ù±¾ÊôÐÔ
