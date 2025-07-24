@@ -7,9 +7,7 @@ using UnityEngine;
 public class LinerContainer : Container
 {
     public override bool IsGrid => false;
-
-    public override Vector2 Grid => new(-1,-1);
-
+    public override Vector2 Grid => new(-1, -1);
 
     /// <summary>
     /// 创建一个线性容器
@@ -21,19 +19,7 @@ public class LinerContainer : Container
     public LinerContainer(string id, string name, string type, int capacity = -1)
         : base(id, name, type, capacity)
     {
-        // 初始化槽位
-        if (capacity > 0)
-        {
-            for (int i = 0; i < capacity; i++)
-            {
-                var slot = new Slot
-                {
-                    Index = i,
-                    Container = this
-                };
-                _slots.Add(slot);
-            }
-        }
+        InitializeSlots(capacity);
     }
 
     /// <summary>
@@ -44,66 +30,154 @@ public class LinerContainer : Container
     /// <returns>移动结果</returns>
     public bool MoveItemToContainer(int sourceSlotIndex, IContainer targetContainer)
     {
-        // 早期验证优化
-        if (sourceSlotIndex < 0 || sourceSlotIndex >= _slots.Count)
+        if (!ValidateSourceSlot(sourceSlotIndex, out var sourceSlot, out var sourceItem, out var sourceCount))
             return false;
 
-        var sourceSlot = _slots[sourceSlotIndex];
-        if (!sourceSlot.IsOccupied || sourceSlot.Item == null)
+        if (!ValidateTargetContainer(targetContainer, sourceItem))
             return false;
 
-        var sourceItem = sourceSlot.Item;
-        int sourceCount = sourceSlot.ItemCount;
-
-        if (targetContainer is Container targetContainerImpl)
-        {
-            if (!targetContainerImpl.ValidateItemCondition(sourceItem))
-                return false;
-        }
-
-        // 尝试添加到目标容器
-        var (result, addedCount) = targetContainer.AddItems(sourceItem, sourceCount);
-
-        // 根据添加结果更新源槽位
-        if (result == AddItemResult.Success && addedCount > 0)
-        {
-            if (addedCount == sourceCount)
-            {
-                // 完全移动直接清除槽位
-                sourceSlot.ClearSlot();
-
-                _cacheManager.UpdateEmptySlotCache(sourceSlotIndex, true);
-                _cacheManager.UpdateItemSlotIndexCache(sourceItem.ID, sourceSlotIndex, false);
-                _cacheManager.UpdateItemTypeCache(sourceItem.Type, sourceSlotIndex, false);
-                _cacheManager.UpdateItemCountCache(sourceItem.ID, -sourceCount);
-                TriggerItemTotalCountChanged(sourceItem.ID);
-            }
-            else
-            {
-                // 部分移动更新数量
-                int remainingCount = sourceCount - addedCount;
-                sourceSlot.SetItem(sourceItem, remainingCount);
-
-                _cacheManager.UpdateItemCountCache(sourceItem.ID, -addedCount);
-                TriggerItemTotalCountChanged(sourceItem.ID, sourceItem);
-
-                OnSlotQuantityChanged(sourceSlotIndex, sourceItem, sourceCount, remainingCount);
-            }
-
-            return true;
-        }
-
-        return false;
+        return ExecuteItemMove(sourceSlot, sourceSlotIndex, sourceItem, sourceCount, targetContainer);
     }
+
     /// <summary>
     /// 整理容器
     /// </summary>
     public void SortInventory()
     {
-        if (_slots.Count < 2)
-            return;
+        var occupiedSlots = CollectOccupiedSlots();
 
+        occupiedSlots.Sort((a, b) => 
+        {
+            int typeCompare = string.Compare(a.item.Type, b.item.Type, StringComparison.Ordinal);
+
+            return typeCompare != 0 
+            ? typeCompare 
+            : string.Compare(a.item.Name, b.item.Name, StringComparison.Ordinal);
+        });
+
+        ExecuteInventoryOperationSafely(() =>
+        {
+            ClearAllSlots();
+            FillSlotsWithSortedItems(occupiedSlots);
+        });
+    }
+
+    /// <summary>
+    /// 合并相同物品到较少的槽位中
+    /// </summary>
+    public void ConsolidateItems()
+    {
+        ExecuteInventoryOperationSafely(() =>
+        {
+            Dictionary<string, List<(int slotIndex, IItem item, int count)>> 
+                itemGroups = GroupStackableItemsByID();
+
+            ConsolidateItemGroups(itemGroups);
+        });
+    }
+
+    /// <summary>
+    /// 整理容器（排序 + 合并）
+    /// </summary>
+    public void OrganizeInventory()
+    {
+        ConsolidateItems();
+        SortInventory();
+    }
+
+    #region 辅助方法
+
+    private void InitializeSlots(int capacity)
+    {
+        if (capacity <= 0) return;
+
+        for (int i = 0; i < capacity; i++)
+        {
+            _slots.Add(new Slot { Index = i, Container = this });
+        }
+    }
+
+    private bool ValidateSourceSlot(int sourceSlotIndex, out ISlot sourceSlot, out IItem sourceItem, out int sourceCount)
+    {
+        sourceSlot = null;
+        sourceItem = null;
+        sourceCount = 0;
+
+        if (sourceSlotIndex < 0 || sourceSlotIndex >= _slots.Count)
+            return false;
+
+        sourceSlot = _slots[sourceSlotIndex];
+        if (!sourceSlot.IsOccupied || sourceSlot.Item == null)
+            return false;
+
+        sourceItem = sourceSlot.Item;
+        sourceCount = sourceSlot.ItemCount;
+        return true;
+    }
+
+    private bool ValidateTargetContainer(IContainer targetContainer, IItem sourceItem)
+    {
+        return !(targetContainer is Container targetContainerImpl) ||
+               targetContainerImpl.ValidateItemCondition(sourceItem);
+    }
+
+    private bool ExecuteItemMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem,
+                                int sourceCount, IContainer targetContainer)
+    {
+        var (result, addedCount) = targetContainer.AddItems(sourceItem, sourceCount);
+
+        if (result != AddItemResult.Success || addedCount <= 0)
+            return false;
+
+        UpdateSourceSlotAfterMove(sourceSlot, sourceSlotIndex, sourceItem, sourceCount, addedCount);
+        return true;
+    }
+
+    private void UpdateSourceSlotAfterMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem,
+                                          int sourceCount, int addedCount)
+    {
+        if (addedCount == sourceCount)
+        {
+            HandleCompleteMove(sourceSlot, sourceSlotIndex, sourceItem, sourceCount);
+        }
+        else
+        {
+            HandlePartialMove(sourceSlot, sourceSlotIndex, sourceItem, sourceCount, addedCount);
+        }
+    }
+
+    private void HandleCompleteMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem, int sourceCount)
+    {
+        sourceSlot.ClearSlot();
+        UpdateCacheAfterMove(sourceSlotIndex, sourceItem, sourceCount, true);
+        TriggerItemTotalCountChanged(sourceItem.ID);
+    }
+
+    private void HandlePartialMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem,
+                                  int sourceCount, int addedCount)
+    {
+        int remainingCount = sourceCount - addedCount;
+        sourceSlot.SetItem(sourceItem, remainingCount);
+        UpdateCacheAfterMove(sourceSlotIndex, sourceItem, addedCount, false);
+        TriggerItemTotalCountChanged(sourceItem.ID, sourceItem);
+        OnSlotQuantityChanged(sourceSlotIndex, sourceItem, sourceCount, remainingCount);
+    }
+
+    private void UpdateCacheAfterMove(int sourceSlotIndex, IItem sourceItem, int count, bool isCompleteMove)
+    {
+        if (isCompleteMove)
+        {
+            _cacheManager.UpdateEmptySlotCache(sourceSlotIndex, true);
+            _cacheManager.UpdateItemSlotIndexCache(sourceItem.ID, sourceSlotIndex, false);
+            _cacheManager.UpdateItemTypeCache(sourceItem.Type, sourceSlotIndex, false);
+        }
+        _cacheManager.UpdateItemCountCache(sourceItem.ID, -count);
+    }
+
+    private List<(int index, IItem item, int count)> CollectOccupiedSlots()
+    {
         var occupiedSlots = new List<(int index, IItem item, int count)>();
+
         for (int i = 0; i < _slots.Count; i++)
         {
             var slot = _slots[i];
@@ -113,175 +187,159 @@ public class LinerContainer : Container
             }
         }
 
-        if (occupiedSlots.Count < 2)
-            return;
+        return occupiedSlots;
+    }
 
-        occupiedSlots.Sort((a, b) => {
-            int typeCompare = string.Compare(a.item.Type, b.item.Type);
-            if (typeCompare != 0)
-                return typeCompare;
-            return string.Compare(a.item.Name, b.item.Name);
-        });
+    private void ExecuteInventoryOperationSafely(System.Action operation)
+    {
+        var backupData = CreateInventoryBackup();
 
-        var originalData = new (IItem item, int count)[_slots.Count];
+        BeginBatchUpdate();
+        try
+        {
+            operation();
+            RebuildCaches();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"容器操作失败: {ex.Message}，正在恢复数据");
+            RestoreInventoryFromBackup(backupData);
+        }
+        finally
+        {
+            EndBatchUpdate();
+        }
+    }
+
+    private (IItem item, int count)[] CreateInventoryBackup()
+    {
+        var backup = new (IItem item, int count)[_slots.Count];
         for (int i = 0; i < _slots.Count; i++)
         {
             var slot = _slots[i];
-            originalData[i] = (slot.Item, slot.ItemCount);
+            backup[i] = (slot.Item, slot.ItemCount);
         }
+        return backup;
+    }
 
-        BeginBatchUpdate();
-
-        try
+    private void RestoreInventoryFromBackup((IItem item, int count)[] backupData)
+    {
+        for (int i = 0; i < _slots.Count && i < backupData.Length; i++)
         {
-            // 先清空所有槽位
-            foreach (var slot in _slots)
-            {
+            var slot = _slots[i];
+            var (item, count) = backupData[i];
+
+            if (item != null)
+                slot.SetItem(item, count);
+            else
                 slot.ClearSlot();
-            }
-
-            // 按排序后的顺序填充槽位
-            for (int i = 0; i < occupiedSlots.Count; i++)
-            {
-                var (_, item, count) = occupiedSlots[i];
-                _slots[i].SetItem(item, count);
-            }
-
-            RebuildCaches();
         }
-        catch (Exception ex)
-        {
-            Debug.LogError($"排序背包时发生错误: {ex.Message}，正在恢复原始数据");
-            for (int i = 0; i < _slots.Count && i < originalData.Length; i++)
-            {
-                if (originalData[i].item != null)
-                    _slots[i].SetItem(originalData[i].item, originalData[i].count);
-                else
-                    _slots[i].ClearSlot();
-            }
+        RebuildCaches();
+    }
 
-            RebuildCaches();
-        }
-        finally
+    private void ClearAllSlots()
+    {
+        foreach (var slot in _slots)
         {
-            EndBatchUpdate();
+            slot.ClearSlot();
         }
     }
-    /// <summary>
-    /// 合并相同物品到较少的槽位中
-    /// </summary>
-    public void ConsolidateItems()
-    {
-        if (_slots.Count < 2)
-            return;
 
-        // 记录原始数据以防出错时恢复
-        var originalData = new (IItem item, int count)[_slots.Count];
+    private void FillSlotsWithSortedItems(List<(int index, IItem item, int count)> sortedItems)
+    {
+        for (int i = 0; i < sortedItems.Count && i < _slots.Count; i++)
+        {
+            var (_, item, count) = sortedItems[i];
+            _slots[i].SetItem(item, count);
+        }
+    }
+
+    private Dictionary<string, List<(int slotIndex, IItem item, int count)>> GroupStackableItemsByID()
+    {
+        var itemGroups = new Dictionary<string, List<(int slotIndex, IItem item, int count)>>();
+
         for (int i = 0; i < _slots.Count; i++)
         {
             var slot = _slots[i];
-            originalData[i] = (slot.Item, slot.ItemCount);
+            if (!IsSlotEligibleForConsolidation(slot)) continue;
+
+            AddSlotToItemGroup(itemGroups, i, slot);
         }
 
-        BeginBatchUpdate();
-
-        try
-        {
-            // 按物品ID分组收集所有可堆叠物品
-            var itemGroups = new Dictionary<string, List<(int slotIndex, IItem item, int count)>>();
-
-            for (int i = 0; i < _slots.Count; i++)
-            {
-                var slot = _slots[i];
-                if (slot.IsOccupied && slot.Item != null && slot.Item.IsStackable)
-                {
-                    string itemId = slot.Item.ID;
-                    if (!itemGroups.ContainsKey(itemId))
-                        itemGroups[itemId] = new List<(int, IItem, int)>();
-
-                    itemGroups[itemId].Add((i, slot.Item, slot.ItemCount));
-                }
-            }
-
-            // 对每种物品进行合并
-            foreach (var kvp in itemGroups)
-            {
-                var itemSlots = kvp.Value;
-                if (itemSlots.Count < 2) continue; // 只有一个槽位的物品不需要合并
-
-                var firstSlot = itemSlots[0];
-                IItem item = firstSlot.item;
-                int maxStackCount = item.MaxStackCount;
-
-                // 计算总数量
-                int totalCount = itemSlots.Sum(slot => slot.count);
-
-                // 清空所有相关槽位
-                foreach (var (slotIndex, _, _) in itemSlots)
-                {
-                    _slots[slotIndex].ClearSlot();
-                }
-
-                // 重新分配到尽可能少的槽位
-                var targetSlots = itemSlots.OrderBy(s => s.slotIndex).ToList();
-                int remainingCount = totalCount;
-                int targetIndex = 0;
-
-                while (remainingCount > 0 && targetIndex < targetSlots.Count)
-                {
-                    int slotIndex = targetSlots[targetIndex].slotIndex;
-
-                    // 确定本槽位放置的数量
-                    int countForThisSlot;
-                    if (maxStackCount <= 0) // 无限堆叠
-                    {
-                        countForThisSlot = remainingCount;
-                        remainingCount = 0;
-                    }
-                    else
-                    {
-                        countForThisSlot = Math.Min(remainingCount, maxStackCount);
-                        remainingCount -= countForThisSlot;
-                    }
-
-                    // 设置物品到槽位
-                    _slots[slotIndex].SetItem(item, countForThisSlot);
-                    targetIndex++;
-                }
-            }
-
-            // 重建缓存
-            RebuildCaches();
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"合并物品时发生错误: {ex.Message}，正在恢复原始数据");
-
-            // 恢复原始数据
-            for (int i = 0; i < _slots.Count && i < originalData.Length; i++)
-            {
-                if (originalData[i].item != null)
-                    _slots[i].SetItem(originalData[i].item, originalData[i].count);
-                else
-                    _slots[i].ClearSlot();
-            }
-
-            RebuildCaches();
-        }
-        finally
-        {
-            EndBatchUpdate();
-        }
+        return itemGroups;
     }
-    /// <summary>
-    /// 整理容器（排序 + 合并）
-    /// </summary>
-    public void OrganizeInventory()
+
+    private bool IsSlotEligibleForConsolidation(ISlot slot)
     {
-        // 先合并相同物品
-        ConsolidateItems();
-
-        // 再进行排序整理
-        SortInventory();
+        return slot.IsOccupied && slot.Item != null && slot.Item.IsStackable;
     }
+
+    private void AddSlotToItemGroup(Dictionary<string, List<(int slotIndex, IItem item, int count)>> itemGroups,
+                                   int slotIndex, ISlot slot)
+    {
+        string itemId = slot.Item.ID;
+        if (!itemGroups.ContainsKey(itemId))
+            itemGroups[itemId] = new List<(int, IItem, int)>();
+
+        itemGroups[itemId].Add((slotIndex, slot.Item, slot.ItemCount));
+    }
+
+    private void ConsolidateItemGroups(Dictionary<string, List<(int slotIndex, IItem item, int count)>> itemGroups)
+    {
+        foreach (var itemGroup in itemGroups.Values)
+        {
+            if (itemGroup.Count >= 2)
+            {
+                ConsolidateSingleItemGroup(itemGroup);
+            }
+        }
+    }
+
+    private void ConsolidateSingleItemGroup(List<(int slotIndex, IItem item, int count)> itemSlots)
+    {
+        var item = itemSlots[0].item;
+        int totalCount = CalculateTotalItemCount(itemSlots);
+        var targetSlots = GetSortedTargetSlots(itemSlots);
+
+        ClearItemGroupSlots(itemSlots);
+        RedistributeItemsToSlots(item, totalCount, targetSlots);
+    }
+
+    private int CalculateTotalItemCount(List<(int slotIndex, IItem item, int count)> itemSlots)
+    {
+        return itemSlots.Sum(slot => slot.count);
+    }
+
+    private List<int> GetSortedTargetSlots(List<(int slotIndex, IItem item, int count)> itemSlots)
+    {
+        return itemSlots.Select(s => s.slotIndex).OrderBy(index => index).ToList();
+    }
+
+    private void ClearItemGroupSlots(List<(int slotIndex, IItem item, int count)> itemSlots)
+    {
+        foreach (var (slotIndex, _, _) in itemSlots)
+        {
+            _slots[slotIndex].ClearSlot();
+        }
+    }
+
+    private void RedistributeItemsToSlots(IItem item, int totalCount, List<int> targetSlots)
+    {
+        int maxStackCount = item.MaxStackCount;
+        int remainingCount = totalCount;
+        int targetIndex = 0;
+
+        while (remainingCount > 0 && targetIndex < targetSlots.Count)
+        {
+            int slotIndex = targetSlots[targetIndex];
+            int countForSlot = maxStackCount <= 0 
+                ? remainingCount 
+                : Math.Min(remainingCount, maxStackCount);
+
+            _slots[slotIndex].SetItem(item, countForSlot);
+            remainingCount -= countForSlot;
+            targetIndex++;
+        }
+    }
+    #endregion
 }
