@@ -313,14 +313,6 @@ public abstract class Container : IContainer
     }
 
     /// <summary>
-    /// 获取缓存的物品引用
-    /// </summary>
-    private IItem GetCachedItemReference(string itemId)
-    {
-        return _cacheManager.GetCachedItemReference(itemId, GetItemReference);
-    }
-
-    /// <summary>
     /// 获取容器中指定ID物品的总数量
     /// </summary>
     /// <param name="itemId">物品ID</param>
@@ -663,12 +655,6 @@ public abstract class Container : IContainer
             }
         }
 
-        // 更新缓存
-        _cacheManager.ClearAllCaches();
-        foreach (var kvp in counts)
-        {
-            _cacheManager.UpdateItemCountCache(kvp.Key, kvp.Value);
-        }
         RebuildCaches();
 
         return counts;
@@ -833,9 +819,9 @@ public abstract class Container : IContainer
                     _cacheManager.UpdateEmptySlotCache(slotIndex, true);
                     _cacheManager.UpdateItemSlotIndexCache(itemId, slotIndex, false);
                     _cacheManager.UpdateItemTypeCache(itemType, slotIndex, false);
-                    if (!HasItem(itemId))
+                    if (!itemCompletelyRemoved)
                     {
-                        itemCompletelyRemoved = true;
+                        itemCompletelyRemoved = !_cacheManager.HasItemInCache(itemId);
                     }
                 }
                 else
@@ -1196,12 +1182,12 @@ public abstract class Container : IContainer
         if (remainingCount <= 0 || !item.IsStackable)
             return (0, new List<int>(0), new Dictionary<int, (int oldCount, int newCount)>(0));
 
-        int maxStack = _cacheManager.TryGetItemMaxStack(item.ID, out int cachedMaxStack)
-            ? cachedMaxStack
-            : item.MaxStackCount;
-
-        if (!_cacheManager.TryGetItemMaxStack(item.ID, out _))
+        int maxStack;
+        if (!_cacheManager.TryGetItemMaxStack(item.ID, out maxStack))
+        {
+            maxStack = item.MaxStackCount;
             _cacheManager.SetItemMaxStack(item.ID, maxStack);
+        }
 
         if (maxStack <= 1 || !_cacheManager.TryGetItemSlotIndices(item.ID, out var indices) || indices.Count == 0)
             return (0, new List<int>(0), new Dictionary<int, (int oldCount, int newCount)>(0));
@@ -1337,19 +1323,30 @@ public abstract class Container : IContainer
         TryAddToEmptySlot(IItem item, int remainingCount)
     {
         bool isStackable = item.IsStackable;
-        int maxStack = isStackable ? (_cacheManager.TryGetItemMaxStack(item.ID, out var cachedMax)
-            ? cachedMax : item.MaxStackCount) : 1;
 
-        if (isStackable && !_cacheManager.TryGetItemMaxStack(item.ID, out _))
-            _cacheManager.SetItemMaxStack(item.ID, maxStack);
+        int maxStack;
+        if (isStackable)
+        {
+            if (!_cacheManager.TryGetItemMaxStack(item.ID, out maxStack))
+            {
+                maxStack = item.MaxStackCount;
+                _cacheManager.SetItemMaxStack(item.ID, maxStack);
+            }
+        }
+        else
+        {
+            maxStack = 1;
+        }
 
         // 可以添加的数量
         int addCount = isStackable && maxStack > 0
             ? Math.Min(remainingCount, maxStack)
             : (isStackable ? remainingCount : 1);
 
+        var emptySlotIndices = _cacheManager.GetEmptySlotIndices();
+
         // 使用空槽位缓存
-        foreach (int i in _cacheManager.GetEmptySlotIndices())
+        foreach (int i in emptySlotIndices)
         {
             if (i >= _slots.Count) continue;
 
@@ -1371,9 +1368,11 @@ public abstract class Container : IContainer
             }
         }
 
+        var emptySlotSet = new HashSet<int>(emptySlotIndices);
+
         for (int i = 0; i < _slots.Count; i++)
         {
-            if (_cacheManager.GetEmptySlotIndices().Contains(i)) continue; // 已在刚才检查过的槽位跳过
+            if (emptySlotSet.Contains(i)) continue; // 已在刚才检查过的槽位跳过
 
             var slot = _slots[i];
             if (slot.IsOccupied || !slot.CheckSlotCondition(item)) continue;
