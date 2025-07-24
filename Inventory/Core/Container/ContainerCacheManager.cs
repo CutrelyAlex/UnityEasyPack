@@ -23,9 +23,6 @@ namespace EasyPack
         // 物品数量缓存
         private readonly Dictionary<string, int> _itemCountCache = new();
 
-        // 物品最大堆叠数缓存
-        private readonly Dictionary<string, int> _itemMaxStackCache = new();
-
         // 物品引用缓存
         private readonly Dictionary<string, WeakReference<IItem>> _itemReferenceCache = new();
         #endregion
@@ -157,16 +154,6 @@ namespace EasyPack
             return _itemCountCache.TryGetValue(itemId, out count);
         }
 
-        public bool TryGetItemMaxStack(string itemId, out int maxStack)
-        {
-            return _itemMaxStackCache.TryGetValue(itemId, out maxStack);
-        }
-
-        public void SetItemMaxStack(string itemId, int maxStack)
-        {
-            _itemMaxStackCache[itemId] = maxStack;
-        }
-
         public IItem GetCachedItemReference(string itemId, System.Func<string, IItem> fallbackGetter)
         {
             if (_itemReferenceCache.TryGetValue(itemId, out var weakRef) &&
@@ -272,10 +259,6 @@ namespace EasyPack
                     // 更新物品数量缓存
                     UpdateItemCountCache(slot.Item.ID, slot.ItemCount);
 
-                    // 更新物品最大堆叠缓存
-                    if (!_itemMaxStackCache.ContainsKey(slot.Item.ID))
-                        _itemMaxStackCache[slot.Item.ID] = slot.Item.MaxStackCount;
-
                     // 更新物品引用缓存
                     if (!processedItems.Contains(itemId))
                     {
@@ -356,7 +339,6 @@ namespace EasyPack
         {
             _itemSlotIndexCache.Clear();
             _emptySlotIndices.Clear();
-            _itemMaxStackCache.Clear();
             _itemTypeIndexCache.Clear();
             _itemCountCache.Clear();
             _itemReferenceCache.Clear();

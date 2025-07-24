@@ -1182,12 +1182,7 @@ public abstract class Container : IContainer
         if (remainingCount <= 0 || !item.IsStackable)
             return (0, new List<int>(0), new Dictionary<int, (int oldCount, int newCount)>(0));
 
-        int maxStack;
-        if (!_cacheManager.TryGetItemMaxStack(item.ID, out maxStack))
-        {
-            maxStack = item.MaxStackCount;
-            _cacheManager.SetItemMaxStack(item.ID, maxStack);
-        }
+        int maxStack = item.MaxStackCount;
 
         if (maxStack <= 1 || !_cacheManager.TryGetItemSlotIndices(item.ID, out var indices) || indices.Count == 0)
             return (0, new List<int>(0), new Dictionary<int, (int oldCount, int newCount)>(0));
@@ -1324,19 +1319,7 @@ public abstract class Container : IContainer
     {
         bool isStackable = item.IsStackable;
 
-        int maxStack;
-        if (isStackable)
-        {
-            if (!_cacheManager.TryGetItemMaxStack(item.ID, out maxStack))
-            {
-                maxStack = item.MaxStackCount;
-                _cacheManager.SetItemMaxStack(item.ID, maxStack);
-            }
-        }
-        else
-        {
-            maxStack = 1;
-        }
+        int maxStack = item.MaxStackCount;
 
         // 可以添加的数量
         int addCount = isStackable && maxStack > 0
