@@ -962,14 +962,14 @@ public class InventoryManager
         public string ContainerId;
         public int SlotIndex;
         public IItem Item;
-        public int Count;
+        public int IndexCount;
 
         public GlobalItemResult(string containerId, int slotIndex, IItem item, int count)
         {
             ContainerId = containerId;
             SlotIndex = slotIndex;
             Item = item;
-            Count = count;
+            IndexCount = count;
         }
     }
 
@@ -987,6 +987,28 @@ public class InventoryManager
             if (string.IsNullOrEmpty(itemId))
                 return results;
 
+            foreach (Container container in _containers.Values)
+            {
+                if (container.HasItem(itemId)) // 利用缓存快速检查
+                {
+                    var slotIndices = container.FindSlotIndices(itemId); // 利用缓存获取槽位索引
+                    foreach (int slotIndex in slotIndices)
+                    {
+                        if (slotIndex < container.Slots.Count)
+                        {
+                            var slot = container.Slots[slotIndex];
+                            if (slot.IsOccupied && slot.Item?.ID == itemId)
+                            {
+                                results.Add(new GlobalItemResult(container.ID, slotIndex, slot.Item, slot.ItemCount));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+            results.Clear();
             foreach (var container in _containers.Values)
             {
                 for (int i = 0; i < container.Slots.Count; i++)
@@ -998,10 +1020,6 @@ public class InventoryManager
                     }
                 }
             }
-        }
-        catch
-        {
-            
         }
 
         return results;
@@ -1108,17 +1126,31 @@ public class InventoryManager
     /// <returns>指定类型的物品列表</returns>
     public List<GlobalItemResult> SearchItemsByType(string itemType)
     {
+        var results = new List<GlobalItemResult>();
+
         try
         {
             if (string.IsNullOrEmpty(itemType))
-                return new List<GlobalItemResult>();
+                return results;
 
-            return SearchItemsByCondition(item => item.Type == itemType);
+            foreach (Container container in _containers.Values)
+            {
+                // 利用容器的类型缓存查询
+                var typeItems = container.GetItemsByType(itemType);
+                foreach (var (slotIndex, item, count) in typeItems)
+                {
+                    results.Add(new GlobalItemResult(container.ID, slotIndex, item, count));
+                }
+            }
         }
         catch
         {
-            return new List<GlobalItemResult>();
+            // 发生异常时回退到条件搜索
+            results.Clear();
+            results = SearchItemsByCondition(item => item.Type == itemType);
         }
+
+        return results;
     }
 
     /// <summary>
@@ -1128,19 +1160,31 @@ public class InventoryManager
     /// <returns>符合名称模式的物品列表</returns>
     public List<GlobalItemResult> SearchItemsByName(string namePattern)
     {
+        var results = new List<GlobalItemResult>();
+
         try
         {
             if (string.IsNullOrEmpty(namePattern))
-                return new List<GlobalItemResult>();
+                return results;
 
-            return SearchItemsByCondition(item => item.Name?.Contains(namePattern) == true);
+            foreach (Container container in _containers.Values)
+            {
+                // 利用容器的名称缓存查询
+                var nameItems = container.GetItemsByName(namePattern);
+                foreach (var (slotIndex, item, count) in nameItems)
+                {
+                    results.Add(new GlobalItemResult(container.ID, slotIndex, item, count));
+                }
+            }
         }
         catch
         {
-            return new List<GlobalItemResult>();
+            results.Clear();
+            results = SearchItemsByCondition(item => item.Name?.Contains(namePattern) == true);
         }
-    }
 
+        return results;
+    }
     /// <summary>
     /// 按属性全局搜索物品
     /// </summary>
@@ -1149,20 +1193,33 @@ public class InventoryManager
     /// <returns>符合属性条件的物品列表</returns>
     public List<GlobalItemResult> SearchItemsByAttribute(string attributeName, object attributeValue)
     {
+        var results = new List<GlobalItemResult>();
+
         try
         {
             if (string.IsNullOrEmpty(attributeName))
-                return new List<GlobalItemResult>();
+                return results;
 
-            return SearchItemsByCondition(item =>
+            foreach (Container container in _containers.Values)
+            {
+                // 利用容器的属性缓存查询
+                var attributeItems = container.GetItemsByAttribute(attributeName, attributeValue);
+                foreach (var (slotIndex, item, count) in attributeItems)
+                {
+                    results.Add(new GlobalItemResult(container.ID, slotIndex, item, count));
+                }
+            }
+        }
+        catch
+        {
+            results.Clear();
+            results = SearchItemsByCondition(item =>
                 item.Attributes != null &&
                 item.Attributes.TryGetValue(attributeName, out var value) &&
                 (attributeValue == null || value?.Equals(attributeValue) == true));
         }
-        catch
-        {
-            return new List<GlobalItemResult>();
-        }
+
+        return results;
     }
     #endregion
 
