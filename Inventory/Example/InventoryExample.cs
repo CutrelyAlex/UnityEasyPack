@@ -146,24 +146,28 @@ public class InventoryExample : MonoBehaviour
         // 为了便于在日志中识别，添加前缀
         Debug.Log("2.1 注册事件监听器");
 
-        // 注册添加物品成功事件
-        backpack.OnItemAdded += (item, count, slots) => {
-            Debug.Log($"[事件] 添加成功: {item.Name} x{count} 到槽位: {string.Join(",", slots)}");
+        // 注册添加物品结果事件（统一处理成功和失败）
+        backpack.OnItemAddResult += (item, requestedCount, actualCount, result, slots) => {
+            if (result == AddItemResult.Success)
+            {
+                Debug.Log($"[事件] 添加成功: {item.Name} x{actualCount}/{requestedCount} 到槽位: {string.Join(",", slots)}");
+            }
+            else
+            {
+                Debug.Log($"[事件] 添加失败: {item?.Name ?? "null"} x{requestedCount}, 原因: {result}");
+            }
         };
 
-        // 注册添加物品失败事件
-        backpack.OnItemAddFailed += (item, count, result) => {
-            Debug.Log($"[事件] 添加失败: {item?.Name ?? "null"} x{count}, 原因: {result}");
-        };
-
-        // 注册移除物品成功事件
-        backpack.OnItemRemoved += (itemId, count, slots) => {
-            Debug.Log($"[事件] 移除成功: 物品ID {itemId} x{count} 从槽位: {string.Join(",", slots)}");
-        };
-
-        // 注册移除物品失败事件
-        backpack.OnItemRemoveFailed += (itemId, count, result) => {
-            Debug.Log($"[事件] 移除失败: 物品ID {itemId} x{count}, 原因: {result}");
+        // 注册移除物品结果事件（统一处理成功和失败）
+        backpack.OnItemRemoveResult += (itemId, requestedCount, actualCount, result, slots) => {
+            if (result == RemoveItemResult.Success)
+            {
+                Debug.Log($"[事件] 移除成功: 物品ID {itemId} x{actualCount}/{requestedCount} 从槽位: {string.Join(",", slots)}");
+            }
+            else
+            {
+                Debug.Log($"[事件] 移除失败: 物品ID {itemId} x{requestedCount}, 原因: {result}");
+            }
         };
 
         // 注册物品数量变更事件

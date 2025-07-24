@@ -39,36 +39,24 @@ public abstract class Container : IContainer
     #region 容器事件
 
     /// <summary>
-    /// 添加物品成功事件
+    /// 添加物品操作结果事件（统一处理成功和失败）
     /// </summary>
-    /// <param name="item">添加的物品</param>
-    /// <param name="count">添加的数量</param>
-    /// <param name="slotIndices">涉及的槽位索引列表</param>
-    public event System.Action<IItem, int, List<int>> OnItemAdded;
+    /// <param name="item">操作的物品</param>
+    /// <param name="requestedCount">请求添加的数量</param>
+    /// <param name="actualCount">实际添加的数量</param>
+    /// <param name="result">操作结果</param>
+    /// <param name="affectedSlots">涉及的槽位索引列表（失败时为空列表）</param>
+    public event System.Action<IItem, int, int, AddItemResult, List<int>> OnItemAddResult;
 
     /// <summary>
-    /// 添加物品失败事件
+    /// 移除物品操作结果事件（统一处理成功和失败）
     /// </summary>
-    /// <param name="item">尝试添加的物品</param>
-    /// <param name="count">尝试添加的数量</param>
-    /// <param name="result">失败的结果</param>
-    public event System.Action<IItem, int, AddItemResult> OnItemAddFailed;
-
-    /// <summary>
-    /// 移除物品成功事件
-    /// </summary>
-    /// <param name="itemId">被移除物品的ID</param>
-    /// <param name="count">移除的数量</param>
-    /// <param name="slotIndices">涉及的槽位索引列表</param>
-    public event System.Action<string, int, List<int>> OnItemRemoved;
-
-    /// <summary>
-    /// 移除物品失败事件
-    /// </summary>
-    /// <param name="itemId">尝试移除的物品ID</param>
-    /// <param name="count">尝试移除的数量</param>
-    /// <param name="result">失败的结果</param>
-    public event System.Action<string, int, RemoveItemResult> OnItemRemoveFailed;
+    /// <param name="itemId">操作的物品ID</param>
+    /// <param name="requestedCount">请求移除的数量</param>
+    /// <param name="actualCount">实际移除的数量</param>
+    /// <param name="result">操作结果</param>
+    /// <param name="affectedSlots">涉及的槽位索引列表（失败时为空列表）</param>
+    public event System.Action<string, int, int, RemoveItemResult, List<int>> OnItemRemoveResult;
 
     /// <summary>
     /// 槽位数量变更事件
@@ -79,7 +67,6 @@ public abstract class Container : IContainer
     /// <param name="newCount">新数量</param>
     public event System.Action<int, IItem, int, int> OnSlotCountChanged;
 
-
     /// <summary>
     /// 触发槽位物品数量变更事件
     /// </summary>
@@ -87,7 +74,6 @@ public abstract class Container : IContainer
     {
         OnSlotCountChanged?.Invoke(slotIndex, item, oldCount, newCount);
     }
-
 
     /// <summary>
     /// 物品总数变更事件
@@ -799,9 +785,10 @@ public abstract class Container : IContainer
     /// <returns>移除结果</returns>
     public virtual RemoveItemResult RemoveItem(string itemId, int count = 1)
     {
+        var emptySlots = new List<int>();
         if (string.IsNullOrEmpty(itemId))
         {
-            OnItemRemoveFailed?.Invoke(itemId, count, RemoveItemResult.InvalidItemId);
+            OnItemRemoveResult?.Invoke(itemId, count, 0, RemoveItemResult.InvalidItemId, emptySlots);
             return RemoveItemResult.InvalidItemId;
         }
 
@@ -809,14 +796,14 @@ public abstract class Container : IContainer
         int totalCount = GetItemTotalCount(itemId);
         if (totalCount < count && totalCount != 0)
         {
-            OnItemRemoveFailed?.Invoke(itemId, count, RemoveItemResult.InsufficientQuantity);
+            OnItemRemoveResult?.Invoke(itemId, count, 0, RemoveItemResult.InsufficientQuantity, emptySlots);
             return RemoveItemResult.InsufficientQuantity;
         }
 
         // 如果物品不存在
         if (totalCount == 0)
         {
-            OnItemRemoveFailed?.Invoke(itemId, count, RemoveItemResult.ItemNotFound);
+            OnItemRemoveResult?.Invoke(itemId, count, 0, RemoveItemResult.ItemNotFound, emptySlots);
             return RemoveItemResult.ItemNotFound;
         }
 
@@ -836,10 +823,10 @@ public abstract class Container : IContainer
             }
         }
 
+        var affectedSlots = new List<int>();
         // 第二步：确认可以完全移除指定数量后，执行实际的移除操作
         if (remainingCount == 0)
         {
-            var affectedSlots = new List<int>();
             bool itemCompletelyRemoved = false;
 
             foreach (var (slot, removeAmount, slotIndex) in removals)
@@ -879,13 +866,13 @@ public abstract class Container : IContainer
             }
 
             // 移除成功事件
-            OnItemRemoved?.Invoke(itemId, count, affectedSlots);
+            OnItemRemoveResult?.Invoke(itemId, count, count, RemoveItemResult.Success, affectedSlots);
             TriggerItemTotalCountChanged(itemId);
             return RemoveItemResult.Success;
         }
 
         // 发生未知错误，才能悲惨得走到了这一步
-        OnItemRemoveFailed?.Invoke(itemId, count, RemoveItemResult.Failed);
+        OnItemRemoveResult?.Invoke(itemId, count, 0, RemoveItemResult.Failed, emptySlots);
         return RemoveItemResult.Failed;
     }
 
@@ -898,10 +885,11 @@ public abstract class Container : IContainer
     /// <returns>移除结果</returns>
     public virtual RemoveItemResult RemoveItemAtIndex(int index, int count = 1, string expectedItemId = null)
     {
+        var emptySlots = new List<int>();
         // 检查槽位索引是否有效
         if (index < 0 || index >= _slots.Count)
         {
-            OnItemRemoveFailed?.Invoke(expectedItemId ?? "unknown", count, RemoveItemResult.SlotNotFound);
+            OnItemRemoveResult?.Invoke(expectedItemId ?? "unknown", count, 0, RemoveItemResult.SlotNotFound, emptySlots);
             return RemoveItemResult.SlotNotFound;
         }
 
@@ -910,7 +898,7 @@ public abstract class Container : IContainer
         // 检查槽位是否有物品
         if (!slot.IsOccupied || slot.Item == null)
         {
-            OnItemRemoveFailed?.Invoke(expectedItemId ?? "unknown", count, RemoveItemResult.ItemNotFound);
+            OnItemRemoveResult?.Invoke(expectedItemId ?? "unknown", count, 0, RemoveItemResult.ItemNotFound, emptySlots);
             return RemoveItemResult.ItemNotFound;
         }
 
@@ -922,14 +910,14 @@ public abstract class Container : IContainer
         // 如果提供了预期的物品ID，则验证
         if (!string.IsNullOrEmpty(expectedItemId) && itemId != expectedItemId)
         {
-            OnItemRemoveFailed?.Invoke(expectedItemId, count, RemoveItemResult.InvalidItemId);
+            OnItemRemoveResult?.Invoke(expectedItemId, count, 0, RemoveItemResult.InvalidItemId, emptySlots);
             return RemoveItemResult.InvalidItemId;
         }
 
         // 检查物品数量是否足够
         if (slot.ItemCount < count)
         {
-            OnItemRemoveFailed?.Invoke(itemId, count, RemoveItemResult.InsufficientQuantity);
+            OnItemRemoveResult?.Invoke(itemId, count, 0, RemoveItemResult.InsufficientQuantity, emptySlots);
             return RemoveItemResult.InsufficientQuantity;
         }
 
@@ -956,7 +944,8 @@ public abstract class Container : IContainer
         OnSlotQuantityChanged(index, item, oldCount, slot.ItemCount);
 
         // 触发物品移除事件
-        OnItemRemoved?.Invoke(itemId, count, new List<int> { index });
+        var affectedSlots = new List<int> { index };
+        OnItemRemoveResult?.Invoke(itemId, count, count, RemoveItemResult.Success, affectedSlots);
         TriggerItemTotalCountChanged(itemId, item);
 
         return RemoveItemResult.Success;
@@ -973,15 +962,16 @@ public abstract class Container : IContainer
     /// <param name="exceededCount">超出堆叠上限的数量</param>
     /// <returns>添加结果和成功添加的数量</returns>
     public virtual (AddItemResult result, int addedCount)
-        AddItemsWithCount(IItem item, out int exceededCount, int count = 1, int slotIndex = -1)
+    AddItemsWithCount(IItem item, out int exceededCount, int count = 1, int slotIndex = -1)
     {
         exceededCount = 0;
         List<int> affectedSlots = new(12);
+        var emptySlots = new List<int>();
 
         // 基本验证
         if (item == null)
         {
-            OnItemAddFailed?.Invoke(item, count, AddItemResult.ItemIsNull);
+            OnItemAddResult?.Invoke(item, count, 0, AddItemResult.ItemIsNull, emptySlots);
             return (AddItemResult.ItemIsNull, 0);
         }
 
@@ -990,7 +980,7 @@ public abstract class Container : IContainer
 
         if (!ValidateItemCondition(item))
         {
-            OnItemAddFailed?.Invoke(item, count, AddItemResult.ItemConditionNotMet);
+            OnItemAddResult?.Invoke(item, count, 0, AddItemResult.ItemConditionNotMet, emptySlots);
             return (AddItemResult.ItemConditionNotMet, 0);
         }
         // 开始批量更新模式
@@ -1028,7 +1018,7 @@ public abstract class Container : IContainer
 
                     if (remainingCount <= 0)
                     {
-                        OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
+                        OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                         return (AddItemResult.Success, totalAdded);
                     }
                 }
@@ -1052,7 +1042,7 @@ public abstract class Container : IContainer
 
                     if (remainingCount <= 0)
                     {
-                        OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
+                        OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                         return (AddItemResult.Success, totalAdded);
                     }
                 }
@@ -1060,9 +1050,9 @@ public abstract class Container : IContainer
                 {
                     if (totalAdded > 0)
                     {
-                        OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
+                        OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                     }
-                    OnItemAddFailed?.Invoke(item, remainingCount, AddItemResult.NoSuitableSlotFound);
+                    OnItemAddResult?.Invoke(item, remainingCount, 0, AddItemResult.NoSuitableSlotFound, emptySlots);
                     return (AddItemResult.NoSuitableSlotFound, totalAdded);
                 }
             }
@@ -1085,7 +1075,7 @@ public abstract class Container : IContainer
 
                     if (remainingCount <= 0)
                     {
-                        OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
+                        OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
 
                         return (AddItemResult.Success, totalAdded);
                     }
@@ -1107,7 +1097,7 @@ public abstract class Container : IContainer
 
                     if (remainingCount <= 0)
                     {
-                        OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
+                        OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                         return (AddItemResult.Success, totalAdded);
                     }
                     continue;
@@ -1117,8 +1107,8 @@ public abstract class Container : IContainer
                 if (totalAdded > 0)
                 {
                     exceededCount = remainingCount;
-                    OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
-                    OnItemAddFailed?.Invoke(item, remainingCount, AddItemResult.ContainerIsFull);
+                    OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
+                    OnItemAddResult?.Invoke(item, remainingCount, 0, AddItemResult.ContainerIsFull, emptySlots);
                     return (AddItemResult.ContainerIsFull, totalAdded);
                 }
                 else
@@ -1126,12 +1116,12 @@ public abstract class Container : IContainer
                     exceededCount = count;
                     bool noEmptySlots = _cacheManager.GetEmptySlotIndices().Count == 0;
                     AddItemResult result = noEmptySlots ? AddItemResult.ContainerIsFull : AddItemResult.NoSuitableSlotFound;
-                    OnItemAddFailed?.Invoke(item, count, result);
+                    OnItemAddResult?.Invoke(item, count, 0, result, emptySlots);
                     return (result, 0);
                 }
             }
 
-            OnItemAdded?.Invoke(item, totalAdded, affectedSlots);
+            OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
 
             return (AddItemResult.Success, totalAdded);
         }
