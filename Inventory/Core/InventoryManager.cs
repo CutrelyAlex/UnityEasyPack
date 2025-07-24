@@ -798,6 +798,11 @@ public class InventoryManager
 
         try
         {
+            if (requests == null)
+            {
+                return results;
+            }
+
             foreach (var request in requests)
             {
                 if (request.Count > 0)

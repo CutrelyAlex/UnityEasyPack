@@ -162,7 +162,7 @@ public abstract class Container : IContainer
     {
         get
         {
-            if (Capacity <= 0)
+            if (Capacity < 0)
                 return false;
 
             if (_slots.Count < Capacity)
