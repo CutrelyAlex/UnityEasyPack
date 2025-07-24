@@ -72,10 +72,10 @@ public class LinerContainer : Container
                 // 完全移动直接清除槽位
                 sourceSlot.ClearSlot();
 
-                UpdateEmptySlotCache(sourceSlotIndex, true);
-                UpdateItemSlotIndexCache(sourceItem.ID, sourceSlotIndex, false);
-                UpdateItemTypeCache(sourceItem.Type, sourceSlotIndex, false);
-                UpdateItemCountCache(sourceItem.ID, -sourceCount);
+                _cacheManager.UpdateEmptySlotCache(sourceSlotIndex, true);
+                _cacheManager.UpdateItemSlotIndexCache(sourceItem.ID, sourceSlotIndex, false);
+                _cacheManager.UpdateItemTypeCache(sourceItem.Type, sourceSlotIndex, false);
+                _cacheManager.UpdateItemCountCache(sourceItem.ID, -sourceCount);
                 TriggerItemTotalCountChanged(sourceItem.ID);
             }
             else
@@ -84,7 +84,7 @@ public class LinerContainer : Container
                 int remainingCount = sourceCount - addedCount;
                 sourceSlot.SetItem(sourceItem, remainingCount);
 
-                UpdateItemCountCache(sourceItem.ID, -addedCount);
+                _cacheManager.UpdateItemCountCache(sourceItem.ID, -addedCount);
                 TriggerItemTotalCountChanged(sourceItem.ID, sourceItem);
 
                 OnSlotQuantityChanged(sourceSlotIndex, sourceItem, sourceCount, remainingCount);

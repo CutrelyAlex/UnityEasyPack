@@ -21,7 +21,7 @@ public abstract class Container : IContainer
     public IReadOnlyList<ISlot> Slots => _slots.AsReadOnly();
 
     // »º´æ¹ÜÀíÆ÷
-    private readonly ContainerCacheManager _cacheManager;
+    protected readonly ContainerCacheManager _cacheManager;
 
     public Container(string id, string name, string type, int capacity = -1)
     {
