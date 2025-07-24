@@ -370,8 +370,9 @@ public class InventoryManager
     {
         try
         {
-            if (!_enableGlobalConditions || item == null)
-                return !_enableGlobalConditions;
+            if (item == null) return false;
+            if (!_enableGlobalConditions)
+                return true;
 
             foreach (var condition in _globalItemConditions)
             {
