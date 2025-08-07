@@ -5,7 +5,7 @@ using UnityEngine;
 namespace EasyPack
 {
     /// <summary>
-    /// ÓÎÏ·ÊôĞÔµÄ¿ÉĞòÁĞ»¯±íÊ¾ĞÎÊ½£¬ÓÃÓÚ´æ´¢ºÍ´«Êä
+    /// æ¸¸æˆå±æ€§çš„å¯åºåˆ—åŒ–è¡¨ç¤ºå½¢å¼ï¼Œç”¨äºå­˜å‚¨å’Œä¼ è¾“
     /// </summary>
     [Serializable]
     public class SerializableGameProperty
@@ -16,7 +16,7 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// ĞŞÊÎÆ÷ÁĞ±íµÄ¿ÉĞòÁĞ»¯±íÊ¾ĞÎÊ½
+    /// ä¿®é¥°å™¨åˆ—è¡¨çš„å¯åºåˆ—åŒ–è¡¨ç¤ºå½¢å¼
     /// </summary>
     [Serializable]
     public class SerializableModifierList
@@ -25,7 +25,7 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// ĞŞÊÎÆ÷µÄ¿ÉĞòÁĞ»¯±íÊ¾ĞÎÊ½
+    /// ä¿®é¥°å™¨çš„å¯åºåˆ—åŒ–è¡¨ç¤ºå½¢å¼
     /// </summary>
     [Serializable]
     public class SerializableModifier
@@ -37,15 +37,15 @@ namespace EasyPack
         public bool IsRangeModifier;
     }
     /// <summary>
-    /// Ìá¹©ÓÎÏ·ÊôĞÔµÄĞòÁĞ»¯ºÍ·´ĞòÁĞ»¯¹¦ÄÜ
+    /// æä¾›æ¸¸æˆå±æ€§çš„åºåˆ—åŒ–å’Œååºåˆ—åŒ–åŠŸèƒ½
     /// </summary>
     public static class GamePropertySerializer
     {
         /// <summary>
-        /// ½«GamePropertyĞòÁĞ»¯Îª¿É´æ´¢µÄĞÎÊ½
+        /// å°†GamePropertyåºåˆ—åŒ–ä¸ºå¯å­˜å‚¨çš„å½¢å¼
         /// </summary>
-        /// <param name="property">ÒªĞòÁĞ»¯µÄGameProperty</param>
-        /// <returns>¿ÉĞòÁĞ»¯µÄ±íÊ¾ĞÎÊ½</returns>
+        /// <param name="property">è¦åºåˆ—åŒ–çš„GameProperty</param>
+        /// <returns>å¯åºåˆ—åŒ–çš„è¡¨ç¤ºå½¢å¼</returns>
         public static SerializableGameProperty Serialize(GameProperty property)
         {
             var result = new SerializableGameProperty
@@ -55,7 +55,7 @@ namespace EasyPack
                 ModifierList = new SerializableModifierList()
             };
 
-            // ĞòÁĞ»¯ËùÓĞĞŞÊÎÆ÷
+            // åºåˆ—åŒ–æ‰€æœ‰ä¿®é¥°å™¨
             foreach (var modifier in property.Modifiers)
             {
                 var serMod = new SerializableModifier
@@ -64,7 +64,7 @@ namespace EasyPack
                     Priority = modifier.Priority
                 };
 
-                // ¸ù¾İĞŞÊÎÆ÷ÀàĞÍÉèÖÃ²»Í¬µÄÖµ
+                // æ ¹æ®ä¿®é¥°å™¨ç±»å‹è®¾ç½®ä¸åŒçš„å€¼
                 if (modifier is FloatModifier floatMod)
                 {
                     serMod.FloatValue = floatMod.Value;
@@ -83,15 +83,15 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ´ÓĞòÁĞ»¯±íÊ¾ĞÎÊ½»¹Ô­GameProperty
+        /// ä»åºåˆ—åŒ–è¡¨ç¤ºå½¢å¼è¿˜åŸGameProperty
         /// </summary>
-        /// <param name="serialized">ĞòÁĞ»¯µÄ±íÊ¾ĞÎÊ½</param>
-        /// <returns>»¹Ô­µÄGameProperty</returns>
+        /// <param name="serialized">åºåˆ—åŒ–çš„è¡¨ç¤ºå½¢å¼</param>
+        /// <returns>è¿˜åŸçš„GameProperty</returns>
         public static GameProperty FromSerializable(SerializableGameProperty serialized)
         {
             var property = new GameProperty(serialized.ID, serialized.BaseValue);
 
-            // Èç¹ûÓĞĞŞÊÎÆ÷ÁĞ±í£¬»¹Ô­ËùÓĞĞŞÊÎÆ÷
+            // å¦‚æœæœ‰ä¿®é¥°å™¨åˆ—è¡¨ï¼Œè¿˜åŸæ‰€æœ‰ä¿®é¥°å™¨
             if (serialized.ModifierList != null && serialized.ModifierList.Modifiers != null)
             {
                 foreach (var serMod in serialized.ModifierList.Modifiers)

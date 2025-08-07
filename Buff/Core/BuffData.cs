@@ -12,8 +12,8 @@ namespace EasyPack
         public Dictionary<string, object> CustomData;
 
         public int MaxStacks = 1;
-        public float Duration = -1f; // -1 ´ú±íÓÀ¾ÃĞ§¹û
-        public float TriggerInterval = 1f; // Buff Ã¿´Î ´¥·¢ µÄ¼ä¸ôÊ±¼ä
+        public float Duration = -1f; // -1 ä»£è¡¨æ°¸ä¹…æ•ˆæœ
+        public float TriggerInterval = 1f; // Buff æ¯æ¬¡ è§¦å‘ çš„é—´éš”æ—¶é—´
 
         public BuffSuperpositionDurationType BuffSuperpositionStrategy = BuffSuperpositionDurationType.Add;
         public BuffSuperpositionStacksType BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add;
@@ -30,26 +30,26 @@ namespace EasyPack
         public bool InLayer(string layer) => Layers.Contains(layer);
     }
 
-    // Buff³ÖĞøÊ±¼äµş¼Ó²ßÂÔ
+    // BuffæŒç»­æ—¶é—´å åŠ ç­–ç•¥
     public enum BuffSuperpositionDurationType
     {
-        Add, // µş¼Ó³ÖĞøÊ±¼ä
-        ResetThenAdd, // ÖØÖÃ³ÖĞøÊ±¼äºóÔÙµş¼Ó
-        Reset, // ÖØÖÃ³ÖĞøÊ±¼ä
-        Keep // ±£³ÖÔ­ÓĞ³ÖĞøÊ±¼ä²»±ä
+        Add, // å åŠ æŒç»­æ—¶é—´
+        ResetThenAdd, // é‡ç½®æŒç»­æ—¶é—´åå†å åŠ 
+        Reset, // é‡ç½®æŒç»­æ—¶é—´
+        Keep // ä¿æŒåŸæœ‰æŒç»­æ—¶é—´ä¸å˜
     }
 
-    // Buffµş¼Ó¶ÑµşÊı²ßÂÔ
+    // Buffå åŠ å †å æ•°ç­–ç•¥
     public enum BuffSuperpositionStacksType
     {
-        Add, // µş¼Ó¶ÑµşÊı
-        ResetThenAdd, // ÖØÖÃ¶ÑµşÊıºóÔÙµş¼Ó
-        Reset, // ÖØÖÃ¶ÑµşÊı
-        Keep // ±£³ÖÔ­ÓĞ¶ÑµşÊı²»±ä
+        Add, // å åŠ å †å æ•°
+        ResetThenAdd, // é‡ç½®å †å æ•°åå†å åŠ 
+        Reset, // é‡ç½®å †å æ•°
+        Keep // ä¿æŒåŸæœ‰å †å æ•°ä¸å˜
     }
 
     public enum BuffRemoveType
-    { 
+    {
         All,
         OneStack,
         Manual,

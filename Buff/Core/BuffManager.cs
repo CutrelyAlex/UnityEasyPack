@@ -6,46 +6,46 @@ using UnityEngine;
 namespace EasyPack
 {
     /// <summary>
-    /// BuffÉúÃüÖÜÆÚ¹ÜÀíÆ÷£¬¸ºÔğBuffµÄ´´½¨¡¢¸üĞÂ¡¢ÒÆ³ıºÍ²éÑ¯
-    /// ²»Ö±½Ó²Ù×÷IProperty£¬BuffµÄÓ¦ÓÃÓëÒÆ³ıÓÉBuffHandle¸ºÔğ
+    /// Buffç”Ÿå‘½å‘¨æœŸç®¡ç†å™¨ï¼Œè´Ÿè´£Buffçš„åˆ›å»ºã€æ›´æ–°ã€ç§»é™¤å’ŒæŸ¥è¯¢
+    /// ä¸ç›´æ¥æ“ä½œIPropertyï¼ŒBuffçš„åº”ç”¨ä¸ç§»é™¤ç”±BuffHandleè´Ÿè´£
     /// </summary>
     public class BuffManager
     {
-        #region ºËĞÄÊı¾İ½á¹¹
+        #region æ ¸å¿ƒæ•°æ®ç»“æ„
 
-        // Ö÷Òª´æ´¢½á¹¹
+        // ä¸»è¦å­˜å‚¨ç»“æ„
         private readonly Dictionary<object, List<Buff>> _targetToBuffs = new Dictionary<object, List<Buff>>();
         private readonly List<Buff> _allBuffs = new List<Buff>();
         private readonly List<Buff> _removedBuffs = new List<Buff>();
 
-        // °´ÉúÃüÖÜÆÚ·ÖÀàµÄBuffÁĞ±í
+        // æŒ‰ç”Ÿå‘½å‘¨æœŸåˆ†ç±»çš„Buffåˆ—è¡¨
         private readonly List<Buff> _timedBuffs = new List<Buff>();
         private readonly List<Buff> _permanentBuffs = new List<Buff>();
 
-        // ¸üĞÂÑ­»·»º´æ
+        // æ›´æ–°å¾ªç¯ç¼“å­˜
         private readonly List<Buff> _triggeredBuffs = new List<Buff>();
         private readonly List<BuffModule> _moduleCache = new List<BuffModule>();
 
-        // ¿ìËÙ²éÕÒË÷Òı
+        // å¿«é€ŸæŸ¥æ‰¾ç´¢å¼•
         private readonly Dictionary<string, List<Buff>> _buffsByID = new Dictionary<string, List<Buff>>();
         private readonly Dictionary<string, List<Buff>> _buffsByTag = new Dictionary<string, List<Buff>>();
         private readonly Dictionary<string, List<Buff>> _buffsByLayer = new Dictionary<string, List<Buff>>();
 
-        // Î»ÖÃË÷ÒıÓÃÓÚ¿ìËÙÒÆ³ı
+        // ä½ç½®ç´¢å¼•ç”¨äºå¿«é€Ÿç§»é™¤
         private readonly Dictionary<Buff, int> _buffPositions = new Dictionary<Buff, int>();
         private readonly Dictionary<Buff, int> _timedBuffPositions = new Dictionary<Buff, int>();
         private readonly Dictionary<Buff, int> _permanentBuffPositions = new Dictionary<Buff, int>();
 
-        // ÅúÁ¿ÒÆ³ıÓÅ»¯
+        // æ‰¹é‡ç§»é™¤ä¼˜åŒ–
         private readonly HashSet<Buff> _buffsToRemove = new HashSet<Buff>();
         private readonly List<int> _removalIndices = new List<int>();
 
         #endregion
 
-        #region Buff´´½¨ÓëÌí¼Ó
+        #region Buffåˆ›å»ºä¸æ·»åŠ 
 
         /// <summary>
-        /// ´´½¨²¢Ìí¼ÓĞÂµÄBuff£¬´¦ÀíÖØ¸´IDµÄµş¼Ó²ßÂÔ
+        /// åˆ›å»ºå¹¶æ·»åŠ æ–°çš„Buffï¼Œå¤„ç†é‡å¤IDçš„å åŠ ç­–ç•¥
         /// </summary>
         public Buff CreateBuff(BuffData buffData, GameObject creator, GameObject target)
         {
@@ -58,11 +58,11 @@ namespace EasyPack
                 _targetToBuffs[target] = buffs;
             }
 
-            // ¼ì²éÊÇ·ñ´æÔÚÏàÍ¬IDµÄBuff£¬´¦Àíµş¼ÓÂß¼­
+            // æ£€æŸ¥æ˜¯å¦å­˜åœ¨ç›¸åŒIDçš„Buffï¼Œå¤„ç†å åŠ é€»è¾‘
             Buff existingBuff = buffs.FirstOrDefault(b => b.BuffData.ID == buffData.ID);
             if (existingBuff != null)
             {
-                // ´¦Àí³ÖĞøÊ±¼äµş¼Ó²ßÂÔ
+                // å¤„ç†æŒç»­æ—¶é—´å åŠ ç­–ç•¥
                 switch (buffData.BuffSuperpositionStrategy)
                 {
                     case BuffSuperpositionDurationType.Add:
@@ -78,7 +78,7 @@ namespace EasyPack
                         break;
                 }
 
-                // ´¦Àí¶ÑµşÊıµş¼Ó²ßÂÔ
+                // å¤„ç†å †å æ•°å åŠ ç­–ç•¥
                 switch (buffData.BuffSuperpositionStacksStrategy)
                 {
                     case BuffSuperpositionStacksType.Add:
@@ -99,7 +99,7 @@ namespace EasyPack
             }
             else
             {
-                // ´´½¨È«ĞÂµÄBuffÊµÀı
+                // åˆ›å»ºå…¨æ–°çš„Buffå®ä¾‹
                 Buff buff = new()
                 {
                     BuffData = buffData,
@@ -110,12 +110,12 @@ namespace EasyPack
                     CurrentStacks = 1
                 };
 
-                // Ìí¼Óµ½¸÷ÖÖ¹ÜÀíÁĞ±íºÍË÷Òı
+                // æ·»åŠ åˆ°å„ç§ç®¡ç†åˆ—è¡¨å’Œç´¢å¼•
                 buffs.Add(buff);
                 _buffPositions[buff] = _allBuffs.Count;
                 _allBuffs.Add(buff);
 
-                // ¸ù¾İ³ÖĞøÊ±¼ä·ÖÀà´æ´¢
+                // æ ¹æ®æŒç»­æ—¶é—´åˆ†ç±»å­˜å‚¨
                 if (buff.DurationTimer > 0)
                 {
                     _timedBuffs.Add(buff);
@@ -127,11 +127,11 @@ namespace EasyPack
 
                 RegisterBuffInIndexes(buff);
 
-                // Ö´ĞĞ´´½¨»Øµ÷
+                // æ‰§è¡Œåˆ›å»ºå›è°ƒ
                 buff.OnCreate?.Invoke(buff);
                 InvokeBuffModules(buff, BuffCallBackType.OnCreate);
 
-                // ´¦Àí´´½¨Ê±Á¢¼´´¥·¢
+                // å¤„ç†åˆ›å»ºæ—¶ç«‹å³è§¦å‘
                 if (buffData.TriggerOnCreate)
                 {
                     buff.OnTrigger?.Invoke(buff);
@@ -143,11 +143,11 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ½«BuffÌí¼Óµ½¿ìËÙ²éÕÒË÷ÒıÖĞ
+        /// å°†Buffæ·»åŠ åˆ°å¿«é€ŸæŸ¥æ‰¾ç´¢å¼•ä¸­
         /// </summary>
         private void RegisterBuffInIndexes(Buff buff)
         {
-            // Ìí¼Óµ½IDË÷Òı
+            // æ·»åŠ åˆ°IDç´¢å¼•
             if (!_buffsByID.TryGetValue(buff.BuffData.ID, out var idList))
             {
                 idList = new List<Buff>();
@@ -155,7 +155,7 @@ namespace EasyPack
             }
             idList.Add(buff);
 
-            // Ìí¼Óµ½±êÇ©Ë÷Òı
+            // æ·»åŠ åˆ°æ ‡ç­¾ç´¢å¼•
             if (buff.BuffData.Tags != null)
             {
                 foreach (var tag in buff.BuffData.Tags)
@@ -169,7 +169,7 @@ namespace EasyPack
                 }
             }
 
-            // Ìí¼Óµ½²ã¼¶Ë÷Òı
+            // æ·»åŠ åˆ°å±‚çº§ç´¢å¼•
             if (buff.BuffData.Layers != null)
             {
                 foreach (var layer in buff.BuffData.Layers)
@@ -186,10 +186,10 @@ namespace EasyPack
 
         #endregion
 
-        #region ¶Ñµş¹ÜÀí
+        #region å †å ç®¡ç†
 
         /// <summary>
-        /// Ôö¼ÓBuff¶ÑµşÊı£¬²»³¬¹ı×î´óÖµ
+        /// å¢åŠ Buffå †å æ•°ï¼Œä¸è¶…è¿‡æœ€å¤§å€¼
         /// </summary>
         private BuffManager IncreaseBuffStacks(Buff buff, int stack = 1)
         {
@@ -206,7 +206,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ¼õÉÙBuff¶ÑµşÊı£¬Îª0Ê±ÒÆ³ıBuff
+        /// å‡å°‘Buffå †å æ•°ï¼Œä¸º0æ—¶ç§»é™¤Buff
         /// </summary>
         private BuffManager DecreaseBuffStacks(Buff buff, int stack = 1)
         {
@@ -230,7 +230,7 @@ namespace EasyPack
 
         #endregion
 
-        #region µ¥¸öBuffÒÆ³ı
+        #region å•ä¸ªBuffç§»é™¤
 
         public BuffManager RemoveBuff(Buff buff)
         {
@@ -265,7 +265,7 @@ namespace EasyPack
 
         #endregion
 
-        #region Ä¿±êÏà¹ØÒÆ³ı²Ù×÷
+        #region ç›®æ ‡ç›¸å…³ç§»é™¤æ“ä½œ
 
         public BuffManager RemoveAllBuffs(object target)
         {
@@ -322,7 +322,7 @@ namespace EasyPack
 
         #endregion
 
-        #region È«¾ÖÒÆ³ı²Ù×÷
+        #region å…¨å±€ç§»é™¤æ“ä½œ
 
         public BuffManager RemoveAllBuffsByID(string buffID)
         {
@@ -371,29 +371,29 @@ namespace EasyPack
 
         #endregion
 
-        #region ÅúÁ¿ÒÆ³ıºËĞÄÊµÏÖ
+        #region æ‰¹é‡ç§»é™¤æ ¸å¿ƒå®ç°
 
         /// <summary>
-        /// ÅúÁ¿ÒÆ³ıBuffµÄºËĞÄÊµÏÖ£¬´¦Àí»Øµ÷ºÍË÷Òı¸üĞÂ
+        /// æ‰¹é‡ç§»é™¤Buffçš„æ ¸å¿ƒå®ç°ï¼Œå¤„ç†å›è°ƒå’Œç´¢å¼•æ›´æ–°
         /// </summary>
         private void ProcessBuffRemovals()
         {
             if (_buffsToRemove.Count == 0)
                 return;
 
-            // Ö´ĞĞÒÆ³ı»Øµ÷
+            // æ‰§è¡Œç§»é™¤å›è°ƒ
             foreach (var buff in _buffsToRemove)
             {
                 buff.OnRemove?.Invoke(buff);
                 InvokeBuffModules(buff, BuffCallBackType.OnRemove);
             }
 
-            // ÅúÁ¿´Ó¸÷¸öÁĞ±íÒÆ³ı
+            // æ‰¹é‡ä»å„ä¸ªåˆ—è¡¨ç§»é™¤
             BatchRemoveFromList(_allBuffs, _buffPositions, _buffsToRemove);
             BatchRemoveFromList(_timedBuffs, _timedBuffPositions, _buffsToRemove);
             BatchRemoveFromList(_permanentBuffs, _permanentBuffPositions, _buffsToRemove);
 
-            // ´ÓÄ¿±êË÷ÒıÒÆ³ı
+            // ä»ç›®æ ‡ç´¢å¼•ç§»é™¤
             var targetGroups = _buffsToRemove.GroupBy(b => b.Target);
             foreach (var group in targetGroups)
             {
@@ -411,7 +411,7 @@ namespace EasyPack
                 }
             }
 
-            // ´Ó¿ìËÙ²éÕÒË÷ÒıÒÆ³ı
+            // ä»å¿«é€ŸæŸ¥æ‰¾ç´¢å¼•ç§»é™¤
             foreach (var buff in _buffsToRemove)
             {
                 UnregisterBuffFromIndexes(buff);
@@ -422,7 +422,7 @@ namespace EasyPack
 
         private void UnregisterBuffFromIndexes(Buff buff)
         {
-            // ´ÓIDË÷ÒıÖĞÒÆ³ı
+            // ä»IDç´¢å¼•ä¸­ç§»é™¤
             if (_buffsByID.TryGetValue(buff.BuffData.ID, out var idList))
             {
                 SwapRemoveFromList(idList, buff);
@@ -432,7 +432,7 @@ namespace EasyPack
                 }
             }
 
-            // ´Ó±êÇ©Ë÷ÒıÖĞÒÆ³ı
+            // ä»æ ‡ç­¾ç´¢å¼•ä¸­ç§»é™¤
             if (buff.BuffData.Tags != null)
             {
                 foreach (var tag in buff.BuffData.Tags)
@@ -448,7 +448,7 @@ namespace EasyPack
                 }
             }
 
-            // ´Ó²ã¼¶Ë÷ÒıÖĞÒÆ³ı
+            // ä»å±‚çº§ç´¢å¼•ä¸­ç§»é™¤
             if (buff.BuffData.Layers != null)
             {
                 foreach (var layer in buff.BuffData.Layers)
@@ -466,7 +466,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÅúÁ¿´Ó´øÎ»ÖÃË÷ÒıµÄÁĞ±íÖĞÒÆ³ıÔªËØ£¬Ê¹ÓÃO(1)µÄswap-removeÓÅ»¯
+        /// æ‰¹é‡ä»å¸¦ä½ç½®ç´¢å¼•çš„åˆ—è¡¨ä¸­ç§»é™¤å…ƒç´ ï¼Œä½¿ç”¨O(1)çš„swap-removeä¼˜åŒ–
         /// </summary>
         private void BatchRemoveFromList(List<Buff> list, Dictionary<Buff, int> positions, HashSet<Buff> itemsToRemove)
         {
@@ -475,7 +475,7 @@ namespace EasyPack
 
             _removalIndices.Clear();
 
-            // ÊÕ¼¯ĞèÒªÒÆ³ıµÄË÷Òı
+            // æ”¶é›†éœ€è¦ç§»é™¤çš„ç´¢å¼•
             foreach (var item in itemsToRemove)
             {
                 if (positions.TryGetValue(item, out int index))
@@ -487,10 +487,10 @@ namespace EasyPack
             if (_removalIndices.Count == 0)
                 return;
 
-            // ´Ó¸ßµ½µÍÅÅĞòË÷Òı£¬±ÜÃâÒÆ³ıÊ±Ë÷Òı±ä»¯
+            // ä»é«˜åˆ°ä½æ’åºç´¢å¼•ï¼Œé¿å…ç§»é™¤æ—¶ç´¢å¼•å˜åŒ–
             _removalIndices.Sort((a, b) => b.CompareTo(a));
 
-            // ÅúÁ¿ÒÆ³ı
+            // æ‰¹é‡ç§»é™¤
             foreach (int index in _removalIndices)
             {
                 if (index < list.Count)
@@ -500,7 +500,7 @@ namespace EasyPack
 
                     if (index != lastIndex)
                     {
-                        // swap-removeÓÅ»¯£ºÓÃ×îºóÔªËØÌæ»»µ±Ç°ÔªËØ
+                        // swap-removeä¼˜åŒ–ï¼šç”¨æœ€åå…ƒç´ æ›¿æ¢å½“å‰å…ƒç´ 
                         Buff lastBuff = list[lastIndex];
                         list[index] = lastBuff;
                         positions[lastBuff] = index;
@@ -513,7 +513,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ¿ìËÙ´ÓÎŞÎ»ÖÃË÷ÒıµÄÁĞ±íÖĞÒÆ³ıÔªËØ
+        /// å¿«é€Ÿä»æ— ä½ç½®ç´¢å¼•çš„åˆ—è¡¨ä¸­ç§»é™¤å…ƒç´ 
         /// </summary>
         private void SwapRemoveFromList(List<Buff> list, Buff item)
         {
@@ -521,7 +521,7 @@ namespace EasyPack
             {
                 if (list[i] == item)
                 {
-                    // swap-removeÓÅ»¯
+                    // swap-removeä¼˜åŒ–
                     list[i] = list[list.Count - 1];
                     list.RemoveAt(list.Count - 1);
                     break;
@@ -531,7 +531,7 @@ namespace EasyPack
 
         #endregion
 
-        #region Ä¿±ê²éÑ¯²Ù×÷
+        #region ç›®æ ‡æŸ¥è¯¢æ“ä½œ
 
         public bool ContainsBuff(object target, string buffID)
         {
@@ -593,7 +593,7 @@ namespace EasyPack
 
         #endregion
 
-        #region È«¾Ö²éÑ¯²Ù×÷
+        #region å…¨å±€æŸ¥è¯¢æ“ä½œ
 
         public List<Buff> GetAllBuffsByID(string buffID)
         {
@@ -639,27 +639,27 @@ namespace EasyPack
 
         #endregion
 
-        #region ¸üĞÂÑ­»·
+        #region æ›´æ–°å¾ªç¯
 
         /// <summary>
-        /// Ö÷¸üĞÂÑ­»·£¬´¦ÀíÊ±¼äBuffºÍÓÀ¾ÃBuffµÄÊ±¼ä¸üĞÂÓë´¥·¢
+        /// ä¸»æ›´æ–°å¾ªç¯ï¼Œå¤„ç†æ—¶é—´Buffå’Œæ°¸ä¹…Buffçš„æ—¶é—´æ›´æ–°ä¸è§¦å‘
         /// </summary>
         public BuffManager Update(float deltaTime)
         {
             _removedBuffs.Clear();
             _triggeredBuffs.Clear();
 
-            // ¸üĞÂÓĞÊ±¼äÏŞÖÆµÄBuff
+            // æ›´æ–°æœ‰æ—¶é—´é™åˆ¶çš„Buff
             ProcessTimedBuffs(deltaTime);
 
-            // ¸üĞÂÓÀ¾ÃBuffµÄ´¥·¢Ê±¼ä
+            // æ›´æ–°æ°¸ä¹…Buffçš„è§¦å‘æ—¶é—´
             ProcessPermanentBuffs(deltaTime);
 
-            // ÅúÁ¿Ö´ĞĞ´¥·¢ºÍ¸üĞÂ»Øµ÷
+            // æ‰¹é‡æ‰§è¡Œè§¦å‘å’Œæ›´æ–°å›è°ƒ
             ExecuteTriggeredBuffs();
             ExecuteBuffUpdates();
 
-            // ÒÆ³ı¹ıÆÚµÄBuff
+            // ç§»é™¤è¿‡æœŸçš„Buff
             foreach (var buff in _removedBuffs)
             {
                 QueueBuffForRemoval(buff);
@@ -674,7 +674,7 @@ namespace EasyPack
             {
                 var buff = _timedBuffs[i];
 
-                // ¸üĞÂ³ÖĞøÊ±¼ä
+                // æ›´æ–°æŒç»­æ—¶é—´
                 buff.DurationTimer -= deltaTime;
                 if (buff.DurationTimer <= 0)
                 {
@@ -682,7 +682,7 @@ namespace EasyPack
                     continue;
                 }
 
-                // ¼ì²é´¥·¢¼ä¸ô
+                // æ£€æŸ¥è§¦å‘é—´éš”
                 buff.TriggerTimer -= deltaTime;
                 if (buff.TriggerTimer <= 0)
                 {
@@ -698,7 +698,7 @@ namespace EasyPack
             {
                 var buff = _permanentBuffs[i];
 
-                // ¼ì²é´¥·¢¼ä¸ô
+                // æ£€æŸ¥è§¦å‘é—´éš”
                 buff.TriggerTimer -= deltaTime;
                 if (buff.TriggerTimer <= 0)
                 {
@@ -719,7 +719,7 @@ namespace EasyPack
 
         private void ExecuteBuffUpdates()
         {
-            // ´¦ÀíÓĞÊ±¼äÏŞÖÆµÄBuff
+            // å¤„ç†æœ‰æ—¶é—´é™åˆ¶çš„Buff
             foreach (var buff in _timedBuffs)
             {
                 if (!_removedBuffs.Contains(buff))
@@ -729,7 +729,7 @@ namespace EasyPack
                 }
             }
 
-            // ´¦ÀíÓÀ¾ÃBuff
+            // å¤„ç†æ°¸ä¹…Buff
             foreach (var buff in _permanentBuffs)
             {
                 buff.OnUpdate?.Invoke(buff);
@@ -739,17 +739,17 @@ namespace EasyPack
 
         #endregion
 
-        #region Ä£¿éÖ´ĞĞÏµÍ³
+        #region æ¨¡å—æ‰§è¡Œç³»ç»Ÿ
 
         /// <summary>
-        /// Ö´ĞĞBuffÄ£¿é£¬Ö§³ÖÓÅÏÈ¼¶ÅÅĞòºÍÌõ¼şÉ¸Ñ¡
+        /// æ‰§è¡ŒBuffæ¨¡å—ï¼Œæ”¯æŒä¼˜å…ˆçº§æ’åºå’Œæ¡ä»¶ç­›é€‰
         /// </summary>
         private void InvokeBuffModules(Buff buff, BuffCallBackType callBackType, string customCallbackName = "", params object[] parameters)
         {
             if (buff.BuffData.BuffModules == null || buff.BuffData.BuffModules.Count == 0)
                 return;
 
-            // É¸Ñ¡ĞèÒªÖ´ĞĞµÄÄ£¿é
+            // ç­›é€‰éœ€è¦æ‰§è¡Œçš„æ¨¡å—
             _moduleCache.Clear();
             var modules = buff.BuffData.BuffModules;
             for (int i = 0; i < modules.Count; i++)
@@ -760,7 +760,7 @@ namespace EasyPack
                 }
             }
 
-            // °´ÓÅÏÈ¼¶²åÈëÅÅĞò
+            // æŒ‰ä¼˜å…ˆçº§æ’å…¥æ’åº
             for (int i = 1; i < _moduleCache.Count; i++)
             {
                 var key = _moduleCache[i];
@@ -774,7 +774,7 @@ namespace EasyPack
                 _moduleCache[j + 1] = key;
             }
 
-            // Ö´ĞĞÄ£¿é
+            // æ‰§è¡Œæ¨¡å—
             for (int i = 0; i < _moduleCache.Count; i++)
             {
                 _moduleCache[i].Execute(buff, callBackType, customCallbackName, parameters);

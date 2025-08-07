@@ -4,43 +4,43 @@ using UnityEngine;
 namespace EasyPack
 {
     /// <summary>
-    /// SpriteFramePlayer ÓÃÓÚÔÚ Unity ÖĞ²¥·Å¾«ÁéÖ¡¶¯»­¡£
-    /// Ö§³Ö²¥·Å¡¢ÔİÍ£¡¢Í£Ö¹¡¢»Ö¸´¡¢ÇĞ»»Ö¡µÈ²Ù×÷¡£
+    /// SpriteFramePlayer ç”¨äºåœ¨ Unity ä¸­æ’­æ”¾ç²¾çµå¸§åŠ¨ç”»ã€‚
+    /// æ”¯æŒæ’­æ”¾ã€æš‚åœã€åœæ­¢ã€æ¢å¤ã€åˆ‡æ¢å¸§ç­‰æ“ä½œã€‚
     /// </summary>
     public class SpriteFramePlayer : MonoBehaviour
     {
         /// <summary>
-        /// ¾«ÁéÖ¡Êı×é¡£
+        /// ç²¾çµå¸§æ•°ç»„ã€‚
         /// </summary>
         public Sprite[] frames;
 
         /// <summary>
-        /// ²¥·ÅËÙ¶È£¨Ã¿Ö¡¼ä¸ôÊ±¼ä£¬µ¥Î»£ºÃë£©¡£
+        /// æ’­æ”¾é€Ÿåº¦ï¼ˆæ¯å¸§é—´éš”æ—¶é—´ï¼Œå•ä½ï¼šç§’ï¼‰ã€‚
         /// </summary>
         public float frameRate = 0.1f;
 
         /// <summary>
-        /// SpriteRenderer ×é¼şÒıÓÃ¡£
+        /// SpriteRenderer ç»„ä»¶å¼•ç”¨ã€‚
         /// </summary>
         private SpriteRenderer spriteRenderer;
 
         /// <summary>
-        /// µ±Ç°Ö¡Ë÷Òı¡£
+        /// å½“å‰å¸§ç´¢å¼•ã€‚
         /// </summary>
         private int currentFrame = 0;
 
         /// <summary>
-        /// ÊÇ·ñÕıÔÚ²¥·Å¡£
+        /// æ˜¯å¦æ­£åœ¨æ’­æ”¾ã€‚
         /// </summary>
         private bool isPlaying = false;
 
         /// <summary>
-        /// ²¥·ÅĞ­³ÌµÄÒıÓÃ¡£
+        /// æ’­æ”¾åç¨‹çš„å¼•ç”¨ã€‚
         /// </summary>
         private Coroutine playCoroutine;
 
         /// <summary>
-        /// ³õÊ¼»¯×é¼ş£¬»ñÈ¡»òÌí¼Ó SpriteRenderer¡£
+        /// åˆå§‹åŒ–ç»„ä»¶ï¼Œè·å–æˆ–æ·»åŠ  SpriteRendererã€‚
         /// </summary>
         private void Awake()
         {
@@ -52,7 +52,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ¿ªÊ¼²¥·Å¾«ÁéÖ¡¶¯»­¡£
+        /// å¼€å§‹æ’­æ”¾ç²¾çµå¸§åŠ¨ç”»ã€‚
         /// </summary>
         public void Play()
         {
@@ -63,7 +63,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// Í£Ö¹²¥·Å¾«ÁéÖ¡¶¯»­¡£
+        /// åœæ­¢æ’­æ”¾ç²¾çµå¸§åŠ¨ç”»ã€‚
         /// </summary>
         public void Stop()
         {
@@ -78,7 +78,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÔİÍ£²¥·Å¾«ÁéÖ¡¶¯»­¡£
+        /// æš‚åœæ’­æ”¾ç²¾çµå¸§åŠ¨ç”»ã€‚
         /// </summary>
         public void Pause()
         {
@@ -93,7 +93,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// »Ö¸´²¥·Å¾«ÁéÖ¡¶¯»­¡£
+        /// æ¢å¤æ’­æ”¾ç²¾çµå¸§åŠ¨ç”»ã€‚
         /// </summary>
         public void Resume()
         {
@@ -104,23 +104,23 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÏÔÊ¾Ö¸¶¨Ë÷ÒıµÄÖ¡¡£
+        /// æ˜¾ç¤ºæŒ‡å®šç´¢å¼•çš„å¸§ã€‚
         /// </summary>
-        /// <param name="frameIndex">ÒªÏÔÊ¾µÄÖ¡Ë÷Òı¡£</param>
+        /// <param name="frameIndex">è¦æ˜¾ç¤ºçš„å¸§ç´¢å¼•ã€‚</param>
         public void ShowFrame(int frameIndex)
         {
             if (frames == null || frames.Length == 0) return;
 
-            // È·±£Ë÷ÒıÔÚÓĞĞ§·¶Î§ÄÚ
+            // ç¡®ä¿ç´¢å¼•åœ¨æœ‰æ•ˆèŒƒå›´å†…
             frameIndex = Mathf.Clamp(frameIndex, 0, frames.Length - 1);
             currentFrame = frameIndex;
 
-            // ÏÔÊ¾Ö¸¶¨Ö¡
+            // æ˜¾ç¤ºæŒ‡å®šå¸§
             spriteRenderer.sprite = frames[currentFrame];
         }
 
         /// <summary>
-        /// ÏÔÊ¾ÏÂÒ»Ö¡¡£
+        /// æ˜¾ç¤ºä¸‹ä¸€å¸§ã€‚
         /// </summary>
         public void NextFrame()
         {
@@ -131,7 +131,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÏÔÊ¾ÉÏÒ»Ö¡¡£
+        /// æ˜¾ç¤ºä¸Šä¸€å¸§ã€‚
         /// </summary>
         public void PreviousFrame()
         {
@@ -142,20 +142,20 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// Ö¡ĞòÁĞ²¥·ÅĞ­³Ì£¬°´Éè¶¨ËÙ¶ÈÑ­»·²¥·ÅËùÓĞÖ¡¡£
+        /// å¸§åºåˆ—æ’­æ”¾åç¨‹ï¼ŒæŒ‰è®¾å®šé€Ÿåº¦å¾ªç¯æ’­æ”¾æ‰€æœ‰å¸§ã€‚
         /// </summary>
-        /// <returns>IEnumerator ÓÃÓÚĞ­³Ì¡£</returns>
+        /// <returns>IEnumerator ç”¨äºåç¨‹ã€‚</returns>
         private IEnumerator PlayFrames()
         {
             while (isPlaying && frames != null && frames.Length > 0)
             {
-                // ÏÔÊ¾µ±Ç°Ö¡
+                // æ˜¾ç¤ºå½“å‰å¸§
                 spriteRenderer.sprite = frames[currentFrame];
 
-                // µÈ´ıÖ¸¶¨Ê±¼ä
+                // ç­‰å¾…æŒ‡å®šæ—¶é—´
                 yield return new WaitForSeconds(frameRate);
 
-                // ÒÆ¶¯µ½ÏÂÒ»Ö¡
+                // ç§»åŠ¨åˆ°ä¸‹ä¸€å¸§
                 currentFrame = (currentFrame + 1) % frames.Length;
             }
         }

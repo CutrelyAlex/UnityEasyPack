@@ -12,201 +12,201 @@ namespace EasyPack
 
     public class TilemapAStarMover : MonoBehaviour
     {
-        #region ĞòÁĞ»¯×Ö¶ÎºÍÊôĞÔ
+        #region åºåˆ—åŒ–å­—æ®µå’Œå±æ€§
 
-        [Header("Tilemap ÉèÖÃ")]
-        [Tooltip("°üº¬ËùÓĞ¿ÉÓÃÓÚÑ°Â·µÄTilemap×é¼ş£¬ÏµÍ³½«É¨ÃèÕâĞ©TilemapÖĞµÄÍßÆ¬×÷Îª¿ÉĞĞ×ßÇøÓò")]
+        [Header("Tilemap è®¾ç½®")]
+        [Tooltip("åŒ…å«æ‰€æœ‰å¯ç”¨äºå¯»è·¯çš„Tilemapç»„ä»¶ï¼Œç³»ç»Ÿå°†æ‰«æè¿™äº›Tilemapä¸­çš„ç“¦ç‰‡ä½œä¸ºå¯è¡Œèµ°åŒºåŸŸ")]
         public List<Tilemap> allTilemaps = new List<Tilemap>();
 
-        [Tooltip("Grid GameObject£¬Èç¹ûÉèÖÃÁËGrid£¬½«×Ô¶¯»ñÈ¡ÆäÏÂËùÓĞTilemap×é¼ş")]
+        [Tooltip("Grid GameObjectï¼Œå¦‚æœè®¾ç½®äº†Gridï¼Œå°†è‡ªåŠ¨è·å–å…¶ä¸‹æ‰€æœ‰Tilemapç»„ä»¶")]
         public List<Grid> gridObjects = new List<Grid>();
 
-        [Header("Ñ°Â·ÉèÖÃ")]
-        [Tooltip("Ö´ĞĞÑ°Â·µÄÎïÆ·¶ÔÏóÈç¹ûÎªnull£¬ÄÇÃ´ÊÇ·ñÄ¬ÈÏÉèÖÃÎª×ÔÉí")]
+        [Header("å¯»è·¯è®¾ç½®")]
+        [Tooltip("æ‰§è¡Œå¯»è·¯çš„ç‰©å“å¯¹è±¡å¦‚æœä¸ºnullï¼Œé‚£ä¹ˆæ˜¯å¦é»˜è®¤è®¾ç½®ä¸ºè‡ªèº«")]
         public bool ispathFindingObjectSelf;
-        [Tooltip("Ö´ĞĞÑ°Â·µÄÓÎÏ·¶ÔÏó£¬×÷ÎªÑ°Â·µÄÆğµã")]
+        [Tooltip("æ‰§è¡Œå¯»è·¯çš„æ¸¸æˆå¯¹è±¡ï¼Œä½œä¸ºå¯»è·¯çš„èµ·ç‚¹")]
         public GameObject pathfindingObject;
 
-        [Tooltip("Ñ°Â·µÄÄ¿±êÓÎÏ·¶ÔÏó£¬×÷ÎªÑ°Â·µÄÖÕµã")]
+        [Tooltip("å¯»è·¯çš„ç›®æ ‡æ¸¸æˆå¯¹è±¡ï¼Œä½œä¸ºå¯»è·¯çš„ç»ˆç‚¹")]
         public GameObject targetObject;
 
-        [Tooltip("ÊÇ·ñÆôÓÃÍßÆ¬Æ«ÒÆ")]
+        [Tooltip("æ˜¯å¦å¯ç”¨ç“¦ç‰‡åç§»")]
         public bool useTileCenterOffset = true;
 
-        [Tooltip("ÍßÆ¬Æ«ÒÆÁ¿£¬(0.5, 0.5)±íÊ¾ÍßÆ¬ÖĞĞÄ£¬·¶Î§0-1")]
+        [Tooltip("ç“¦ç‰‡åç§»é‡ï¼Œ(0.5, 0.5)è¡¨ç¤ºç“¦ç‰‡ä¸­å¿ƒï¼ŒèŒƒå›´0-1")]
         public Vector3 tileOffset = new Vector3(0.5f, 0.5f);
 
-        [Header("ÒÆ¶¯ÉèÖÃ")]
-        [Tooltip("½ÇÉ«ÒÆ¶¯ËÙ¶È£¬µ¥Î»ÎªUnityµ¥Î»/Ãë")]
+        [Header("ç§»åŠ¨è®¾ç½®")]
+        [Tooltip("è§’è‰²ç§»åŠ¨é€Ÿåº¦ï¼Œå•ä½ä¸ºUnityå•ä½/ç§’")]
         public float moveSpeed = 3f;
 
-        [Tooltip("ÊÇ·ñÔÊĞí¶Ô½ÇÏßÒÆ¶¯£¨8·½Ïò£©£¬½ûÓÃÔòÖ»ÄÜÉÏÏÂ×óÓÒÒÆ¶¯£¨4·½Ïò£©")]
+        [Tooltip("æ˜¯å¦å…è®¸å¯¹è§’çº¿ç§»åŠ¨ï¼ˆ8æ–¹å‘ï¼‰ï¼Œç¦ç”¨åˆ™åªèƒ½ä¸Šä¸‹å·¦å³ç§»åŠ¨ï¼ˆ4æ–¹å‘ï¼‰")]
         public bool allowDiagonalMovement = true;
 
-        [Tooltip("ÒÆ¶¯ËÙ¶ÈÇúÏß£¬¿ÉÒÔ¿ØÖÆÒÆ¶¯¹ı³ÌÖĞµÄ¼ÓËÙ¶È±ä»¯")]
+        [Tooltip("ç§»åŠ¨é€Ÿåº¦æ›²çº¿ï¼Œå¯ä»¥æ§åˆ¶ç§»åŠ¨è¿‡ç¨‹ä¸­çš„åŠ é€Ÿåº¦å˜åŒ–")]
         public AnimationCurve moveSpeedCurve = AnimationCurve.Linear(0, 1, 1, 1);
 
-        [Tooltip("ÊÇ·ñ×Ô¶¯×ªÏòÒÆ¶¯·½Ïò£¬ÆôÓÃºó½ÇÉ«»á³¯ÏòÒÆ¶¯·½ÏòĞı×ª")]
+        [Tooltip("æ˜¯å¦è‡ªåŠ¨è½¬å‘ç§»åŠ¨æ–¹å‘ï¼Œå¯ç”¨åè§’è‰²ä¼šæœå‘ç§»åŠ¨æ–¹å‘æ—‹è½¬")]
         public bool autoRotateToDirection = false;
 
-        [Tooltip("×ªÏòËÙ¶È£¬ÖµÔ½´ó×ªÏòÔ½¿ì")]
+        [Tooltip("è½¬å‘é€Ÿåº¦ï¼Œå€¼è¶Šå¤§è½¬å‘è¶Šå¿«")]
         public float rotationSpeed = 5f;
 
-        [Header("¸ß¼¶Ñ°Â·ÉèÖÃ")]
-        [Tooltip("ÕÏ°­Îï¼ì²âµÄ²ã¼¶ÑÚÂë£¬ÓÃÓÚÅö×²¼ì²â")]
+        [Header("é«˜çº§å¯»è·¯è®¾ç½®")]
+        [Tooltip("éšœç¢ç‰©æ£€æµ‹çš„å±‚çº§æ©ç ï¼Œç”¨äºç¢°æ’æ£€æµ‹")]
         public LayerMask obstacleLayerMask = -1;
 
-        [Tooltip("×î´óËÑË÷¾àÀë£¬³¬¹ı´Ë¾àÀëµÄÄ¿±ê½«±»ÊÓÎª²»¿É´ï")]
+        [Tooltip("æœ€å¤§æœç´¢è·ç¦»ï¼Œè¶…è¿‡æ­¤è·ç¦»çš„ç›®æ ‡å°†è¢«è§†ä¸ºä¸å¯è¾¾")]
         public float maxSearchDistance = 100f;
 
-        [Tooltip("Ñ°Â·Ëã·¨µÄ×î´óµü´ú´ÎÊı£¬·ÀÖ¹ÎŞÏŞÑ­»·")]
+        [Tooltip("å¯»è·¯ç®—æ³•çš„æœ€å¤§è¿­ä»£æ¬¡æ•°ï¼Œé˜²æ­¢æ— é™å¾ªç¯")]
         public int maxIterations = 10000;
 
-        [Tooltip("ÊÇ·ñÊ¹ÓÃÌøµãËÑË÷ÓÅ»¯Ëã·¨£¬¿ÉÒÔÌá¸ß´óµØÍ¼µÄÑ°Â·ĞÔÄÜ")]
+        [Tooltip("æ˜¯å¦ä½¿ç”¨è·³ç‚¹æœç´¢ä¼˜åŒ–ç®—æ³•ï¼Œå¯ä»¥æé«˜å¤§åœ°å›¾çš„å¯»è·¯æ€§èƒ½")]
         public bool useJumpPointSearch = false;
 
-        [Tooltip("Â·¾¶Æ½»¬Ëã·¨ÀàĞÍ£¬¿ÉÒÔÈÃÂ·¾¶¸ü×ÔÈ»")]
+        [Tooltip("è·¯å¾„å¹³æ»‘ç®—æ³•ç±»å‹ï¼Œå¯ä»¥è®©è·¯å¾„æ›´è‡ªç„¶")]
         public PathSmoothingType pathSmoothing = PathSmoothingType.None;
 
-        [Tooltip("Â·¾¶Æ½»¬Ç¿¶È£¬ÖµÔ½´óÆ½»¬Ğ§¹ûÔ½Ã÷ÏÔ")]
+        [Tooltip("è·¯å¾„å¹³æ»‘å¼ºåº¦ï¼Œå€¼è¶Šå¤§å¹³æ»‘æ•ˆæœè¶Šæ˜æ˜¾")]
         public float smoothingStrength = 0.5f;
 
-        [Header("´ú¼ÛÉèÖÃ")]
-        [Tooltip("Ö±ÏßÒÆ¶¯µÄ»ù´¡´ú¼ÛÖµ")]
+        [Header("ä»£ä»·è®¾ç½®")]
+        [Tooltip("ç›´çº¿ç§»åŠ¨çš„åŸºç¡€ä»£ä»·å€¼")]
         public float straightMoveCost = 1f;
 
-        [Tooltip("¶Ô½ÇÏßÒÆ¶¯µÄ´ú¼ÛÖµ£¬Í¨³£Îª¡Ì2¡Ö1.414")]
+        [Tooltip("å¯¹è§’çº¿ç§»åŠ¨çš„ä»£ä»·å€¼ï¼Œé€šå¸¸ä¸ºâˆš2â‰ˆ1.414")]
         public float diagonalMoveCost = 1.414f;
 
-        [Tooltip("ÍßÆ¬ÀàĞÍÓëÒÆ¶¯´ú¼ÛµÄÓ³Éä±í£¬²»Í¬ÍßÆ¬¿ÉÒÔÓĞ²»Í¬µÄÍ¨¹ı´ú¼Û")]
+        [Tooltip("ç“¦ç‰‡ç±»å‹ä¸ç§»åŠ¨ä»£ä»·çš„æ˜ å°„è¡¨ï¼Œä¸åŒç“¦ç‰‡å¯ä»¥æœ‰ä¸åŒçš„é€šè¿‡ä»£ä»·")]
         public Dictionary<TileBase, float> tileCostMap = new Dictionary<TileBase, float>();
 
-        [Tooltip("ÊÇ·ñÆôÓÃµØĞÎ´ú¼ÛÏµÍ³£¬¿¼ÂÇ²»Í¬ÍßÆ¬µÄÒÆ¶¯³É±¾")]
+        [Tooltip("æ˜¯å¦å¯ç”¨åœ°å½¢ä»£ä»·ç³»ç»Ÿï¼Œè€ƒè™‘ä¸åŒç“¦ç‰‡çš„ç§»åŠ¨æˆæœ¬")]
         public bool useTerrainCosts = false;
 
-        [Header("¶¯Ì¬ÕÏ°­Îï")]
-        [Tooltip("ÊÇ·ñ¿¼ÂÇ¶¯Ì¬ÕÏ°­Îï£¬ÈçÒÆ¶¯µÄµĞÈË»òÎïÌå")]
+        [Header("åŠ¨æ€éšœç¢ç‰©")]
+        [Tooltip("æ˜¯å¦è€ƒè™‘åŠ¨æ€éšœç¢ç‰©ï¼Œå¦‚ç§»åŠ¨çš„æ•Œäººæˆ–ç‰©ä½“")]
         public bool considerDynamicObstacles = false;
 
-        [Tooltip("¶¯Ì¬ÕÏ°­ÎïµÄ¼ì²â°ë¾¶£¬ÔÚ´Ë·¶Î§ÄÚµÄÎ»ÖÃ½«±»ÊÓÎª²»¿ÉÍ¨ĞĞ")]
+        [Tooltip("åŠ¨æ€éšœç¢ç‰©çš„æ£€æµ‹åŠå¾„ï¼Œåœ¨æ­¤èŒƒå›´å†…çš„ä½ç½®å°†è¢«è§†ä¸ºä¸å¯é€šè¡Œ")]
         public float obstacleCheckRadius = 0.3f;
 
-        [Tooltip("¶¯Ì¬ÕÏ°­ÎïÁĞ±í£¬ÕâĞ©TransformÎ»ÖÃÖÜÎ§½«±»ÊÓÎªÕÏ°­")]
+        [Tooltip("åŠ¨æ€éšœç¢ç‰©åˆ—è¡¨ï¼Œè¿™äº›Transformä½ç½®å‘¨å›´å°†è¢«è§†ä¸ºéšœç¢")]
         public List<Transform> dynamicObstacles = new List<Transform>();
 
-        [Header("¶¶¶¯ÉèÖÃ")]
-        [Tooltip("ÊÇ·ñÆôÓÃÒÆ¶¯¶¶¶¯Ğ§¹û£¬ÈÃÒÆ¶¯¿´ÆğÀ´¸ü×ÔÈ»(»òĞí)")]
+        [Header("æŠ–åŠ¨è®¾ç½®")]
+        [Tooltip("æ˜¯å¦å¯ç”¨ç§»åŠ¨æŠ–åŠ¨æ•ˆæœï¼Œè®©ç§»åŠ¨çœ‹èµ·æ¥æ›´è‡ªç„¶(æˆ–è®¸)")]
         public bool enableMovementJitter = false;
 
-        [Tooltip("¶¶¶¯Ç¿¶È£¬·¶Î§0-1£¬ÖµÔ½´ó¶¶¶¯Ô½Ã÷ÏÔ")]
+        [Tooltip("æŠ–åŠ¨å¼ºåº¦ï¼ŒèŒƒå›´0-1ï¼Œå€¼è¶Šå¤§æŠ–åŠ¨è¶Šæ˜æ˜¾")]
         public float jitterStrength = 0.1f;
 
-        [Tooltip("¶¶¶¯ÆµÂÊ£¬Ã¿Ãë²úÉú¶¶¶¯µÄ´ÎÊı")]
+        [Tooltip("æŠ–åŠ¨é¢‘ç‡ï¼Œæ¯ç§’äº§ç”ŸæŠ–åŠ¨çš„æ¬¡æ•°")]
         public float jitterFrequency = 2f;
 
-        [Tooltip("·ÀÖ¹¶¶¶¯½øÈëÎŞĞ§ÇøÓò£¬È·±£¶¶¶¯²»»áÈÃ½ÇÉ«ÒÆ¶¯µ½²»¿ÉĞĞ×ßµÄÍßÆ¬")]
+        [Tooltip("é˜²æ­¢æŠ–åŠ¨è¿›å…¥æ— æ•ˆåŒºåŸŸï¼Œç¡®ä¿æŠ–åŠ¨ä¸ä¼šè®©è§’è‰²ç§»åŠ¨åˆ°ä¸å¯è¡Œèµ°çš„ç“¦ç‰‡")]
         public bool preventJitterIntoNull = true;
 
-        [Header("×Ô¶¯Ë¢ĞÂÉèÖÃ")]
-        [Tooltip("ÊÇ·ñÆôÓÃ×Ô¶¯Ë¢ĞÂ¹¦ÄÜ£¬ÔÚUpdateÖĞ¶¨ÆÚÖØĞÂ¼ÆËãÑ°Â·")]
+        [Header("è‡ªåŠ¨åˆ·æ–°è®¾ç½®")]
+        [Tooltip("æ˜¯å¦å¯ç”¨è‡ªåŠ¨åˆ·æ–°åŠŸèƒ½ï¼Œåœ¨Updateä¸­å®šæœŸé‡æ–°è®¡ç®—å¯»è·¯")]
         public bool enableAutoRefresh = false;
 
-        [Tooltip("×Ô¶¯Ë¢ĞÂµÄÆµÂÊ£¬Ã¿ÃëË¢ĞÂµÄ´ÎÊı")]
+        [Tooltip("è‡ªåŠ¨åˆ·æ–°çš„é¢‘ç‡ï¼Œæ¯ç§’åˆ·æ–°çš„æ¬¡æ•°")]
         [Range(0.1f, 10f)]
         public float refreshFrequency = 1f;
 
-        [Tooltip("ÊÇ·ñÔÚÄ¿±ê¶ÔÏóÒÆ¶¯Ê±´¥·¢Ë¢ĞÂ")]
+        [Tooltip("æ˜¯å¦åœ¨ç›®æ ‡å¯¹è±¡ç§»åŠ¨æ—¶è§¦å‘åˆ·æ–°")]
         public bool refreshOnTargetMove = true;
 
-        [Tooltip("Ä¿±êÒÆ¶¯µÄ×îĞ¡¾àÀëãĞÖµ£¬³¬¹ı´Ë¾àÀë²Å´¥·¢Ë¢ĞÂ")]
+        [Tooltip("ç›®æ ‡ç§»åŠ¨çš„æœ€å°è·ç¦»é˜ˆå€¼ï¼Œè¶…è¿‡æ­¤è·ç¦»æ‰è§¦å‘åˆ·æ–°")]
         public float targetMoveThreshold = 0.5f;
 
-        [Header("Æ½»¬Â·¾¶ÇĞ»»ÉèÖÃ")]
-        [Tooltip("ÊÇ·ñÆôÓÃÆ½»¬Â·¾¶ÇĞ»»£¬¼´²»»áÍ£Ö¹ÔÙ¿ªÊ¼")]
+        [Header("å¹³æ»‘è·¯å¾„åˆ‡æ¢è®¾ç½®")]
+        [Tooltip("æ˜¯å¦å¯ç”¨å¹³æ»‘è·¯å¾„åˆ‡æ¢ï¼Œå³ä¸ä¼šåœæ­¢å†å¼€å§‹")]
         public bool enableSmoothPathTransition = true;
 
-        [Tooltip("Â·¾¶ÇĞ»»Ê±µÄ×î´ó»ØÍË¾àÀë£¬³¬¹ı´Ë¾àÀë½«Ö±½ÓÇĞ»»µ½ĞÂÂ·¾¶")]
+        [Tooltip("è·¯å¾„åˆ‡æ¢æ—¶çš„æœ€å¤§å›é€€è·ç¦»ï¼Œè¶…è¿‡æ­¤è·ç¦»å°†ç›´æ¥åˆ‡æ¢åˆ°æ–°è·¯å¾„")]
         public float maxBacktrackDistance = 2f;
 
-        [Header("ÊÂ¼ş")]
-        [Tooltip("ÕÒµ½Â·¾¶Ê±´¥·¢µÄÊÂ¼ş£¬²ÎÊıÎªÂ·¾¶µãÁĞ±í")]
+        [Header("äº‹ä»¶")]
+        [Tooltip("æ‰¾åˆ°è·¯å¾„æ—¶è§¦å‘çš„äº‹ä»¶ï¼Œå‚æ•°ä¸ºè·¯å¾„ç‚¹åˆ—è¡¨")]
         public PathfindingEvent OnPathFound = new PathfindingEvent();
 
-        [Tooltip("Î´ÕÒµ½Â·¾¶Ê±´¥·¢µÄÊÂ¼ş")]
+        [Tooltip("æœªæ‰¾åˆ°è·¯å¾„æ—¶è§¦å‘çš„äº‹ä»¶")]
         public UnityEvent OnPathNotFound = new UnityEvent();
 
-        [Tooltip("¿ªÊ¼ÒÆ¶¯Ê±´¥·¢µÄÊÂ¼ş£¬²ÎÊıÎªÆğÊ¼Î»ÖÃ")]
+        [Tooltip("å¼€å§‹ç§»åŠ¨æ—¶è§¦å‘çš„äº‹ä»¶ï¼Œå‚æ•°ä¸ºèµ·å§‹ä½ç½®")]
         public MovementEvent OnMovementStart = new MovementEvent();
 
-        [Tooltip("ÒÆ¶¯¹ı³ÌÖĞÃ¿Ö¡´¥·¢µÄÊÂ¼ş£¬²ÎÊıÎªµ±Ç°Î»ÖÃ")]
+        [Tooltip("ç§»åŠ¨è¿‡ç¨‹ä¸­æ¯å¸§è§¦å‘çš„äº‹ä»¶ï¼Œå‚æ•°ä¸ºå½“å‰ä½ç½®")]
         public MovementEvent OnMovementUpdate = new MovementEvent();
 
-        [Tooltip("ÒÆ¶¯Íê³ÉÊ±´¥·¢µÄÊÂ¼ş£¬²ÎÊıÎª×îÖÕÎ»ÖÃ")]
+        [Tooltip("ç§»åŠ¨å®Œæˆæ—¶è§¦å‘çš„äº‹ä»¶ï¼Œå‚æ•°ä¸ºæœ€ç»ˆä½ç½®")]
         public MovementEvent OnMovementComplete = new MovementEvent();
 
-        [Tooltip("ÒÆ¶¯±»Í£Ö¹Ê±´¥·¢µÄÊÂ¼ş")]
+        [Tooltip("ç§»åŠ¨è¢«åœæ­¢æ—¶è§¦å‘çš„äº‹ä»¶")]
         public UnityEvent OnMovementStopped = new UnityEvent();
 
-        [Header("µ÷ÊÔÉèÖÃ")]
-        [Tooltip("ÊÇ·ñÔÚSceneÊÓÍ¼ÖĞÏÔÊ¾Ñ°Â·Â·¾¶")]
+        [Header("è°ƒè¯•è®¾ç½®")]
+        [Tooltip("æ˜¯å¦åœ¨Sceneè§†å›¾ä¸­æ˜¾ç¤ºå¯»è·¯è·¯å¾„")]
         public bool showDebugPath = true;
 
-        [Tooltip("ÊÇ·ñÏÔÊ¾ËùÓĞ¿ÉĞĞ×ßÇøÓòµÄÂÖÀª")]
+        [Tooltip("æ˜¯å¦æ˜¾ç¤ºæ‰€æœ‰å¯è¡Œèµ°åŒºåŸŸçš„è½®å»“")]
         public bool showWalkableArea = false;
 
-        [Tooltip("ÊÇ·ñÏÔÊ¾¶¶¶¯µ÷ÊÔĞÅÏ¢")]
+        [Tooltip("æ˜¯å¦æ˜¾ç¤ºæŠ–åŠ¨è°ƒè¯•ä¿¡æ¯")]
         public bool showJitterDebug = false;
 
-        [Tooltip("ÊÇ·ñÏÔÊ¾ËÑË÷ÇøÓò·¶Î§")]
+        [Tooltip("æ˜¯å¦æ˜¾ç¤ºæœç´¢åŒºåŸŸèŒƒå›´")]
         public bool showSearchArea = false;
 
-        [Tooltip("ÊÇ·ñÏÔÊ¾¸÷ÍßÆ¬µÄ´ú¼ÛÖµ")]
+        [Tooltip("æ˜¯å¦æ˜¾ç¤ºå„ç“¦ç‰‡çš„ä»£ä»·å€¼")]
         public bool showCostValues = false;
 
-        [Tooltip("Â·¾¶ÏßÌõµÄÑÕÉ«")]
+        [Tooltip("è·¯å¾„çº¿æ¡çš„é¢œè‰²")]
         public Color pathColor = Color.red;
 
-        [Tooltip("Æğµã±ê¼ÇµÄÑÕÉ«")]
+        [Tooltip("èµ·ç‚¹æ ‡è®°çš„é¢œè‰²")]
         public Color startPointColor = Color.green;
 
-        [Tooltip("ÖÕµã±ê¼ÇµÄÑÕÉ«")]
+        [Tooltip("ç»ˆç‚¹æ ‡è®°çš„é¢œè‰²")]
         public Color targetPointColor = Color.blue;
 
-        [Tooltip("¿ÉĞĞ×ßÇøÓòµÄÏÔÊ¾ÑÕÉ«")]
+        [Tooltip("å¯è¡Œèµ°åŒºåŸŸçš„æ˜¾ç¤ºé¢œè‰²")]
         public Color walkableAreaColor = Color.yellow;
 
-        [Tooltip("¶¶¶¯µ÷ÊÔĞÅÏ¢µÄÏÔÊ¾ÑÕÉ«")]
+        [Tooltip("æŠ–åŠ¨è°ƒè¯•ä¿¡æ¯çš„æ˜¾ç¤ºé¢œè‰²")]
         public Color jitterDebugColor = Color.magenta;
 
-        [Tooltip("ËÑË÷ÇøÓòµÄÏÔÊ¾ÑÕÉ«")]
+        [Tooltip("æœç´¢åŒºåŸŸçš„æ˜¾ç¤ºé¢œè‰²")]
         public Color searchAreaColor = Color.cyan;
 
-        [Tooltip("ÕÏ°­ÎïµÄÏÔÊ¾ÑÕÉ«")]
+        [Tooltip("éšœç¢ç‰©çš„æ˜¾ç¤ºé¢œè‰²")]
         public Color obstacleColor = Color.red;
 
         #endregion
 
-        #region Ë½ÓĞ×Ö¶Î
+        #region ç§æœ‰å­—æ®µ
 
-        // Í³Ò»µØÍ¼Êı¾İ½á¹¹
+        // ç»Ÿä¸€åœ°å›¾æ•°æ®ç»“æ„
         private UnifiedMap unifiedMap;
         private List<Vector3Int> currentPath = new List<Vector3Int>();
         private Coroutine moveCoroutine;
 
-        // ÒÆ¶¯×´Ì¬×·×Ù
+        // ç§»åŠ¨çŠ¶æ€è¿½è¸ª
         private int currentPathIndex = 0;
         private Vector3 currentTarget = Vector3.zero;
         public bool isMovingToTarget = false;
 
-        // ¶¶¶¯Ïà¹Ø
+        // æŠ–åŠ¨ç›¸å…³
         private Vector3 currentJitterOffset = Vector3.zero;
         private float jitterTimer = 0f;
-        private List<Vector3> jitterHistory = new List<Vector3>(); // ÓÃÓÚµ÷ÊÔÏÔÊ¾
+        private List<Vector3> jitterHistory = new List<Vector3>(); // ç”¨äºè°ƒè¯•æ˜¾ç¤º
 
-        // ĞÔÄÜÍ³¼Æ
+        // æ€§èƒ½ç»Ÿè®¡
         private PathfindingStats lastStats = new PathfindingStats();
 
-        // ·½ÏòÊı×é
+        // æ–¹å‘æ•°ç»„
         private readonly Vector3Int[] directions8 = {
             Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right,
             new Vector3Int(1, 1, 0), new Vector3Int(-1, 1, 0),
@@ -217,18 +217,18 @@ namespace EasyPack
             Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right
         };
 
-        // ×Ô¶¯Ë¢ĞÂÏà¹Ø
+        // è‡ªåŠ¨åˆ·æ–°ç›¸å…³
         private float refreshTimer = 0f;
         private Vector3 lastTargetPosition;
         private bool hasInitializedTargetPosition = false;
 
         #endregion
 
-        #region UnityÉúÃüÖÜÆÚ
+        #region Unityç”Ÿå‘½å‘¨æœŸ
 
         private void Start()
         {
-            // Èç¹ûÎ´ÉèÖÃÑ°Â·¶ÔÏó£¬ÔòÄ¬ÈÏÊ¹ÓÃ×ÔÉí
+            // å¦‚æœæœªè®¾ç½®å¯»è·¯å¯¹è±¡ï¼Œåˆ™é»˜è®¤ä½¿ç”¨è‡ªèº«
             if (ispathFindingObjectSelf && pathfindingObject == null)
             {
                 pathfindingObject = gameObject;
@@ -250,28 +250,28 @@ namespace EasyPack
 
         #endregion
 
-        #region ¹«¹²API½Ó¿Ú
+        #region å…¬å…±APIæ¥å£
 
         /// <summary>
-        /// ´ÓËùÓĞGrid GameObject×Ô¶¯»ñÈ¡ËùÓĞTilemap
+        /// ä»æ‰€æœ‰Grid GameObjectè‡ªåŠ¨è·å–æ‰€æœ‰Tilemap
         /// </summary>
-        [ContextMenu("´ÓËùÓĞGrid»ñÈ¡Tilemap")]
+        [ContextMenu("ä»æ‰€æœ‰Gridè·å–Tilemap")]
         public void GetTilemapsFromGrids()
         {
             if (gridObjects.Count == 0)
             {
-                Debug.LogWarning("Grid¶ÔÏóÁĞ±íÎª¿Õ£¡");
+                Debug.LogWarning("Gridå¯¹è±¡åˆ—è¡¨ä¸ºç©ºï¼");
                 return;
             }
 
             int totalTilemaps = 0;
 
-            // ±éÀúËùÓĞGrid¶ÔÏó
+            // éå†æ‰€æœ‰Gridå¯¹è±¡
             foreach (var grid in gridObjects)
             {
                 if (grid == null) continue;
 
-                // »ñÈ¡µ±Ç°GridÏÂµÄËùÓĞTilemap×é¼ş£¨°üÀ¨×Ó¶ÔÏó£©
+                // è·å–å½“å‰Gridä¸‹çš„æ‰€æœ‰Tilemapç»„ä»¶ï¼ˆåŒ…æ‹¬å­å¯¹è±¡ï¼‰
                 Tilemap[] tilemaps = grid.GetComponentsInChildren<Tilemap>();
 
                 if (tilemaps.Length > 0)
@@ -281,25 +281,25 @@ namespace EasyPack
                 }
                 else
                 {
-                    Debug.LogWarning($"ÔÚGrid '{grid.name}' ÏÂÎ´ÕÒµ½ÈÎºÎTilemap×é¼ş£¡");
+                    Debug.LogWarning($"åœ¨Grid '{grid.name}' ä¸‹æœªæ‰¾åˆ°ä»»ä½•Tilemapç»„ä»¶ï¼");
                 }
             }
 
             if (totalTilemaps == 0)
             {
-                Debug.LogWarning("Î´´ÓÈÎºÎGrid¶ÔÏóÖĞÕÒµ½Tilemap×é¼ş£¡");
+                Debug.LogWarning("æœªä»ä»»ä½•Gridå¯¹è±¡ä¸­æ‰¾åˆ°Tilemapç»„ä»¶ï¼");
             }
         }
 
         /// <summary>
-        /// ¹¹½¨Í³Ò»µØÍ¼
+        /// æ„å»ºç»Ÿä¸€åœ°å›¾
         /// </summary>
-        [ContextMenu("¹¹½¨Í³Ò»µØÍ¼")]
+        [ContextMenu("æ„å»ºç»Ÿä¸€åœ°å›¾")]
         public void BuildUnifiedMap()
         {
             if (allTilemaps == null || allTilemaps.Count == 0)
             {
-                Debug.LogError("Ã»ÓĞÉèÖÃTilemap£¡");
+                Debug.LogError("æ²¡æœ‰è®¾ç½®Tilemapï¼");
                 return;
             }
 
@@ -307,13 +307,13 @@ namespace EasyPack
 
             if (allTilemaps == null || allTilemaps.Count == 0)
             {
-                Debug.LogError("Ã»ÓĞÉèÖÃTilemap£¡ÇëÉèÖÃGrid¶ÔÏó»òÊÖ¶¯Ìí¼ÓTilemap¡£");
+                Debug.LogError("æ²¡æœ‰è®¾ç½®Tilemapï¼è¯·è®¾ç½®Gridå¯¹è±¡æˆ–æ‰‹åŠ¨æ·»åŠ Tilemapã€‚");
                 return;
             }
 
             unifiedMap = new UnifiedMap();
 
-            // É¨ÃèËùÓĞTilemap£¬ÊÕ¼¯ËùÓĞ¿ÉĞĞ×ßµÄÍßÆ¬Î»ÖÃ
+            // æ‰«ææ‰€æœ‰Tilemapï¼Œæ”¶é›†æ‰€æœ‰å¯è¡Œèµ°çš„ç“¦ç‰‡ä½ç½®
             foreach (var tilemap in allTilemaps)
             {
                 if (tilemap == null) continue;
@@ -322,18 +322,18 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// Ö÷ÒªÑ°Â··½·¨ - Ö§³Ö¶àÖÖÑ°Â·Ñ¡Ïî
+        /// ä¸»è¦å¯»è·¯æ–¹æ³• - æ”¯æŒå¤šç§å¯»è·¯é€‰é¡¹
         /// </summary>
         public List<Vector3Int> FindPath(Vector3Int startPos, Vector3Int targetPos, PathfindingOptions options = null)
         {
             if (unifiedMap == null || unifiedMap.walkableTiles.Count == 0)
             {
-                Debug.LogError("Í³Ò»µØÍ¼Î´¹¹½¨»òÎª¿Õ£¡");
+                Debug.LogError("ç»Ÿä¸€åœ°å›¾æœªæ„å»ºæˆ–ä¸ºç©ºï¼");
                 OnPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
 
-            // Ê¹ÓÃÄ¬ÈÏÑ¡Ïî
+            // ä½¿ç”¨é»˜è®¤é€‰é¡¹
             if (options == null)
             {
                 options = new PathfindingOptions
@@ -348,26 +348,26 @@ namespace EasyPack
             var startTime = System.DateTime.Now;
             lastStats.Reset();
 
-            // ¼ì²éÆğµãºÍÖÕµã
+            // æ£€æŸ¥èµ·ç‚¹å’Œç»ˆç‚¹
             if (!IsPositionValid(startPos) || HasDynamicObstacle(startPos))
             {
-                Debug.LogError($"Æğµã {startPos} ²»¿ÉĞĞ×ß£¡");
+                Debug.LogError($"èµ·ç‚¹ {startPos} ä¸å¯è¡Œèµ°ï¼");
                 OnPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
 
             if (!IsPositionValid(targetPos) || HasDynamicObstacle(targetPos))
             {
-                Debug.LogError($"ÖÕµã {targetPos} ²»¿ÉĞĞ×ß£¡");
+                Debug.LogError($"ç»ˆç‚¹ {targetPos} ä¸å¯è¡Œèµ°ï¼");
                 OnPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
 
-            // ¾àÀë¼ì²é
+            // è·ç¦»æ£€æŸ¥
             float distance = Vector3Int.Distance(startPos, targetPos);
             if (distance > options.maxDistance)
             {
-                Debug.LogWarning($"Ä¿±ê¾àÀë {distance} ³¬¹ı×î´óËÑË÷¾àÀë {options.maxDistance}");
+                Debug.LogWarning($"ç›®æ ‡è·ç¦» {distance} è¶…è¿‡æœ€å¤§æœç´¢è·ç¦» {options.maxDistance}");
                 OnPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
@@ -379,7 +379,7 @@ namespace EasyPack
                 return singlePath;
             }
 
-            // Ö´ĞĞÑ°Â·Ëã·¨
+            // æ‰§è¡Œå¯»è·¯ç®—æ³•
             List<Vector3Int> path;
             if (options.useJPS && allowDiagonalMovement)
             {
@@ -390,12 +390,12 @@ namespace EasyPack
                 path = ExecuteAStar(startPos, targetPos, options);
             }
 
-            // Â·¾¶ºó´¦Àí
+            // è·¯å¾„åå¤„ç†
             if (path.Count > 0)
             {
                 path = PostProcessPath(path);
 
-                // ¼ÇÂ¼Í³¼ÆĞÅÏ¢
+                // è®°å½•ç»Ÿè®¡ä¿¡æ¯
                 var endTime = System.DateTime.Now;
                 lastStats.searchTime = (float)(endTime - startTime).TotalMilliseconds;
                 lastStats.pathLength = path.Count;
@@ -412,20 +412,20 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ¿ªÊ¼Ñ°Â·²¢ÒÆ¶¯
+        /// å¼€å§‹å¯»è·¯å¹¶ç§»åŠ¨
         /// </summary>
-        [ContextMenu("¿ªÊ¼Ñ°Â·²¢ÒÆ¶¯")]
+        [ContextMenu("å¼€å§‹å¯»è·¯å¹¶ç§»åŠ¨")]
         public void StartPathfindingAndMove()
         {
             if (pathfindingObject == null)
             {
-                Debug.LogError("Ñ°Â·GameObjectÎ´ÉèÖÃ£¡");
+                Debug.LogError("å¯»è·¯GameObjectæœªè®¾ç½®ï¼");
                 return;
             }
 
             if (targetObject == null)
             {
-                Debug.LogError("Ä¿±êGameObjectÎ´ÉèÖÃ£¡");
+                Debug.LogError("ç›®æ ‡GameObjectæœªè®¾ç½®ï¼");
                 return;
             }
 
@@ -441,13 +441,13 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÑØÂ·¾¶ÒÆ¶¯GameObject
+        /// æ²¿è·¯å¾„ç§»åŠ¨GameObject
         /// </summary>
         public void MoveAlongPath(List<Vector3Int> path)
         {
             if (pathfindingObject == null || path.Count == 0) return;
 
-            // Í£Ö¹Ö®Ç°µÄÒÆ¶¯
+            // åœæ­¢ä¹‹å‰çš„ç§»åŠ¨
             if (moveCoroutine != null)
             {
                 StopCoroutine(moveCoroutine);
@@ -466,9 +466,9 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// Í£Ö¹ÒÆ¶¯
+        /// åœæ­¢ç§»åŠ¨
         /// </summary>
-        [ContextMenu("Í£Ö¹ÒÆ¶¯")]
+        [ContextMenu("åœæ­¢ç§»åŠ¨")]
         public void StopMovement()
         {
             if (moveCoroutine != null)
@@ -485,7 +485,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// Ìí¼Ó¶¯Ì¬ÕÏ°­Îï
+        /// æ·»åŠ åŠ¨æ€éšœç¢ç‰©
         /// </summary>
         public void AddDynamicObstacle(Transform obstacle)
         {
@@ -496,7 +496,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÒÆ³ı¶¯Ì¬ÕÏ°­Îï
+        /// ç§»é™¤åŠ¨æ€éšœç¢ç‰©
         /// </summary>
         public void RemoveDynamicObstacle(Transform obstacle)
         {
@@ -504,7 +504,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÉèÖÃÍßÆ¬´ú¼Û
+        /// è®¾ç½®ç“¦ç‰‡ä»£ä»·
         /// </summary>
         public void SetTileCost(TileBase tile, float cost)
         {
@@ -512,7 +512,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// »ñÈ¡×îºóÒ»´ÎÑ°Â·µÄÍ³¼ÆĞÅÏ¢
+        /// è·å–æœ€åä¸€æ¬¡å¯»è·¯çš„ç»Ÿè®¡ä¿¡æ¯
         /// </summary>
         public PathfindingStats GetLastPathfindingStats()
         {
@@ -521,18 +521,18 @@ namespace EasyPack
 
         #endregion
 
-        #region ×Ô¶¯Ë¢ĞÂÏà¹Ø
+        #region è‡ªåŠ¨åˆ·æ–°ç›¸å…³
 
         /// <summary>
-        /// ´¦Àí×Ô¶¯Ë¢ĞÂÂß¼­
+        /// å¤„ç†è‡ªåŠ¨åˆ·æ–°é€»è¾‘
         /// </summary>
         private void HandleAutoRefresh()
         {
-            // ÆµÂÊË¢ĞÂ
+            // é¢‘ç‡åˆ·æ–°
             refreshTimer += Time.deltaTime;
             bool shouldRefreshByFrequency = refreshTimer >= 1f / refreshFrequency;
 
-            // Ä¿±êÒÆ¶¯Ë¢ĞÂ
+            // ç›®æ ‡ç§»åŠ¨åˆ·æ–°
             bool shouldRefreshByTargetMove = false;
             if (refreshOnTargetMove && targetObject != null)
             {
@@ -552,7 +552,7 @@ namespace EasyPack
                 }
             }
 
-            // Ö´ĞĞË¢ĞÂ
+            // æ‰§è¡Œåˆ·æ–°
             if (shouldRefreshByFrequency || shouldRefreshByTargetMove)
             {
                 if (shouldRefreshByFrequency)
@@ -565,29 +565,29 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ×Ô¶¯Ë¢ĞÂÑ°Â·
+        /// è‡ªåŠ¨åˆ·æ–°å¯»è·¯
         /// </summary>
         private void AutoRefreshPathfinding()
         {
-            // Ö»ÓĞÔÚ½ÇÉ«ÕıÔÚÒÆ¶¯ÇÒÄ¿±êÓĞĞ§Ê±²ÅË¢ĞÂ
+            // åªæœ‰åœ¨è§’è‰²æ­£åœ¨ç§»åŠ¨ä¸”ç›®æ ‡æœ‰æ•ˆæ—¶æ‰åˆ·æ–°
             if (!IsMoving || pathfindingObject == null || targetObject == null)
                 return;
 
             Vector3Int startPos;
             if (currentPath.Count > 0 && currentPathIndex < currentPath.Count)
             {
-                // Èç¹ûÕıÔÚÒÆ¶¯µ½Ä³¸öÂ·¾¶µã£¬Ê¹ÓÃ¸ÃÂ·¾¶µã×÷ÎªÆğµã
+                // å¦‚æœæ­£åœ¨ç§»åŠ¨åˆ°æŸä¸ªè·¯å¾„ç‚¹ï¼Œä½¿ç”¨è¯¥è·¯å¾„ç‚¹ä½œä¸ºèµ·ç‚¹
                 startPos = currentPath[currentPathIndex];
             }
             else
             {
-                // ±¸ÓÃ·½°¸£ºÊ¹ÓÃµ±Ç°ÍßÆ¬Î»ÖÃ
+                // å¤‡ç”¨æ–¹æ¡ˆï¼šä½¿ç”¨å½“å‰ç“¦ç‰‡ä½ç½®
                 startPos = GetTilePositionFromGameObject(pathfindingObject);
             }
 
             Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
 
-            // Èç¹ûÄ¿±êÎ»ÖÃÃ»ÓĞ¸Ä±ä£¬Ôò²»ĞèÒªË¢ĞÂ
+            // å¦‚æœç›®æ ‡ä½ç½®æ²¡æœ‰æ”¹å˜ï¼Œåˆ™ä¸éœ€è¦åˆ·æ–°
             if (currentPath.Count > 0 && targetPos == currentPath[currentPath.Count - 1])
                 return;
 
@@ -595,10 +595,10 @@ namespace EasyPack
 
             if (newPath.Count > 0)
             {
-                // Ö»ÓĞµ±ĞÂÂ·¾¶Óëµ±Ç°Â·¾¶ÏÔÖø²»Í¬Ê±²Å¸üĞÂ
+                // åªæœ‰å½“æ–°è·¯å¾„ä¸å½“å‰è·¯å¾„æ˜¾è‘—ä¸åŒæ—¶æ‰æ›´æ–°
                 if (ShouldUpdatePath(newPath))
                 {
-                    // Ê¹ÓÃÆ½»¬¹ı¶É¶ø²»ÊÇÇ¿ÖÆÖØÖÃ
+                    // ä½¿ç”¨å¹³æ»‘è¿‡æ¸¡è€Œä¸æ˜¯å¼ºåˆ¶é‡ç½®
                     if (enableSmoothPathTransition)
                     {
                         SmoothTransitionToNewPath(newPath);
@@ -612,7 +612,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ³õÊ¼»¯×Ô¶¯Ë¢ĞÂ
+        /// åˆå§‹åŒ–è‡ªåŠ¨åˆ·æ–°
         /// </summary>
         private void InitializeAutoRefresh()
         {
@@ -624,7 +624,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÉèÖÃ×Ô¶¯Ë¢ĞÂÆôÓÃ×´Ì¬
+        /// è®¾ç½®è‡ªåŠ¨åˆ·æ–°å¯ç”¨çŠ¶æ€
         /// </summary>
         public void SetAutoRefreshEnabled(bool enabled)
         {
@@ -637,16 +637,16 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÉèÖÃË¢ĞÂÆµÂÊ
+        /// è®¾ç½®åˆ·æ–°é¢‘ç‡
         /// </summary>
         public void SetRefreshFrequency(float frequency)
         {
             refreshFrequency = Mathf.Clamp(frequency, 0.1f, 10f);
-            refreshTimer = 0f; // ÖØÖÃ¼ÆÊ±Æ÷
+            refreshTimer = 0f; // é‡ç½®è®¡æ—¶å™¨
         }
 
         /// <summary>
-        /// ÉèÖÃÄ¿±êÒÆ¶¯Ë¢ĞÂ
+        /// è®¾ç½®ç›®æ ‡ç§»åŠ¨åˆ·æ–°
         /// </summary>
         public void SetRefreshOnTargetMove(bool enabled)
         {
@@ -659,7 +659,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÉèÖÃÄ¿±êÒÆ¶¯ãĞÖµ
+        /// è®¾ç½®ç›®æ ‡ç§»åŠ¨é˜ˆå€¼
         /// </summary>
         public void SetTargetMoveThreshold(float threshold)
         {
@@ -667,9 +667,9 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// Ç¿ÖÆË¢ĞÂÑ°Â·£¨ºöÂÔÆµÂÊÏŞÖÆ£©
+        /// å¼ºåˆ¶åˆ·æ–°å¯»è·¯ï¼ˆå¿½ç•¥é¢‘ç‡é™åˆ¶ï¼‰
         /// </summary>
-        [ContextMenu("Ç¿ÖÆË¢ĞÂÑ°Â·")]
+        [ContextMenu("å¼ºåˆ¶åˆ·æ–°å¯»è·¯")]
         public void ForceRefreshPathfinding()
         {
             refreshTimer = 0f;
@@ -678,10 +678,10 @@ namespace EasyPack
 
         #endregion
 
-        #region µØÍ¼Ïà¹Ø
+        #region åœ°å›¾ç›¸å…³
 
         /// <summary>
-        /// É¨Ãèµ¥¸öTilemap£¬Ìí¼Óµ½Í³Ò»µØÍ¼
+        /// æ‰«æå•ä¸ªTilemapï¼Œæ·»åŠ åˆ°ç»Ÿä¸€åœ°å›¾
         /// </summary>
         private void ScanTilemap(Tilemap tilemap)
         {
@@ -706,16 +706,16 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ¼ì²éÍßÆ¬ÊÇ·ñ¿ÉĞĞ×ß£¨¿ÉÒÔÖØĞ´´Ë·½·¨À´×Ô¶¨ÒåÂß¼­£©
+        /// æ£€æŸ¥ç“¦ç‰‡æ˜¯å¦å¯è¡Œèµ°ï¼ˆå¯ä»¥é‡å†™æ­¤æ–¹æ³•æ¥è‡ªå®šä¹‰é€»è¾‘ï¼‰
         /// </summary>
         protected virtual bool IsTileWalkable(TileBase tile, Vector3Int position)
         {
-            // ·Ç¿ÕÍßÆ¬¼´¿ÉĞĞ×ß
+            // éç©ºç“¦ç‰‡å³å¯è¡Œèµ°
             return tile != null;
         }
 
         /// <summary>
-        /// »ñÈ¡ÍßÆ¬ÒÆ¶¯´ú¼Û
+        /// è·å–ç“¦ç‰‡ç§»åŠ¨ä»£ä»·
         /// </summary>
         protected virtual float GetTileCost(TileBase tile)
         {
@@ -723,15 +723,15 @@ namespace EasyPack
             {
                 return tileCostMap[tile];
             }
-            return 1f; // Ä¬ÈÏ´ú¼Û
+            return 1f; // é»˜è®¤ä»£ä»·
         }
 
         #endregion
 
-        #region Ñ°Â·Ëã·¨
+        #region å¯»è·¯ç®—æ³•
 
         /// <summary>
-        /// ¼ì²éÎ»ÖÃÊÇ·ñÓĞĞ§
+        /// æ£€æŸ¥ä½ç½®æ˜¯å¦æœ‰æ•ˆ
         /// </summary>
         private bool IsPositionValid(Vector3Int position)
         {
@@ -739,7 +739,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ¼ì²é¶¯Ì¬ÕÏ°­Îï
+        /// æ£€æŸ¥åŠ¨æ€éšœç¢ç‰©
         /// </summary>
         private bool HasDynamicObstacle(Vector3Int position)
         {
@@ -762,7 +762,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// Ö´ĞĞA*Ñ°Â·Ëã·¨
+        /// æ‰§è¡ŒA*å¯»è·¯ç®—æ³•
         /// </summary>
         private List<Vector3Int> ExecuteAStar(Vector3Int start, Vector3Int target, PathfindingOptions options)
         {
@@ -782,19 +782,19 @@ namespace EasyPack
                 iterations++;
                 lastStats.nodesExplored++;
 
-                // ÕÒµ½FÖµ×îĞ¡µÄ½Úµã
+                // æ‰¾åˆ°Få€¼æœ€å°çš„èŠ‚ç‚¹
                 var currentNode = GetLowestFCostNode(openSet);
                 openSet.Remove(currentNode);
                 closedSet.Add(currentNode.position);
 
-                // µ½´ïÄ¿±ê
+                // åˆ°è¾¾ç›®æ ‡
                 if (currentNode.position == target)
                 {
                     lastStats.iterations = iterations;
                     return ReconstructPath(currentNode);
                 }
 
-                // ¼ì²éÏàÁÚ½Úµã
+                // æ£€æŸ¥ç›¸é‚»èŠ‚ç‚¹
                 foreach (var direction in directions)
                 {
                     Vector3Int neighborPos = currentNode.position + direction;
@@ -804,7 +804,7 @@ namespace EasyPack
                         HasDynamicObstacle(neighborPos))
                         continue;
 
-                    // ¼ÆËãÒÆ¶¯´ú¼Û
+                    // è®¡ç®—ç§»åŠ¨ä»£ä»·
                     float moveCost = GetMoveCost(direction, currentNode.position, neighborPos);
                     float newGCost = currentNode.gCost + moveCost;
 
@@ -826,12 +826,12 @@ namespace EasyPack
             }
 
             lastStats.iterations = iterations;
-            Debug.LogWarning($"Ñ°Â·Ê§°Ü£¡µü´ú´ÎÊı: {iterations}");
+            Debug.LogWarning($"å¯»è·¯å¤±è´¥ï¼è¿­ä»£æ¬¡æ•°: {iterations}");
             return new List<Vector3Int>();
         }
 
         /// <summary>
-        /// ÌøµãËÑË÷Ëã·¨£¨JPSÓÅ»¯£©
+        /// è·³ç‚¹æœç´¢ç®—æ³•ï¼ˆJPSä¼˜åŒ–ï¼‰
         /// </summary>
         private List<Vector3Int> ExecuteJumpPointSearch(Vector3Int start, Vector3Int target, PathfindingOptions options)
         {
@@ -840,7 +840,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// »ñÈ¡ÒÆ¶¯´ú¼Û£¨¿¼ÂÇµØĞÎºÍ·½Ïò£©
+        /// è·å–ç§»åŠ¨ä»£ä»·ï¼ˆè€ƒè™‘åœ°å½¢å’Œæ–¹å‘ï¼‰
         /// </summary>
         private float GetMoveCost(Vector3Int direction, Vector3Int from, Vector3Int to)
         {
@@ -848,7 +848,7 @@ namespace EasyPack
 
             if (useTerrainCosts)
             {
-                // »ñÈ¡Ä¿±êÍßÆ¬µÄµØĞÎ´ú¼Û
+                // è·å–ç›®æ ‡ç“¦ç‰‡çš„åœ°å½¢ä»£ä»·
                 var tileInfo = unifiedMap.GetTileInfo(to);
                 if (tileInfo != null)
                 {
@@ -860,7 +860,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÅĞ¶ÏÊÇ·ñÎª¶Ô½ÇÏßÒÆ¶¯
+        /// åˆ¤æ–­æ˜¯å¦ä¸ºå¯¹è§’çº¿ç§»åŠ¨
         /// </summary>
         private bool IsDiagonalMove(Vector3Int direction)
         {
@@ -868,26 +868,26 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// »ñÈ¡Æô·¢Ê½¾àÀë
+        /// è·å–å¯å‘å¼è·ç¦»
         /// </summary>
         private float GetHeuristic(Vector3Int a, Vector3Int b)
         {
             if (allowDiagonalMovement)
             {
-                // Å·¼¸ÀïµÃ¾àÀë
+                // æ¬§å‡ é‡Œå¾—è·ç¦»
                 float dx = a.x - b.x;
                 float dy = a.y - b.y;
                 return Mathf.Sqrt(dx * dx + dy * dy);
             }
             else
             {
-                // Âü¹ş¶Ù¾àÀë
+                // æ›¼å“ˆé¡¿è·ç¦»
                 return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
             }
         }
 
         /// <summary>
-        /// »ñÈ¡FÖµ×îĞ¡µÄ½Úµã
+        /// è·å–Få€¼æœ€å°çš„èŠ‚ç‚¹
         /// </summary>
         private PathNode GetLowestFCostNode(List<PathNode> nodes)
         {
@@ -904,7 +904,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÖØ¹¹Â·¾¶
+        /// é‡æ„è·¯å¾„
         /// </summary>
         private List<Vector3Int> ReconstructPath(PathNode endNode)
         {
@@ -922,10 +922,10 @@ namespace EasyPack
 
         #endregion
 
-        #region Â·¾¶ºó´¦Àí
+        #region è·¯å¾„åå¤„ç†
 
         /// <summary>
-        /// Â·¾¶ºó´¦Àí£¨Æ½»¬µÈ£©
+        /// è·¯å¾„åå¤„ç†ï¼ˆå¹³æ»‘ç­‰ï¼‰
         /// </summary>
         private List<Vector3Int> PostProcessPath(List<Vector3Int> path)
         {
@@ -943,7 +943,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÊÓÏßÆ½»¬
+        /// è§†çº¿å¹³æ»‘
         /// </summary>
         private List<Vector3Int> SmoothPathLineOfSight(List<Vector3Int> path)
         {
@@ -956,7 +956,7 @@ namespace EasyPack
             {
                 int farthestIndex = currentIndex + 1;
 
-                // ÕÒµ½×îÔ¶µÄ¿ÉÖ±´ïµã
+                // æ‰¾åˆ°æœ€è¿œçš„å¯ç›´è¾¾ç‚¹
                 for (int i = currentIndex + 2; i < path.Count; i++)
                 {
                     if (HasLineOfSight(path[currentIndex], path[i]))
@@ -977,7 +977,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ±´Èû¶ûÇúÏßÆ½»¬
+        /// è´å¡å°”æ›²çº¿å¹³æ»‘
         /// </summary>
         private List<Vector3Int> SmoothPathBezier(List<Vector3Int> path)
         {
@@ -986,7 +986,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ¼ì²éÁ½µã¼äÊÇ·ñÓĞÖ±ÏßÊÓÒ°
+        /// æ£€æŸ¥ä¸¤ç‚¹é—´æ˜¯å¦æœ‰ç›´çº¿è§†é‡
         /// </summary>
         private bool HasLineOfSight(Vector3Int start, Vector3Int end)
         {
@@ -1002,7 +1002,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// »ñÈ¡Ö±ÏßÉÏµÄËùÓĞµã
+        /// è·å–ç›´çº¿ä¸Šçš„æ‰€æœ‰ç‚¹
         /// </summary>
         private List<Vector3Int> GetPointsOnLine(Vector3Int start, Vector3Int end)
         {
@@ -1040,10 +1040,10 @@ namespace EasyPack
 
         #endregion
 
-        #region Æ½»¬Â·¾¶¹ı¶É
+        #region å¹³æ»‘è·¯å¾„è¿‡æ¸¡
 
         /// <summary>
-        /// Æ½»¬¹ı¶Éµ½ĞÂÂ·¾¶
+        /// å¹³æ»‘è¿‡æ¸¡åˆ°æ–°è·¯å¾„
         /// </summary>
         private void SmoothTransitionToNewPath(List<Vector3Int> newPath)
         {
@@ -1051,35 +1051,35 @@ namespace EasyPack
 
             Vector3 currentPosition = pathfindingObject.transform.position;
 
-            // ÕÒµ½ĞÂÂ·¾¶ÖĞ×î½Ó½üµ±Ç°Î»ÖÃµÄµã
+            // æ‰¾åˆ°æ–°è·¯å¾„ä¸­æœ€æ¥è¿‘å½“å‰ä½ç½®çš„ç‚¹
             int bestIndex = FindClosestPathIndex(newPath, currentPosition);
 
-            // Èç¹ûÕÒµ½ºÏÊÊµÄÁ¬½Óµã
+            // å¦‚æœæ‰¾åˆ°åˆé€‚çš„è¿æ¥ç‚¹
             if (bestIndex >= 0)
             {
-                // ¼ÆËã´Óµ±Ç°Î»ÖÃµ½×î¼ÑÁ¬½ÓµãµÄ¾àÀë
+                // è®¡ç®—ä»å½“å‰ä½ç½®åˆ°æœ€ä½³è¿æ¥ç‚¹çš„è·ç¦»
                 Vector3 connectPoint = GetWorldPosition(newPath[bestIndex]);
                 float backtrackDistance = Vector3.Distance(currentPosition, connectPoint);
 
-                // Èç¹û»ØÍË¾àÀëÔÚ¿É½ÓÊÜ·¶Î§ÄÚ£¬Ôò´Ó¸Ãµã¼ÌĞø
+                // å¦‚æœå›é€€è·ç¦»åœ¨å¯æ¥å—èŒƒå›´å†…ï¼Œåˆ™ä»è¯¥ç‚¹ç»§ç»­
                 if (backtrackDistance <= maxBacktrackDistance)
                 {
-                    // ¸üĞÂÂ·¾¶´ÓÁ¬½Óµã¿ªÊ¼
+                    // æ›´æ–°è·¯å¾„ä»è¿æ¥ç‚¹å¼€å§‹
                     currentPath = newPath;
                     currentPathIndex = bestIndex;
                     currentTarget = GetWorldPosition(newPath[currentPathIndex]);
 
-                    // ²»ĞèÒªÖØÆôĞ­³Ì£¬µ±Ç°Ğ­³Ì»á×Ô¶¯Ê¹ÓÃĞÂµÄÂ·¾¶ºÍË÷Òı
+                    // ä¸éœ€è¦é‡å¯åç¨‹ï¼Œå½“å‰åç¨‹ä¼šè‡ªåŠ¨ä½¿ç”¨æ–°çš„è·¯å¾„å’Œç´¢å¼•
                     return;
                 }
             }
 
-            // Èç¹ûÎŞ·¨Æ½»¬¹ı¶É£¬ÔòÖØÆôÒÆ¶¯
+            // å¦‚æœæ— æ³•å¹³æ»‘è¿‡æ¸¡ï¼Œåˆ™é‡å¯ç§»åŠ¨
             MoveAlongPath(newPath);
         }
 
         /// <summary>
-        /// ÔÚĞÂÂ·¾¶ÖĞÕÒµ½×î½Ó½üµ±Ç°Î»ÖÃµÄÂ·¾¶µãË÷Òı
+        /// åœ¨æ–°è·¯å¾„ä¸­æ‰¾åˆ°æœ€æ¥è¿‘å½“å‰ä½ç½®çš„è·¯å¾„ç‚¹ç´¢å¼•
         /// </summary>
         private int FindClosestPathIndex(List<Vector3Int> path, Vector3 currentPosition)
         {
@@ -1088,7 +1088,7 @@ namespace EasyPack
             float minDistance = float.MaxValue;
             int bestIndex = -1;
 
-            // ´Óµ±Ç°Â·¾¶Ë÷Òı¿ªÊ¼ÏòÇ°ËÑË÷£¬±ÜÃâ»ØÍËÌ«Ô¶
+            // ä»å½“å‰è·¯å¾„ç´¢å¼•å¼€å§‹å‘å‰æœç´¢ï¼Œé¿å…å›é€€å¤ªè¿œ
             int searchStart = Mathf.Max(0, currentPathIndex - 2);
             int searchEnd = Mathf.Min(path.Count, currentPathIndex + 5);
 
@@ -1104,7 +1104,7 @@ namespace EasyPack
                 }
             }
 
-            // Èç¹ûËÑË÷·¶Î§ÄÚÕÒ²»µ½ºÏÊÊµã£¬ÔòËÑË÷Õû¸öÂ·¾¶
+            // å¦‚æœæœç´¢èŒƒå›´å†…æ‰¾ä¸åˆ°åˆé€‚ç‚¹ï¼Œåˆ™æœç´¢æ•´ä¸ªè·¯å¾„
             if (bestIndex == -1)
             {
                 for (int i = 0; i < path.Count; i++)
@@ -1124,23 +1124,23 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÅĞ¶ÏÊÇ·ñÓ¦¸Ã¸üĞÂÂ·¾¶
+        /// åˆ¤æ–­æ˜¯å¦åº”è¯¥æ›´æ–°è·¯å¾„
         /// </summary>
         private bool ShouldUpdatePath(List<Vector3Int> newPath)
         {
             if (currentPath.Count == 0) return true;
             if (newPath.Count == 0) return false;
 
-            // Èç¹ûÖÕµã²»Í¬£¬ĞèÒª¸üĞÂ
+            // å¦‚æœç»ˆç‚¹ä¸åŒï¼Œéœ€è¦æ›´æ–°
             if (currentPath[currentPath.Count - 1] != newPath[newPath.Count - 1])
                 return true;
 
-            // Èç¹ûÂ·¾¶³¤¶È²îÒìºÜ´ó£¬ĞèÒª¸üĞÂ
+            // å¦‚æœè·¯å¾„é•¿åº¦å·®å¼‚å¾ˆå¤§ï¼Œéœ€è¦æ›´æ–°
             float lengthDifference = Mathf.Abs(newPath.Count - currentPath.Count) / (float)currentPath.Count;
-            if (lengthDifference > 0.3f) // 30%µÄ²îÒì
+            if (lengthDifference > 0.3f) // 30%çš„å·®å¼‚
                 return true;
 
-            // ¼ì²éÂ·¾¶µÄÇ°¼¸²½ÊÇ·ñÓĞÏÔÖø²îÒì
+            // æ£€æŸ¥è·¯å¾„çš„å‰å‡ æ­¥æ˜¯å¦æœ‰æ˜¾è‘—å·®å¼‚
             int checkSteps = Mathf.Min(3, Mathf.Min(currentPath.Count, newPath.Count));
             for (int i = 0; i < checkSteps; i++)
             {
@@ -1153,10 +1153,10 @@ namespace EasyPack
 
         #endregion
 
-        #region ÒÆ¶¯Ïà¹Ø
+        #region ç§»åŠ¨ç›¸å…³
 
         /// <summary>
-        /// ÒÆ¶¯Ğ­³Ì
+        /// ç§»åŠ¨åç¨‹
         /// </summary>
         private System.Collections.IEnumerator MoveCoroutine()
         {
@@ -1167,10 +1167,10 @@ namespace EasyPack
                 currentTarget = targetWorld;
                 isMovingToTarget = true;
 
-                // Æ½»¬ÒÆ¶¯µ½Ä¿±êÎ»ÖÃ
+                // å¹³æ»‘ç§»åŠ¨åˆ°ç›®æ ‡ä½ç½®
                 while (Vector3.Distance(pathfindingObject.transform.position, targetWorld + currentJitterOffset) > 0.05f)
                 {
-                    // ¼ì²éÂ·¾¶ÊÇ·ñ±»¸üĞÂ£¨Æ½»¬¹ı¶ÉµÄÇé¿ö£©
+                    // æ£€æŸ¥è·¯å¾„æ˜¯å¦è¢«æ›´æ–°ï¼ˆå¹³æ»‘è¿‡æ¸¡çš„æƒ…å†µï¼‰
                     if (currentPathIndex < currentPath.Count)
                     {
                         targetCell = currentPath[currentPathIndex];
@@ -1178,7 +1178,7 @@ namespace EasyPack
                         currentTarget = targetWorld;
                     }
 
-                    // ¼ÆËãÒÆ¶¯ËÙ¶È
+                    // è®¡ç®—ç§»åŠ¨é€Ÿåº¦
                     float currentSpeed = moveSpeed;
                     if (moveSpeedCurve.keys.Length > 1)
                     {
@@ -1189,7 +1189,7 @@ namespace EasyPack
                         currentSpeed = moveSpeed * speedMultiplier;
                     }
 
-                    // ¸üĞÂ¶¶¶¯
+                    // æ›´æ–°æŠ–åŠ¨
                     if (enableMovementJitter)
                     {
                         jitterTimer += Time.deltaTime;
@@ -1205,7 +1205,7 @@ namespace EasyPack
                         }
                     }
 
-                    // ÒÆ¶¯µ½Ä¿±êÎ»ÖÃ
+                    // ç§»åŠ¨åˆ°ç›®æ ‡ä½ç½®
                     Vector3 jitteredTarget = targetWorld + currentJitterOffset;
                     Vector3 newPosition = Vector3.MoveTowards(
                         pathfindingObject.transform.position,
@@ -1213,7 +1213,7 @@ namespace EasyPack
                         currentSpeed * Time.deltaTime
                     );
 
-                    // Ğı×ªµ½ÒÆ¶¯·½Ïò
+                    // æ—‹è½¬åˆ°ç§»åŠ¨æ–¹å‘
                     if (autoRotateToDirection)
                     {
                         Vector3 direction = (jitteredTarget - pathfindingObject.transform.position).normalized;
@@ -1243,10 +1243,10 @@ namespace EasyPack
                 }
             }
 
-            // ÒÆ¶¯Íê³É´¦Àí
+            // ç§»åŠ¨å®Œæˆå¤„ç†
             Vector3 finalTarget = GetWorldPosition(currentPath[currentPath.Count - 1]);
 
-            // Æ½»¬µ½×îÖÕÎ»ÖÃ
+            // å¹³æ»‘åˆ°æœ€ç»ˆä½ç½®
             while (Vector3.Distance(pathfindingObject.transform.position, finalTarget) > 0.01f)
             {
                 currentJitterOffset = Vector3.Lerp(currentJitterOffset, Vector3.zero, Time.deltaTime * 3f);
@@ -1269,10 +1269,10 @@ namespace EasyPack
 
         #endregion
 
-        #region ¶¶¶¯Ïà¹Ø
+        #region æŠ–åŠ¨ç›¸å…³
 
         /// <summary>
-        /// Éú³É¶¶¶¯Æ«ÒÆ
+        /// ç”ŸæˆæŠ–åŠ¨åç§»
         /// </summary>
         private Vector3 GenerateJitterOffset(Vector3 currentWorldPos)
         {
@@ -1319,10 +1319,10 @@ namespace EasyPack
 
         #endregion
 
-        #region ¹¤¾ß·½·¨
+        #region å·¥å…·æ–¹æ³•
 
         /// <summary>
-        /// »ñÈ¡GameObjectÏÂ·½µÄÍßÆ¬Î»ÖÃ
+        /// è·å–GameObjectä¸‹æ–¹çš„ç“¦ç‰‡ä½ç½®
         /// </summary>
         private Vector3Int GetTilePositionFromGameObject(GameObject obj)
         {
@@ -1334,7 +1334,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ½«ÍßÆ¬×ø±ê×ª»»ÎªÊÀ½ç×ø±ê
+        /// å°†ç“¦ç‰‡åæ ‡è½¬æ¢ä¸ºä¸–ç•Œåæ ‡
         /// </summary>
         private Vector3 GetWorldPosition(Vector3Int cellPosition)
         {
@@ -1358,7 +1358,7 @@ namespace EasyPack
 
         #endregion
 
-        #region ÉèÖÃ½Ó¿Ú
+        #region è®¾ç½®æ¥å£
 
         public void SetTargetObject(GameObject target) => targetObject = target;
         public void SetPathfindingObject(GameObject pathfinder) => pathfindingObject = pathfinder;
@@ -1368,20 +1368,20 @@ namespace EasyPack
         public void SetJitterStrength(float strength) => jitterStrength = Mathf.Clamp01(strength);
         public void SetJitterFrequency(float frequency) => jitterFrequency = Mathf.Max(0.1f, frequency);
 
-        // Æ½»¬Â·¾¶¹ı¶ÉÉèÖÃ
+        // å¹³æ»‘è·¯å¾„è¿‡æ¸¡è®¾ç½®
         public void SetSmoothPathTransition(bool enabled) => enableSmoothPathTransition = enabled;
         public void SetMaxBacktrackDistance(float distance) => maxBacktrackDistance = Mathf.Max(0.1f, distance);
 
         #endregion
 
-        #region µ÷ÊÔÏà¹Ø
+        #region è°ƒè¯•ç›¸å…³
 
-        // µ÷ÊÔ»æÖÆ
+        // è°ƒè¯•ç»˜åˆ¶
         private void OnDrawGizmos()
         {
             if (unifiedMap == null) return;
 
-            // »æÖÆ¿ÉĞĞ×ßÇøÓò
+            // ç»˜åˆ¶å¯è¡Œèµ°åŒºåŸŸ
             if (showWalkableArea)
             {
                 Gizmos.color = walkableAreaColor;
@@ -1392,7 +1392,7 @@ namespace EasyPack
                 }
             }
 
-            // »æÖÆÂ·¾¶
+            // ç»˜åˆ¶è·¯å¾„
             if (showDebugPath && currentPath != null && currentPath.Count > 0)
             {
                 Gizmos.color = pathColor;
@@ -1404,7 +1404,7 @@ namespace EasyPack
                     Gizmos.DrawWireSphere(from, 0.15f);
                 }
 
-                // ¸ßÁÁµ±Ç°Ä¿±êµã
+                // é«˜äº®å½“å‰ç›®æ ‡ç‚¹
                 if (currentPathIndex < currentPath.Count)
                 {
                     Gizmos.color = Color.yellow;
@@ -1413,7 +1413,7 @@ namespace EasyPack
                 }
             }
 
-            // »æÖÆ¶¯Ì¬ÕÏ°­Îï
+            // ç»˜åˆ¶åŠ¨æ€éšœç¢ç‰©
             if (considerDynamicObstacles)
             {
                 Gizmos.color = obstacleColor;
@@ -1426,7 +1426,7 @@ namespace EasyPack
                 }
             }
 
-            // »æÖÆ¶¶¶¯µ÷ÊÔĞÅÏ¢
+            // ç»˜åˆ¶æŠ–åŠ¨è°ƒè¯•ä¿¡æ¯
             if (showJitterDebug && enableMovementJitter)
             {
                 Gizmos.color = jitterDebugColor;
@@ -1439,7 +1439,7 @@ namespace EasyPack
                 }
             }
 
-            // »æÖÆÆğµãºÍÖÕµã
+            // ç»˜åˆ¶èµ·ç‚¹å’Œç»ˆç‚¹
             if (pathfindingObject != null)
             {
                 Vector3Int startPos = GetTilePositionFromGameObject(pathfindingObject);
@@ -1461,7 +1461,7 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// Â·¾¶Æ½»¬ÀàĞÍ
+    /// è·¯å¾„å¹³æ»‘ç±»å‹
     /// </summary>
     public enum PathSmoothingType
     {
@@ -1471,7 +1471,7 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// Ñ°Â·Ñ¡Ïî
+    /// å¯»è·¯é€‰é¡¹
     /// </summary>
     [System.Serializable]
     public class PathfindingOptions
@@ -1484,13 +1484,13 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// Ñ°Â·Í³¼ÆĞÅÏ¢
+    /// å¯»è·¯ç»Ÿè®¡ä¿¡æ¯
     /// </summary>
     [System.Serializable]
     public class PathfindingStats
     {
         public bool success = false;
-        public float searchTime = 0f; // ºÁÃë
+        public float searchTime = 0f; // æ¯«ç§’
         public int iterations = 0;
         public int nodesExplored = 0;
         public int pathLength = 0;
@@ -1506,7 +1506,7 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// Í³Ò»µØÍ¼Êı¾İ½á¹¹
+    /// ç»Ÿä¸€åœ°å›¾æ•°æ®ç»“æ„
     /// </summary>
     public class UnifiedMap
     {
@@ -1555,7 +1555,7 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// ÍßÆ¬ĞÅÏ¢
+    /// ç“¦ç‰‡ä¿¡æ¯
     /// </summary>
     [System.Serializable]
     public class TileInfo
@@ -1567,7 +1567,7 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// Â·¾¶½Úµã
+    /// è·¯å¾„èŠ‚ç‚¹
     /// </summary>
     public class PathNode
     {

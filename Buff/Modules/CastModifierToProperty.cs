@@ -5,47 +5,47 @@ using UnityEngine;
 namespace EasyPack
 {
     /// <summary>
-    /// Ò»¸öBuffModule£¬ÓÃÓÚ½«ModifierÓ¦ÓÃµ½GamePropertyÉÏ¡£
-    /// ÔÚ²»Í¬µÄ»Øµ÷ÊÂ¼ş(Èç´´½¨¡¢ÒÆ³ıµÈ)ÖĞ£¬¿ÉÒÔ¶ÔÄ¿±êµÄGamePropertyÌí¼Ó»òÒÆ³ıĞŞÊÎÆ÷¡£
+    /// ä¸€ä¸ªBuffModuleï¼Œç”¨äºå°†Modifieråº”ç”¨åˆ°GamePropertyä¸Šã€‚
+    /// åœ¨ä¸åŒçš„å›è°ƒäº‹ä»¶(å¦‚åˆ›å»ºã€ç§»é™¤ç­‰)ä¸­ï¼Œå¯ä»¥å¯¹ç›®æ ‡çš„GamePropertyæ·»åŠ æˆ–ç§»é™¤ä¿®é¥°å™¨ã€‚
     /// </summary>
     public class CastModifierToProperty : BuffModule
     {
         public CombineGamePropertyManager CombineGamePropertyManager { get; set; }
         /// <summary>
-        /// ÒªÓ¦ÓÃµÄĞŞÊÎÆ÷
+        /// è¦åº”ç”¨çš„ä¿®é¥°å™¨
         /// </summary>
         public IModifier Modifier { get; set; }
 
         /// <summary>
-        /// ×éºÏÊôĞÔµÄID£¬ÓÃÓÚ´ÓCombineGamePropertyManagerÖĞ»ñÈ¡¶ÔÓ¦µÄ×éºÏÊôĞÔ
+        /// ç»„åˆå±æ€§çš„IDï¼Œç”¨äºä»CombineGamePropertyManagerä¸­è·å–å¯¹åº”çš„ç»„åˆå±æ€§
         /// </summary>
         public string CombinePropertyID { get; set; }
 
         /// <summary>
-        /// ¾ßÌåÊôĞÔµÄID£¬ÓÃÓÚÔÚ×éºÏÊôĞÔÖĞ²éÕÒÏàÓ¦µÄGameProperty
-        /// ¿ÉÎª¿Õ£¬Èç¹ûÎª¿ÕÔòÊ¹ÓÃ×éºÏÊôĞÔµÄ½á¹ûÊôĞÔ
+        /// å…·ä½“å±æ€§çš„IDï¼Œç”¨äºåœ¨ç»„åˆå±æ€§ä¸­æŸ¥æ‰¾ç›¸åº”çš„GameProperty
+        /// å¯ä¸ºç©ºï¼Œå¦‚æœä¸ºç©ºåˆ™ä½¿ç”¨ç»„åˆå±æ€§çš„ç»“æœå±æ€§
         /// </summary>
         public string PropertyID { get; set; }
 
         /// <summary>
-        /// ´æ´¢ÒÑÓ¦ÓÃµÄËùÓĞĞŞÊÎÆ÷£¬±ãÓÚÒÆ³ı
+        /// å­˜å‚¨å·²åº”ç”¨çš„æ‰€æœ‰ä¿®é¥°å™¨ï¼Œä¾¿äºç§»é™¤
         /// </summary>
         private readonly List<IModifier> _appliedModifiers = new List<IModifier>();
 
         /// <summary>
-        /// ´´½¨Ò»¸öĞÂµÄCastModifierToPropertyÊµÀı£¬²¢×¢²á¶à¸öÉúÃüÖÜÆÚ»Øµ÷
+        /// åˆ›å»ºä¸€ä¸ªæ–°çš„CastModifierToPropertyå®ä¾‹ï¼Œå¹¶æ³¨å†Œå¤šä¸ªç”Ÿå‘½å‘¨æœŸå›è°ƒ
         /// </summary>
-        /// <param name="modifier">ÒªÓ¦ÓÃµÄĞŞÊÎÆ÷</param>
-        /// <param name="combinePropertyID">×éºÏÊôĞÔID</param>
-        /// <param name="propertyID">¾ßÌåÊôĞÔID(¿ÉÑ¡)</param>
-        public CastModifierToProperty(IModifier modifier, string combinePropertyID,CombineGamePropertyManager combineGamePropertyManager, string propertyID = "")
+        /// <param name="modifier">è¦åº”ç”¨çš„ä¿®é¥°å™¨</param>
+        /// <param name="combinePropertyID">ç»„åˆå±æ€§ID</param>
+        /// <param name="propertyID">å…·ä½“å±æ€§ID(å¯é€‰)</param>
+        public CastModifierToProperty(IModifier modifier, string combinePropertyID, CombineGamePropertyManager combineGamePropertyManager, string propertyID = "")
         {
             Modifier = modifier;
             CombinePropertyID = combinePropertyID;
             PropertyID = propertyID;
             CombineGamePropertyManager = combineGamePropertyManager;
 
-            // ×¢²á¸÷ÖÖÉúÃüÖÜÆÚ»Øµ÷
+            // æ³¨å†Œå„ç§ç”Ÿå‘½å‘¨æœŸå›è°ƒ
             RegisterCallback(BuffCallBackType.OnCreate, OnCreate);
             RegisterCallback(BuffCallBackType.OnAddStack, OnAddStack);
             RegisterCallback(BuffCallBackType.OnRemove, OnRemove);
@@ -53,7 +53,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ´¦ÀíBuff´´½¨Ê±µÄ»Øµ÷
+        /// å¤„ç†Buffåˆ›å»ºæ—¶çš„å›è°ƒ
         /// </summary>
         private void OnCreate(Buff buff, object[] parameters)
         {
@@ -61,7 +61,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ´¦ÀíBuff²ãÊıÔö¼ÓÊ±µÄ»Øµ÷
+        /// å¤„ç†Buffå±‚æ•°å¢åŠ æ—¶çš„å›è°ƒ
         /// </summary>
         private void OnAddStack(Buff buff, object[] parameters)
         {
@@ -69,7 +69,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ´¦ÀíBuffÒÆ³ıÊ±µÄ»Øµ÷
+        /// å¤„ç†Buffç§»é™¤æ—¶çš„å›è°ƒ
         /// </summary>
         private void OnRemove(Buff buff, object[] parameters)
         {
@@ -77,7 +77,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ´¦ÀíBuff²ãÊı¼õÉÙÊ±µÄ»Øµ÷
+        /// å¤„ç†Buffå±‚æ•°å‡å°‘æ—¶çš„å›è°ƒ
         /// </summary>
         private void OnReduceStack(Buff buff, object[] parameters)
         {
@@ -85,7 +85,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// Ìí¼ÓĞŞÊÎÆ÷µ½Ä¿±êÊôĞÔ
+        /// æ·»åŠ ä¿®é¥°å™¨åˆ°ç›®æ ‡å±æ€§
         /// </summary>
         private void AddModifier()
         {
@@ -96,12 +96,12 @@ namespace EasyPack
             var modifierClone = Modifier.Clone();
             property.AddModifier(modifierClone);
 
-            // ¼ÇÂ¼ÒÑÓ¦ÓÃµÄĞŞÊÎÆ÷ÒÔ±ãºóĞøÒÆ³ı
+            // è®°å½•å·²åº”ç”¨çš„ä¿®é¥°å™¨ä»¥ä¾¿åç»­ç§»é™¤
             _appliedModifiers.Add(modifierClone);
         }
 
         /// <summary>
-        /// ÒÆ³ıµ¥¸öĞŞÊÎÆ÷
+        /// ç§»é™¤å•ä¸ªä¿®é¥°å™¨
         /// </summary>
         private void RemoveSingleModifier()
         {
@@ -109,14 +109,14 @@ namespace EasyPack
             if (property == null || _appliedModifiers.Count == 0)
                 return;
 
-            // ÒÆ³ı×îºóÌí¼ÓµÄĞŞÊÎÆ÷
+            // ç§»é™¤æœ€åæ·»åŠ çš„ä¿®é¥°å™¨
             var lastModifier = _appliedModifiers[^1];
             property.RemoveModifier(lastModifier);
             _appliedModifiers.RemoveAt(_appliedModifiers.Count - 1);
         }
 
         /// <summary>
-        /// ÒÆ³ıËùÓĞÒÑÓ¦ÓÃµÄĞŞÊÎÆ÷
+        /// ç§»é™¤æ‰€æœ‰å·²åº”ç”¨çš„ä¿®é¥°å™¨
         /// </summary>
         private void RemoveAllModifiers()
         {
@@ -124,7 +124,7 @@ namespace EasyPack
             if (property == null)
                 return;
 
-            // ÒÆ³ıËùÓĞÒÑÓ¦ÓÃµÄĞŞÊÎÆ÷
+            // ç§»é™¤æ‰€æœ‰å·²åº”ç”¨çš„ä¿®é¥°å™¨
             property.RemoveModifiers(_appliedModifiers);
             _appliedModifiers.Clear();
         }

@@ -18,42 +18,42 @@ namespace EasyPack
 
     public abstract class BuffModule
     {
-        // ÓÃÓÚ´æ´¢²»Í¬»Øµ÷ÀàĞÍ¶ÔÓ¦µÄ´¦Àí·½·¨
+        // ç”¨äºå­˜å‚¨ä¸åŒå›è°ƒç±»å‹å¯¹åº”çš„å¤„ç†æ–¹æ³•
         private readonly Dictionary<BuffCallBackType, Action<Buff, object[]>> _callbackHandlers = new Dictionary<BuffCallBackType, Action<Buff, object[]>>();
 
-        // ×Ô¶¨Òå»Øµ÷Ãû³Æµ½´¦Àí·½·¨µÄÓ³Éä
+        // è‡ªå®šä¹‰å›è°ƒåç§°åˆ°å¤„ç†æ–¹æ³•çš„æ˜ å°„
         private readonly Dictionary<string, Action<Buff, object[]>> _customCallbackHandlers = new Dictionary<string, Action<Buff, object[]>>();
 
-        public int Priority { get; set; } = 0; // ¿ØÖÆ¶à¸öÄ£¿éµÄÖ´ĞĞË³Ğò£¬Êı×ÖÔ½´óÔ½ÏÈÖ´ĞĞ
+        public int Priority { get; set; } = 0; // æ§åˆ¶å¤šä¸ªæ¨¡å—çš„æ‰§è¡Œé¡ºåºï¼Œæ•°å­—è¶Šå¤§è¶Šå…ˆæ‰§è¡Œ
 
         /// <summary>
-        /// ÎªÖ¸¶¨µÄ»Øµ÷ÀàĞÍ×¢²á´¦Àí·½·¨
+        /// ä¸ºæŒ‡å®šçš„å›è°ƒç±»å‹æ³¨å†Œå¤„ç†æ–¹æ³•
         /// </summary>
-        /// <param name="callbackType">»Øµ÷ÀàĞÍ</param>
-        /// <param name="handler">´¦Àí·½·¨</param>
+        /// <param name="callbackType">å›è°ƒç±»å‹</param>
+        /// <param name="handler">å¤„ç†æ–¹æ³•</param>
         public void RegisterCallback(BuffCallBackType callbackType, Action<Buff, object[]> handler)
         {
             if (callbackType == BuffCallBackType.Custom)
-                throw new ArgumentException("Ê¹ÓÃRegisterCustomCallback·½·¨×¢²á×Ô¶¨Òå»Øµ÷");
+                throw new ArgumentException("ä½¿ç”¨RegisterCustomCallbackæ–¹æ³•æ³¨å†Œè‡ªå®šä¹‰å›è°ƒ");
 
             _callbackHandlers[callbackType] = handler;
         }
 
         /// <summary>
-        /// Îª×Ô¶¨Òå»Øµ÷ÀàĞÍ×¢²á´¦Àí·½·¨
+        /// ä¸ºè‡ªå®šä¹‰å›è°ƒç±»å‹æ³¨å†Œå¤„ç†æ–¹æ³•
         /// </summary>
-        /// <param name="customCallbackName">×Ô¶¨Òå»Øµ÷Ãû³Æ</param>
-        /// <param name="handler">´¦Àí·½·¨</param>
+        /// <param name="customCallbackName">è‡ªå®šä¹‰å›è°ƒåç§°</param>
+        /// <param name="handler">å¤„ç†æ–¹æ³•</param>
         public void RegisterCustomCallback(string customCallbackName, Action<Buff, object[]> handler)
         {
             if (string.IsNullOrEmpty(customCallbackName))
-                throw new ArgumentException("×Ô¶¨Òå»Øµ÷Ãû³Æ²»ÄÜÎª¿Õ");
+                throw new ArgumentException("è‡ªå®šä¹‰å›è°ƒåç§°ä¸èƒ½ä¸ºç©º");
 
             _customCallbackHandlers[customCallbackName] = handler;
         }
 
         /// <summary>
-        /// ¼ì²éÊÇ·ñÓ¦¸ÃÖ´ĞĞÌØ¶¨»Øµ÷
+        /// æ£€æŸ¥æ˜¯å¦åº”è¯¥æ‰§è¡Œç‰¹å®šå›è°ƒ
         /// </summary>
         public virtual bool ShouldExecute(BuffCallBackType callbackType, string customCallbackName = "")
         {
@@ -67,7 +67,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// Ö´ĞĞ¶ÔÓ¦µÄ»Øµ÷´¦Àí·½·¨
+        /// æ‰§è¡Œå¯¹åº”çš„å›è°ƒå¤„ç†æ–¹æ³•
         /// </summary>
         public virtual void Execute(Buff buff, BuffCallBackType callbackType, string customCallbackName = "", object[] parameters = null)
         {
