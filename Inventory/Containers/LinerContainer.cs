@@ -10,12 +10,12 @@ public class LinerContainer : Container
     public override Vector2 Grid => new(-1, -1);
 
     /// <summary>
-    /// ´´½¨Ò»¸öÏßĞÔÈİÆ÷
+    /// åˆ›å»ºä¸€ä¸ªçº¿æ€§å®¹å™¨
     /// </summary>
-    /// <param name="id">ÈİÆ÷ID</param>
-    /// <param name="name">ÈİÆ÷Ãû³Æ</param>
-    /// <param name="type">ÈİÆ÷ÀàĞÍ</param>
-    /// <param name="capacity">ÈİÁ¿£¬-1±íÊ¾ÎŞÏŞ</param>
+    /// <param name="id">å®¹å™¨ID</param>
+    /// <param name="name">å®¹å™¨åç§°</param>
+    /// <param name="type">å®¹å™¨ç±»å‹</param>
+    /// <param name="capacity">å®¹é‡ï¼Œ-1è¡¨ç¤ºæ— é™</param>
     public LinerContainer(string id, string name, string type, int capacity = -1)
         : base(id, name, type, capacity)
     {
@@ -23,11 +23,11 @@ public class LinerContainer : Container
     }
 
     /// <summary>
-    /// ÎïÆ·ÒÆ¶¯´¦Àí
+    /// ç‰©å“ç§»åŠ¨å¤„ç†
     /// </summary>
-    /// <param name="sourceSlotIndex">Ô´²ÛÎ»Ë÷Òı</param>
-    /// <param name="targetContainer">Ä¿±êÈİÆ÷</param>
-    /// <returns>ÒÆ¶¯½á¹û</returns>
+    /// <param name="sourceSlotIndex">æºæ§½ä½ç´¢å¼•</param>
+    /// <param name="targetContainer">ç›®æ ‡å®¹å™¨</param>
+    /// <returns>ç§»åŠ¨ç»“æœ</returns>
     public bool MoveItemToContainer(int sourceSlotIndex, IContainer targetContainer)
     {
         if (!ValidateSourceSlot(sourceSlotIndex, out var sourceSlot, out var sourceItem, out var sourceCount))
@@ -40,18 +40,18 @@ public class LinerContainer : Container
     }
 
     /// <summary>
-    /// ÕûÀíÈİÆ÷
+    /// æ•´ç†å®¹å™¨
     /// </summary>
     public void SortInventory()
     {
         var occupiedSlots = CollectOccupiedSlots();
 
-        occupiedSlots.Sort((a, b) => 
+        occupiedSlots.Sort((a, b) =>
         {
             int typeCompare = string.Compare(a.item.Type, b.item.Type, StringComparison.Ordinal);
 
-            return typeCompare != 0 
-            ? typeCompare 
+            return typeCompare != 0
+            ? typeCompare
             : string.Compare(a.item.Name, b.item.Name, StringComparison.Ordinal);
         });
 
@@ -63,13 +63,13 @@ public class LinerContainer : Container
     }
 
     /// <summary>
-    /// ºÏ²¢ÏàÍ¬ÎïÆ·µ½½ÏÉÙµÄ²ÛÎ»ÖĞ
+    /// åˆå¹¶ç›¸åŒç‰©å“åˆ°è¾ƒå°‘çš„æ§½ä½ä¸­
     /// </summary>
     public void ConsolidateItems()
     {
         ExecuteInventoryOperationSafely(() =>
         {
-            Dictionary<string, List<(int slotIndex, IItem item, int count)>> 
+            Dictionary<string, List<(int slotIndex, IItem item, int count)>>
                 itemGroups = GroupStackableItemsByID();
 
             ConsolidateItemGroups(itemGroups);
@@ -77,7 +77,7 @@ public class LinerContainer : Container
     }
 
     /// <summary>
-    /// ÕûÀíÈİÆ÷£¨ÅÅĞò + ºÏ²¢£©
+    /// æ•´ç†å®¹å™¨ï¼ˆæ’åº + åˆå¹¶ï¼‰
     /// </summary>
     public void OrganizeInventory()
     {
@@ -85,7 +85,7 @@ public class LinerContainer : Container
         SortInventory();
     }
 
-    #region ¸¨Öú·½·¨
+    #region è¾…åŠ©æ–¹æ³•
 
     private void InitializeSlots(int capacity)
     {
@@ -202,7 +202,7 @@ public class LinerContainer : Container
         }
         catch (Exception ex)
         {
-            Debug.LogError($"ÈİÆ÷²Ù×÷Ê§°Ü: {ex.Message}£¬ÕıÔÚ»Ö¸´Êı¾İ");
+            Debug.LogError($"å®¹å™¨æ“ä½œå¤±è´¥: {ex.Message}ï¼Œæ­£åœ¨æ¢å¤æ•°æ®");
             RestoreInventoryFromBackup(backupData);
         }
         finally
@@ -332,8 +332,8 @@ public class LinerContainer : Container
         while (remainingCount > 0 && targetIndex < targetSlots.Count)
         {
             int slotIndex = targetSlots[targetIndex];
-            int countForSlot = maxStackCount <= 0 
-                ? remainingCount 
+            int countForSlot = maxStackCount <= 0
+                ? remainingCount
                 : Math.Min(remainingCount, maxStackCount);
 
             _slots[slotIndex].SetItem(item, countForSlot);

@@ -5,31 +5,31 @@ using System;
 
 public class CombineGamePropertyManager
 {
-    
+
     private readonly ConcurrentDictionary<string, ICombineGameProperty> _properties = new ConcurrentDictionary<string, ICombineGameProperty>();
 
-    #region »ù´¡ÔöÉ¾
+    #region å¢åˆ æ”¹æŸ¥
     /// <summary>
-    /// ĞÂÔö»ò¸üĞÂÒ»¸ö ICombineGameProperty
+    /// æ·»åŠ æˆ–æ›´æ–°ä¸€ä¸ª ICombineGameProperty
     /// </summary>
     public void AddOrUpdate(ICombineGameProperty property)
     {
         if (property == null)
         {
-            UnityEngine.Debug.LogWarning("³¢ÊÔÌí¼Ó¿ÕµÄÊôĞÔµ½¹ÜÀíÆ÷");
+            UnityEngine.Debug.LogWarning("ä¸èƒ½æ·»åŠ ç©ºçš„å±æ€§åˆ°ç®¡ç†å™¨");
             return;
         }
 
         var oldProperty = _properties.AddOrUpdate(property.ID, property, (key, oldValue) =>
         {
-            // Èç¹ûÓĞ¾ÉÖµ£¬ÏÈÇåÀí×ÊÔ´
+            // é‡Šæ”¾æ—§å€¼å ç”¨çš„èµ„æº
             oldValue?.Dispose();
             return property;
         });
     }
 
     /// <summary>
-    /// ¸ù¾İID²éÕÒ ICombineGameProperty
+    /// æ ¹æ®IDè·å– ICombineGameProperty
     /// </summary>
     public ICombineGameProperty Get(string id)
     {
@@ -48,7 +48,7 @@ public class CombineGamePropertyManager
     }
 
     /// <summary>
-    /// É¾³ıÖ¸¶¨IDµÄ ICombineGameProperty
+    /// åˆ é™¤æŒ‡å®šIDçš„ ICombineGameProperty
     /// </summary>
     public bool Remove(string id)
     {
@@ -65,7 +65,7 @@ public class CombineGamePropertyManager
     }
 
     /// <summary>
-    /// »ñÈ¡ËùÓĞÓĞĞ§µÄ ICombineGameProperty
+    /// è·å–æ‰€æœ‰æœ‰æ•ˆçš„ ICombineGameProperty
     /// </summary>
     public IEnumerable<ICombineGameProperty> GetAll()
     {
@@ -77,7 +77,7 @@ public class CombineGamePropertyManager
     }
 
     /// <summary>
-    /// Çå¿ÕËùÓĞÊôĞÔ
+    /// æ¸…ç©ºæ‰€æœ‰å±æ€§
     /// </summary>
     public void Clear()
     {
@@ -90,7 +90,7 @@ public class CombineGamePropertyManager
     }
 
     /// <summary>
-    /// ÇåÀíÎŞĞ§µÄÊôĞÔ
+    /// æ¸…ç†æ— æ•ˆå±æ€§
     /// </summary>
     public int CleanupInvalidProperties()
     {
@@ -113,15 +113,15 @@ public class CombineGamePropertyManager
     }
     #endregion
 
-    #region ²éÑ¯
+    #region æŸ¥è¯¢
 
     /// <summary>
-    /// »ñÈ¡ÊôĞÔÊıÁ¿
+    /// è·å–å±æ€§æ•°é‡
     /// </summary>
     public int Count => _properties.Count;
 
     /// <summary>
-    /// ¼ì²éÊÇ·ñ°üº¬Ö¸¶¨IDµÄÊôĞÔ
+    /// æ£€æŸ¥æ˜¯å¦åŒ…å«æŒ‡å®šIDçš„å±æ€§
     /// </summary>
     public bool Contains(string id)
     {

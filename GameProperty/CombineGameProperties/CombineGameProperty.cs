@@ -5,46 +5,46 @@ using UnityEngine;
 namespace EasyPack
 {
     /// <summary>
-    /// ×éºÏÊôĞÔµÄ»ùÀà
+    /// ç»„åˆå±æ€§çš„åŸºç±»
     /// </summary>
     public abstract class CombineGameProperty : ICombineGameProperty, IDisposable
     {
-        #region »ù´¡ÊôĞÔ
+        #region åŸºç¡€å±æ€§
 
         /// <summary>
-        /// ÊôĞÔµÄÎ¨Ò»±êÊ¶·û
+        /// å±æ€§çš„å”¯ä¸€æ ‡è¯†ç¬¦
         /// </summary>
         public string ID { get; protected set; }
 
         /// <summary>
-        /// ¼ÆËãÆ÷º¯Êı£¬ÓÃÓÚ¼ÆËã×éºÏÊôĞÔµÄÖµ
+        /// è®¡ç®—å™¨å‡½æ•°ï¼Œç”¨äºè®¡ç®—ç»„åˆå±æ€§çš„å€¼
         /// </summary>
         public Func<ICombineGameProperty, float> Calculater { get; set; }
 
         /// <summary>
-        /// ½á¹û³ÖÓĞÕß£¬³ĞÔØ×îÖÕ¼ÆËã½á¹û
+        /// ç»“æœæŒæœ‰è€…ï¼Œæ‰¿è½½æœ€ç»ˆè®¡ç®—ç»“æœ
         /// </summary>
         public GameProperty ResultHolder { get; protected set; }
 
         /// <summary>
-        /// »ù´¡×éºÏÖµ
+        /// åŸºç¡€ç»„åˆå€¼
         /// </summary>
         protected readonly float _baseCombineValue;
 
         /// <summary>
-        /// ÊÇ·ñÒÑÊÍ·Å×ÊÔ´
+        /// æ˜¯å¦å·²é‡Šæ”¾èµ„æº
         /// </summary>
         protected bool _isDisposed = false;
 
         #endregion
 
-        #region ¹¹Ôìº¯Êı
+        #region æ„é€ å‡½æ•°
 
         /// <summary>
-        /// ³õÊ¼»¯×éºÏÊôĞÔ»ùÀà
+        /// åˆå§‹åŒ–ç»„åˆå±æ€§åŸºç±»
         /// </summary>
-        /// <param name="id">ÊôĞÔID</param>
-        /// <param name="baseValue">»ù´¡Öµ</param>
+        /// <param name="id">å±æ€§ID</param>
+        /// <param name="baseValue">åŸºç¡€å€¼</param>
         protected CombineGameProperty(string id, float baseValue = 0)
         {
             if (string.IsNullOrEmpty(id))
@@ -52,9 +52,9 @@ namespace EasyPack
 
             ID = id;
             _baseCombineValue = baseValue;
-            ResultHolder = new GameProperty(id , baseValue);
+            ResultHolder = new GameProperty(id, baseValue);
 
-            // ÉèÖÃÄ¬ÈÏ¼ÆËãÆ÷
+            // è®¾ç½®é»˜è®¤è®¡ç®—å™¨
             Calculater = e => _baseCombineValue;
         }
 
@@ -70,15 +70,15 @@ namespace EasyPack
 
         #endregion
 
-        #region »ñÈ¡
+        #region è·å–
 
         /// <summary>
-        /// »ñÈ¡»ù´¡×éºÏÖµ
+        /// è·å–åŸºç¡€ç»„åˆå€¼
         /// </summary>
         public virtual float GetBaseValue() => _baseCombineValue;
 
         /// <summary>
-        /// »ñÈ¡¼ÆËãºóµÄÊôĞÔÖµ
+        /// è·å–è®¡ç®—åçš„å±æ€§å€¼
         /// </summary>
         public virtual float GetValue()
         {
@@ -89,12 +89,12 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// »ñÈ¡ÄÚ²¿ÊôĞÔ£¬ÓÉ×ÓÀàÊµÏÖ¾ßÌåÂß¼­
+        /// è·å–å†…éƒ¨å±æ€§ï¼Œç”±å­ç±»å®ç°å…·ä½“é€»è¾‘
         /// </summary>
         public abstract GameProperty GetProperty(string id);
 
         /// <summary>
-        /// ¼ì²é¶ÔÏóÊÇ·ñÓĞĞ§
+        /// æ£€æŸ¥å¯¹è±¡æ˜¯å¦æœ‰æ•ˆ
         /// </summary>
         public virtual bool IsValid() => !_isDisposed && ResultHolder != null;
 
@@ -105,28 +105,28 @@ namespace EasyPack
 
         #endregion
 
-        #region ±£»¤·½·¨
+        #region ä¿æŠ¤æ–¹æ³•
         /// <summary>
-        /// »ñÈ¡¼ÆËãºóµÄÖµ£¬ÓÉ×ÓÀàÖØĞ´ÒÔÊµÏÖ²»Í¬µÄ¼ÆËãÂß¼­
+        /// è·å–è®¡ç®—åçš„å€¼ï¼Œç”±å­ç±»é‡å†™ä»¥å®ç°ä¸åŒçš„è®¡ç®—é€»è¾‘
         /// </summary>
         protected virtual float GetCalculatedValue()
         {
             var calculatedValue = Calculater?.Invoke(this) ?? _baseCombineValue;
 
-            // ÏÈ»ñÈ¡µ±Ç°µÄ ResultHolder Öµ
+            // å…ˆè·å–å½“å‰çš„ ResultHolder å€¼
             var currentValue = ResultHolder.GetValue();
 
-            // ÉèÖÃĞÂµÄ»ù´¡Öµ
+            // è®¾ç½®æ–°çš„åŸºç¡€å€¼
             ResultHolder.SetBaseValue(calculatedValue);
 
-            // »ñÈ¡Ó¦ÓÃĞŞÊÎÆ÷ºóµÄ×îÖÕÖµ
+            // è·å–åº”ç”¨ä¿®é¥°å™¨åçš„æœ€ç»ˆå€¼
             var finalValue = ResultHolder.GetValue();
 
             return finalValue;
         }
 
         /// <summary>
-        /// ¼ì²éÊÇ·ñÒÑÊÍ·Å£¬Èç¹ûÊÇÔòÅ×³öÒì³£
+        /// æ£€æŸ¥æ˜¯å¦å·²é‡Šæ”¾ï¼Œå¦‚æœæ˜¯åˆ™æŠ›å‡ºå¼‚å¸¸
         /// </summary>
         protected void ThrowIfDisposed()
         {
@@ -136,10 +136,10 @@ namespace EasyPack
 
         #endregion
 
-        #region ÊÂ¼şÖ§³Ö
+        #region äº‹ä»¶æ”¯æŒ
 
         /// <summary>
-        /// µ±ÊôĞÔÖµ·¢Éú±ä»¯Ê±´¥·¢
+        /// å½“å±æ€§å€¼å‘ç”Ÿå˜åŒ–æ—¶è§¦å‘
         /// </summary>
         public event Action<float, float> OnValueChanged
         {
@@ -149,10 +149,10 @@ namespace EasyPack
 
         #endregion
 
-        #region ĞŞÊÎÆ÷Ö§³Ö
+        #region ä¿®é¥°å™¨æ”¯æŒ
 
         /// <summary>
-        /// Ìí¼ÓĞŞÊÎÆ÷µ½ResultHolder
+        /// æ·»åŠ ä¿®é¥°å™¨åˆ°ResultHolder
         /// </summary>
         public virtual void AddModifierToHolder(IModifier modifier)
         {
@@ -165,7 +165,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ´ÓResultHolderÒÆ³ıĞŞÊÎÆ÷
+        /// ä»ResultHolderç§»é™¤ä¿®é¥°å™¨
         /// </summary>
         public virtual void RemoveModifierFromHolder(IModifier modifier)
         {
@@ -174,7 +174,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// Çå¿ÕResultHolderµÄËùÓĞĞŞÊÎÆ÷
+        /// æ¸…ç©ºResultHolderçš„æ‰€æœ‰ä¿®é¥°å™¨
         /// </summary>
         public virtual void ClearModifiersFromHolder()
         {
@@ -184,30 +184,30 @@ namespace EasyPack
 
         #endregion
 
-        #region IDisposable ÊµÏÖ
+        #region IDisposable å®ç°
 
         /// <summary>
-        /// ÊÍ·Å×ÊÔ´
+        /// é‡Šæ”¾èµ„æº
         /// </summary>
         public virtual void Dispose()
         {
             if (_isDisposed) return;
 
-            // µ÷ÓÃ×ÓÀàµÄÇåÀíÂß¼­
+            // è°ƒç”¨å­ç±»çš„æ¸…ç†é€»è¾‘
             DisposeCore();
 
-            // ÇåÀíResultHolder
+            // æ¸…ç†ResultHolder
             ResultHolder?.ClearModifiers();
 
             _isDisposed = true;
         }
 
         /// <summary>
-        /// ÇåÀíÂß¼­
+        /// æ¸…ç†é€»è¾‘
         /// </summary>
         protected virtual void DisposeCore()
         {
-            // »ùÀà²»ĞèÒª¶îÍâµÄÇåÀíÂß¼­
+            // åŸºç±»ä¸éœ€è¦é¢å¤–çš„æ¸…ç†é€»è¾‘
         }
 
         #endregion

@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 /// <summary>
-/// ¿É±»ĞŞÊÎµÄfloatÊôĞÔ¡£
-/// Ö§³ÖĞŞÊÎÆ÷¡¢ÒÀÀµ¹ØÏµºÍÔàÊı¾İ×·×Ù¡£
-/// ¿ÉÓÃÓÚ¹ÜÀí½ÇÉ«ÊôĞÔ»òÆäËû¿É±»buff¡¢debuffµÈÓÎÏ·Âß¼­Ó°ÏìµÄ¶¯Ì¬ÊıÖµ¡£
+/// ????????float?????
+/// ??????????????????????????????
+/// ????????????????????????buff??debuff???????????????????
 /// 
-/// Ò»°ãÇé¿öÏÂ£¬ÓÅÏÈÊ¹ÓÃCombineProperty¶ø·ÇGameProperty
+/// ????????????????CombineProperty????GameProperty
 /// </summary>
 
 namespace EasyPack
@@ -15,10 +15,10 @@ namespace EasyPack
     public class GameProperty : IProperty<float>
     {
 
-        #region »ù±¾ÊôĞÔ
+        #region ????????
 
         /// <summary>
-        /// ´ËÊôĞÔµÄÎ¨Ò»±êÊ¶·û¡£
+        /// ????????????????
         /// </summary>
         public string ID { get; set; }
 
@@ -26,10 +26,10 @@ namespace EasyPack
         private float _cacheValue;
 
         /// <summary>
-        /// ³õÊ¼»¯ <see cref="GameProperty"/> ÀàµÄĞÂÊµÀı¡£
+        /// ????? <see cref="GameProperty"/> ??????????
         /// </summary>
-        /// <param name="initValue">ÊôĞÔµÄ³õÊ¼»ù´¡Öµ¡£</param>
-        /// <param name="id">ÊôĞÔµÄÎ¨Ò»±êÊ¶·û¡£</param>
+        /// <param name="initValue">??????????????</param>
+        /// <param name="id">??????????????</param>
         public GameProperty(string id, float initValue)
         {
             _baseValue = initValue;
@@ -40,15 +40,15 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// »ñÈ¡ÊôĞÔµÄ»ù´¡£¨Î´ĞŞÊÎ£©Öµ¡£
+        /// ??????????????????????
         /// </summary>
-        /// <returns>»ù´¡Öµ£¬floatÀàĞÍ¡£</returns>
+        /// <returns>???????float?????</returns>
         public float GetBaseValue() => _baseValue;
 
         /// <summary>
-        /// »ñÈ¡Ó¦ÓÃËùÓĞĞŞÊÎÆ÷ºÍÒÀÀµºóµÄµ±Ç°ÊôĞÔÖµ¡£
+        /// ??????????????????????????????????
         /// </summary>
-        /// <returns>¼ÆËãºóµÄfloatÖµ¡£</returns>
+        /// <returns>??????float???</returns>
         public float GetValue()
         {
             bool needsRecalculation = _hasNonClampRangeModifier || _hasRandomDependency || _isDirty;
@@ -56,7 +56,7 @@ namespace EasyPack
             if (!needsRecalculation)
                 return _cacheValue;
 
-            // ½öÔÚĞèÒªÊ±Ë¢ĞÂÒÀÀµ
+            // ???????????????
             if (_isDirty)
             {
                 foreach (var dep in _dependencies)
@@ -68,11 +68,11 @@ namespace EasyPack
             var oldValue = _cacheValue;
             var ret = _baseValue;
 
-            // ĞŞÊÎÆ÷Ó¦ÓÃ
+            // ?????????
             ApplyModifiers(ref ret);
             _cacheValue = ret;
 
-            // Ö»ÓĞÔÚ·ÇËæ»úÇé¿öÏÂ²ÅÇå³ıÔà±ê¼Ç
+            // ??????????????????????
             if (!(_hasNonClampRangeModifier || _hasRandomDependency))
                 _isDirty = false;
 
@@ -87,10 +87,10 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÉèÖÃÊôĞÔµÄ»ù´¡£¨Î´ĞŞÊÎ£©Öµ¡£
-        /// Èç¹ûÖµ·¢Éú±ä»¯»á´¥·¢ÖØĞÂ¼ÆËã¡£
+        /// ???????????????????????
+        /// ?????????????????????
         /// </summary>
-        /// <param name="value">ĞÂµÄ»ù´¡Öµ¡£</param>
+        /// <param name="value">?????????</param>
         public IProperty<float> SetBaseValue(float value)
         {
             if (!Mathf.Approximately(_baseValue, value))
@@ -103,24 +103,24 @@ namespace EasyPack
         }
         #endregion
 
-        #region ÒÀÀµ       
+        #region ????       
 
         private readonly HashSet<GameProperty> _dependencies = new();
-        private readonly HashSet<GameProperty> _dependents = new(); // ·´ÏòÒÀÀµ×·×Ù
+        private readonly HashSet<GameProperty> _dependents = new(); // ???????????
         private readonly Dictionary<GameProperty, Func<GameProperty, float, float>> _dependencyCalculators = new();
 
         /// <summary>
-        /// µ±ÊôĞÔÖµ·¢Éú±ä»¯Ê±´¥·¢
+        /// ??????????????????
         /// </summary>
         public event Action<float, float> OnValueChanged;
 
         private readonly HashSet<Action> _onDirtyHandlers = new();
 
         /// <summary>
-        /// Ìí¼ÓÒÀÀµ£¬µ±dependency±ä»¯Ê±£¬×Ô¶¯Ê¹ÓÃcalculator¼ÆËãĞÂÖµ
+        /// ????????????dependency???????????calculator???????
         /// </summary>
-        /// <param name="dependency">ÒÀÀµµÄÊôĞÔ</param>
-        /// <param name="calculator">¼ÆËãº¯Êı£º(dependency, newDependencyValue) => newThisValue</param>
+        /// <param name="dependency">??????????</param>
+        /// <param name="calculator">????????(dependency, newDependencyValue) => newThisValue</param>
         public IProperty<float> AddDependency(GameProperty dependency, Func<GameProperty, float, float> calculator = null)
         {
             if (dependency == null)
@@ -131,18 +131,18 @@ namespace EasyPack
             if (WouldCreateCyclicDependency(dependency))
             {
                 _dependencies.Remove(dependency);
-                Debug.LogWarning($"ÎŞ·¨Ìí¼ÓÒÀÀµ£º¼ì²âµ½Ñ­»·ÒÀÀµ¡£{ID} -> {dependency.ID}");
+                Debug.LogWarning($"?????????????????????????{ID} -> {dependency.ID}");
                 return this;
             }
 
-            // ×¢²á·´ÏòÒÀÀµ
+            // ?????????
             dependency._dependents.Add(this);
 
-            // ´æ´¢¼ÆËãÆ÷£¨Èç¹ûÌá¹©£©
+            // ?????????????????
             if (calculator != null)
             {
                 _dependencyCalculators[dependency] = calculator;
-                // ´¥·¢³õÊ¼¼ÆËã
+                // ???????????
                 var dependencyValue = dependency.GetValue();
                 var newValue = calculator(dependency, dependencyValue);
                 SetBaseValue(newValue);
@@ -153,7 +153,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// Ìí¼Ó¼òµ¥ÒÀÀµ
+        /// ?????????
         /// </summary>
         public IProperty<float> AddDependency(GameProperty dependency)
         {
@@ -161,16 +161,16 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÒÆ³ıÒÀÀµ
+        /// ???????
         /// </summary>
         public IProperty<float> RemoveDependency(GameProperty dependency)
         {
             if (!_dependencies.Remove(dependency)) return this;
 
-            // ÒÆ³ı·´ÏòÒÀÀµ
+            // ???????????
             dependency._dependents.Remove(this);
 
-            // ÒÆ³ı¼ÆËãÆ÷
+            // ?????????
             _dependencyCalculators.Remove(dependency);
 
             UpdateRandomDependencyState();
@@ -178,13 +178,13 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ´¥·¢ËùÓĞÒÀÀµ´ËÊôĞÔµÄÊôĞÔ¸üĞÂ
+        /// ??????????????????????????
         /// </summary>
         private void TriggerDependentUpdates()
         {
             foreach (var dependent in _dependents)
             {
-                // Èç¹ûÓĞ×Ô¶¨Òå¼ÆËãÆ÷£¬Ê¹ÓÃËü
+                // ??????????????????????
                 if (dependent._dependencyCalculators.TryGetValue(this, out var calculator))
                 {
                     var newValue = calculator(this, _cacheValue);
@@ -192,12 +192,12 @@ namespace EasyPack
                 }
                 else
                 {
-                    // ¶ÔÓÚ¼òµ¥ÒÀÀµ£¬Ç¿ÖÆ´¥·¢Öµ±ä»¯ÊÂ¼ş
-                    // ¼´Ê¹»ù´¡ÖµÃ»ÓĞ¸Ä±ä£¬Ò²ÒªÈÃÒÀÀµÊôĞÔÖªµÀĞèÒªÖØĞÂ¼ÆËã
+                    // ???????????????????????
+                    // ??????????????????????????????????????
                     dependent.MakeDirty();
 
                     var oldValue = dependent._cacheValue;
-                    var newValue = dependent.GetValue(); // Õâ»áÖØĞÂ¼ÆËãÖµ
+                    var newValue = dependent.GetValue(); // ???????????
 
                     //if (oldValue.Equals(newValue))
                     //{
@@ -239,13 +239,13 @@ namespace EasyPack
         }
         #endregion
 
-        #region ÔàÊı¾İ×·×Ù
+        #region ?????????
 
         private bool _isDirty = false;
         private Action _onDirty;
 
         /// <summary>
-        /// ½«ÊôĞÔ±ê¼ÇÎªÔà£¬ÏÂ´Î·ÃÎÊÊ±»áÖØĞÂ¼ÆËãÆäÖµ¡£
+        /// ????????????´???????????????????
         /// </summary>
         public void MakeDirty()
         {
@@ -255,9 +255,9 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ×¢²áÒ»¸ö»Øµ÷£¬µ±ÊôĞÔ±»±ê¼ÇÎªÔàÊ±µ÷ÓÃ¡£
+        /// ????????????????????????????á?
         /// </summary>
-        /// <param name="action">»Øµ÷·½·¨¡£</param>
+        /// <param name="action">?????????</param>
         public void OnDirty(Action action)
         {
             if (_onDirtyHandlers.Add(action))
@@ -267,9 +267,9 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÒÆ³ıÒÑ×¢²áµÄÔàÊı¾İ»Øµ÷¡£
+        /// ???????????????????
         /// </summary>
-        /// <param name="action">ÒªÒÆ³ıµÄ»Øµ÷·½·¨¡£</param>
+        /// <param name="action">??????????????</param>
         public void RemoveOnDirty(Action action)
         {
             if (_onDirtyHandlers.Remove(action))
@@ -279,29 +279,29 @@ namespace EasyPack
         }
         #endregion
 
-        #region ĞŞÊÎÆ÷   
+        #region ??????   
 
         /// <summary>
-        /// »ñÈ¡Ó¦ÓÃÓÚ´ËÊôĞÔµÄĞŞÊÎÆ÷ÁĞ±í¡£
+        /// ?????????????????????????
         /// </summary>
         public List<IModifier> Modifiers { get; }
         private readonly Dictionary<ModifierType, List<IModifier>> _groupedModifiers = new();
         private bool _hasNonClampRangeModifier = false;
 
         /// <summary>
-        /// Ïò´ËÊôĞÔÌí¼ÓÒ»¸öĞŞÊÎÆ÷£¬²¢±ê¼ÇÎªÔà¡£
+        /// ??????????????????????????????
         /// </summary>
-        /// <param name="modifier">ÒªÌí¼ÓµÄĞŞÊÎÆ÷¡£</param>
+        /// <param name="modifier">??????????????</param>
         public IProperty<float> AddModifier(IModifier modifier)
         {
 
             if (modifier == null)
                 throw new ArgumentNullException(nameof(modifier));
 
-            // Ìí¼Óµ½×ÜÁĞ±í
+            // ??????????
             Modifiers.Add(modifier);
 
-            // Ô¤·Ö×é
+            // ?????
             if (!_groupedModifiers.TryGetValue(modifier.Type, out var list))
             {
                 list = new List<IModifier>();
@@ -309,7 +309,7 @@ namespace EasyPack
             }
             list.Add(modifier);
 
-            // Ô¤¼ì²éËæ»úĞŞÊÎÆ÷
+            // ?????????????
             if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
             {
                 _hasNonClampRangeModifier = true;
@@ -320,21 +320,21 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÒÆ³ı´ËÊôĞÔÉÏµÄËùÓĞĞŞÊÎÆ÷£¬²¢±ê¼ÇÎªÔà¡£
+        /// ????????????????????????????????
         /// </summary>
         public IProperty<float> ClearModifiers()
         {
             Modifiers.Clear();
-            _groupedModifiers.Clear(); // Í¬Ê±Çå³ı·Ö×é×Öµä
-            _hasNonClampRangeModifier = false; // ÖØÖÃRangeModifier±ê¼Ç
+            _groupedModifiers.Clear(); // ????????????
+            _hasNonClampRangeModifier = false; // ????RangeModifier???
             MakeDirty();
             return this;
         }
 
         /// <summary>
-        /// Ïò´ËÊôĞÔÌí¼Ó¶à¸öĞŞÊÎÆ÷£¬²¢±ê¼ÇÎªÔà¡£
+        /// ?????????????????????????????
         /// </summary>
-        /// <param name="modifiers">ÒªÌí¼ÓµÄĞŞÊÎÆ÷¼¯ºÏ¡£</param>
+        /// <param name="modifiers">?????????????????</param>
         public IProperty<float> AddModifiers(IEnumerable<IModifier> modifiers)
         {
             foreach (var modifier in modifiers)
@@ -346,9 +346,9 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÒÆ³ı´ËÊôĞÔÉÏµÄ¶à¸öĞŞÊÎÆ÷£¬²¢±ê¼ÇÎªÔà¡£
+        /// ??????????????????????????????
         /// </summary>
-        /// <param name="modifiers">ÒªÒÆ³ıµÄĞŞÊÎÆ÷¼¯ºÏ¡£</param>
+        /// <param name="modifiers">?????????????????</param>
         public IProperty<float> RemoveModifiers(IEnumerable<IModifier> modifiers)
         {
             foreach (var modifier in modifiers)
@@ -362,9 +362,9 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÒÆ³ı´ËÊôĞÔÉÏµÄÒ»¸öĞŞÊÎÆ÷£¬²¢±ê¼ÇÎªÔà¡£
+        /// ???????????????????????????????
         /// </summary>
-        /// <param name="modifier">ÒªÒÆ³ıµÄĞŞÊÎÆ÷¡£</param>
+        /// <param name="modifier">??????????????</param>
         public IProperty<float> RemoveModifier(IModifier modifier)
         {
             var _modifier = Modifiers.Find(m => m.Equals(modifier));
@@ -372,12 +372,12 @@ namespace EasyPack
             {
                 Modifiers.Remove(_modifier);
 
-                // Í¬Ê±´Ó·Ö×éÖĞÒÆ³ı
+                // ????????????
                 if (_groupedModifiers.TryGetValue(_modifier.Type, out var list))
                 {
                     list.Remove(_modifier);
 
-                    // Èç¹ûÁĞ±íÎª¿Õ£¬¿ÉÒÔ¿¼ÂÇÒÆ³ı¸ÃÀàĞÍµÄ¼ü
+                    // ????????????????????????????
                     if (list.Count == 0)
                     {
                         _groupedModifiers.Remove(_modifier.Type);
@@ -385,7 +385,7 @@ namespace EasyPack
                 }
             }
 
-            // ¸üĞÂ·ÇClampµÄRangeModifier±ê¼Ç
+            // ?????Clamp??RangeModifier???
             _hasNonClampRangeModifier = HasNonClampRangeModifiers();
 
             MakeDirty();
@@ -393,18 +393,18 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ¼ì²éÊÇ·ñ´æÔÚ·ÇClampÀàĞÍµÄRangeModifier
+        /// ??????????Clamp?????RangeModifier
         /// </summary>
-        /// <returns>Èç¹û´æÔÚÔò·µ»Øtrue£¬·ñÔò·µ»Øfalse</returns>
+        /// <returns>???????????true????????false</returns>
         private bool HasNonClampRangeModifiers()
         {
             return Modifiers.OfType<RangeModifier>().Any(m => m.Type != ModifierType.Clamp);
         }
 
-        // »º´æ²ßÂÔ
+        // ???????
         private static readonly Dictionary<ModifierType, IModifierStrategy> _cachedStrategies = new();
 
-        // »ñÈ¡»ò»º´æ²ßÂÔ
+        // ??????????
         private static IModifierStrategy GetCachedStrategy(ModifierType type)
         {
             if (!_cachedStrategies.TryGetValue(type, out var strategy))
@@ -420,7 +420,7 @@ namespace EasyPack
             if (_groupedModifiers.Count == 0)
                 return;
 
-            // °´ÓÅÏÈ¼¶Ó¦ÓÃĞŞÊÎÆ÷ÀàĞÍ
+            // ????????????????????
             foreach (ModifierType type in Enum.GetValues(typeof(ModifierType)))
             {
                 if (type == ModifierType.None) continue;
@@ -434,19 +434,19 @@ namespace EasyPack
         }
         #endregion
 
-        #region ²éÑ¯
+        #region ???
         /// <summary>
-        /// ¼ì²éÊôĞÔÊÇ·ñÓĞÈÎºÎĞŞÊÎÆ÷
+        /// ?????????????????????
         /// </summary>
         public bool HasModifiers => Modifiers.Count > 0;
 
         /// <summary>
-        /// »ñÈ¡ĞŞÊÎÆ÷ÊıÁ¿
+        /// ?????????????
         /// </summary>
         public int ModifierCount => Modifiers.Count;
 
         /// <summary>
-        /// ¼ì²éÊÇ·ñÓĞÖ¸¶¨ÀàĞÍµÄĞŞÊÎÆ÷
+        /// ??????????????????????
         /// </summary>
         public bool ContainModifierOfType(ModifierType type)
         {
@@ -454,7 +454,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// »ñÈ¡Ö¸¶¨ÀàĞÍµÄĞŞÊÎÆ÷ÊıÁ¿
+        /// ?????????????????????
         /// </summary>
         public int GetModifierCountOfType(ModifierType type)
         {
