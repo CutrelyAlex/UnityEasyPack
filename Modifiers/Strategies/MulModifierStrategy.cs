@@ -5,7 +5,7 @@ using UnityEngine;
 namespace EasyPack
 {
     /// <summary>
-    /// ³Ë·¨ÐÞÊÎÆ÷²ßÂÔ
+    /// ï¿½Ë·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     public class MulModifierStrategy : IModifierStrategy
     {

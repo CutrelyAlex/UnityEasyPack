@@ -6,30 +6,30 @@ using UnityEngine;
 namespace EasyPack
 {
     /// <summary>
-    /// ÈİÆ÷»º´æ¹ÜÀíÆ÷£¬¸ºÔğ¹ÜÀíÈİÆ÷µÄ¸÷ÖÖ»º´æ²Ù×÷
+    /// å®¹å™¨ç¼“å­˜ç®¡ç†å™¨ï¼Œç”¨äºé«˜æ•ˆæŸ¥è¯¢å®¹å™¨çš„é«˜é¢‘åªè¯»æ“ä½œ
     /// </summary>
     public class ContainerCacheManager
     {
-        #region »º´æ×Ö¶Î
-        // ÎïÆ·Ë÷Òı»º´æ
+        #region ç¼“å­˜å­—æ®µ
+        // ç‰©å“æ§½ä½ç´¢å¼•ç¼“å­˜
         private readonly Dictionary<string, HashSet<int>> _itemSlotIndexCache = new();
 
-        // ¿Õ²ÛÎ»»º´æ
+        // ç©ºæ§½ä½ç´¢å¼•ç¼“å­˜
         private readonly SortedSet<int> _emptySlotIndices = new();
 
-        // ÎïÆ·ÀàĞÍË÷Òı»º´æ
+        // ç‰©å“ç±»å‹æ§½ä½ç´¢å¼•ç¼“å­˜
         private readonly Dictionary<string, HashSet<int>> _itemTypeIndexCache = new();
 
-        // ÎïÆ·ÊıÁ¿»º´æ
+        // ç‰©å“æ•°é‡ç¼“å­˜
         private readonly Dictionary<string, int> _itemCountCache = new();
         #endregion
 
-        #region ¹¹Ôìº¯Êı
+        #region æ„é€ å‡½æ•°
         public ContainerCacheManager(int capacity)
         {
             if (capacity > 500)
             {
-                // Îª´óÈİÁ¿ÈİÆ÷Ô¤·ÖÅä»º´æ¿Õ¼ä
+                // ä¸ºå¤§å®¹é‡å®¹å™¨é¢„åˆ†é…ç¼“å­˜ç©ºé—´
                 var itemSlotCache = new Dictionary<string, HashSet<int>>(100);
                 var itemTypeCache = new Dictionary<string, HashSet<int>>(100 / 4);
                 var itemCountCache = new Dictionary<string, int>(100);
@@ -37,7 +37,7 @@ namespace EasyPack
         }
         #endregion
 
-        #region »º´æ¸üĞÂ·½·¨
+        #region ç¼“å­˜æ›´æ–°æ–¹æ³•
         public void UpdateItemSlotIndexCache(string itemId, int slotIndex, bool isAdding)
         {
             if (string.IsNullOrEmpty(itemId))
@@ -115,7 +115,7 @@ namespace EasyPack
         }
         #endregion
 
-        #region »º´æ²éÑ¯·½·¨
+        #region ç¼“å­˜æŸ¥è¯¢æ–¹æ³•
         public bool HasItemInCache(string itemId)
         {
             return _itemSlotIndexCache.ContainsKey(itemId) && _itemSlotIndexCache[itemId].Count > 0;
@@ -171,14 +171,14 @@ namespace EasyPack
         }
         #endregion
 
-        #region »º´æÎ¬»¤·½·¨
+        #region ç¼“å­˜ç»´æŠ¤æ–¹æ³•
         public void RebuildCaches(IReadOnlyList<ISlot> slots)
         {
-            // Çå¿ÕËùÓĞ»º´æ
+            // æ¸…ç©ºæ‰€æœ‰ç¼“å­˜
             ClearAllCaches();
 
             var processedItems = new HashSet<string>();
-            // ÖØ½¨»º´æ
+            // é‡å»ºæ‰€æœ‰ç¼“å­˜
             for (int i = 0; i < slots.Count; i++)
             {
                 var slot = slots[i];
@@ -186,18 +186,18 @@ namespace EasyPack
                 {
                     string itemId = slot.Item.ID;
 
-                    // ¸üĞÂÎïÆ·Ë÷Òı»º´æ
+                    // æ›´æ–°ç‰©å“æ§½ä½ç´¢å¼•ç¼“å­˜
                     UpdateItemSlotIndexCache(slot.Item.ID, i, true);
 
-                    // ¸üĞÂÎïÆ·ÀàĞÍ»º´æ
+                    // æ›´æ–°ç‰©å“ç±»å‹ç¼“å­˜
                     UpdateItemTypeCache(slot.Item.Type, i, true);
 
-                    // ¸üĞÂÎïÆ·ÊıÁ¿»º´æ
+                    // æ›´æ–°ç‰©å“æ•°é‡ç¼“å­˜
                     UpdateItemCountCache(slot.Item.ID, slot.ItemCount);
                 }
                 else
                 {
-                    // ¸üĞÂ¿Õ²ÛÎ»»º´æ
+                    // æ›´æ–°ç©ºæ§½ä½ç¼“å­˜
                     UpdateEmptySlotCache(i, true);
                 }
             }
@@ -205,7 +205,7 @@ namespace EasyPack
 
         public void ValidateCaches(IReadOnlyList<ISlot> slots)
         {
-            // ÑéÖ¤ÎïÆ·Ë÷Òı»º´æ
+            // éªŒè¯ç‰©å“æ§½ä½ç´¢å¼•ç¼“å­˜
             var itemsToRemove = new List<string>();
             foreach (var kvp in _itemSlotIndexCache)
             {
@@ -230,7 +230,7 @@ namespace EasyPack
                 _itemSlotIndexCache.Remove(itemId);
             }
 
-            // ÑéÖ¤¿Õ²ÛÎ»»º´æ
+            // éªŒè¯ç©ºæ§½ä½ç¼“å­˜
             var emptyToRemove = new List<int>();
             foreach (int index in _emptySlotIndices)
             {

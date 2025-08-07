@@ -4,19 +4,16 @@ using UnityEngine;
 
 namespace EasyPack
 {
-    /// <summary>
-    /// ÏÞÖÆ·¶Î§ÐÞÊÎÆ÷²ßÂÔ
-    /// </summary>
     public class ClampModifierStrategy : IModifierStrategy
     {
         public ModifierType Type => ModifierType.Clamp;
 
         public void Apply(ref float value, IEnumerable<IModifier> modifiers)
         {
-            // ClampÐÞÊÎÆ÷Ö»´¦ÀíRangeModifierÀàÐÍ
+            // Clampï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½ï¿½ï¿½RangeModifierï¿½ï¿½ï¿½ï¿½
             var rangeMods = modifiers.OfType<RangeModifier>().ToList();
 
-            // ¸ù¾ÝÓÅÏÈ¼¶»ñÈ¡×î¸ßÓÅÏÈ¼¶µÄClampÐÞÊÎÆ÷
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½Clampï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             var clampMod = rangeMods.OrderByDescending(m => m.Priority).FirstOrDefault();
             if (clampMod != null)
             {

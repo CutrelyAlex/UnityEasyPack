@@ -4,9 +4,6 @@ using UnityEngine;
 
 namespace EasyPack
 {
-    /// <summary>
-    /// 优先级乘法修饰器策略
-    /// </summary>
     public class PriorityMulModifierStrategy : IModifierStrategy
     {
         public ModifierType Type => ModifierType.PriorityMul;

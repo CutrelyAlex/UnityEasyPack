@@ -4,12 +4,12 @@ namespace EasyPack
 {
 
     /// <summary>
-    /// ��Ʒ�������ӿڣ�ʹ��ί��ģʽʵ��������֤
+    /// 物品条件检查接口，使用委托模式实现自定义验证
     /// </summary>
     public class CustomItemCondition : IItemCondition
     {
         /// <summary>
-        /// ������֤��Ʒ������ί��
+        /// 用于验证物品条件的委托
         /// </summary>
         Func<IItem, bool> Condition { get; set; }
 

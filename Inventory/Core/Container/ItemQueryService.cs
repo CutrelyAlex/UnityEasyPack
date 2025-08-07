@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace EasyPack
 {
     /// <summary>
-    /// ÎïÆ·²éÑ¯·şÎñ½Ó¿Ú
+    /// ç‰©å“æŸ¥è¯¢æœåŠ¡æ¥å£
     /// </summary>
     public interface IItemQueryService
     {
@@ -30,7 +30,7 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// ÎïÆ·²éÑ¯·şÎñÊµÏÖ
+    /// ç‰©å“æŸ¥è¯¢æœåŠ¡å®ç°
     /// </summary>
     public class ItemQueryService : IItemQueryService
     {
@@ -43,7 +43,7 @@ namespace EasyPack
             _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
         }
 
-        #region »ù´¡²éÑ¯
+        #region åŸºç¡€æŸ¥è¯¢
 
         public bool HasItem(string itemId)
         {
@@ -71,13 +71,13 @@ namespace EasyPack
 
         public int GetItemTotalCount(string itemId)
         {
-            // Ê×ÏÈ³¢ÊÔÊ¹ÓÃÊıÁ¿»º´æ
+            // é¦–å…ˆå°è¯•ä½¿ç”¨æ•°é‡ç¼“å­˜
             if (_cacheManager.TryGetItemCount(itemId, out int cachedCount))
             {
                 return cachedCount;
             }
 
-            // Èç¹û»º´æÎ´ÃüÖĞ£¬Ê¹ÓÃË÷Òı»º´æ¼ÆËã
+            // å¦‚æœç¼“å­˜æœªå‘½ä¸­ï¼Œä½¿ç”¨æ§½ä½ç´¢å¼•ç¼“å­˜
             if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices))
             {
                 int totalCount = 0;
@@ -94,14 +94,14 @@ namespace EasyPack
                     }
                 }
 
-                // ¸üĞÂ»º´æ
+                // æ›´æ–°ç¼“å­˜
                 if (totalCount > 0)
                     _cacheManager.UpdateItemCountCache(itemId, totalCount);
 
                 return totalCount;
             }
 
-            // »ØÍËµ½´«Í³·½·¨
+            // é™çº§åˆ°éå†ç»Ÿè®¡
             int count = 0;
             for (int i = 0; i < _slots.Count; i++)
             {
@@ -109,7 +109,7 @@ namespace EasyPack
                 if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
                 {
                     count += slot.ItemCount;
-                    // ¸üĞÂ»º´æ
+                    // æ›´æ–°ç¼“å­˜
                     _cacheManager.UpdateItemSlotIndexCache(itemId, i, true);
                 }
             }
@@ -127,14 +127,14 @@ namespace EasyPack
 
         #endregion
 
-        #region Ë÷Òı²éÑ¯
+        #region ä½ç½®æŸ¥è¯¢
 
         public List<int> FindSlotIndices(string itemId)
         {
-            // Ê¹ÓÃ»º´æ
+            // ä½¿ç”¨ç¼“å­˜
             if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices))
             {
-                // ÑéÖ¤»º´æÓĞĞ§ĞÔ
+                // éªŒè¯ç¼“å­˜æœ‰æ•ˆæ€§
                 var validIndices = new List<int>(indices.Count);
                 bool needsUpdate = false;
 
@@ -158,7 +158,7 @@ namespace EasyPack
                     }
                 }
 
-                // Èç¹ûĞèÒª¸üĞÂ»º´æ
+                // å¦‚æœéœ€è¦æ›´æ–°ç¼“å­˜
                 if (needsUpdate)
                 {
                     foreach (int idx in indices)
@@ -174,7 +174,7 @@ namespace EasyPack
                 return validIndices;
             }
 
-            // »º´æÎ´ÃüÖĞ£¬Ê¹ÓÃÔ­Ê¼·½·¨²¢¸üĞÂ»º´æ
+            // ç¼“å­˜æœªå‘½ä¸­ï¼Œä½¿ç”¨åŸå§‹éå†å¹¶æ›´æ–°ç¼“å­˜
             var result = new List<int>();
             for (int i = 0; i < _slots.Count; i++)
             {
@@ -182,7 +182,7 @@ namespace EasyPack
                 if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
                 {
                     result.Add(i);
-                    // ¸üĞÂ»º´æ
+                    // æ›´æ–°ç¼“å­˜
                     _cacheManager.UpdateItemSlotIndexCache(itemId, i, true);
                 }
             }
@@ -191,7 +191,7 @@ namespace EasyPack
 
         public int FindFirstSlotIndex(string itemId)
         {
-            // Ê¹ÓÃ»º´æ¿ìËÙ²éÕÒ
+            // ä½¿ç”¨ç¼“å­˜å¿«é€ŸæŸ¥æ‰¾
             if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices) && indices.Count > 0)
             {
                 int firstIndex = indices.Min();
@@ -205,13 +205,13 @@ namespace EasyPack
                 }
             }
 
-            // »ØÍËµ½´«Í³·½·¨
+            // é™çº§åˆ°éå†ç»Ÿè®¡
             for (int i = 0; i < _slots.Count; i++)
             {
                 var slot = _slots[i];
                 if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
                 {
-                    // ¸üĞÂ»º´æ
+                    // æ›´æ–°ç¼“å­˜
                     _cacheManager.UpdateItemSlotIndexCache(itemId, i, true);
                     return i;
                 }
@@ -222,13 +222,13 @@ namespace EasyPack
 
         #endregion
 
-        #region ¸´ÔÓ²éÑ¯
+        #region é«˜çº§æŸ¥è¯¢
 
         public List<(int slotIndex, IItem item, int count)> GetItemsByType(string itemType)
         {
             var result = new List<(int slotIndex, IItem item, int count)>();
 
-            // Ê¹ÓÃÀàĞÍË÷Òı»º´æ
+            // ä½¿ç”¨ç±»å‹ç´¢å¼•ç¼“å­˜
             if (_cacheManager.TryGetItemTypeIndices(itemType, out var indices))
             {
                 foreach (int index in indices)
@@ -245,14 +245,14 @@ namespace EasyPack
                 return result;
             }
 
-            // »º´æÎ´ÃüÖĞ
+            // ç¼“å­˜æœªå‘½ä¸­
             for (int i = 0; i < _slots.Count; i++)
             {
                 var slot = _slots[i];
                 if (slot.IsOccupied && slot.Item != null && slot.Item.Type == itemType)
                 {
                     result.Add((i, slot.Item, slot.ItemCount));
-                    // ¸üĞÂÀàĞÍ»º´æ
+                    // æ›´æ–°ç±»å‹ç¼“å­˜
                     _cacheManager.UpdateItemTypeCache(itemType, i, true);
                 }
             }
@@ -265,7 +265,7 @@ namespace EasyPack
             var result = new List<(int slotIndex, IItem item, int count)>();
             int slotCount = _slots.Count;
 
-            // Èç¹û²ÛÎ»ÊıÁ¿½Ï´ó£¬Ê¹ÓÃ²¢ĞĞ´¦Àí
+            // å¦‚æœæ§½ä½æ•°é‡è¾ƒå¤§ä½¿ç”¨å¹¶è¡Œå¤„ç†
             if (slotCount > 100)
             {
                 var lockObject = new object();
@@ -286,7 +286,7 @@ namespace EasyPack
             }
             else
             {
-                // Ğ¡¹æÄ£Êı¾İÊ¹ÓÃµ¥Ïß³Ì
+                // å°è§„æ¨¡æ•°æ®ä½¿ç”¨å•çº¿ç¨‹
                 for (int i = 0; i < slotCount; i++)
                 {
                     var slot = _slots[i];
@@ -328,7 +328,7 @@ namespace EasyPack
             var result = new List<(int slotIndex, IItem item, int count)>();
             int slotCount = _slots.Count;
 
-            // Èç¹û²ÛÎ»ÊıÁ¿½Ï´ó£¬Ê¹ÓÃ²¢ĞĞ´¦Àí
+            // å¦‚æœæ§½ä½æ•°é‡è¾ƒå¤§ä½¿ç”¨å¹¶è¡Œå¤„ç†
             if (slotCount > 100)
             {
                 var lockObject = new object();
@@ -346,7 +346,7 @@ namespace EasyPack
             }
             else
             {
-                // Ğ¡¹æÄ£Êı¾İÊ¹ÓÃµ¥Ïß³Ì
+                // å°è§„æ¨¡æ•°æ®ä½¿ç”¨å•çº¿ç¨‹
                 for (int i = 0; i < slotCount; i++)
                 {
                     var slot = _slots[i];
@@ -362,17 +362,17 @@ namespace EasyPack
 
         #endregion
 
-        #region ¾ÛºÏ²éÑ¯
+        #region èšåˆæŸ¥è¯¢
 
         public Dictionary<string, int> GetAllItemCountsDict()
         {
-            // Èç¹ûÊıÁ¿»º´æÍêÕû£¬Ö±½Ó·µ»Ø»º´æ¸±±¾
+            // å¦‚æœç¼“å­˜å­˜åœ¨ä¸”å®Œæ•´ï¼Œç›´æ¥è¿”å›ç¼“å­˜å‰¯æœ¬
             var cachedCounts = _cacheManager.GetAllItemCounts();
             if (cachedCounts.Count > 0)
             {
                 var result = new Dictionary<string, int>(cachedCounts);
 
-                // ÑéÖ¤»º´æÊÇ·ñÍêÕû
+                // éªŒè¯ç¼“å­˜æ˜¯å¦å®Œæ•´
                 bool cacheComplete = true;
                 foreach (var slot in _slots)
                 {

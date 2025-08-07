@@ -3,81 +3,81 @@ using System;
 namespace EasyPack
 {
     /// <summary>
-    /// ÊôĞÔ±È½ÏÀàĞÍÃ¶¾Ù
+    /// å±æ€§æ¯”è¾ƒç±»å‹æšä¸¾
     /// </summary>
     public enum AttributeComparisonType
     {
         /// <summary>
-        /// ÖµÏàµÈ±È½Ï
+        /// å€¼ç›¸ç­‰æ¯”è¾ƒ
         /// </summary>
         Equal,
 
         /// <summary>
-        /// Öµ²»µÈ±È½Ï
+        /// å€¼ä¸ç­‰æ¯”è¾ƒ
         /// </summary>
         NotEqual,
 
         /// <summary>
-        /// ´óÓÚ±È½Ï(¶ÔÊı×ÖÀàĞÍÓĞĞ§)
+        /// å¤§äºæ¯”è¾ƒ(ä»…å¯¹æ•°å€¼ç±»å‹æœ‰æ•ˆ)
         /// </summary>
         GreaterThan,
 
         /// <summary>
-        /// Ğ¡ÓÚ±È½Ï(¶ÔÊı×ÖÀàĞÍÓĞĞ§)
+        /// å°äºæ¯”è¾ƒ(ä»…å¯¹æ•°å€¼ç±»å‹æœ‰æ•ˆ)
         /// </summary>
         LessThan,
 
         /// <summary>
-        /// ´óÓÚµÈÓÚ±È½Ï(¶ÔÊı×ÖÀàĞÍÓĞĞ§)
+        /// å¤§äºç­‰äºæ¯”è¾ƒ(ä»…å¯¹æ•°å€¼ç±»å‹æœ‰æ•ˆ)
         /// </summary>
         GreaterThanOrEqual,
 
         /// <summary>
-        /// Ğ¡ÓÚµÈÓÚ±È½Ï(¶ÔÊı×ÖÀàĞÍÓĞĞ§)
+        /// å°äºç­‰äºæ¯”è¾ƒ(ä»…å¯¹æ•°å€¼ç±»å‹æœ‰æ•ˆ)
         /// </summary>
         LessThanOrEqual,
 
         /// <summary>
-        /// °üº¬±È½Ï(¶Ô×Ö·û´®ºÍ¼¯ºÏÀàĞÍÓĞĞ§)
+        /// åŒ…å«æ¯”è¾ƒ(å¯¹å­—ç¬¦ä¸²ç±»å‹åŠé›†åˆç±»å‹æœ‰æ•ˆ)
         /// </summary>
         Contains,
 
         /// <summary>
-        /// ²»°üº¬±È½Ï(¶Ô×Ö·û´®ºÍ¼¯ºÏÀàĞÍÓĞĞ§)
+        /// ä¸åŒ…å«æ¯”è¾ƒ(å¯¹å­—ç¬¦ä¸²ç±»å‹åŠé›†åˆç±»å‹æœ‰æ•ˆ)
         /// </summary>
         NotContains,
 
         /// <summary>
-        /// ½öÅĞ¶ÏÊÇ·ñ´æÔÚ´ËÊôĞÔ
+        /// æ£€æŸ¥å±æ€§æ˜¯å¦å­˜åœ¨æ­¤å±æ€§
         /// </summary>
         Exists
     }
 
     /// <summary>
-    /// ÊôĞÔÌõ¼ş¼ì²éÀà£¬¿É¸ù¾İÎïÆ·µÄÊôĞÔ½øĞĞÌõ¼şÅĞ¶Ï
+    /// å±æ€§æ¡ä»¶æ£€æŸ¥ç±»ï¼Œå¯æ ¹æ®ç‰©å“å±æ€§è¿›è¡Œæ¡ä»¶åˆ¤æ–­
     /// </summary>
     public class AttributeCondition : IItemCondition
     {
         /// <summary>
-        /// Òª¼ì²éµÄÊôĞÔÃû³Æ
+        /// è¦æ£€æŸ¥çš„å±æ€§åç§°
         /// </summary>
         public string AttributeName { get; set; }
 
         /// <summary>
-        /// ÊôĞÔ±È½ÏµÄÄ¿±êÖµ
+        /// å±æ€§æ¯”è¾ƒçš„ç›®æ ‡å€¼
         /// </summary>
         public object AttributeValue { get; set; }
 
         /// <summary>
-        /// ÊôĞÔ±È½ÏÀàĞÍ
+        /// å±æ€§æ¯”è¾ƒç±»å‹
         /// </summary>
         public AttributeComparisonType ComparisonType { get; set; }
 
         /// <summary>
-        /// ´´½¨Ò»¸öÊôĞÔÌõ¼ş£¬Ä¬ÈÏÊ¹ÓÃÏàµÈ±È½Ï
+        /// åˆ›å»ºä¸€ä¸ªå±æ€§æ¡ä»¶ï¼Œé»˜è®¤ä½¿ç”¨ç›¸ç­‰æ¯”è¾ƒ
         /// </summary>
-        /// <param name="attributeName">ÊôĞÔÃû³Æ</param>
-        /// <param name="requiredValue">±È½ÏµÄÄ¿±êÖµ</param>
+        /// <param name="attributeName">å±æ€§åç§°</param>
+        /// <param name="requiredValue">æ¯”è¾ƒçš„ç›®æ ‡å€¼</param>
         public AttributeCondition(string attributeName, object requiredValue)
         {
             AttributeName = attributeName;
@@ -86,11 +86,11 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ´´½¨Ò»¸öÊôĞÔÌõ¼ş£¬Ö¸¶¨±È½ÏÀàĞÍ
+        /// åˆ›å»ºä¸€ä¸ªå±æ€§æ¡ä»¶ï¼ŒæŒ‡å®šæ¯”è¾ƒç±»å‹
         /// </summary>
-        /// <param name="attributeName">ÊôĞÔÃû³Æ</param>
-        /// <param name="requiredValue">±È½ÏµÄÄ¿±êÖµ</param>
-        /// <param name="comparisonType">±È½ÏÀàĞÍ</param>
+        /// <param name="attributeName">å±æ€§åç§°</param>
+        /// <param name="requiredValue">æ¯”è¾ƒçš„ç›®æ ‡å€¼</param>
+        /// <param name="comparisonType">æ¯”è¾ƒç±»å‹</param>
         public AttributeCondition(string attributeName, object requiredValue, AttributeComparisonType comparisonType)
         {
             AttributeName = attributeName;
@@ -99,10 +99,10 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÉèÖÃÊôĞÔÌõ¼ş
+        /// è®¾ç½®å±æ€§æ¡ä»¶
         /// </summary>
-        /// <param name="attributeName">ÊôĞÔÃû³Æ</param>
-        /// <param name="requiredValue">±È½ÏµÄÄ¿±êÖµ</param>
+        /// <param name="attributeName">å±æ€§åç§°</param>
+        /// <param name="requiredValue">æ¯”è¾ƒçš„ç›®æ ‡å€¼</param>
         public void SetAttribute(string attributeName, object requiredValue)
         {
             AttributeName = attributeName;
@@ -110,11 +110,11 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÉèÖÃÊôĞÔÌõ¼şºÍ±È½ÏÀàĞÍ
+        /// è®¾ç½®å±æ€§æ¡ä»¶å’Œæ¯”è¾ƒç±»å‹
         /// </summary>
-        /// <param name="attributeName">ÊôĞÔÃû³Æ</param>
-        /// <param name="requiredValue">±È½ÏµÄÄ¿±êÖµ</param>
-        /// <param name="comparisonType">±È½ÏÀàĞÍ</param>
+        /// <param name="attributeName">å±æ€§åç§°</param>
+        /// <param name="requiredValue">æ¯”è¾ƒçš„ç›®æ ‡å€¼</param>
+        /// <param name="comparisonType">æ¯”è¾ƒç±»å‹</param>
         public void SetAttribute(string attributeName, object requiredValue, AttributeComparisonType comparisonType)
         {
             AttributeName = attributeName;
@@ -123,29 +123,29 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ÅĞ¶ÏÎïÆ·ÊÇ·ñÂú×ãÊôĞÔÌõ¼ş
+        /// åˆ¤æ–­ç‰©å“æ˜¯å¦æ»¡è¶³å±æ€§æ¡ä»¶
         /// </summary>
-        /// <param name="item">Òª¼ì²éµÄÎïÆ·</param>
-        /// <returns>Èç¹ûÂú×ãÌõ¼ş·µ»Øtrue£¬·ñÔò·µ»Øfalse</returns>
+        /// <param name="item">è¦æ£€æŸ¥çš„ç‰©å“</param>
+        /// <returns>å¦‚æœæ»¡è¶³æ¡ä»¶è¿”å›trueï¼Œå¦åˆ™è¿”å›false</returns>
         public bool IsCondition(IItem item)
         {
-            // ¼ì²éÎïÆ·ÊÇ·ñÎª¿Õ
+            // æ£€æŸ¥ç‰©å“æ˜¯å¦ä¸ºç©º
             if (item == null || item.Attributes == null)
                 return false;
 
-            // Èç¹û½ö¼ì²éÊôĞÔ´æÔÚĞÔ
+            // ä»…æ£€æŸ¥å±æ€§æ˜¯å¦å­˜åœ¨
             if (ComparisonType == AttributeComparisonType.Exists)
                 return item.Attributes.ContainsKey(AttributeName);
 
-            // ³¢ÊÔ»ñÈ¡ÊôĞÔÖµ
+            // å°è¯•è·å–å±æ€§å€¼
             if (!item.Attributes.TryGetValue(AttributeName, out var actualValue))
                 return false;
 
-            // Èç¹ûÊôĞÔÖµÎª¿Õµ«±È½ÏÖµ²»Îª¿Õ
+            // å¦‚æœå±æ€§å€¼ä¸ºç©ºçš„æ¯”è¾ƒå€¼ä¹Ÿä¸ºç©º
             if (actualValue == null)
                 return AttributeValue == null;
 
-            // ¸ù¾İ±È½ÏÀàĞÍ½øĞĞ±È½Ï
+            // æ ¹æ®æ¯”è¾ƒç±»å‹è¿›è¡Œæ¯”è¾ƒ
             return ComparisonType switch
             {
                 AttributeComparisonType.Equal => actualValue.Equals(AttributeValue),
@@ -161,57 +161,57 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// ±È½ÏÁ½¸öÊıÖµ
+        /// æ¯”è¾ƒä¸¤ä¸ªæ•°å€¼
         /// </summary>
         private int CompareNumeric(object value1, object value2)
         {
             if (value1 == null || value2 == null)
                 return 0;
 
-            // ³¢ÊÔ½«Öµ×ª»»Îª¿É±È½ÏµÄÊıÖµÀàĞÍ
+            // å°è¯•å°†å€¼è½¬æ¢ä¸ºå¯æ¯”è¾ƒçš„æ•°å€¼ç±»å‹
             if (value1 is IComparable comparable1 && value2 is IComparable comparable2)
             {
                 try
                 {
-                    // Èç¹ûÀàĞÍÏàÍ¬£¬Ö±½Ó±È½Ï
+                    // å¦‚æœç±»å‹ç›¸åŒåˆ™ç›´æ¥æ¯”è¾ƒ
                     if (value1.GetType() == value2.GetType())
                         return comparable1.CompareTo(comparable2);
 
-                    // ³¢ÊÔ½«Öµ×ª»»Îªdecimal½øĞĞ±È½Ï
+                    // å°è¯•å°†å€¼è½¬æ¢ä¸ºdecimalè¿›è¡Œæ¯”è¾ƒ
                     if (decimal.TryParse(value1.ToString(), out decimal num1) &&
                         decimal.TryParse(value2.ToString(), out decimal num2))
                         return num1.CompareTo(num2);
 
-                    // ³¢ÊÔ½«Öµ×ª»»Îªdouble½øĞĞ±È½Ï
+                    // å°è¯•å°†å€¼è½¬æ¢ä¸ºdoubleè¿›è¡Œæ¯”è¾ƒ
                     if (double.TryParse(value1.ToString(), out double d1) &&
                         double.TryParse(value2.ToString(), out double d2))
                         return d1.CompareTo(d2);
                 }
                 catch
                 {
-                    // ÎŞ·¨±È½Ï£¬·µ»Ø0
+                    // æ— æ³•æ¯”è¾ƒï¼Œè¿”å›0
                     return 0;
                 }
             }
 
-            // ÎŞ·¨±È½Ï£¬·µ»Ø0
+            // æ— æ³•æ¯”è¾ƒï¼Œè¿”å›0
             return 0;
         }
 
         /// <summary>
-        /// ¼ì²éÒ»¸öÖµÊÇ·ñ°üº¬ÁíÒ»¸öÖµ
+        /// æ£€æŸ¥ä¸€ä¸ªå€¼æ˜¯å¦åŒ…å«å¦ä¸€ä¸ªå€¼
         /// </summary>
         private bool CompareContains(object container, object value)
         {
-            // Èç¹ûÈÎÒ»ÖµÎªnull£¬ÎŞ·¨Ö´ĞĞ°üº¬±È½Ï
+            // å¦‚æœä»»ä¸€å€¼ä¸ºnullåˆ™æ— æ³•æ‰§è¡ŒåŒ…å«æ¯”è¾ƒ
             if (container == null || value == null)
                 return false;
 
-            // ×Ö·û´®°üº¬±È½Ï
+            // å­—ç¬¦ä¸²åŒ…å«æ¯”è¾ƒ
             if (container is string containerStr && value is string valueStr)
                 return containerStr.Contains(valueStr);
 
-            // ¼¯ºÏ°üº¬±È½Ï
+            // é›†åˆåŒ…å«æ¯”è¾ƒ
             if (container is System.Collections.IEnumerable enumerable && container is not string)
             {
                 foreach (var item in enumerable)

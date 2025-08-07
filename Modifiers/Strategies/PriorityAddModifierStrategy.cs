@@ -3,9 +3,6 @@ using System.Linq;
 using UnityEngine;
 namespace EasyPack
 {
-    /// <summary>
-    /// 优先级加法修饰器策略
-    /// </summary>
     public class PriorityAddModifierStrategy : IModifierStrategy
     {
         public ModifierType Type => ModifierType.PriorityAdd;

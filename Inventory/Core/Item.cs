@@ -20,7 +20,7 @@ namespace EasyPack
     }
     public class Item : IItem
     {
-        #region »ù±¾ÊôĞÔ
+        #region åŸºæœ¬å±æ€§
         public string ID { get; set; }
 
         public string Name { get; set; }
@@ -32,20 +32,16 @@ namespace EasyPack
 
         public bool IsStackable { get; set; } = true;
 
-        public int MaxStackCount { get; set; } = -1; // -1±íÊ¾ÎŞÏŞ¶Ñµş
+        public int MaxStackCount { get; set; } = -1; // -1ä»£è¡¨æ— é™å †å 
 
         public Dictionary<string, object> Attributes { get; set; } = new Dictionary<string, object>();
 
 
         public bool isContanierItem = false;
-        public List<IContainer> Containers { get; set; } // Ç¶Ì×µÄÈİÆ÷
+        public List<IContainer> Containers { get; set; } // å®¹å™¨ç±»å‹çš„ç‰©å“
 
         #endregion
 
-        /// <summary>
-        /// ´´½¨ÎïÆ·µÄÉî¿½±´
-        /// </summary>
-        /// <returns>ÎïÆ·µÄ¸±±¾</returns>
         public IItem Clone()
         {
             var clone = new Item

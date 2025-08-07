@@ -7,8 +7,8 @@ namespace EasyPack
         int Index { get; }
         IItem Item { get; }
         int ItemCount { get; }
-        bool IsOccupied { get; } // ÊÇ·ñÓĞÎïÆ·
-        public IContainer Container { get; set; } // ËùÊôÈİÆ÷
+        bool IsOccupied { get; } // æ˜¯å¦è¢«å ç”¨
+        public IContainer Container { get; set; } // æ‰€å±å®¹å™¨
         CustomItemCondition SlotCondition { get; }
         bool CheckSlotCondition(IItem item);
         bool SetItem(IItem item, int count = 1);
@@ -41,7 +41,6 @@ namespace EasyPack
                 return true;
             }
 
-            // ÉèÖÃÎïÆ·»ù±¾ĞÅÏ¢
             Item = item;
             ItemCount = count;
             IsOccupied = true;

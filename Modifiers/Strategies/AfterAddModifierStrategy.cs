@@ -4,9 +4,6 @@ using UnityEngine;
 
 namespace EasyPack
 {
-    /// <summary>
-    /// 后置加法修饰器策略
-    /// </summary>
     public class AfterAddModifierStrategy : IModifierStrategy
     {
         public ModifierType Type => ModifierType.AfterAdd;

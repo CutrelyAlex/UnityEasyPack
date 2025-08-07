@@ -5,10 +5,6 @@ using System.Runtime.CompilerServices;
 
 namespace EasyPack
 {
-
-    /// <summary>
-    /// 添加物品操作的结果枚举
-    /// </summary>
     public enum AddItemResult
     {
         Success,
@@ -32,7 +28,6 @@ namespace EasyPack
     }
     public interface IContainer
     {
-        // 容器属性
         string ID { get; }
         string Name { get; }
         string Type { get; set; }
@@ -47,7 +42,6 @@ namespace EasyPack
         bool HasItem(string itemID);
         int GetItemTotalCount(string itemID);
 
-        // 添加物品方法
         (AddItemResult result, int addedCount) AddItems(IItem item, int count, int slotIndex = -1);
         (AddItemResult result, int addedCount) AddItemsWithCount(IItem item, out int exceededCount, int count = 1, int slotIndex = -1);
     }

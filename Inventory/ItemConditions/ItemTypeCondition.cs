@@ -1,8 +1,5 @@
 namespace EasyPack
 {
-    /// <summary>
-    /// 物品条件检查接口
-    /// </summary>
     public class ItemTypeCondition : IItemCondition
     {
         public string ItemType { get; set; }

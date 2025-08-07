@@ -5,56 +5,56 @@ using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// ¿â´æ¹ÜÀíÆ÷ - ¸ºÔğ¹ÜÀí¶à¸öÈİÆ÷µÄ¸ß¼¶¿â´æÏµÍ³
+/// å¤šä¸ªå®¹å™¨ç®¡ç†çš„ç³»ç»Ÿ
 /// </summary>
 public class InventoryManager
 {
-    #region ´æ´¢
+    #region å­˜å‚¨
 
     /// <summary>
-    /// °´IDË÷ÒıµÄÈİÆ÷×Öµä
+    /// æŒ‰IDç´¢å¼•çš„å®¹å™¨å­—å…¸
     /// </summary>
     private readonly Dictionary<string, IContainer> _containers = new();
 
     /// <summary>
-    /// °´ÀàĞÍ·Ö×éµÄÈİÆ÷Ë÷Òı£¬¹¦ÄÜµ¼Ïò
+    /// æŒ‰ç±»å‹åˆ†ç»„çš„å®¹å™¨ç´¢å¼•ï¼ŒåŠŸèƒ½å¯¼å‘
     /// </summary>
     private readonly Dictionary<string, HashSet<string>> _containersByType = new();
 
     /// <summary>
-    /// ÈİÆ÷ÓÅÏÈ¼¶ÉèÖÃ
+    /// å®¹å™¨ä¼˜å…ˆçº§è®¾ç½®
     /// </summary>
     private readonly Dictionary<string, int> _containerPriorities = new();
 
 
     /// <summary>
-    /// ÈİÆ÷·ÖÀàÉèÖÃ£¬ÒµÎñµ¼Ïò
+    /// å®¹å™¨åˆ†ç±»è®¾ç½®ï¼Œä¸šåŠ¡å¯¼å‘
     /// </summary>
-    /// ÀàĞÍ±íÊ¾"ÊÇÊ²Ã´"£¬·ÖÀà±íÊ¾"ÊôÓÚË­/ÓÃÓÚÊ²Ã´"
-    /// ÀıÈç£ºÀàĞÍÎª"±³°ü""×°±¸"£¬·ÖÀàÎª"Íæ¼Ò""ÁÙÊ±"Ö®Àà
+    /// ç±»å‹è¡¨ç¤º"æ˜¯ä»€ä¹ˆ"ï¼Œåˆ†ç±»è¡¨ç¤º"å±äºè°/ç”¨äºä»€ä¹ˆ"
+    /// ä¾‹å¦‚ï¼šç±»å‹ä¸º"èƒŒåŒ…""è£…å¤‡"ï¼Œåˆ†ç±»ä¸º"ç©å®¶""ä¸´æ—¶"ä¹‹ç±»
     private readonly Dictionary<string, string> _containerCategories = new();
 
     /// <summary>
-    /// È«¾ÖÎïÆ·Ìõ¼şÁĞ±í
+    /// å…¨å±€ç‰©å“æ¡ä»¶åˆ—è¡¨
     /// </summary>
     private readonly List<IItemCondition> _globalItemConditions = new();
 
     /// <summary>
-    /// ÊÇ·ñÆôÓÃÈ«¾ÖÎïÆ·Ìõ¼ş¼ì²é
+    /// æ˜¯å¦å¯ç”¨å…¨å±€ç‰©å“æ¡ä»¶æ£€æŸ¥
     /// </summary>
     private bool _enableGlobalConditions = false;
 
     #endregion
 
-    #region ÈİÆ÷×¢²áÓë²éÑ¯
+    #region å®¹å™¨æ³¨å†Œä¸æŸ¥è¯¢
 
     /// <summary>
-    /// ×¢²áÈİÆ÷µ½¹ÜÀíÆ÷ÖĞ
+    /// æ³¨å†Œå®¹å™¨åˆ°ç®¡ç†å™¨ä¸­
     /// </summary>
-    /// <param name="container">Òª×¢²áµÄÈİÆ÷</param>
-    /// <param name="priority">ÈİÆ÷ÓÅÏÈ¼¶£¬ÊıÖµÔ½¸ßÓÅÏÈ¼¶Ô½¸ß</param>
-    /// <param name="category">ÈİÆ÷·ÖÀà</param>
-    /// <returns>×¢²áÊÇ·ñ³É¹¦</returns>
+    /// <param name="container">è¦æ³¨å†Œçš„å®¹å™¨</param>
+    /// <param name="priority">å®¹å™¨ä¼˜å…ˆçº§ï¼Œæ•°å€¼è¶Šé«˜ä¼˜å…ˆçº§è¶Šé«˜</param>
+    /// <param name="category">å®¹å™¨åˆ†ç±»</param>
+    /// <returns>æ³¨å†Œæ˜¯å¦æˆåŠŸ</returns>
     public bool RegisterContainer(IContainer container, int priority = 0, string category = "Default")
     {
         try
@@ -66,19 +66,19 @@ public class InventoryManager
                 UnregisterContainer(container.ID);
             }
 
-            // ×¢²áÈİÆ÷
+            // æ³¨å†Œå®¹å™¨
             _containers[container.ID] = container;
             _containerPriorities[container.ID] = priority;
             _containerCategories[container.ID] = category ?? "Default";
 
-            // °´ÀàĞÍ½¨Á¢Ë÷Òı
+            // æŒ‰ç±»å‹å»ºç«‹ç´¢å¼•
             string containerType = container.Type ?? "Unknown";
             if (!_containersByType.ContainsKey(containerType))
                 _containersByType[containerType] = new HashSet<string>();
 
             _containersByType[containerType].Add(container.ID);
 
-            // Èç¹ûÈ«¾ÖÌõ¼şÒÑÆôÓÃ£¬Ìí¼Óµ½ĞÂÈİÆ÷
+            // å¦‚æœå…¨å±€æ¡ä»¶å·²å¯ç”¨ï¼Œæ·»åŠ åˆ°æ–°å®¹å™¨
             if (_enableGlobalConditions)
             {
                 ApplyGlobalConditionsToContainer(container);
@@ -94,10 +94,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// ×¢ÏúÖ¸¶¨IDµÄÈİÆ÷
+    /// æ³¨é”€æŒ‡å®šIDçš„å®¹å™¨
     /// </summary>
-    /// <param name="containerId">ÈİÆ÷ID</param>
-    /// <returns>×¢ÏúÊÇ·ñ³É¹¦</returns>
+    /// <param name="containerId">å®¹å™¨ID</param>
+    /// <returns>æ³¨é”€æ˜¯å¦æˆåŠŸ</returns>
     public bool UnregisterContainer(string containerId)
     {
         try
@@ -105,16 +105,16 @@ public class InventoryManager
             if (string.IsNullOrEmpty(containerId) || !_containers.TryGetValue(containerId, out var container))
                 return false;
 
-            // ÒÆ³ıÈ«¾ÖÌõ¼ş
+            // ç§»é™¤å…¨å±€æ¡ä»¶
             if (_enableGlobalConditions)
             {
                 RemoveGlobalConditionsFromContainer(container);
             }
 
-            // ´ÓÖ÷×ÖµäÒÆ³ı
+            // ä»ä¸»å­—å…¸ç§»é™¤
             _containers.Remove(containerId);
 
-            // ´ÓÀàĞÍË÷ÒıÒÆ³ı
+            // ä»ç±»å‹ç´¢å¼•ç§»é™¤
             string containerType = container.Type ?? "Unknown";
             if (_containersByType.TryGetValue(containerType, out var typeSet))
             {
@@ -123,7 +123,7 @@ public class InventoryManager
                     _containersByType.Remove(containerType);
             }
 
-            // ÇåÀíÆäËûÏà¹ØÊı¾İ
+            // æ¸…ç†å…¶ä»–ç›¸å…³æ•°æ®
             _containerPriorities.Remove(containerId);
             _containerCategories.Remove(containerId);
 
@@ -137,10 +137,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// »ñÈ¡Ö¸¶¨IDµÄÈİÆ÷
+    /// è·å–æŒ‡å®šIDçš„å®¹å™¨
     /// </summary>
-    /// <param name="containerId">ÈİÆ÷ID</param>
-    /// <returns>ÕÒµ½µÄÈİÆ÷£¬Î´ÕÒµ½·µ»Ønull</returns>
+    /// <param name="containerId">å®¹å™¨ID</param>
+    /// <returns>æ‰¾åˆ°çš„å®¹å™¨ï¼Œæœªæ‰¾åˆ°è¿”å›null</returns>
     public IContainer GetContainer(string containerId)
     {
         try
@@ -154,9 +154,9 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// »ñÈ¡ËùÓĞÒÑ×¢²áµÄÈİÆ÷
+    /// è·å–æ‰€æœ‰å·²æ³¨å†Œçš„å®¹å™¨
     /// </summary>
-    /// <returns>ËùÓĞÈİÆ÷µÄÖ»¶ÁÁĞ±í</returns>
+    /// <returns>æ‰€æœ‰å®¹å™¨çš„åªè¯»åˆ—è¡¨</returns>
     public IReadOnlyList<IContainer> GetAllContainers()
     {
         try
@@ -170,10 +170,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// °´ÀàĞÍ»ñÈ¡ÈİÆ÷
+    /// æŒ‰ç±»å‹è·å–å®¹å™¨
     /// </summary>
-    /// <param name="containerType">ÈİÆ÷ÀàĞÍ</param>
-    /// <returns>Ö¸¶¨ÀàĞÍµÄÈİÆ÷ÁĞ±í</returns>
+    /// <param name="containerType">å®¹å™¨ç±»å‹</param>
+    /// <returns>æŒ‡å®šç±»å‹çš„å®¹å™¨åˆ—è¡¨</returns>
     public List<IContainer> GetContainersByType(string containerType)
     {
         try
@@ -198,10 +198,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// °´·ÖÀà»ñÈ¡ÈİÆ÷
+    /// æŒ‰åˆ†ç±»è·å–å®¹å™¨
     /// </summary>
-    /// <param name="category">·ÖÀàÃû³Æ</param>
-    /// <returns>Ö¸¶¨·ÖÀàµÄÈİÆ÷ÁĞ±í</returns>
+    /// <param name="category">åˆ†ç±»åç§°</param>
+    /// <returns>æŒ‡å®šåˆ†ç±»çš„å®¹å™¨åˆ—è¡¨</returns>
     public List<IContainer> GetContainersByCategory(string category)
     {
         try
@@ -226,10 +226,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// °´ÓÅÏÈ¼¶ÅÅĞò»ñÈ¡ÈİÆ÷
+    /// æŒ‰ä¼˜å…ˆçº§æ’åºè·å–å®¹å™¨
     /// </summary>
-    /// <param name="descending">ÊÇ·ñ½µĞòÅÅÁĞ£¨ÓÅÏÈ¼¶¸ßµÄÔÚÇ°£©</param>
-    /// <returns>°´ÓÅÏÈ¼¶ÅÅĞòµÄÈİÆ÷ÁĞ±í</returns>
+    /// <param name="descending">æ˜¯å¦é™åºæ’åˆ—ï¼ˆä¼˜å…ˆçº§é«˜çš„åœ¨å‰ï¼‰</param>
+    /// <returns>æŒ‰ä¼˜å…ˆçº§æ’åºçš„å®¹å™¨åˆ—è¡¨</returns>
     public List<IContainer> GetContainersByPriority(bool descending = true)
     {
         try
@@ -250,10 +250,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// ¼ì²éÈİÆ÷ÊÇ·ñÒÑ×¢²á
+    /// æ£€æŸ¥å®¹å™¨æ˜¯å¦å·²æ³¨å†Œ
     /// </summary>
-    /// <param name="containerId">ÈİÆ÷ID</param>
-    /// <returns>ÊÇ·ñÒÑ×¢²á</returns>
+    /// <param name="containerId">å®¹å™¨ID</param>
+    /// <returns>æ˜¯å¦å·²æ³¨å†Œ</returns>
     public bool IsContainerRegistered(string containerId)
     {
         try
@@ -267,20 +267,20 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// »ñÈ¡ÒÑ×¢²áÈİÆ÷µÄÊıÁ¿
+    /// è·å–å·²æ³¨å†Œå®¹å™¨çš„æ•°é‡
     /// </summary>
     public int ContainerCount => _containers.Count;
 
     #endregion
 
-    #region ÅäÖÃ
+    #region é…ç½®
 
     /// <summary>
-    /// ÉèÖÃÈİÆ÷ÓÅÏÈ¼¶
+    /// è®¾ç½®å®¹å™¨ä¼˜å…ˆçº§
     /// </summary>
-    /// <param name="containerId">ÈİÆ÷ID</param>
-    /// <param name="priority">ÓÅÏÈ¼¶ÊıÖµ</param>
-    /// <returns>ÉèÖÃÊÇ·ñ³É¹¦</returns>
+    /// <param name="containerId">å®¹å™¨ID</param>
+    /// <param name="priority">ä¼˜å…ˆçº§æ•°å€¼</param>
+    /// <returns>è®¾ç½®æ˜¯å¦æˆåŠŸ</returns>
     public bool SetContainerPriority(string containerId, int priority)
     {
         try
@@ -299,10 +299,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// »ñÈ¡ÈİÆ÷ÓÅÏÈ¼¶
+    /// è·å–å®¹å™¨ä¼˜å…ˆçº§
     /// </summary>
-    /// <param name="containerId">ÈİÆ÷ID</param>
-    /// <returns>ÈİÆ÷ÓÅÏÈ¼¶£¬Î´ÕÒµ½·µ»Ø0</returns>
+    /// <param name="containerId">å®¹å™¨ID</param>
+    /// <returns>å®¹å™¨ä¼˜å…ˆçº§ï¼Œæœªæ‰¾åˆ°è¿”å›0</returns>
     public int GetContainerPriority(string containerId)
     {
         try
@@ -316,11 +316,11 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// ÉèÖÃÈİÆ÷·ÖÀà
+    /// è®¾ç½®å®¹å™¨åˆ†ç±»
     /// </summary>
-    /// <param name="containerId">ÈİÆ÷ID</param>
-    /// <param name="category">·ÖÀàÃû³Æ</param>
-    /// <returns>ÉèÖÃÊÇ·ñ³É¹¦</returns>
+    /// <param name="containerId">å®¹å™¨ID</param>
+    /// <param name="category">åˆ†ç±»åç§°</param>
+    /// <returns>è®¾ç½®æ˜¯å¦æˆåŠŸ</returns>
     public bool SetContainerCategory(string containerId, string category)
     {
         try
@@ -340,10 +340,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// »ñÈ¡ÈİÆ÷·ÖÀà
+    /// è·å–å®¹å™¨åˆ†ç±»
     /// </summary>
-    /// <param name="containerId">ÈİÆ÷ID</param>
-    /// <returns>ÈİÆ÷·ÖÀà£¬Î´ÕÒµ½·µ»Ø"Default"</returns>
+    /// <param name="containerId">å®¹å™¨ID</param>
+    /// <returns>å®¹å™¨åˆ†ç±»ï¼Œæœªæ‰¾åˆ°è¿”å›"Default"</returns>
     public string GetContainerCategory(string containerId)
     {
         try
@@ -359,13 +359,13 @@ public class InventoryManager
 
     #endregion
 
-    #region È«¾ÖÌõ¼ş
+    #region å…¨å±€æ¡ä»¶
 
     /// <summary>
-    /// ¼ì²éÎïÆ·ÊÇ·ñÂú×ãÈ«¾ÖÌõ¼ş
+    /// æ£€æŸ¥ç‰©å“æ˜¯å¦æ»¡è¶³å…¨å±€æ¡ä»¶
     /// </summary>
-    /// <param name="item">Òª¼ì²éµÄÎïÆ·</param>
-    /// <returns>ÊÇ·ñÂú×ãËùÓĞÈ«¾ÖÌõ¼ş</returns>
+    /// <param name="item">è¦æ£€æŸ¥çš„ç‰©å“</param>
+    /// <returns>æ˜¯å¦æ»¡è¶³æ‰€æœ‰å…¨å±€æ¡ä»¶</returns>
     public bool ValidateGlobalItemConditions(IItem item)
     {
         try
@@ -388,9 +388,9 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// Ìí¼ÓÈ«¾ÖÎïÆ·Ìõ¼ş
+    /// æ·»åŠ å…¨å±€ç‰©å“æ¡ä»¶
     /// </summary>
-    /// <param name="condition">ÎïÆ·Ìõ¼ş</param>
+    /// <param name="condition">ç‰©å“æ¡ä»¶</param>
     public void AddGlobalItemCondition(IItemCondition condition)
     {
         try
@@ -399,7 +399,7 @@ public class InventoryManager
             {
                 _globalItemConditions.Add(condition);
 
-                // Èç¹ûÈ«¾ÖÌõ¼şÒÑÆôÓÃ£¬Ìí¼Óµ½ËùÓĞÈİÆ÷
+                // å¦‚æœå…¨å±€æ¡ä»¶å·²å¯ç”¨ï¼Œæ·»åŠ åˆ°æ‰€æœ‰å®¹å™¨
                 if (_enableGlobalConditions)
                 {
                     foreach (var container in _containers.Values)
@@ -416,15 +416,15 @@ public class InventoryManager
         }
         catch
         {
-            // ¾²Ä¬´¦ÀíÒì³£
+            // é™é»˜å¤„ç†å¼‚å¸¸
         }
     }
 
     /// <summary>
-    /// ÒÆ³ıÈ«¾ÖÎïÆ·Ìõ¼ş
+    /// ç§»é™¤å…¨å±€ç‰©å“æ¡ä»¶
     /// </summary>
-    /// <param name="condition">ÎïÆ·Ìõ¼ş</param>
-    /// <returns>ÒÆ³ıÊÇ·ñ³É¹¦</returns>
+    /// <param name="condition">ç‰©å“æ¡ä»¶</param>
+    /// <returns>ç§»é™¤æ˜¯å¦æˆåŠŸ</returns>
     public bool RemoveGlobalItemCondition(IItemCondition condition)
     {
         try
@@ -434,7 +434,7 @@ public class InventoryManager
             bool removed = _globalItemConditions.Remove(condition);
             if (removed)
             {
-                // ´ÓËùÓĞÈİÆ÷ÖĞÒÆ³ı´ËÌõ¼ş
+                // ä»æ‰€æœ‰å®¹å™¨ä¸­ç§»é™¤æ­¤æ¡ä»¶
                 foreach (var container in _containers.Values)
                 {
                     container.ContainerCondition.Remove(condition);
@@ -451,9 +451,9 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// ÉèÖÃÊÇ·ñÆôÓÃÈ«¾ÖÌõ¼ş
+    /// è®¾ç½®æ˜¯å¦å¯ç”¨å…¨å±€æ¡ä»¶
     /// </summary>
-    /// <param name="enable">ÊÇ·ñÆôÓÃ</param>
+    /// <param name="enable">æ˜¯å¦å¯ç”¨</param>
     public void SetGlobalConditionsEnabled(bool enable)
     {
         try
@@ -483,13 +483,13 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// »ñÈ¡ÊÇ·ñÆôÓÃÈ«¾ÖÌõ¼ş
+    /// è·å–æ˜¯å¦å¯ç”¨å…¨å±€æ¡ä»¶
     /// </summary>
     public bool IsGlobalConditionsEnabled => _enableGlobalConditions;
     /// <summary>
-    /// ½«È«¾ÖÌõ¼şÓ¦ÓÃµ½Ö¸¶¨ÈİÆ÷
+    /// å°†å…¨å±€æ¡ä»¶åº”ç”¨åˆ°æŒ‡å®šå®¹å™¨
     /// </summary>
-    /// <param name="container">Ä¿±êÈİÆ÷</param>
+    /// <param name="container">ç›®æ ‡å®¹å™¨</param>
     private void ApplyGlobalConditionsToContainer(IContainer container)
     {
         try
@@ -508,9 +508,9 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// ´ÓÖ¸¶¨ÈİÆ÷ÒÆ³ıÈ«¾ÖÌõ¼ş
+    /// ä»æŒ‡å®šå®¹å™¨ç§»é™¤å…¨å±€æ¡ä»¶
     /// </summary>
-    /// <param name="container">Ä¿±êÈİÆ÷</param>
+    /// <param name="container">ç›®æ ‡å®¹å™¨</param>
     private void RemoveGlobalConditionsFromContainer(IContainer container)
     {
         try
@@ -527,54 +527,54 @@ public class InventoryManager
 
     #endregion
 
-    #region ÊÂ¼ş
+    #region äº‹ä»¶
 
     /// <summary>
-    /// ÈİÆ÷×¢²áÊÂ¼ş
+    /// å®¹å™¨æ³¨å†Œäº‹ä»¶
     /// </summary>
     public event System.Action<IContainer> OnContainerRegistered;
 
     /// <summary>
-    /// ÈİÆ÷×¢ÏúÊÂ¼ş
+    /// å®¹å™¨æ³¨é”€äº‹ä»¶
     /// </summary>
     public event System.Action<IContainer> OnContainerUnregistered;
 
     /// <summary>
-    /// ÈİÆ÷ÓÅÏÈ¼¶±ä¸üÊÂ¼ş
+    /// å®¹å™¨ä¼˜å…ˆçº§å˜æ›´äº‹ä»¶
     /// </summary>
     public event System.Action<string, int> OnContainerPriorityChanged;
 
     /// <summary>
-    /// ÈİÆ÷·ÖÀà±ä¸üÊÂ¼ş
+    /// å®¹å™¨åˆ†ç±»å˜æ›´äº‹ä»¶
     /// </summary>
     public event System.Action<string, string, string> OnContainerCategoryChanged;
 
     /// <summary>
-    /// È«¾ÖÌõ¼şÌí¼ÓÊÂ¼ş
+    /// å…¨å±€æ¡ä»¶æ·»åŠ äº‹ä»¶
     /// </summary>
     public event System.Action<IItemCondition> OnGlobalConditionAdded;
 
     /// <summary>
-    /// È«¾ÖÌõ¼şÒÆ³ıÊÂ¼ş
+    /// å…¨å±€æ¡ä»¶ç§»é™¤äº‹ä»¶
     /// </summary>
     public event System.Action<IItemCondition> OnGlobalConditionRemoved;
 
     /// <summary>
-    /// È«¾Ö»º´æË¢ĞÂÊÂ¼ş
+    /// å…¨å±€ç¼“å­˜åˆ·æ–°äº‹ä»¶
     /// </summary>
     public event System.Action OnGlobalCacheRefreshed;
 
     /// <summary>
-    /// È«¾Ö»º´æÑéÖ¤ÊÂ¼ş
+    /// å…¨å±€ç¼“å­˜éªŒè¯äº‹ä»¶
     /// </summary>
     public event System.Action OnGlobalCacheValidated;
 
     #endregion
 
-    #region ¿çÈİÆ÷ÎïÆ·²Ù×÷
+    #region è·¨å®¹å™¨ç‰©å“æ“ä½œ
 
     /// <summary>
-    /// ÒÆ¶¯²Ù×÷ÇëÇó½á¹¹
+    /// ç§»åŠ¨æ“ä½œè¯·æ±‚ç»“æ„
     /// </summary>
     public struct MoveRequest
     {
@@ -597,7 +597,7 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// ÒÆ¶¯²Ù×÷½á¹û
+    /// ç§»åŠ¨æ“ä½œç»“æœ
     /// </summary>
     public enum MoveResult
     {
@@ -615,13 +615,13 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// ÈİÆ÷¼äÎïÆ·ÒÆ¶¯
+    /// å®¹å™¨é—´ç‰©å“ç§»åŠ¨
     /// </summary>
-    /// <param name="fromContainerId">Ô´ÈİÆ÷ID</param>
-    /// <param name="fromSlot">Ô´²ÛÎ»Ë÷Òı</param>
-    /// <param name="toContainerId">Ä¿±êÈİÆ÷ID</param>
-    /// <param name="toSlot">Ä¿±ê²ÛÎ»Ë÷Òı£¬-1±íÊ¾×Ô¶¯Ñ°ÕÒ</param>
-    /// <returns>ÒÆ¶¯½á¹û</returns>
+    /// <param name="fromContainerId">æºå®¹å™¨ID</param>
+    /// <param name="fromSlot">æºæ§½ä½ç´¢å¼•</param>
+    /// <param name="toContainerId">ç›®æ ‡å®¹å™¨ID</param>
+    /// <param name="toSlot">ç›®æ ‡æ§½ä½ç´¢å¼•ï¼Œ-1è¡¨ç¤ºè‡ªåŠ¨å¯»æ‰¾</param>
+    /// <returns>ç§»åŠ¨ç»“æœ</returns>
     public MoveResult MoveItem(string fromContainerId, int fromSlot, string toContainerId, int toSlot = -1)
     {
         try
@@ -644,16 +644,16 @@ public class InventoryManager
             var item = sourceSlot.Item;
             int itemCount = sourceSlot.ItemCount;
 
-            // ¼ì²éÈ«¾ÖÌõ¼ş
+            // æ£€æŸ¥å…¨å±€æ¡ä»¶
             if (!ValidateGlobalItemConditions(item))
                 return MoveResult.ItemConditionNotMet;
 
-            // ³¢ÊÔÌí¼Óµ½Ä¿±êÈİÆ÷
+            // å°è¯•æ·»åŠ åˆ°ç›®æ ‡å®¹å™¨
             var (addResult, addedCount) = targetContainer.AddItems(item, itemCount, toSlot);
 
             if (addResult == AddItemResult.Success && addedCount > 0)
             {
-                // ´ÓÔ´ÈİÆ÷ÒÆ³ı
+                // ä»æºå®¹å™¨ç§»é™¤
                 var removeResult = sourceContainer.RemoveItemAtIndex(fromSlot, addedCount, item.ID);
 
                 if (removeResult == RemoveItemResult.Success)
@@ -678,18 +678,18 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// Ö¸¶¨ÊıÁ¿ÎïÆ·×ªÒÆ
+    /// æŒ‡å®šæ•°é‡ç‰©å“è½¬ç§»
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <param name="count">×ªÒÆÊıÁ¿</param>
-    /// <param name="fromContainerId">Ô´ÈİÆ÷ID</param>
-    /// <param name="toContainerId">Ä¿±êÈİÆ÷ID</param>
-    /// <returns>×ªÒÆ½á¹ûºÍÊµ¼Ê×ªÒÆÊıÁ¿</returns>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <param name="count">è½¬ç§»æ•°é‡</param>
+    /// <param name="fromContainerId">æºå®¹å™¨ID</param>
+    /// <param name="toContainerId">ç›®æ ‡å®¹å™¨ID</param>
+    /// <returns>è½¬ç§»ç»“æœå’Œå®é™…è½¬ç§»æ•°é‡</returns>
     public (MoveResult result, int transferredCount) TransferItems(string itemId, int count, string fromContainerId, string toContainerId)
     {
         try
         {
-            if(string.IsNullOrEmpty(itemId))
+            if (string.IsNullOrEmpty(itemId))
                 return (MoveResult.ItemNotFound, 0);
 
             var sourceContainer = GetContainer(fromContainerId);
@@ -707,7 +707,7 @@ public class InventoryManager
             if (availableCount < count)
                 return (MoveResult.InsufficientQuantity, 0);
 
-            // »ñÈ¡ÎïÆ·ÒıÓÃ
+            // è·å–ç‰©å“å¼•ç”¨
             IItem item = null;
             foreach (var slot in sourceContainer.Slots)
             {
@@ -721,16 +721,16 @@ public class InventoryManager
             if (item == null)
                 return (MoveResult.ItemNotFound, 0);
 
-            // ¼ì²éÈ«¾ÖÌõ¼ş
+            // æ£€æŸ¥å…¨å±€æ¡ä»¶
             if (!ValidateGlobalItemConditions(item))
                 return (MoveResult.ItemConditionNotMet, 0);
 
-            // ³¢ÊÔÌí¼Óµ½Ä¿±êÈİÆ÷
+            // å°è¯•æ·»åŠ åˆ°ç›®æ ‡å®¹å™¨
             var (addResult, addedCount) = targetContainer.AddItems(item, count);
 
             if (addResult == AddItemResult.Success && addedCount > 0)
             {
-                // ´ÓÔ´ÈİÆ÷ÒÆ³ı
+                // ä»æºå®¹å™¨ç§»é™¤
                 var removeResult = sourceContainer.RemoveItem(itemId, addedCount);
 
                 if (removeResult == RemoveItemResult.Success)
@@ -754,12 +754,12 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// ×Ô¶¯Ñ°ÕÒ×î¼ÑÎ»ÖÃ×ªÒÆÎïÆ·
+    /// è‡ªåŠ¨å¯»æ‰¾æœ€ä½³ä½ç½®è½¬ç§»ç‰©å“
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <param name="fromContainerId">Ô´ÈİÆ÷ID</param>
-    /// <param name="toContainerId">Ä¿±êÈİÆ÷ID</param>
-    /// <returns>×ªÒÆ½á¹ûºÍÊµ¼Ê×ªÒÆÊıÁ¿</returns>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <param name="fromContainerId">æºå®¹å™¨ID</param>
+    /// <param name="toContainerId">ç›®æ ‡å®¹å™¨ID</param>
+    /// <returns>è½¬ç§»ç»“æœå’Œå®é™…è½¬ç§»æ•°é‡</returns>
     public (MoveResult result, int transferredCount) AutoMoveItem(string itemId, string fromContainerId, string toContainerId)
     {
         try
@@ -788,10 +788,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// ÅúÁ¿ÒÆ¶¯²Ù×÷
+    /// æ‰¹é‡ç§»åŠ¨æ“ä½œ
     /// </summary>
-    /// <param name="requests">ÒÆ¶¯ÇëÇóÁĞ±í</param>
-    /// <returns>Ã¿¸öÇëÇóµÄÖ´ĞĞ½á¹û</returns>
+    /// <param name="requests">ç§»åŠ¨è¯·æ±‚åˆ—è¡¨</param>
+    /// <returns>æ¯ä¸ªè¯·æ±‚çš„æ‰§è¡Œç»“æœ</returns>
     public List<(MoveRequest request, MoveResult result, int movedCount)> BatchMoveItems(List<MoveRequest> requests)
     {
         var results = new List<(MoveRequest request, MoveResult result, int movedCount)>();
@@ -807,7 +807,7 @@ public class InventoryManager
             {
                 if (request.Count > 0)
                 {
-                    // Ö¸¶¨ÊıÁ¿ÒÆ¶¯
+                    // æŒ‡å®šæ•°é‡ç§»åŠ¨
                     if (!string.IsNullOrEmpty(request.ExpectedItemId))
                     {
                         var (result, transferredCount) = TransferItems(request.ExpectedItemId, request.Count,
@@ -816,7 +816,7 @@ public class InventoryManager
                     }
                     else
                     {
-                        // ĞèÒªÏÈ»ñÈ¡²ÛÎ»ÖĞµÄÎïÆ·ID
+                        // éœ€è¦å…ˆè·å–æ§½ä½ä¸­çš„ç‰©å“ID
                         var sourceContainer = GetContainer(request.FromContainerId);
                         if (sourceContainer != null && request.FromSlot >= 0 && request.FromSlot < sourceContainer.Slots.Count)
                         {
@@ -840,11 +840,11 @@ public class InventoryManager
                 }
                 else
                 {
-                    // Õû¸ö²ÛÎ»ÒÆ¶¯
+                    // æ•´ä¸ªæ§½ä½ç§»åŠ¨
                     var result = MoveItem(request.FromContainerId, request.FromSlot,
                         request.ToContainerId, request.ToSlot);
 
-                    // »ñÈ¡ÒÆ¶¯µÄÊıÁ¿
+                    // è·å–ç§»åŠ¨çš„æ•°é‡
                     int movedCount = 0;
                     if (result == MoveResult.Success)
                     {
@@ -874,12 +874,12 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// ·ÖÅäÎïÆ·µ½¶à¸öÈİÆ÷
+    /// åˆ†é…ç‰©å“åˆ°å¤šä¸ªå®¹å™¨
     /// </summary>
-    /// <param name="item">Òª·ÖÅäµÄÎïÆ·</param>
-    /// <param name="totalCount">×ÜÊıÁ¿</param>
-    /// <param name="targetContainerIds">Ä¿±êÈİÆ÷IDÁĞ±í</param>
-    /// <returns>·ÖÅä½á¹û£ºÈİÆ÷IDºÍ·ÖÅäµ½µÄÊıÁ¿</returns>
+    /// <param name="item">è¦åˆ†é…çš„ç‰©å“</param>
+    /// <param name="totalCount">æ€»æ•°é‡</param>
+    /// <param name="targetContainerIds">ç›®æ ‡å®¹å™¨IDåˆ—è¡¨</param>
+    /// <returns>åˆ†é…ç»“æœï¼šå®¹å™¨IDå’Œåˆ†é…åˆ°çš„æ•°é‡</returns>
     public Dictionary<string, int> DistributeItems(IItem item, int totalCount, List<string> targetContainerIds)
     {
         var results = new Dictionary<string, int>();
@@ -889,14 +889,14 @@ public class InventoryManager
             if (item == null || totalCount <= 0 || targetContainerIds?.Count == 0)
                 return results;
 
-            // ¼ì²éÈ«¾ÖÌõ¼ş
+            // æ£€æŸ¥å…¨å±€æ¡ä»¶
             if (!ValidateGlobalItemConditions(item))
                 return results;
 
             int remainingCount = totalCount;
             var sortedContainers = new List<(string id, IContainer container, int priority)>();
 
-            // ×¼±¸ÈİÆ÷ÁĞ±í²¢°´ÓÅÏÈ¼¶ÅÅĞò
+            // å‡†å¤‡å®¹å™¨åˆ—è¡¨å¹¶æŒ‰ä¼˜å…ˆçº§æ’åº
             foreach (string containerId in targetContainerIds)
             {
                 var container = GetContainer(containerId);
@@ -907,10 +907,10 @@ public class InventoryManager
                 }
             }
 
-            // °´ÓÅÏÈ¼¶½µĞòÅÅĞò
+            // æŒ‰ä¼˜å…ˆçº§é™åºæ’åº
             sortedContainers.Sort((a, b) => b.priority.CompareTo(a.priority));
 
-            // °´ÓÅÏÈ¼¶·ÖÅäÎïÆ·
+            // æŒ‰ä¼˜å…ˆçº§åˆ†é…ç‰©å“
             foreach (var (containerId, container, _) in sortedContainers)
             {
                 if (remainingCount <= 0) break;
@@ -924,7 +924,7 @@ public class InventoryManager
                 }
                 else if (addResult == AddItemResult.ContainerIsFull && addedCount > 0)
                 {
-                    // ²¿·ÖÌí¼Ó³É¹¦
+                    // éƒ¨åˆ†æ·»åŠ æˆåŠŸ
                     results[containerId] = addedCount;
                     remainingCount -= addedCount;
                 }
@@ -941,33 +941,33 @@ public class InventoryManager
 
     #endregion
 
-    #region ¿çÈİÆ÷²Ù×÷ÊÂ¼ş
+    #region è·¨å®¹å™¨æ“ä½œäº‹ä»¶
 
     /// <summary>
-    /// ÎïÆ·ÒÆ¶¯ÊÂ¼ş
+    /// ç‰©å“ç§»åŠ¨äº‹ä»¶
     /// </summary>
     public event System.Action<string, int, string, IItem, int> OnItemMoved;
 
     /// <summary>
-    /// ÎïÆ·×ªÒÆÊÂ¼ş
+    /// ç‰©å“è½¬ç§»äº‹ä»¶
     /// </summary>
     public event System.Action<string, string, string, int> OnItemsTransferred;
 
     /// <summary>
-    /// ÅúÁ¿ÒÆ¶¯Íê³ÉÊÂ¼ş
+    /// æ‰¹é‡ç§»åŠ¨å®Œæˆäº‹ä»¶
     /// </summary>
     public event System.Action<List<(MoveRequest request, MoveResult result, int movedCount)>> OnBatchMoveCompleted;
 
     /// <summary>
-    /// ÎïÆ··ÖÅäÊÂ¼ş
+    /// ç‰©å“åˆ†é…äº‹ä»¶
     /// </summary>
     public event System.Action<IItem, int, Dictionary<string, int>, int> OnItemsDistributed;
 
     #endregion
 
-    #region È«¾ÖÎïÆ·ËÑË÷
+    #region å…¨å±€ç‰©å“æœç´¢
     /// <summary>
-    /// È«¾ÖÎïÆ·ËÑË÷½á¹û
+    /// å…¨å±€ç‰©å“æœç´¢ç»“æœ
     /// </summary>
     public struct GlobalItemResult
     {
@@ -986,10 +986,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// È«¾Ö²éÕÒÎïÆ·
+    /// å…¨å±€æŸ¥æ‰¾ç‰©å“
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <returns>ÎïÆ·ËùÔÚµÄÎ»ÖÃÁĞ±í</returns>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <returns>ç‰©å“æ‰€åœ¨çš„ä½ç½®åˆ—è¡¨</returns>
     public List<GlobalItemResult> FindItemGlobally(string itemId)
     {
         var results = new List<GlobalItemResult>();
@@ -1001,9 +1001,9 @@ public class InventoryManager
 
             foreach (Container container in _containers.Values)
             {
-                if (container.HasItem(itemId)) // ÀûÓÃ»º´æ¿ìËÙ¼ì²é
+                if (container.HasItem(itemId)) // åˆ©ç”¨ç¼“å­˜å¿«é€Ÿæ£€æŸ¥
                 {
-                    var slotIndices = container.FindSlotIndices(itemId); // ÀûÓÃ»º´æ»ñÈ¡²ÛÎ»Ë÷Òı
+                    var slotIndices = container.FindSlotIndices(itemId); // åˆ©ç”¨ç¼“å­˜è·å–æ§½ä½ç´¢å¼•
                     foreach (int slotIndex in slotIndices)
                     {
                         if (slotIndex < container.Slots.Count)
@@ -1038,10 +1038,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// »ñÈ¡È«¾ÖÎïÆ·×ÜÊı
+    /// è·å–å…¨å±€ç‰©å“æ€»æ•°
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <returns>È«¾ÖÎïÆ·×ÜÊıÁ¿</returns>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <returns>å…¨å±€ç‰©å“æ€»æ•°é‡</returns>
     public int GetGlobalItemCount(string itemId)
     {
         try
@@ -1064,10 +1064,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// ²éÕÒ°üº¬Ö¸¶¨ÎïÆ·µÄÈİÆ÷
+    /// æŸ¥æ‰¾åŒ…å«æŒ‡å®šç‰©å“çš„å®¹å™¨
     /// </summary>
-    /// <param name="itemId">ÎïÆ·ID</param>
-    /// <returns>°üº¬¸ÃÎïÆ·µÄÈİÆ÷ÁĞ±íºÍÊıÁ¿</returns>
+    /// <param name="itemId">ç‰©å“ID</param>
+    /// <returns>åŒ…å«è¯¥ç‰©å“çš„å®¹å™¨åˆ—è¡¨å’Œæ•°é‡</returns>
     public Dictionary<string, int> FindContainersWithItem(string itemId)
     {
         var results = new Dictionary<string, int>();
@@ -1091,17 +1091,17 @@ public class InventoryManager
         }
         catch
         {
-            
+
         }
 
         return results;
     }
 
     /// <summary>
-    /// °´Ìõ¼şÈ«¾ÖËÑË÷ÎïÆ·
+    /// æŒ‰æ¡ä»¶å…¨å±€æœç´¢ç‰©å“
     /// </summary>
-    /// <param name="condition">ËÑË÷Ìõ¼ş</param>
-    /// <returns>·ûºÏÌõ¼şµÄÎïÆ·ÁĞ±í</returns>
+    /// <param name="condition">æœç´¢æ¡ä»¶</param>
+    /// <returns>ç¬¦åˆæ¡ä»¶çš„ç‰©å“åˆ—è¡¨</returns>
     public List<GlobalItemResult> SearchItemsByCondition(System.Func<IItem, bool> condition)
     {
         var results = new List<GlobalItemResult>();
@@ -1125,17 +1125,17 @@ public class InventoryManager
         }
         catch
         {
-            
+
         }
 
         return results;
     }
 
     /// <summary>
-    /// °´ÎïÆ·ÀàĞÍÈ«¾ÖËÑË÷
+    /// æŒ‰ç‰©å“ç±»å‹å…¨å±€æœç´¢
     /// </summary>
-    /// <param name="itemType">ÎïÆ·ÀàĞÍ</param>
-    /// <returns>Ö¸¶¨ÀàĞÍµÄÎïÆ·ÁĞ±í</returns>
+    /// <param name="itemType">ç‰©å“ç±»å‹</param>
+    /// <returns>æŒ‡å®šç±»å‹çš„ç‰©å“åˆ—è¡¨</returns>
     public List<GlobalItemResult> SearchItemsByType(string itemType)
     {
         var results = new List<GlobalItemResult>();
@@ -1147,7 +1147,7 @@ public class InventoryManager
 
             foreach (Container container in _containers.Values)
             {
-                // ÀûÓÃÈİÆ÷µÄÀàĞÍ»º´æ²éÑ¯
+                // åˆ©ç”¨å®¹å™¨çš„ç±»å‹ç¼“å­˜æŸ¥è¯¢
                 var typeItems = container.GetItemsByType(itemType);
                 foreach (var (slotIndex, item, count) in typeItems)
                 {
@@ -1157,7 +1157,7 @@ public class InventoryManager
         }
         catch
         {
-            // ·¢ÉúÒì³£Ê±»ØÍËµ½Ìõ¼şËÑË÷
+            // å‘ç”Ÿå¼‚å¸¸æ—¶å›é€€åˆ°æ¡ä»¶æœç´¢
             results.Clear();
             results = SearchItemsByCondition(item => item.Type == itemType);
         }
@@ -1166,10 +1166,10 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// °´ÎïÆ·Ãû³ÆÈ«¾ÖËÑË÷
+    /// æŒ‰ç‰©å“åç§°å…¨å±€æœç´¢
     /// </summary>
-    /// <param name="namePattern">Ãû³ÆÄ£Ê½</param>
-    /// <returns>·ûºÏÃû³ÆÄ£Ê½µÄÎïÆ·ÁĞ±í</returns>
+    /// <param name="namePattern">åç§°æ¨¡å¼</param>
+    /// <returns>ç¬¦åˆåç§°æ¨¡å¼çš„ç‰©å“åˆ—è¡¨</returns>
     public List<GlobalItemResult> SearchItemsByName(string namePattern)
     {
         var results = new List<GlobalItemResult>();
@@ -1181,7 +1181,7 @@ public class InventoryManager
 
             foreach (Container container in _containers.Values)
             {
-                // ÀûÓÃÈİÆ÷µÄÃû³Æ»º´æ²éÑ¯
+                // åˆ©ç”¨å®¹å™¨çš„åç§°ç¼“å­˜æŸ¥è¯¢
                 var nameItems = container.GetItemsByName(namePattern);
                 foreach (var (slotIndex, item, count) in nameItems)
                 {
@@ -1198,11 +1198,11 @@ public class InventoryManager
         return results;
     }
     /// <summary>
-    /// °´ÊôĞÔÈ«¾ÖËÑË÷ÎïÆ·
+    /// æŒ‰å±æ€§å…¨å±€æœç´¢ç‰©å“
     /// </summary>
-    /// <param name="attributeName">ÊôĞÔÃû³Æ</param>
-    /// <param name="attributeValue">ÊôĞÔÖµ</param>
-    /// <returns>·ûºÏÊôĞÔÌõ¼şµÄÎïÆ·ÁĞ±í</returns>
+    /// <param name="attributeName">å±æ€§åç§°</param>
+    /// <param name="attributeValue">å±æ€§å€¼</param>
+    /// <returns>ç¬¦åˆå±æ€§æ¡ä»¶çš„ç‰©å“åˆ—è¡¨</returns>
     public List<GlobalItemResult> SearchItemsByAttribute(string attributeName, object attributeValue)
     {
         var results = new List<GlobalItemResult>();
@@ -1214,7 +1214,7 @@ public class InventoryManager
 
             foreach (Container container in _containers.Values)
             {
-                // ÀûÓÃÈİÆ÷µÄÊôĞÔ»º´æ²éÑ¯
+                // åˆ©ç”¨å®¹å™¨çš„å±æ€§ç¼“å­˜æŸ¥è¯¢
                 var attributeItems = container.GetItemsByAttribute(attributeName, attributeValue);
                 foreach (var (slotIndex, item, count) in attributeItems)
                 {
@@ -1235,9 +1235,9 @@ public class InventoryManager
     }
     #endregion
 
-    #region È«¾Ö»º´æ
+    #region å…¨å±€ç¼“å­˜
     /// <summary>
-    /// Ë¢ĞÂÈ«¾Ö»º´æ
+    /// åˆ·æ–°å…¨å±€ç¼“å­˜
     /// </summary>
     public void RefreshGlobalCache()
     {
@@ -1255,12 +1255,12 @@ public class InventoryManager
         }
         catch
         {
-            
+
         }
     }
 
     /// <summary>
-    /// ÑéÖ¤È«¾Ö»º´æ
+    /// éªŒè¯å…¨å±€ç¼“å­˜
     /// </summary>
     public void ValidateGlobalCache()
     {
@@ -1278,7 +1278,7 @@ public class InventoryManager
         }
         catch
         {
-            
+
         }
     }
     #endregion

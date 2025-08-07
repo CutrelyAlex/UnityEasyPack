@@ -4,9 +4,6 @@ using UnityEngine;
 
 namespace EasyPack
 {
-    /// <summary>
-    /// ¼Ó·¨ÐÞÊÎÆ÷²ßÂÔ
-    /// </summary>
     public class AddModifierStrategy : IModifierStrategy
     {
         public ModifierType Type => ModifierType.Add;
