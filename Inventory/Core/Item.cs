@@ -42,6 +42,7 @@ namespace EasyPack
 
         #endregion
 
+        #region 克隆
         public IItem Clone()
         {
             var clone = new Item
@@ -72,5 +73,86 @@ namespace EasyPack
 
             return clone;
         }
+        #endregion
+
+        #region 序列化
+        [System.Serializable]
+        private class ItemJsonDTO
+        {
+            public string ID;
+            public string Name;
+            public string Type;
+            public string Description;
+            public float Weight;
+            public bool IsStackable;
+            public int MaxStackCount;
+            public bool isContanierItem;
+            public List<CustomDataEntry> Attributes;
+        }
+
+        public string ToJson(bool prettyPrint = false)
+        {
+            var dto = new ItemJsonDTO
+            {
+                ID = this.ID,
+                Name = this.Name,
+                Type = this.Type,
+                Description = this.Description,
+                Weight = this.Weight,
+                IsStackable = this.IsStackable,
+                MaxStackCount = this.MaxStackCount,
+                isContanierItem = this.isContanierItem,
+                Attributes = CustomDataUtility.ToEntries(this.Attributes)
+            };
+            return JsonUtility.ToJson(dto, prettyPrint);
+        }
+        public static Item FromJson(string json, ICustomDataSerializer fallbackSerializer = null)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+
+            ItemJsonDTO dto = null;
+            try
+            {
+                dto = JsonUtility.FromJson<ItemJsonDTO>(json);
+            }
+            catch
+            {
+                return null;
+            }
+            if (dto == null) return null;
+
+            var item = new Item
+            {
+                ID = dto.ID,
+                Name = dto.Name,
+                Type = dto.Type,
+                Description = dto.Description,
+                Weight = dto.Weight,
+                IsStackable = dto.IsStackable,
+                MaxStackCount = dto.MaxStackCount,
+                isContanierItem = dto.isContanierItem,
+            };
+
+            if (dto.Attributes != null)
+            {
+                // 若存在自定义序列化类型，注入回条目以便 GetValue 能正确解析 Custom 类型
+                if (fallbackSerializer != null)
+                {
+                    for (int i = 0; i < dto.Attributes.Count; i++)
+                    {
+                        var e = dto.Attributes[i];
+                        if (e != null) e.Serializer = fallbackSerializer;
+                    }
+                }
+                item.Attributes = CustomDataUtility.ToDictionary(dto.Attributes);
+            }
+            else
+            {
+                item.Attributes = new Dictionary<string, object>();
+            }
+
+            return item;
+        }
+        #endregion
     }
 }

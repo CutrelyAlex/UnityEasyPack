@@ -9,7 +9,7 @@ namespace EasyPack
         public string Name;
         public string Description;
         public Sprite Sprite;
-        public Dictionary<string, object> CustomData;
+        public List<CustomDataEntry> CustomData;
 
         public int MaxStacks = 1;
         public float Duration = -1f; // -1 代表永久效果
