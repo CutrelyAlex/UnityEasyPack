@@ -8,7 +8,7 @@ namespace EasyPack
     public static class ContainerSerializer
     {
         // Container -> DTO
-        public static SerializableContainer Serialize(Container container, Func<IItem, string> itemToJson = null)
+        public static SerializableContainer Serialize(Container container, Func<IItem, string> itemToJson = null, bool prettyPrint = false)
         {
             if (container == null) return null;
 
@@ -52,7 +52,7 @@ namespace EasyPack
                 }
                 else if (slot.Item is Item concrete)
                 {
-                    itemJson = concrete.ToJson(false);
+                    itemJson = concrete.ToJson(prettyPrint);
                 }
 
                 dto.Slots.Add(new SerializableSlot
@@ -133,7 +133,7 @@ namespace EasyPack
 
         public static string ToJson(Container container, bool prettyPrint = false)
         {
-            var dto = Serialize(container);
+            var dto = Serialize(container, prettyPrint: prettyPrint);
             return dto != null ? JsonUtility.ToJson(dto, prettyPrint) : null;
         }
 

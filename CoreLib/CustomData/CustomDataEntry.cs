@@ -7,45 +7,34 @@ namespace EasyPack
 {
     public interface ICustomDataSerializer
     {
-        // 目标 CLR 类型（可选）
         Type TargetClrType { get; }
-
-        // 将对象序列化为字符串
         string Serialize(object value);
-
-        // 从字符串反序列化为对象
         object Deserialize(string data);
     }
 
     [Serializable]
-    public class CustomDataEntry
+    public class CustomDataEntry : ISerializationCallbackReceiver
     {
-        // 数据唯一键
         public string Id;
-
-        // 存储类型
         public CustomDataType Type = CustomDataType.None;
 
-        // 直存类型
-        public int IntValue;
-        public float FloatValue;
-        public bool BoolValue;
-        public string StringValue;
-        public Vector2 Vector2Value;
-        public Vector3 Vector3Value;
-        public Color ColorValue;
+        [NonSerialized] public int IntValue;
+        [NonSerialized] public float FloatValue;
+        [NonSerialized] public bool BoolValue;
+        [NonSerialized] public string StringValue;
+        [NonSerialized] public Vector2 Vector2Value;
+        [NonSerialized] public Vector3 Vector3Value;
+        [NonSerialized] public Color ColorValue;
 
-        // 复杂类型值
-        public string JsonValue;
+        // 复杂类型值（仅运行期保留）
+        [NonSerialized] public string JsonValue;
 
-        // 当 Type=Json/Custom 时可记录目标类型信息
         public string JsonClrType;
 
         [NonSerialized] public ICustomDataSerializer Serializer;
 
-        /// <summary>
-        /// 获取已存储的实际值
-        /// </summary>
+        [SerializeField] private string Data;
+
         public object GetValue()
         {
             switch (Type)
@@ -68,7 +57,6 @@ namespace EasyPack
                             catch { }
                         }
                     }
-                    // 类型不明时返回原始 JSON 字符串
                     return JsonValue;
                 case CustomDataType.Custom:
                     if (Serializer == null || string.IsNullOrEmpty(JsonValue)) return null;
@@ -79,9 +67,6 @@ namespace EasyPack
             }
         }
 
-        /// <summary>
-        /// 设置值。可强制类型；复杂类型默认用 JsonUtility 序列化，失败时尝试外部 Serializer。
-        /// </summary>
         public void SetValue(object value, CustomDataType? forceType = null, Type jsonClrType = null)
         {
             if (forceType.HasValue)
@@ -107,7 +92,6 @@ namespace EasyPack
                 case Vector3 v: SetByType(CustomDataType.Vector3, v); break;
                 case Color v: SetByType(CustomDataType.Color, v); break;
                 default:
-                    // 优先尝试 Unity JsonUtility
                     try
                     {
                         JsonValue = JsonUtility.ToJson(value);
@@ -117,7 +101,6 @@ namespace EasyPack
                     }
                     catch
                     {
-                        // 失败则尝试外部自定义序列化器
                         if (Serializer != null)
                         {
                             try
@@ -143,9 +126,6 @@ namespace EasyPack
             }
         }
 
-        /// <summary>
-        /// 将当前值序列化为字符串
-        /// </summary>
         public string SerializeValue()
         {
             switch (Type)
@@ -165,9 +145,6 @@ namespace EasyPack
             }
         }
 
-        /// <summary>
-        /// 从字符串反序列化到当前条目（需要指定类型）
-        /// </summary>
         public bool TryDeserializeValue(string data, CustomDataType type, Type jsonClrType = null)
         {
             try
@@ -303,6 +280,7 @@ namespace EasyPack
             ColorValue = default;
             JsonValue = default;
             JsonClrType = default;
+            Data = default;
         }
 
         private void ClearExcept(CustomDataType keep)
@@ -331,14 +309,92 @@ namespace EasyPack
             Vector3Value = default;
             ColorValue = default;
         }
+
+        // 仅序列化所需字段
+        void ISerializationCallbackReceiver.OnBeforeSerialize()
+        {
+            switch (Type)
+            {
+                case CustomDataType.Int:
+                    Data = IntValue.ToString(CultureInfo.InvariantCulture);
+                    break;
+                case CustomDataType.Float:
+                    Data = FloatValue.ToString("R", CultureInfo.InvariantCulture);
+                    break;
+                case CustomDataType.Bool:
+                    Data = BoolValue ? "true" : "false";
+                    break;
+                case CustomDataType.String:
+                    Data = StringValue ?? "";
+                    break;
+                case CustomDataType.Vector2:
+                    Data = JsonUtility.ToJson(Vector2Value);
+                    break;
+                case CustomDataType.Vector3:
+                    Data = JsonUtility.ToJson(Vector3Value);
+                    break;
+                case CustomDataType.Color:
+                    Data = JsonUtility.ToJson(ColorValue);
+                    break;
+                case CustomDataType.Json:
+                case CustomDataType.Custom:
+                    Data = JsonValue ?? "";
+                    break;
+                default:
+                    Data = "";
+                    break;
+            }
+        }
+
+        // 反序列化时若缺失则回退为0/默认
+        void ISerializationCallbackReceiver.OnAfterDeserialize()
+        {
+            // Data 可能为 null/空，按需求回退为默认
+            switch (Type)
+            {
+                case CustomDataType.Int:
+                    IntValue = TryParseInt(Data);
+                    break;
+                case CustomDataType.Float:
+                    FloatValue = TryParseFloat(Data);
+                    break;
+                case CustomDataType.Bool:
+                    BoolValue = string.Equals(Data, "true", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(Data, "1", StringComparison.OrdinalIgnoreCase);
+                    break;
+                case CustomDataType.String:
+                    StringValue = Data ?? "";
+                    break;
+                case CustomDataType.Vector2:
+                    Vector2Value = !string.IsNullOrEmpty(Data) ? JsonUtility.FromJson<Vector2>(Data) : default;
+                    break;
+                case CustomDataType.Vector3:
+                    Vector3Value = !string.IsNullOrEmpty(Data) ? JsonUtility.FromJson<Vector3>(Data) : default;
+                    break;
+                case CustomDataType.Color:
+                    ColorValue = !string.IsNullOrEmpty(Data) ? JsonUtility.FromJson<Color>(Data) : default;
+                    break;
+                case CustomDataType.Json:
+                    JsonValue = Data ?? "";
+                    break;
+                case CustomDataType.Custom:
+                    JsonValue = Data ?? "";
+                    break;
+                default:
+                    ClearAll();
+                    break;
+            }
+        }
+
+        private static int TryParseInt(string s)
+            => int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : 0;
+
+        private static float TryParseFloat(string s)
+            => float.TryParse(s, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var v) ? v : 0f;
     }
 
-    /// <summary>
-    /// 与 Dictionary<string, object> 互转
-    /// </summary>
     public static class CustomDataUtility
     {
-        // Dictionary -> List<CustomDataEntry>
         public static List<CustomDataEntry> ToEntries(Dictionary<string, object> dict, ICustomDataSerializer fallbackSerializer = null)
         {
             var list = new List<CustomDataEntry>();
@@ -350,11 +406,9 @@ namespace EasyPack
                 entry.SetValue(kv.Value);
                 list.Add(entry);
             }
-
             return list;
         }
 
-        // List<CustomDataEntry> -> Dictionary
         public static Dictionary<string, object> ToDictionary(IEnumerable<CustomDataEntry> entries)
         {
             var dict = new Dictionary<string, object>();
@@ -367,7 +421,6 @@ namespace EasyPack
             return dict;
         }
 
-        // 快速按键名获取强类型值
         public static bool TryGetValue<T>(IEnumerable<CustomDataEntry> entries, string id, out T value)
         {
             value = default;
@@ -384,7 +437,6 @@ namespace EasyPack
                     return true;
                 }
 
-                // 若为 JSON 字符串尝试反序列化
                 try
                 {
                     if (obj is string json)
