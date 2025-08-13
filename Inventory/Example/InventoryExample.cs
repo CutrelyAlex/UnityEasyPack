@@ -53,7 +53,7 @@ public class InventoryExample : MonoBehaviour
 
         // 为容器物品创建内部存储容器
         var innerContainer = new LinerContainer("inner_container", "小背包内部", "Bag", 5);
-        backpackItem.Containers = new List<Container> { innerContainer };
+        backpackItem.ContainerIds = new List<Container> { innerContainer };
 
         // 向主背包添加这个背包物品
         Debug.Log("1.1 将小背包添加到主背包中");

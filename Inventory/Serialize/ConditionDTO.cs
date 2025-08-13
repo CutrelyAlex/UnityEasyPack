@@ -9,7 +9,6 @@ namespace EasyPack
     {
         public string Kind; // 条件类型标识（自定义短名称）
         public List<CustomDataEntry> Params = new List<CustomDataEntry>();
-        public int Version = 1;
     }
 
     // 条件序列化器接口（将 IItemCondition <-> ConditionDTO）

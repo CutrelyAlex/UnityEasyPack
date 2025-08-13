@@ -4,4 +4,9 @@ namespace EasyPack
     {
         bool IsCondition(IItem item);
     }
+    public interface ISerializableCondition : IItemCondition
+    {
+        string Kind { get; }
+        ConditionDTO ToDto();
+    }
 }

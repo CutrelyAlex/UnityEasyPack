@@ -14,5 +14,6 @@ namespace EasyPack
         public int MaxStackCount;
         public bool isContanierItem;
         public List<CustomDataEntry> Attributes;
+        public List<string> ContainerIds;
     }
 }

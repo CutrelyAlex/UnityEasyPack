@@ -38,7 +38,7 @@ namespace EasyPack
 
 
         public bool isContanierItem = false;
-        public List<Container> Containers { get; set; } // 容器类型的物品
+        public List<string> ContainerIds { get; set; } // 容器类型的物品对于的ID区域
 
         #endregion
 
@@ -66,9 +66,9 @@ namespace EasyPack
                 }
             }
 
-            if (this.Containers != null && this.Containers.Count > 0)
+            if (this.ContainerIds != null && this.ContainerIds.Count > 0)
             {
-                clone.Containers = new List<Container>(this.Containers);
+                clone.ContainerIds = new List<string>(this.ContainerIds);
             }
 
             return clone;
@@ -88,10 +88,15 @@ namespace EasyPack
                 IsStackable = this.IsStackable,
                 MaxStackCount = this.MaxStackCount,
                 isContanierItem = this.isContanierItem,
-                Attributes = CustomDataUtility.ToEntries(this.Attributes)
+                Attributes = CustomDataUtility.ToEntries(this.Attributes),
+                ContainerIds = (this.isContanierItem && this.ContainerIds != null && this.ContainerIds.Count > 0)
+                    ? new List<string>(this.ContainerIds)
+                    : null
             };
+
             return JsonUtility.ToJson(dto, prettyPrint);
         }
+
         public static Item FromJson(string json, ICustomDataSerializer fallbackSerializer = null)
         {
             if (string.IsNullOrEmpty(json)) return null;
@@ -135,6 +140,12 @@ namespace EasyPack
             else
             {
                 item.Attributes = new Dictionary<string, object>();
+            }
+
+            if (dto.ContainerIds != null && dto.ContainerIds.Count > 0)
+            {
+                item.isContanierItem = true;
+                item.ContainerIds = new List<string>(dto.ContainerIds);
             }
 
             return item;
