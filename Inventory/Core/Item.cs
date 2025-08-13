@@ -38,7 +38,7 @@ namespace EasyPack
 
 
         public bool isContanierItem = false;
-        public List<IContainer> Containers { get; set; } // 容器类型的物品
+        public List<Container> Containers { get; set; } // 容器类型的物品
 
         #endregion
 
@@ -68,7 +68,7 @@ namespace EasyPack
 
             if (this.Containers != null && this.Containers.Count > 0)
             {
-                clone.Containers = new List<IContainer>(this.Containers);
+                clone.Containers = new List<Container>(this.Containers);
             }
 
             return clone;

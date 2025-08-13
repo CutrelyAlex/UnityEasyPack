@@ -30,7 +30,7 @@ public class LinerContainer : Container
     /// <param name="sourceSlotIndex">源槽位索引</param>
     /// <param name="targetContainer">目标容器</param>
     /// <returns>移动结果</returns>
-    public bool MoveItemToContainer(int sourceSlotIndex, IContainer targetContainer)
+    public bool MoveItemToContainer(int sourceSlotIndex, Container targetContainer)
     {
         if (!ValidateSourceSlot(sourceSlotIndex, out var sourceSlot, out var sourceItem, out var sourceCount))
             return false;
@@ -117,14 +117,14 @@ public class LinerContainer : Container
         return true;
     }
 
-    private bool ValidateTargetContainer(IContainer targetContainer, IItem sourceItem)
+    private bool ValidateTargetContainer(Container targetContainer, IItem sourceItem)
     {
         return !(targetContainer is Container targetContainerImpl) ||
                targetContainerImpl.ValidateItemCondition(sourceItem);
     }
 
     private bool ExecuteItemMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem,
-                                int sourceCount, IContainer targetContainer)
+                                int sourceCount, Container targetContainer)
     {
         var (result, addedCount) = targetContainer.AddItems(sourceItem, sourceCount);
 

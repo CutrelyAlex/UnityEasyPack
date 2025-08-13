@@ -8,7 +8,7 @@ namespace EasyPack
         IItem Item { get; }
         int ItemCount { get; }
         bool IsOccupied { get; } // 是否被占用
-        public IContainer Container { get; set; } // 所属容器
+        public Container Container { get; set; } // 所属容器
         CustomItemCondition SlotCondition { get; }
         bool CheckSlotCondition(IItem item);
         bool SetItem(IItem item, int count = 1);
@@ -26,7 +26,7 @@ namespace EasyPack
         public bool IsOccupied { get; set; }
 
         public CustomItemCondition SlotCondition { get; set; }
-        public IContainer Container { get; set; }
+        public Container Container { get; set; }
 
         public bool SetItem(IItem item, int count = 1)
         {

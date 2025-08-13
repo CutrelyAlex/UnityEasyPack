@@ -14,7 +14,7 @@ namespace EasyPack
         }
 
         // Container -> DTO
-        public static SerializableContainer Serialize(IContainer container, Func<IItem, string> itemToJson = null)
+        public static SerializableContainer Serialize(Container container, Func<IItem, string> itemToJson = null)
         {
             if (container == null) return null;
 
@@ -69,11 +69,11 @@ namespace EasyPack
         }
 
         // DTO -> Container（当前示例支持 LinerContainer）
-        public static IContainer Deserialize(SerializableContainer data, Func<string, Item> itemFromJson = null)
+        public static Container Deserialize(SerializableContainer data, Func<string, Item> itemFromJson = null)
         {
             if (data == null) return null;
 
-            IContainer container;
+            Container container;
             switch (data.ContainerKind)
             {
                 case "LinerContainer":
@@ -121,13 +121,13 @@ namespace EasyPack
             return container;
         }
 
-        public static string ToJson(IContainer container, bool prettyPrint = false)
+        public static string ToJson(Container container, bool prettyPrint = false)
         {
             var dto = Serialize(container);
             return dto != null ? JsonUtility.ToJson(dto, prettyPrint) : null;
         }
 
-        public static IContainer FromJson(string json, Func<string, Item> itemFromJson = null)
+        public static Container FromJson(string json, Func<string, Item> itemFromJson = null)
         {
             if (string.IsNullOrEmpty(json)) return null;
             var dto = JsonUtility.FromJson<SerializableContainer>(json);

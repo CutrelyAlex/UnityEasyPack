@@ -14,7 +14,7 @@ public class InventoryManager
     /// <summary>
     /// 按ID索引的容器字典
     /// </summary>
-    private readonly Dictionary<string, IContainer> _containers = new();
+    private readonly Dictionary<string, Container> _containers = new();
 
     /// <summary>
     /// 按类型分组的容器索引，功能导向
@@ -55,7 +55,7 @@ public class InventoryManager
     /// <param name="priority">容器优先级，数值越高优先级越高</param>
     /// <param name="category">容器分类</param>
     /// <returns>注册是否成功</returns>
-    public bool RegisterContainer(IContainer container, int priority = 0, string category = "Default")
+    public bool RegisterContainer(Container container, int priority = 0, string category = "Default")
     {
         try
         {
@@ -141,7 +141,7 @@ public class InventoryManager
     /// </summary>
     /// <param name="containerId">容器ID</param>
     /// <returns>找到的容器，未找到返回null</returns>
-    public IContainer GetContainer(string containerId)
+    public Container GetContainer(string containerId)
     {
         try
         {
@@ -157,7 +157,7 @@ public class InventoryManager
     /// 获取所有已注册的容器
     /// </summary>
     /// <returns>所有容器的只读列表</returns>
-    public IReadOnlyList<IContainer> GetAllContainers()
+    public IReadOnlyList<Container> GetAllContainers()
     {
         try
         {
@@ -165,7 +165,7 @@ public class InventoryManager
         }
         catch
         {
-            return new List<IContainer>().AsReadOnly();
+            return new List<Container>().AsReadOnly();
         }
     }
 
@@ -174,14 +174,14 @@ public class InventoryManager
     /// </summary>
     /// <param name="containerType">容器类型</param>
     /// <returns>指定类型的容器列表</returns>
-    public List<IContainer> GetContainersByType(string containerType)
+    public List<Container> GetContainersByType(string containerType)
     {
         try
         {
             if (string.IsNullOrEmpty(containerType) || !_containersByType.TryGetValue(containerType, out var containerIds))
-                return new List<IContainer>();
+                return new List<Container>();
 
-            var result = new List<IContainer>();
+            var result = new List<Container>();
             foreach (string containerId in containerIds)
             {
                 if (_containers.TryGetValue(containerId, out var container))
@@ -193,7 +193,7 @@ public class InventoryManager
         }
         catch
         {
-            return new List<IContainer>();
+            return new List<Container>();
         }
     }
 
@@ -202,14 +202,14 @@ public class InventoryManager
     /// </summary>
     /// <param name="category">分类名称</param>
     /// <returns>指定分类的容器列表</returns>
-    public List<IContainer> GetContainersByCategory(string category)
+    public List<Container> GetContainersByCategory(string category)
     {
         try
         {
             if (string.IsNullOrEmpty(category))
-                return new List<IContainer>();
+                return new List<Container>();
 
-            var result = new List<IContainer>();
+            var result = new List<Container>();
             foreach (var kvp in _containerCategories)
             {
                 if (kvp.Value == category && _containers.TryGetValue(kvp.Key, out var container))
@@ -221,7 +221,7 @@ public class InventoryManager
         }
         catch
         {
-            return new List<IContainer>();
+            return new List<Container>();
         }
     }
 
@@ -230,7 +230,7 @@ public class InventoryManager
     /// </summary>
     /// <param name="descending">是否降序排列（优先级高的在前）</param>
     /// <returns>按优先级排序的容器列表</returns>
-    public List<IContainer> GetContainersByPriority(bool descending = true)
+    public List<Container> GetContainersByPriority(bool descending = true)
     {
         try
         {
@@ -245,7 +245,7 @@ public class InventoryManager
         }
         catch
         {
-            return new List<IContainer>();
+            return new List<Container>();
         }
     }
 
@@ -490,7 +490,7 @@ public class InventoryManager
     /// 将全局条件应用到指定容器
     /// </summary>
     /// <param name="container">目标容器</param>
-    private void ApplyGlobalConditionsToContainer(IContainer container)
+    private void ApplyGlobalConditionsToContainer(Container container)
     {
         try
         {
@@ -511,7 +511,7 @@ public class InventoryManager
     /// 从指定容器移除全局条件
     /// </summary>
     /// <param name="container">目标容器</param>
-    private void RemoveGlobalConditionsFromContainer(IContainer container)
+    private void RemoveGlobalConditionsFromContainer(Container container)
     {
         try
         {
@@ -532,12 +532,12 @@ public class InventoryManager
     /// <summary>
     /// 容器注册事件
     /// </summary>
-    public event System.Action<IContainer> OnContainerRegistered;
+    public event System.Action<Container> OnContainerRegistered;
 
     /// <summary>
     /// 容器注销事件
     /// </summary>
-    public event System.Action<IContainer> OnContainerUnregistered;
+    public event System.Action<Container> OnContainerUnregistered;
 
     /// <summary>
     /// 容器优先级变更事件
@@ -894,7 +894,7 @@ public class InventoryManager
                 return results;
 
             int remainingCount = totalCount;
-            var sortedContainers = new List<(string id, IContainer container, int priority)>();
+            var sortedContainers = new List<(string id, Container container, int priority)>();
 
             // 准备容器列表并按优先级排序
             foreach (string containerId in targetContainerIds)

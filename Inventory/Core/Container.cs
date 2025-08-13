@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public abstract class Container : IContainer
+public abstract class Container
 {
     #region 基本属性
     public string ID { get; }
