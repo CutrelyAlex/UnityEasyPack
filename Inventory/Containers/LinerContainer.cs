@@ -20,6 +20,7 @@ public class LinerContainer : Container
         : base(id, name, type, capacity)
     {
         InitializeSlots(capacity);
+        RebuildCaches();
     }
 
     /// <summary>

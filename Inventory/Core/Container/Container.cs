@@ -76,6 +76,19 @@ public abstract class Container : IContainer
     /// </summary>
     protected virtual void OnSlotQuantityChanged(int slotIndex, IItem item, int oldCount, int newCount)
     {
+        // 维护可继续堆叠占用槽位计数
+        if (item != null && item.IsStackable)
+        {
+            bool oldTracked = oldCount > 0 && (item.MaxStackCount <= 0 || oldCount < item.MaxStackCount);
+            bool newTracked = newCount > 0 && (item.MaxStackCount <= 0 || newCount < item.MaxStackCount);
+
+            if (oldTracked != newTracked)
+            {
+                _notFullStackSlotsCount += newTracked ? 1 : -1;
+                if (_notFullStackSlotsCount < 0) _notFullStackSlotsCount = 0;
+            }
+        }
+
         OnSlotCountChanged?.Invoke(slotIndex, item, oldCount, newCount);
     }
 
@@ -162,6 +175,7 @@ public abstract class Container : IContainer
     #endregion
 
     #region 状态检查
+    private int _notFullStackSlotsCount = 0;
     // <summary>
     /// 检查容器是否已满
     /// 仅当所有槽位都被占用，且每个占用的槽位物品都不可堆叠或已达到堆叠上限时，容器才被认为是满的
@@ -179,15 +193,8 @@ public abstract class Container : IContainer
             if (_cacheManager.GetEmptySlotIndices().Count > 0)
                 return false;
 
-            foreach (var slot in _slots)
-            {
-                if (!slot.IsOccupied)
-                    return false;
-
-                // 如果物品可堆叠且未达到堆叠上限，容器不满
-                if (slot.Item.IsStackable && (slot.Item.MaxStackCount <= 0 || slot.ItemCount < slot.Item.MaxStackCount))
-                    return false;
-            }
+            if (_notFullStackSlotsCount > 0)
+                return false;
 
             return true;
         }
@@ -269,6 +276,18 @@ public abstract class Container : IContainer
     public void RebuildCaches()
     {
         _cacheManager.RebuildCaches(_slots.AsReadOnly());
+
+        // 重建可继续堆叠占用槽位计数
+        _notFullStackSlotsCount = 0;
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            var s = _slots[i];
+            if (s.IsOccupied && s.Item != null && s.Item.IsStackable)
+            {
+                if (s.Item.MaxStackCount <= 0 || s.ItemCount < s.Item.MaxStackCount)
+                    _notFullStackSlotsCount++;
+            }
+        }
     }
 
     /// <summary>
