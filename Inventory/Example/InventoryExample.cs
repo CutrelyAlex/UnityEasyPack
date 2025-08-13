@@ -8,6 +8,9 @@ using UnityEngine;
 /// </summary>
 public class InventoryExample : MonoBehaviour
 {
+    // 新增：全局容器管理器
+    private InventoryManager _invMgr = new InventoryManager();
+
     private void Start()
     {
         // 测试
@@ -31,16 +34,17 @@ public class InventoryExample : MonoBehaviour
     }
 
     /// <summary>
-    /// 测试嵌套容器功能
+    /// 测试嵌套容器功能（使用 InventoryManager + 容器ID引用）
     /// </summary>
     private void TestNestedContainers()
     {
         Debug.Log("【测试1】嵌套容器功能");
 
-        // 创建主背包
+        // 创建主背包并注册到管理器
         var playerBackpack = new LinerContainer("main_backpack", "冒险者背包", "MainBag", 10);
+        _invMgr.RegisterContainer(playerBackpack);
 
-        // 创建可作为容器的物品
+        // 创建可作为容器的物品（仅保存容器ID引用）
         var backpackItem = new Item
         {
             ID = "small_backpack",
@@ -48,12 +52,13 @@ public class InventoryExample : MonoBehaviour
             Type = "Container",
             IsStackable = false,
             Description = "一个小型背包，可以存放物品",
-            isContanierItem = true // 标记为容器物品
+            isContanierItem = true
         };
 
-        // 为容器物品创建内部存储容器
+        // 为容器物品创建内部存储容器并注册到管理器；物品仅记录容器ID
         var innerContainer = new LinerContainer("inner_container", "小背包内部", "Bag", 5);
-        backpackItem.ContainerIds = new List<Container> { innerContainer };
+        _invMgr.RegisterContainer(innerContainer);
+        backpackItem.ContainerIds = new List<string> { innerContainer.ID };
 
         // 向主背包添加这个背包物品
         Debug.Log("1.1 将小背包添加到主背包中");
@@ -65,11 +70,9 @@ public class InventoryExample : MonoBehaviour
         var apple = CreateGameItem("apple", "苹果", true, 10, "Food");
         var potion = CreateGameItem("potion", "药水", true, 5, "Consumable");
 
-        // 向内部容器添加物品
         innerContainer.AddItems(apple, 3);
         innerContainer.AddItems(potion, 2);
 
-        // 显示内部容器的内容
         Debug.Log("小背包内部内容:");
         DisplayInventoryContents(innerContainer);
 
@@ -79,14 +82,13 @@ public class InventoryExample : MonoBehaviour
         Debug.Log($"从小背包移除1个苹果: {(removeResult == RemoveItemResult.Success ? "成功" : "失败")}");
         DisplayInventoryContents(innerContainer);
 
-        // 测试在背包间移动物品
+        // 测试在背包间移动物品（通过 InventoryManager 以容器ID引用）
         Debug.Log("1.4 从主背包取出物品放入小背包");
         var bread = CreateGameItem("bread", "面包", true, 5, "Food");
         playerBackpack.AddItems(bread, 2);
         Debug.Log("主背包添加了2个面包:");
         DisplayInventoryContents(playerBackpack);
 
-        // 从主背包移动到内部背包
         Debug.Log("将面包从主背包移动到小背包中:");
         var bread_slot = -1;
         for (int i = 0; i < playerBackpack.Slots.Count; i++)
@@ -100,8 +102,9 @@ public class InventoryExample : MonoBehaviour
 
         if (bread_slot != -1)
         {
-            var moveResult = playerBackpack.MoveItemToContainer(bread_slot, innerContainer);
-            Debug.Log($"移动结果: {(moveResult ? moveResult : "失败: " + moveResult)}");
+            // 使用管理器按容器ID移动，避免直接依赖容器实例
+            var moved = _invMgr.MoveItem("main_backpack", bread_slot, "inner_container", -1);
+            Debug.Log($"移动结果: {(moved == InventoryManager.MoveResult.Success ? "成功" : "失败")}");
 
             Debug.Log("移动后主背包内容:");
             DisplayInventoryContents(playerBackpack);
