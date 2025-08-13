@@ -121,15 +121,19 @@ public abstract class Container : IContainer
     private readonly HashSet<string> _pendingTotalCountUpdates = new();
     private readonly Dictionary<string, IItem> _itemRefCache = new();
     private bool _batchUpdateMode = false;
+    private int _batchDepth = 0;
 
     /// <summary>
     /// 开始批量操作模式
     /// </summary>
     protected void BeginBatchUpdate()
     {
-        _batchUpdateMode = true;
-        _pendingTotalCountUpdates.Clear();
-        _itemRefCache.Clear();
+        if (_batchDepth == 0)
+        {
+            _pendingTotalCountUpdates.Clear();
+            _itemRefCache.Clear();
+        }
+        _batchDepth++;
     }
 
     /// <summary>
@@ -137,19 +141,24 @@ public abstract class Container : IContainer
     /// </summary>
     protected void EndBatchUpdate()
     {
-        if (_batchUpdateMode && _pendingTotalCountUpdates.Count > 0)
-        {
-            // 批量处理所有待更新的物品
-            foreach (string itemId in _pendingTotalCountUpdates)
-            {
-                TriggerItemTotalCountChanged(itemId,
-                    _itemRefCache.TryGetValue(itemId, out var itemRef) ? itemRef : null);
-            }
+        if (_batchDepth <= 0)
+            return;
 
-            _pendingTotalCountUpdates.Clear();
-            _itemRefCache.Clear();
+        _batchDepth--;
+        if (_batchDepth == 0)
+        {
+            if (_pendingTotalCountUpdates.Count > 0)
+            {
+                foreach (string itemId in _pendingTotalCountUpdates)
+                {
+                    TriggerItemTotalCountChanged(itemId,
+                        _itemRefCache.TryGetValue(itemId, out var itemRef) ? itemRef : null);
+                }
+
+                _pendingTotalCountUpdates.Clear();
+                _itemRefCache.Clear();
+            }
         }
-        _batchUpdateMode = false;
     }
     #endregion
 
