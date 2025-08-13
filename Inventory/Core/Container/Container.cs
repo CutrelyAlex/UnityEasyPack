@@ -120,7 +120,6 @@ public abstract class Container : IContainer
     #region 批操作
     private readonly HashSet<string> _pendingTotalCountUpdates = new();
     private readonly Dictionary<string, IItem> _itemRefCache = new();
-    private bool _batchUpdateMode = false;
     private int _batchDepth = 0;
 
     /// <summary>
@@ -351,32 +350,35 @@ public abstract class Container : IContainer
             return RemoveItemResult.InvalidItemId;
         }
 
-        // 先检查物品总数是否足够
         int totalCount = GetItemTotalCount(itemId);
         if (totalCount < count && totalCount != 0)
         {
             OnItemRemoveResult?.Invoke(itemId, count, 0, RemoveItemResult.InsufficientQuantity, emptySlots);
             return RemoveItemResult.InsufficientQuantity;
         }
-
-        // 如果物品不存在
         if (totalCount == 0)
         {
             OnItemRemoveResult?.Invoke(itemId, count, 0, RemoveItemResult.ItemNotFound, emptySlots);
             return RemoveItemResult.ItemNotFound;
         }
 
-        // 只有确认能够完全移除指定数量的物品时，才执行移除操作
         int remainingCount = count;
         List<(ISlot slot, int removeAmount, int slotIndex)> removals = new();
 
-        // 第一步：计算要从每个槽位移除的数量
-        for (int i = 0; i < _slots.Count && remainingCount > 0; i++)
+        // 使用缓存的槽位索引集合
+        if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices) && indices != null && indices.Count > 0)
         {
-            var slot = _slots[i];
-            if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
+            foreach (int i in indices)
             {
+                if (remainingCount <= 0) break;
+                if (i < 0 || i >= _slots.Count) continue;
+
+                var slot = _slots[i];
+                if (!slot.IsOccupied || slot.Item == null || slot.Item.ID != itemId) continue;
+
                 int removeAmount = Mathf.Min(slot.ItemCount, remainingCount);
+                if (removeAmount <= 0) continue;
+
                 removals.Add((slot, removeAmount, i));
                 remainingCount -= removeAmount;
             }
