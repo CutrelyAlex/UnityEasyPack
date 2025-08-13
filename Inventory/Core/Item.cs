@@ -76,23 +76,9 @@ namespace EasyPack
         #endregion
 
         #region 序列化
-        [System.Serializable]
-        private class ItemJsonDTO
-        {
-            public string ID;
-            public string Name;
-            public string Type;
-            public string Description;
-            public float Weight;
-            public bool IsStackable;
-            public int MaxStackCount;
-            public bool isContanierItem;
-            public List<CustomDataEntry> Attributes;
-        }
-
         public string ToJson(bool prettyPrint = false)
         {
-            var dto = new ItemJsonDTO
+            var dto = new SerializeableItem
             {
                 ID = this.ID,
                 Name = this.Name,
@@ -110,10 +96,10 @@ namespace EasyPack
         {
             if (string.IsNullOrEmpty(json)) return null;
 
-            ItemJsonDTO dto = null;
+            SerializeableItem dto = null;
             try
             {
-                dto = JsonUtility.FromJson<ItemJsonDTO>(json);
+                dto = JsonUtility.FromJson<SerializeableItem>(json);
             }
             catch
             {

@@ -23,6 +23,7 @@ public class LinerContainer : Container
         RebuildCaches();
     }
 
+    #region 容器操作
     /// <summary>
     /// 物品移动处理
     /// </summary>
@@ -85,7 +86,7 @@ public class LinerContainer : Container
         ConsolidateItems();
         SortInventory();
     }
-
+    #endregion
     #region 辅助方法
 
     private void InitializeSlots(int capacity)

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnityEngine;
 
 
 namespace EasyPack
@@ -33,6 +34,7 @@ namespace EasyPack
         string Type { get; set; }
         int Capacity { get; set; }
         bool IsGrid { get; }
+        Vector2 Grid { get; }
         bool Full { get; }
         IReadOnlyList<ISlot> Slots { get; }
         List<IItemCondition> ContainerCondition { get; set; }
