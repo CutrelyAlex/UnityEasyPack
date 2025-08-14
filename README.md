@@ -14,5 +14,6 @@
 
 ## 下一步
 - [x] 重构Buff系统
-- [x] 背包系统(InventoryKit) **进行中**
+- [x] 背包系统(InventoryKit)
+- [ ] 序列化表达式
 - [ ] 方便的添加SO、Database、编辑甚至是编辑器
