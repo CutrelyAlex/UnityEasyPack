@@ -71,6 +71,14 @@ namespace EasyPack
         [Tooltip("路径平滑强度，值越大平滑效果越明显")]
         public float smoothingStrength = 0.5f;
 
+        [Header("贝塞尔平滑设置")]
+        [Tooltip("贝塞尔平滑：基础采样密度（每世界单位估算的采样倍率）")]
+        public float bezierBaseDensity = 1.2f;
+        private int bezierMinSamples = 1;
+        [Tooltip("贝塞尔平滑：每段最多采样点数限制(防止过多采样)")]
+        [Range(4, 200)]
+        public int bezierMaxSamples = 40;
+
         [Header("代价设置")]
         [Tooltip("直线移动的基础代价值")]
         public float straightMoveCost = 1f;
@@ -766,7 +774,7 @@ namespace EasyPack
         /// </summary>
         private List<Vector3Int> ExecuteAStar(Vector3Int start, Vector3Int target, PathfindingOptions options)
         {
-            var openSet = new List<PathNode>();
+            var openSet = new PathNodeMinHeap();
             var closedSet = new HashSet<Vector3Int>();
             var allNodes = new Dictionary<Vector3Int, PathNode>();
 
@@ -780,11 +788,8 @@ namespace EasyPack
             while (openSet.Count > 0 && iterations < options.maxIterations)
             {
                 iterations++;
+                var currentNode = openSet.Pop();
                 lastStats.nodesExplored++;
-
-                // 找到F值最小的节点
-                var currentNode = GetLowestFCostNode(openSet);
-                openSet.Remove(currentNode);
                 closedSet.Add(currentNode.position);
 
                 // 到达目标
@@ -804,7 +809,18 @@ namespace EasyPack
                         HasDynamicObstacle(neighborPos))
                         continue;
 
-                    // 计算移动代价
+                    // 防止对角线穿过拐角（Corner Cutting）
+                    if (direction.x != 0 && direction.y != 0)
+                    {
+                        Vector3Int orth1 = new Vector3Int(currentNode.position.x + direction.x, currentNode.position.y, 0);
+                        Vector3Int orth2 = new Vector3Int(currentNode.position.x, currentNode.position.y + direction.y, 0);
+                        if (!IsPositionValid(orth1) || !IsPositionValid(orth2) ||
+                            HasDynamicObstacle(orth1) || HasDynamicObstacle(orth2))
+                        {
+                            continue;
+                        }
+                    }
+
                     float moveCost = GetMoveCost(direction, currentNode.position, neighborPos);
                     float newGCost = currentNode.gCost + moveCost;
 
@@ -818,9 +834,7 @@ namespace EasyPack
                     {
                         neighborNode.gCost = newGCost;
                         neighborNode.parent = currentNode;
-
-                        if (!openSet.Contains(neighborNode))
-                            openSet.Add(neighborNode);
+                        openSet.Update(neighborNode); // Decrease-Key
                     }
                 }
             }
@@ -968,7 +982,7 @@ namespace EasyPack
                         break;
                     }
                 }
-
+                
                 smoothed.Add(path[farthestIndex]);
                 currentIndex = farthestIndex;
             }
@@ -981,8 +995,49 @@ namespace EasyPack
         /// </summary>
         private List<Vector3Int> SmoothPathBezier(List<Vector3Int> path)
         {
-            //TODO:
-            return path;
+            if (path == null || path.Count < 3 || allTilemaps.Count == 0) return path;
+
+            var result = new List<Vector3Int>();
+            result.Add(path[0]);
+
+            // 可调采样密度：基础密度 * 强度插值
+            float densityFactor = bezierBaseDensity * Mathf.Lerp(0.6f, 2.0f, Mathf.Clamp01(smoothingStrength));
+
+            for (int i = 0; i < path.Count - 2; i++)
+            {
+                Vector3Int a = path[i];
+                Vector3Int b = path[i + 1];
+                Vector3Int c = path[i + 2];
+
+                Vector3 wa = GetWorldPosition(a);
+                Vector3 wb = GetWorldPosition(b);
+                Vector3 wc = GetWorldPosition(c);
+
+                float segmentWorldLen = (wc - wa).magnitude;
+                int sampleCount = Mathf.CeilToInt(segmentWorldLen * densityFactor);
+                sampleCount = Mathf.Clamp(sampleCount, bezierMinSamples, bezierMaxSamples);
+
+                for (int s = 1; s <= sampleCount; s++)
+                {
+                    float t = s / (float)sampleCount;
+
+                    Vector3 wp =
+                        (1 - t) * (1 - t) * wa +
+                        2 * (1 - t) * t * wb +
+                        t * t * wc;
+
+                    Vector3Int cell = allTilemaps[0].WorldToCell(wp);
+                    if (!IsPositionValid(cell)) continue;
+                    if (result.Count == 0 || result[result.Count - 1] != cell)
+                        result.Add(cell);
+                }
+            }
+
+            Vector3Int last = path[path.Count - 1];
+            if (result[result.Count - 1] != last) result.Add(last);
+
+            // result = SmoothPathLineOfSight(result);
+            return result;
         }
 
         /// <summary>
@@ -1458,7 +1513,101 @@ namespace EasyPack
         }
 
         #endregion
+
+        #region 辅助结构
+
+
+        /// <summary>
+        /// 最小堆（按 fCost / hCost）用于优化 OpenSet
+        /// </summary>
+        internal class PathNodeMinHeap
+        {
+            private readonly List<PathNode> _list = new List<PathNode>();
+
+            public int Count => _list.Count;
+
+            public void Add(PathNode node)
+            {
+                node.heapIndex = _list.Count;
+                _list.Add(node);
+                HeapifyUp(node.heapIndex);
+            }
+
+            public PathNode Pop()
+            {
+                PathNode root = _list[0];
+                PathNode last = _list[_list.Count - 1];
+                _list.RemoveAt(_list.Count - 1);
+                if (_list.Count > 0)
+                {
+                    _list[0] = last;
+                    last.heapIndex = 0;
+                    HeapifyDown(0);
+                }
+                root.heapIndex = -1;
+                return root;
+            }
+
+            public void Update(PathNode node)
+            {
+                // gCost 减小 -> fCost 下降，向上堆化
+                HeapifyUp(node.heapIndex);
+            }
+
+            private void HeapifyUp(int index)
+            {
+                while (index > 0)
+                {
+                    int parent = (index - 1) >> 1;
+                    if (Compare(_list[index], _list[parent]) < 0)
+                    {
+                        Swap(index, parent);
+                        index = parent;
+                    }
+                    else break;
+                }
+            }
+
+            private void HeapifyDown(int index)
+            {
+                int count = _list.Count;
+                while (true)
+                {
+                    int left = (index << 1) + 1;
+                    if (left >= count) break;
+                    int right = left + 1;
+                    int smallest = left;
+                    if (right < count && Compare(_list[right], _list[left]) < 0)
+                        smallest = right;
+                    if (Compare(_list[smallest], _list[index]) < 0)
+                    {
+                        Swap(smallest, index);
+                        index = smallest;
+                    }
+                    else break;
+                }
+            }
+
+            private int Compare(PathNode a, PathNode b)
+            {
+                int fc = a.fCost.CompareTo(b.fCost);
+                if (fc != 0) return fc;
+                return a.hCost.CompareTo(b.hCost);
+            }
+
+            private void Swap(int i, int j)
+            {
+                var tmp = _list[i];
+                _list[i] = _list[j];
+                _list[j] = tmp;
+                _list[i].heapIndex = i;
+                _list[j].heapIndex = j;
+            }
+        }
+        #endregion
     }
+
+
 
     /// <summary>
     /// 路径平滑类型
@@ -1576,6 +1725,8 @@ namespace EasyPack
         public float hCost;
         public float fCost => gCost + hCost;
         public PathNode parent;
+
+        public int heapIndex = -1;
 
         public PathNode(Vector3Int pos, float g, float h, PathNode parentNode)
         {
