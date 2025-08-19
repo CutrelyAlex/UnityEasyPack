@@ -6,7 +6,6 @@ namespace EasyPack
 {
     [System.Serializable]
     public class PathfindingEvent : UnityEvent<List<Vector3Int>> { }
-
     [System.Serializable]
     public class MovementEvent : UnityEvent<Vector3> { }
 
@@ -14,7 +13,14 @@ namespace EasyPack
     {
         #region 序列化字段和属性
 
-        [Header("Tilemap 设置")]
+        [Header("共享服务")]
+        [Tooltip("是否使用 PathfindingService 共享统一地图")]
+        public bool useSharedService = true;
+
+        [Tooltip("显式引用服务；为空则自动查找")]
+        public PathfindingService sharedService;
+
+        [Header("Tilemap 设置（若使用共享服务则无需设置）")]
         [Tooltip("包含所有可用于寻路的Tilemap组件，系统将扫描这些Tilemap中的瓦片作为可行走区域")]
         public List<Tilemap> allTilemaps = new List<Tilemap>();
 
@@ -24,6 +30,7 @@ namespace EasyPack
         [Header("寻路设置")]
         [Tooltip("执行寻路的物品对象如果为null，那么是否默认设置为自身")]
         public bool ispathFindingObjectSelf;
+
         [Tooltip("执行寻路的游戏对象，作为寻路的起点")]
         public GameObject pathfindingObject;
 
@@ -74,10 +81,11 @@ namespace EasyPack
         [Header("贝塞尔平滑设置")]
         [Tooltip("贝塞尔平滑：基础采样密度（每世界单位估算的采样倍率）")]
         public float bezierBaseDensity = 1.2f;
+
         private int bezierMinSamples = 1;
-        [Tooltip("贝塞尔平滑：每段最多采样点数限制(防止过多采样)")]
-        [Range(4, 200)]
-        public int bezierMaxSamples = 40;
+
+        [Tooltip("贝塞尔平滑：每段最多采样点数限制")]
+        [Range(4, 200)] public int bezierMaxSamples = 40;
 
         [Header("代价设置")]
         [Tooltip("直线移动的基础代价值")]
@@ -120,8 +128,7 @@ namespace EasyPack
         public bool enableAutoRefresh = false;
 
         [Tooltip("自动刷新的频率，每秒刷新的次数")]
-        [Range(0.1f, 10f)]
-        public float refreshFrequency = 1f;
+        [Range(0.1f, 10f)] public float refreshFrequency = 1f;
 
         [Tooltip("是否在目标对象移动时触发刷新")]
         public bool refreshOnTargetMove = true;
@@ -195,133 +202,125 @@ namespace EasyPack
         #endregion
 
         #region 私有字段
+        private UnifiedMap unifiedMap;           // 可能来自共享服务
+        private bool usingSharedMap = false;     // 标记是否使用共享地图
+        public bool localBuilt = false;         // 若未能获取服务则本地构建
 
-        // 统一地图数据结构
-        private UnifiedMap unifiedMap;
         private List<Vector3Int> currentPath = new List<Vector3Int>();
         private Coroutine moveCoroutine;
-
-        // 移动状态追踪
         private int currentPathIndex = 0;
         private Vector3 currentTarget = Vector3.zero;
         public bool isMovingToTarget = false;
-
-        // 抖动相关
         private Vector3 currentJitterOffset = Vector3.zero;
         private float jitterTimer = 0f;
-        private List<Vector3> jitterHistory = new List<Vector3>(); // 用于调试显示
-
-        // 性能统计
+        private List<Vector3> jitterHistory = new List<Vector3>();
         private PathfindingStats lastStats = new PathfindingStats();
 
-        // 方向数组
         private readonly Vector3Int[] directions8 = {
             Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right,
-            new Vector3Int(1, 1, 0), new Vector3Int(-1, 1, 0),
-            new Vector3Int(1, -1, 0), new Vector3Int(-1, -1, 0)
+            new Vector3Int(1,1,0), new Vector3Int(-1,1,0),
+            new Vector3Int(1,-1,0), new Vector3Int(-1,-1,0)
         };
-
         private readonly Vector3Int[] directions4 = {
             Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right
         };
 
-        // 自动刷新相关
+        private Tilemap conversionTilemap;
+
         private float refreshTimer = 0f;
         private Vector3 lastTargetPosition;
         private bool hasInitializedTargetPosition = false;
-
         #endregion
 
         #region Unity生命周期
-
         private void Start()
         {
-            // 如果未设置寻路对象，则默认使用自身
             if (ispathFindingObjectSelf && pathfindingObject == null)
-            {
                 pathfindingObject = gameObject;
-            }
-            if (gridObjects.Count > 0)
+
+            // 1. 尝试使用共享服务
+            if (useSharedService)
             {
-                GetTilemapsFromGrids();
+                if (sharedService == null)
+                    sharedService = PathfindingService.Instance ?? FindObjectOfType<PathfindingService>();
+                if (sharedService != null)
+                {
+                    // 若自己有配置 Grid，先收集再注册
+                    if (gridObjects.Count > 0)
+                        GetTilemapsFromGrids();
+
+                    if (allTilemaps.Count > 0 || gridObjects.Count > 0)
+                        sharedService.RegisterTilemaps(allTilemaps, gridObjects);
+
+                    unifiedMap = sharedService.GetUnifiedMap();
+                    conversionTilemap ??= (allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap);
+                    if (usingSharedMap && allTilemaps.Count == 0 && conversionTilemap != null)
+                    {
+                        // 确保本地也持有一个引用，避免 allTilemaps.Count==0 造成坐标恒为 (0,0,0)
+                        allTilemaps.Add(conversionTilemap);
+                    }
+                    if (unifiedMap != null)
+                    {
+                        usingSharedMap = true;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[{name}] 共享服务存在但尚未提供 UnifiedMap，回退到本地构建。");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[{name}] 未找到 PathfindingService，回退本地构建。");
+                }
             }
-            BuildUnifiedMap();
+
+            // 2. 本地构建（共享失败或未启用）
+            if (!usingSharedMap)
+            {
+                if (gridObjects.Count > 0)
+                    GetTilemapsFromGrids();
+                BuildUnifiedMap();
+                localBuilt = true;
+                if (conversionTilemap == null && allTilemaps.Count > 0)
+                    conversionTilemap = allTilemaps[0];
+            }
+
             InitializeAutoRefresh();
         }
 
         private void Update()
         {
             if (!enableAutoRefresh) return;
-
             HandleAutoRefresh();
         }
-
         #endregion
 
-        #region 公共API接口
-
-        /// <summary>
-        /// 从所有Grid GameObject自动获取所有Tilemap
-        /// </summary>
+        #region 公共API
         [ContextMenu("从所有Grid获取Tilemap")]
         public void GetTilemapsFromGrids()
         {
-            if (gridObjects.Count == 0)
-            {
-                Debug.LogWarning("Grid对象列表为空！");
-                return;
-            }
-
-            int totalTilemaps = 0;
-
-            // 遍历所有Grid对象
+            if (gridObjects.Count == 0) return;
             foreach (var grid in gridObjects)
             {
                 if (grid == null) continue;
-
-                // 获取当前Grid下的所有Tilemap组件（包括子对象）
-                Tilemap[] tilemaps = grid.GetComponentsInChildren<Tilemap>();
-
-                if (tilemaps.Length > 0)
+                var tilemaps = grid.GetComponentsInChildren<Tilemap>();
+                foreach (var tm in tilemaps)
                 {
-                    allTilemaps.AddRange(tilemaps);
-                    totalTilemaps += tilemaps.Length;
+                    if (tm != null && !allTilemaps.Contains(tm))
+                        allTilemaps.Add(tm);
                 }
-                else
-                {
-                    Debug.LogWarning($"在Grid '{grid.name}' 下未找到任何Tilemap组件！");
-                }
-            }
-
-            if (totalTilemaps == 0)
-            {
-                Debug.LogWarning("未从任何Grid对象中找到Tilemap组件！");
             }
         }
 
-        /// <summary>
-        /// 构建统一地图
-        /// </summary>
-        [ContextMenu("构建统一地图")]
+        [ContextMenu("构建统一地图(本地)")]
         public void BuildUnifiedMap()
         {
             if (allTilemaps == null || allTilemaps.Count == 0)
             {
-                Debug.LogError("没有设置Tilemap！");
+                Debug.LogError($"[{name}] 没有设置 Tilemap，无法本地构建。");
                 return;
             }
-
-            GetTilemapsFromGrids();
-
-            if (allTilemaps == null || allTilemaps.Count == 0)
-            {
-                Debug.LogError("没有设置Tilemap！请设置Grid对象或手动添加Tilemap。");
-                return;
-            }
-
             unifiedMap = new UnifiedMap();
-
-            // 扫描所有Tilemap，收集所有可行走的瓦片位置
             foreach (var tilemap in allTilemaps)
             {
                 if (tilemap == null) continue;
@@ -329,19 +328,15 @@ namespace EasyPack
             }
         }
 
-        /// <summary>
-        /// 主要寻路方法 - 支持多种寻路选项
-        /// </summary>
         public List<Vector3Int> FindPath(Vector3Int startPos, Vector3Int targetPos, PathfindingOptions options = null)
         {
             if (unifiedMap == null || unifiedMap.walkableTiles.Count == 0)
             {
-                Debug.LogError("统一地图未构建或为空！");
+                Debug.LogError($"[{name}] UnifiedMap 未构建或为空。");
                 OnPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
 
-            // 使用默认选项
             if (options == null)
             {
                 options = new PathfindingOptions
@@ -356,126 +351,84 @@ namespace EasyPack
             var startTime = System.DateTime.Now;
             lastStats.Reset();
 
-            // 检查起点和终点
             if (!IsPositionValid(startPos) || HasDynamicObstacle(startPos))
             {
-                Debug.LogError($"起点 {startPos} 不可行走！");
                 OnPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
-
             if (!IsPositionValid(targetPos) || HasDynamicObstacle(targetPos))
             {
-                Debug.LogError($"终点 {targetPos} 不可行走！");
                 OnPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
 
-            // 距离检查
-            float distance = Vector3Int.Distance(startPos, targetPos);
-            if (distance > options.maxDistance)
+            float dist = Vector3Int.Distance(startPos, targetPos);
+            if (dist > options.maxDistance)
             {
-                Debug.LogWarning($"目标距离 {distance} 超过最大搜索距离 {options.maxDistance}");
                 OnPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
 
             if (startPos == targetPos)
             {
-                var singlePath = new List<Vector3Int> { startPos };
-                OnPathFound?.Invoke(singlePath);
-                return singlePath;
+                var single = new List<Vector3Int> { startPos };
+                OnPathFound?.Invoke(single);
+                return single;
             }
 
-            // 执行寻路算法
-            List<Vector3Int> path;
-            if (options.useJPS && allowDiagonalMovement)
-            {
-                path = ExecuteJumpPointSearch(startPos, targetPos, options);
-            }
-            else
-            {
-                path = ExecuteAStar(startPos, targetPos, options);
-            }
+            List<Vector3Int> path = (options.useJPS && allowDiagonalMovement)
+                ? ExecuteJumpPointSearch(startPos, targetPos, options)
+                : ExecuteAStar(startPos, targetPos, options);
 
-            // 路径后处理
             if (path.Count > 0)
             {
                 path = PostProcessPath(path);
-
-                // 记录统计信息
                 var endTime = System.DateTime.Now;
                 lastStats.searchTime = (float)(endTime - startTime).TotalMilliseconds;
                 lastStats.pathLength = path.Count;
                 lastStats.success = true;
-
                 OnPathFound?.Invoke(path);
             }
             else
             {
                 OnPathNotFound?.Invoke();
             }
-
             return path;
         }
 
-        /// <summary>
-        /// 开始寻路并移动
-        /// </summary>
         [ContextMenu("开始寻路并移动")]
         public void StartPathfindingAndMove()
         {
-            if (pathfindingObject == null)
+            if (pathfindingObject == null || targetObject == null)
             {
-                Debug.LogError("寻路GameObject未设置！");
+                Debug.LogError($"[{name}] 起点或终点对象未设置。");
                 return;
             }
-
-            if (targetObject == null)
-            {
-                Debug.LogError("目标GameObject未设置！");
-                return;
-            }
-
-            Vector3Int startPos = GetTilePositionFromGameObject(pathfindingObject);
-            Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
-
+            var startPos = GetTilePositionFromGameObject(pathfindingObject);
+            var targetPos = GetTilePositionFromGameObject(targetObject);
             var path = FindPath(startPos, targetPos);
-
             if (path.Count > 0)
-            {
                 MoveAlongPath(path);
-            }
         }
 
-        /// <summary>
-        /// 沿路径移动GameObject
-        /// </summary>
         public void MoveAlongPath(List<Vector3Int> path)
         {
             if (pathfindingObject == null || path.Count == 0) return;
-
-            // 停止之前的移动
             if (moveCoroutine != null)
             {
                 StopCoroutine(moveCoroutine);
                 OnMovementStopped?.Invoke();
             }
-
             currentPath = new List<Vector3Int>(path);
             currentPathIndex = 0;
             currentJitterOffset = Vector3.zero;
             jitterTimer = 0f;
             jitterHistory.Clear();
             isMovingToTarget = false;
-
             moveCoroutine = StartCoroutine(MoveCoroutine());
             OnMovementStart?.Invoke(pathfindingObject.transform.position);
         }
 
-        /// <summary>
-        /// 停止移动
-        /// </summary>
         [ContextMenu("停止移动")]
         public void StopMovement()
         {
@@ -492,56 +445,50 @@ namespace EasyPack
             isMovingToTarget = false;
         }
 
-        /// <summary>
-        /// 添加动态障碍物
-        /// </summary>
         public void AddDynamicObstacle(Transform obstacle)
         {
             if (!dynamicObstacles.Contains(obstacle))
-            {
                 dynamicObstacles.Add(obstacle);
+        }
+        public void RemoveDynamicObstacle(Transform obstacle) => dynamicObstacles.Remove(obstacle);
+        public void SetTileCost(TileBase tile, float cost) => tileCostMap[tile] = cost;
+        public PathfindingStats GetLastPathfindingStats() => lastStats;
+
+        /// <summary>
+        /// 刷新引用
+        /// 如果在运行中后加入服务可以使用
+        /// </summary>
+        public void TryAttachSharedService(PathfindingService service = null)
+        {
+            if (useSharedService == false) return;
+            if (service != null) sharedService = service;
+            if (sharedService == null)
+                sharedService = PathfindingService.Instance ?? FindObjectOfType<PathfindingService>();
+            if (sharedService == null) return;
+            sharedService.RegisterTilemaps(allTilemaps, gridObjects);
+            var map = sharedService.GetUnifiedMap();
+            if (usingSharedMap)
+            {
+                if (conversionTilemap == null)
+                    conversionTilemap = (allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap);
+                if (allTilemaps.Count == 0 && conversionTilemap != null)
+                    allTilemaps.Add(conversionTilemap);
+            }
+
+            if (map != null)
+            {
+                unifiedMap = map;
+                usingSharedMap = true;
             }
         }
-
-        /// <summary>
-        /// 移除动态障碍物
-        /// </summary>
-        public void RemoveDynamicObstacle(Transform obstacle)
-        {
-            dynamicObstacles.Remove(obstacle);
-        }
-
-        /// <summary>
-        /// 设置瓦片代价
-        /// </summary>
-        public void SetTileCost(TileBase tile, float cost)
-        {
-            tileCostMap[tile] = cost;
-        }
-
-        /// <summary>
-        /// 获取最后一次寻路的统计信息
-        /// </summary>
-        public PathfindingStats GetLastPathfindingStats()
-        {
-            return lastStats;
-        }
-
         #endregion
 
-        #region 自动刷新相关
-
-        /// <summary>
-        /// 处理自动刷新逻辑
-        /// </summary>
+        #region 自动刷新
         private void HandleAutoRefresh()
         {
-            // 频率刷新
             refreshTimer += Time.deltaTime;
-            bool shouldRefreshByFrequency = refreshTimer >= 1f / refreshFrequency;
-
-            // 目标移动刷新
-            bool shouldRefreshByTargetMove = false;
+            bool freq = refreshTimer >= 1f / refreshFrequency;
+            bool byMove = false;
             if (refreshOnTargetMove && targetObject != null)
             {
                 if (!hasInitializedTargetPosition)
@@ -549,79 +496,41 @@ namespace EasyPack
                     lastTargetPosition = targetObject.transform.position;
                     hasInitializedTargetPosition = true;
                 }
-                else
+                else if (Vector3.Distance(targetObject.transform.position, lastTargetPosition) >= targetMoveThreshold)
                 {
-                    float distance = Vector3.Distance(targetObject.transform.position, lastTargetPosition);
-                    if (distance >= targetMoveThreshold)
-                    {
-                        shouldRefreshByTargetMove = true;
-                        lastTargetPosition = targetObject.transform.position;
-                    }
+                    byMove = true;
+                    lastTargetPosition = targetObject.transform.position;
                 }
             }
-
-            // 执行刷新
-            if (shouldRefreshByFrequency || shouldRefreshByTargetMove)
+            if (freq || byMove)
             {
-                if (shouldRefreshByFrequency)
-                {
-                    refreshTimer = 0f;
-                }
-
+                if (freq) refreshTimer = 0f;
                 AutoRefreshPathfinding();
             }
         }
 
-        /// <summary>
-        /// 自动刷新寻路
-        /// </summary>
         private void AutoRefreshPathfinding()
         {
-            // 只有在角色正在移动且目标有效时才刷新
-            if (!IsMoving || pathfindingObject == null || targetObject == null)
-                return;
+            if (!IsMoving || pathfindingObject == null || targetObject == null) return;
 
-            Vector3Int startPos;
-            if (currentPath.Count > 0 && currentPathIndex < currentPath.Count)
-            {
-                // 如果正在移动到某个路径点，使用该路径点作为起点
-                startPos = currentPath[currentPathIndex];
-            }
-            else
-            {
-                // 备用方案：使用当前瓦片位置
-                startPos = GetTilePositionFromGameObject(pathfindingObject);
-            }
+            Vector3Int startPos = (currentPath.Count > 0 && currentPathIndex < currentPath.Count)
+                ? currentPath[currentPathIndex]
+                : GetTilePositionFromGameObject(pathfindingObject);
 
             Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
-
-            // 如果目标位置没有改变，则不需要刷新
             if (currentPath.Count > 0 && targetPos == currentPath[currentPath.Count - 1])
                 return;
 
             var newPath = FindPath(startPos, targetPos);
-
-            if (newPath.Count > 0)
+            if (newPath.Count > 0 && ShouldUpdatePath(newPath))
             {
-                // 只有当新路径与当前路径显著不同时才更新
-                if (ShouldUpdatePath(newPath))
-                {
-                    // 使用平滑过渡而不是强制重置
-                    if (enableSmoothPathTransition)
-                    {
-                        SmoothTransitionToNewPath(newPath);
-                    }
-                    else
-                    {
-                        MoveAlongPath(newPath);
-                    }
-                }
+                if (enableSmoothPathTransition)
+                    SmoothTransitionToNewPath(newPath);
+                else
+                    MoveAlongPath(newPath);
             }
         }
 
-        /// <summary>
-        /// 初始化自动刷新
-        /// </summary>
         private void InitializeAutoRefresh()
         {
             if (targetObject != null)
@@ -630,10 +539,6 @@ namespace EasyPack
                 hasInitializedTargetPosition = true;
             }
         }
-
-        /// <summary>
-        /// 设置自动刷新启用状态
-        /// </summary>
         public void SetAutoRefreshEnabled(bool enabled)
         {
             enableAutoRefresh = enabled;
@@ -643,135 +548,51 @@ namespace EasyPack
                 InitializeAutoRefresh();
             }
         }
-
-        /// <summary>
-        /// 设置刷新频率
-        /// </summary>
-        public void SetRefreshFrequency(float frequency)
-        {
-            refreshFrequency = Mathf.Clamp(frequency, 0.1f, 10f);
-            refreshTimer = 0f; // 重置计时器
-        }
-
-        /// <summary>
-        /// 设置目标移动刷新
-        /// </summary>
-        public void SetRefreshOnTargetMove(bool enabled)
-        {
-            refreshOnTargetMove = enabled;
-            if (enabled && targetObject != null)
-            {
-                lastTargetPosition = targetObject.transform.position;
-                hasInitializedTargetPosition = true;
-            }
-        }
-
-        /// <summary>
-        /// 设置目标移动阈值
-        /// </summary>
-        public void SetTargetMoveThreshold(float threshold)
-        {
-            targetMoveThreshold = Mathf.Max(0.1f, threshold);
-        }
-
-        /// <summary>
-        /// 强制刷新寻路（忽略频率限制）
-        /// </summary>
-        [ContextMenu("强制刷新寻路")]
-        public void ForceRefreshPathfinding()
-        {
-            refreshTimer = 0f;
-            AutoRefreshPathfinding();
-        }
-
         #endregion
 
         #region 地图相关
-
-        /// <summary>
-        /// 扫描单个Tilemap，添加到统一地图
-        /// </summary>
         private void ScanTilemap(Tilemap tilemap)
         {
             BoundsInt bounds = tilemap.cellBounds;
-            int tileCount = 0;
-
             for (int x = bounds.xMin; x < bounds.xMax; x++)
             {
                 for (int y = bounds.yMin; y < bounds.yMax; y++)
                 {
-                    Vector3Int position = new Vector3Int(x, y, 0);
-                    TileBase tile = tilemap.GetTile(position);
-
-                    if (tile != null && IsTileWalkable(tile, position))
+                    var pos = new Vector3Int(x, y, 0);
+                    TileBase tile = tilemap.GetTile(pos);
+                    if (tile != null && IsTileWalkable(tile, pos))
                     {
                         float cost = GetTileCost(tile);
-                        unifiedMap.AddWalkableTile(position, tilemap, cost);
-                        tileCount++;
+                        unifiedMap.AddWalkableTile(pos, tilemap, cost);
                     }
                 }
             }
         }
 
-        /// <summary>
-        /// 检查瓦片是否可行走（可以重写此方法来自定义逻辑）
-        /// </summary>
-        protected virtual bool IsTileWalkable(TileBase tile, Vector3Int position)
-        {
-            // 非空瓦片即可行走
-            return tile != null;
-        }
-
-        /// <summary>
-        /// 获取瓦片移动代价
-        /// </summary>
+        protected virtual bool IsTileWalkable(TileBase tile, Vector3Int position) => tile != null;
         protected virtual float GetTileCost(TileBase tile)
         {
             if (useTerrainCosts && tileCostMap.ContainsKey(tile))
-            {
                 return tileCostMap[tile];
-            }
-            return 1f; // 默认代价
+            return 1f;
         }
-
         #endregion
 
         #region 寻路算法
-
-        /// <summary>
-        /// 检查位置是否有效
-        /// </summary>
-        private bool IsPositionValid(Vector3Int position)
-        {
-            return unifiedMap.IsWalkable(position);
-        }
-
-        /// <summary>
-        /// 检查动态障碍物
-        /// </summary>
+        private bool IsPositionValid(Vector3Int position) => unifiedMap.IsWalkable(position);
         private bool HasDynamicObstacle(Vector3Int position)
         {
             if (!considerDynamicObstacles) return false;
-
             Vector3 worldPos = GetWorldPosition(position);
-
-            foreach (var obstacle in dynamicObstacles)
+            foreach (var o in dynamicObstacles)
             {
-                if (obstacle == null) continue;
-
-                float distance = Vector3.Distance(worldPos, obstacle.position);
-                if (distance <= obstacleCheckRadius)
-                {
+                if (o == null) continue;
+                if (Vector3.Distance(worldPos, o.position) <= obstacleCheckRadius)
                     return true;
-                }
             }
-
             return false;
         }
 
-        /// <summary>
-        /// 执行A*寻路算法
-        /// </summary>
         private List<Vector3Int> ExecuteAStar(Vector3Int start, Vector3Int target, PathfindingOptions options)
         {
             var openSet = new PathNodeMinHeap();
@@ -782,7 +603,7 @@ namespace EasyPack
             openSet.Add(startNode);
             allNodes[start] = startNode;
 
-            Vector3Int[] directions = options.allowDiagonal ? directions8 : directions4;
+            Vector3Int[] dirs = options.allowDiagonal ? directions8 : directions4;
             int iterations = 0;
 
             while (openSet.Count > 0 && iterations < options.maxIterations)
@@ -792,427 +613,232 @@ namespace EasyPack
                 lastStats.nodesExplored++;
                 closedSet.Add(currentNode.position);
 
-                // 到达目标
                 if (currentNode.position == target)
                 {
                     lastStats.iterations = iterations;
                     return ReconstructPath(currentNode);
                 }
-
-                // 检查相邻节点
-                foreach (var direction in directions)
+                foreach (var d in dirs)
                 {
-                    Vector3Int neighborPos = currentNode.position + direction;
-
-                    if (closedSet.Contains(neighborPos) ||
-                        !IsPositionValid(neighborPos) ||
-                        HasDynamicObstacle(neighborPos))
+                    var np = currentNode.position + d;
+                    if (closedSet.Contains(np) ||
+                        !IsPositionValid(np) ||
+                        HasDynamicObstacle(np))
                         continue;
 
-                    // 防止对角线穿过拐角（Corner Cutting）
-                    if (direction.x != 0 && direction.y != 0)
+                    if (d.x != 0 && d.y != 0)
                     {
-                        Vector3Int orth1 = new Vector3Int(currentNode.position.x + direction.x, currentNode.position.y, 0);
-                        Vector3Int orth2 = new Vector3Int(currentNode.position.x, currentNode.position.y + direction.y, 0);
+                        Vector3Int orth1 = new Vector3Int(currentNode.position.x + d.x, currentNode.position.y, 0);
+                        Vector3Int orth2 = new Vector3Int(currentNode.position.x, currentNode.position.y + d.y, 0);
                         if (!IsPositionValid(orth1) || !IsPositionValid(orth2) ||
                             HasDynamicObstacle(orth1) || HasDynamicObstacle(orth2))
-                        {
                             continue;
-                        }
                     }
 
-                    float moveCost = GetMoveCost(direction, currentNode.position, neighborPos);
+                    float moveCost = GetMoveCost(d, currentNode.position, np);
                     float newGCost = currentNode.gCost + moveCost;
 
-                    if (!allNodes.TryGetValue(neighborPos, out PathNode neighborNode))
+                    if (!allNodes.TryGetValue(np, out var n))
                     {
-                        neighborNode = new PathNode(neighborPos, newGCost, GetHeuristic(neighborPos, target), currentNode);
-                        allNodes[neighborPos] = neighborNode;
-                        openSet.Add(neighborNode);
+                        n = new PathNode(np, newGCost, GetHeuristic(np, target), currentNode);
+                        allNodes[np] = n;
+                        openSet.Add(n);
                     }
-                    else if (newGCost < neighborNode.gCost)
+                    else if (newGCost < n.gCost)
                     {
-                        neighborNode.gCost = newGCost;
-                        neighborNode.parent = currentNode;
-                        openSet.Update(neighborNode); // Decrease-Key
+                        n.gCost = newGCost;
+                        n.parent = currentNode;
+                        openSet.Update(n);
                     }
                 }
             }
-
             lastStats.iterations = iterations;
-            Debug.LogWarning($"寻路失败！迭代次数: {iterations}");
             return new List<Vector3Int>();
         }
 
-        /// <summary>
-        /// 跳点搜索算法（JPS优化）
-        /// </summary>
         private List<Vector3Int> ExecuteJumpPointSearch(Vector3Int start, Vector3Int target, PathfindingOptions options)
         {
-            // TODO:
+            // 未来实现 JPS，这里先回退 A*
             return ExecuteAStar(start, target, options);
         }
 
-        /// <summary>
-        /// 获取移动代价（考虑地形和方向）
-        /// </summary>
         private float GetMoveCost(Vector3Int direction, Vector3Int from, Vector3Int to)
         {
-            float baseCost = IsDiagonalMove(direction) ? diagonalMoveCost : straightMoveCost;
-
+            float baseCost = (direction.x != 0 && direction.y != 0) ? diagonalMoveCost : straightMoveCost;
             if (useTerrainCosts)
             {
-                // 获取目标瓦片的地形代价
-                var tileInfo = unifiedMap.GetTileInfo(to);
-                if (tileInfo != null)
-                {
-                    baseCost *= tileInfo.cost;
-                }
+                var info = unifiedMap.GetTileInfo(to);
+                if (info != null) baseCost *= info.cost;
             }
-
             return baseCost;
         }
 
-        /// <summary>
-        /// 判断是否为对角线移动
-        /// </summary>
-        private bool IsDiagonalMove(Vector3Int direction)
-        {
-            return direction.x != 0 && direction.y != 0;
-        }
-
-        /// <summary>
-        /// 获取启发式距离
-        /// </summary>
         private float GetHeuristic(Vector3Int a, Vector3Int b)
         {
             if (allowDiagonalMovement)
             {
-                // 欧几里得距离
                 float dx = a.x - b.x;
                 float dy = a.y - b.y;
                 return Mathf.Sqrt(dx * dx + dy * dy);
             }
-            else
-            {
-                // 曼哈顿距离
-                return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
-            }
+            return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
         }
 
-        /// <summary>
-        /// 获取F值最小的节点
-        /// </summary>
-        private PathNode GetLowestFCostNode(List<PathNode> nodes)
-        {
-            PathNode lowest = nodes[0];
-            for (int i = 1; i < nodes.Count; i++)
-            {
-                if (nodes[i].fCost < lowest.fCost ||
-                    (nodes[i].fCost == lowest.fCost && nodes[i].hCost < lowest.hCost))
-                {
-                    lowest = nodes[i];
-                }
-            }
-            return lowest;
-        }
-
-        /// <summary>
-        /// 重构路径
-        /// </summary>
-        private List<Vector3Int> ReconstructPath(PathNode endNode)
+        private List<Vector3Int> ReconstructPath(PathNode end)
         {
             var path = new List<Vector3Int>();
-            var current = endNode;
-
-            while (current != null)
+            var cur = end;
+            while (cur != null)
             {
-                path.Insert(0, current.position);
-                current = current.parent;
+                path.Insert(0, cur.position);
+                cur = cur.parent;
             }
-
             return path;
         }
-
         #endregion
 
-        #region 路径后处理
-
-        /// <summary>
-        /// 路径后处理（平滑等）
-        /// </summary>
+        #region 路径后处理与过渡
         private List<Vector3Int> PostProcessPath(List<Vector3Int> path)
         {
             if (path.Count <= 2) return path;
-
             switch (pathSmoothing)
             {
-                case PathSmoothingType.LineOfSight:
-                    return SmoothPathLineOfSight(path);
-                case PathSmoothingType.Bezier:
-                    return SmoothPathBezier(path);
-                default:
-                    return path;
+                case PathSmoothingType.LineOfSight: return SmoothPathLineOfSight(path);
+                case PathSmoothingType.Bezier: return SmoothPathBezier(path);
+                default: return path;
             }
         }
-
-        /// <summary>
-        /// 视线平滑
-        /// </summary>
         private List<Vector3Int> SmoothPathLineOfSight(List<Vector3Int> path)
         {
             if (path.Count <= 2) return path;
-
             var smoothed = new List<Vector3Int> { path[0] };
             int currentIndex = 0;
-
             while (currentIndex < path.Count - 1)
             {
-                int farthestIndex = currentIndex + 1;
-
-                // 找到最远的可直达点
+                int farthest = currentIndex + 1;
                 for (int i = currentIndex + 2; i < path.Count; i++)
                 {
                     if (HasLineOfSight(path[currentIndex], path[i]))
-                    {
-                        farthestIndex = i;
-                    }
-                    else
-                    {
-                        break;
-                    }
+                        farthest = i;
+                    else break;
                 }
-                
-                smoothed.Add(path[farthestIndex]);
-                currentIndex = farthestIndex;
+                smoothed.Add(path[farthest]);
+                currentIndex = farthest;
             }
-
             return smoothed;
         }
-
-        /// <summary>
-        /// 贝塞尔曲线平滑
-        /// </summary>
         private List<Vector3Int> SmoothPathBezier(List<Vector3Int> path)
         {
             if (path == null || path.Count < 3 || allTilemaps.Count == 0) return path;
-
-            var result = new List<Vector3Int>();
-            result.Add(path[0]);
-
-            // 可调采样密度：基础密度 * 强度插值
-            float densityFactor = bezierBaseDensity * Mathf.Lerp(0.6f, 2.0f, Mathf.Clamp01(smoothingStrength));
-
+            var result = new List<Vector3Int> { path[0] };
+            float densityFactor = bezierBaseDensity * Mathf.Lerp(0.6f, 2f, Mathf.Clamp01(smoothingStrength));
             for (int i = 0; i < path.Count - 2; i++)
             {
-                Vector3Int a = path[i];
-                Vector3Int b = path[i + 1];
-                Vector3Int c = path[i + 2];
-
+                var a = path[i]; var b = path[i + 1]; var c = path[i + 2];
                 Vector3 wa = GetWorldPosition(a);
                 Vector3 wb = GetWorldPosition(b);
                 Vector3 wc = GetWorldPosition(c);
-
-                float segmentWorldLen = (wc - wa).magnitude;
-                int sampleCount = Mathf.CeilToInt(segmentWorldLen * densityFactor);
-                sampleCount = Mathf.Clamp(sampleCount, bezierMinSamples, bezierMaxSamples);
-
+                float segLen = (wc - wa).magnitude;
+                int sampleCount = Mathf.Clamp(Mathf.CeilToInt(segLen * densityFactor), bezierMinSamples, bezierMaxSamples);
                 for (int s = 1; s <= sampleCount; s++)
                 {
                     float t = s / (float)sampleCount;
-
-                    Vector3 wp =
-                        (1 - t) * (1 - t) * wa +
-                        2 * (1 - t) * t * wb +
-                        t * t * wc;
-
+                    Vector3 wp = (1 - t) * (1 - t) * wa + 2 * (1 - t) * t * wb + t * t * wc;
                     Vector3Int cell = allTilemaps[0].WorldToCell(wp);
                     if (!IsPositionValid(cell)) continue;
-                    if (result.Count == 0 || result[result.Count - 1] != cell)
+                    if (result[result.Count - 1] != cell)
                         result.Add(cell);
                 }
             }
-
-            Vector3Int last = path[path.Count - 1];
-            if (result[result.Count - 1] != last) result.Add(last);
-
-            // result = SmoothPathLineOfSight(result);
+            if (result[result.Count - 1] != path[^1])
+                result.Add(path[^1]);
             return result;
         }
-
-        /// <summary>
-        /// 检查两点间是否有直线视野
-        /// </summary>
         private bool HasLineOfSight(Vector3Int start, Vector3Int end)
         {
-            var points = GetPointsOnLine(start, end);
-            foreach (var point in points)
+            var pts = GetPointsOnLine(start, end);
+            foreach (var p in pts)
             {
-                if (!IsPositionValid(point) || HasDynamicObstacle(point))
-                {
-                    return false;
-                }
+                if (!IsPositionValid(p) || HasDynamicObstacle(p)) return false;
             }
             return true;
         }
-
-        /// <summary>
-        /// 获取直线上的所有点
-        /// </summary>
         private List<Vector3Int> GetPointsOnLine(Vector3Int start, Vector3Int end)
         {
-            var points = new List<Vector3Int>();
-
+            var pts = new List<Vector3Int>();
             int dx = Mathf.Abs(end.x - start.x);
             int dy = Mathf.Abs(end.y - start.y);
             int x = start.x;
             int y = start.y;
-            int x_inc = (end.x > start.x) ? 1 : -1;
-            int y_inc = (end.y > start.y) ? 1 : -1;
+            int x_inc = end.x > start.x ? 1 : -1;
+            int y_inc = end.y > start.y ? 1 : -1;
             int error = dx - dy;
-
-            dx *= 2;
-            dy *= 2;
-
+            dx *= 2; dy *= 2;
             for (int n = 1 + dx + dy; n > 0; --n)
             {
-                points.Add(new Vector3Int(x, y, 0));
-
-                if (error > 0)
-                {
-                    x += x_inc;
-                    error -= dy;
-                }
-                else
-                {
-                    y += y_inc;
-                    error += dx;
-                }
+                pts.Add(new Vector3Int(x, y, 0));
+                if (error > 0) { x += x_inc; error -= dy; }
+                else { y += y_inc; error += dx; }
             }
-
-            return points;
+            return pts;
         }
 
-        #endregion
-
-        #region 平滑路径过渡
-
-        /// <summary>
-        /// 平滑过渡到新路径
-        /// </summary>
         private void SmoothTransitionToNewPath(List<Vector3Int> newPath)
         {
             if (newPath == null || newPath.Count == 0) return;
-
-            Vector3 currentPosition = pathfindingObject.transform.position;
-
-            // 找到新路径中最接近当前位置的点
-            int bestIndex = FindClosestPathIndex(newPath, currentPosition);
-
-            // 如果找到合适的连接点
+            Vector3 curPos = pathfindingObject.transform.position;
+            int bestIndex = FindClosestPathIndex(newPath, curPos);
             if (bestIndex >= 0)
             {
-                // 计算从当前位置到最佳连接点的距离
-                Vector3 connectPoint = GetWorldPosition(newPath[bestIndex]);
-                float backtrackDistance = Vector3.Distance(currentPosition, connectPoint);
-
-                // 如果回退距离在可接受范围内，则从该点继续
-                if (backtrackDistance <= maxBacktrackDistance)
+                Vector3 connectWorld = GetWorldPosition(newPath[bestIndex]);
+                float backtrack = Vector3.Distance(curPos, connectWorld);
+                if (backtrack <= maxBacktrackDistance)
                 {
-                    // 更新路径从连接点开始
                     currentPath = newPath;
                     currentPathIndex = bestIndex;
-                    currentTarget = GetWorldPosition(newPath[currentPathIndex]);
-
-                    // 不需要重启协程，当前协程会自动使用新的路径和索引
+                    currentTarget = connectWorld;
                     return;
                 }
             }
-
-            // 如果无法平滑过渡，则重启移动
             MoveAlongPath(newPath);
         }
-
-        /// <summary>
-        /// 在新路径中找到最接近当前位置的路径点索引
-        /// </summary>
         private int FindClosestPathIndex(List<Vector3Int> path, Vector3 currentPosition)
         {
             if (path == null || path.Count == 0) return -1;
-
-            float minDistance = float.MaxValue;
-            int bestIndex = -1;
-
-            // 从当前路径索引开始向前搜索，避免回退太远
+            float min = float.MaxValue;
+            int best = -1;
             int searchStart = Mathf.Max(0, currentPathIndex - 2);
             int searchEnd = Mathf.Min(path.Count, currentPathIndex + 5);
-
             for (int i = searchStart; i < searchEnd; i++)
             {
-                Vector3 pathPoint = GetWorldPosition(path[i]);
-                float distance = Vector3.Distance(currentPosition, pathPoint);
-
-                if (distance < minDistance)
-                {
-                    minDistance = distance;
-                    bestIndex = i;
-                }
+                float d = Vector3.Distance(currentPosition, GetWorldPosition(path[i]));
+                if (d < min) { min = d; best = i; }
             }
-
-            // 如果搜索范围内找不到合适点，则搜索整个路径
-            if (bestIndex == -1)
+            if (best == -1)
             {
                 for (int i = 0; i < path.Count; i++)
                 {
-                    Vector3 pathPoint = GetWorldPosition(path[i]);
-                    float distance = Vector3.Distance(currentPosition, pathPoint);
-
-                    if (distance < minDistance)
-                    {
-                        minDistance = distance;
-                        bestIndex = i;
-                    }
+                    float d = Vector3.Distance(currentPosition, GetWorldPosition(path[i]));
+                    if (d < min) { min = d; best = i; }
                 }
             }
-
-            return bestIndex;
+            return best;
         }
-
-        /// <summary>
-        /// 判断是否应该更新路径
-        /// </summary>
         private bool ShouldUpdatePath(List<Vector3Int> newPath)
         {
             if (currentPath.Count == 0) return true;
             if (newPath.Count == 0) return false;
-
-            // 如果终点不同，需要更新
-            if (currentPath[currentPath.Count - 1] != newPath[newPath.Count - 1])
-                return true;
-
-            // 如果路径长度差异很大，需要更新
-            float lengthDifference = Mathf.Abs(newPath.Count - currentPath.Count) / (float)currentPath.Count;
-            if (lengthDifference > 0.3f) // 30%的差异
-                return true;
-
-            // 检查路径的前几步是否有显著差异
-            int checkSteps = Mathf.Min(3, Mathf.Min(currentPath.Count, newPath.Count));
-            for (int i = 0; i < checkSteps; i++)
-            {
-                if (currentPath[i] != newPath[i])
-                    return true;
-            }
-
+            if (currentPath[^1] != newPath[^1]) return true;
+            float lengthDiff = Mathf.Abs(newPath.Count - currentPath.Count) / (float)currentPath.Count;
+            if (lengthDiff > 0.3f) return true;
+            int check = Mathf.Min(3, Mathf.Min(currentPath.Count, newPath.Count));
+            for (int i = 0; i < check; i++)
+                if (currentPath[i] != newPath[i]) return true;
             return false;
         }
-
         #endregion
 
         #region 移动相关
-
-        /// <summary>
-        /// 移动协程
-        /// </summary>
         private System.Collections.IEnumerator MoveCoroutine()
         {
             while (currentPathIndex < currentPath.Count)
@@ -1222,10 +848,8 @@ namespace EasyPack
                 currentTarget = targetWorld;
                 isMovingToTarget = true;
 
-                // 平滑移动到目标位置
                 while (Vector3.Distance(pathfindingObject.transform.position, targetWorld + currentJitterOffset) > 0.05f)
                 {
-                    // 检查路径是否被更新（平滑过渡的情况）
                     if (currentPathIndex < currentPath.Count)
                     {
                         targetCell = currentPath[currentPathIndex];
@@ -1233,18 +857,18 @@ namespace EasyPack
                         currentTarget = targetWorld;
                     }
 
-                    // 计算移动速度
                     float currentSpeed = moveSpeed;
                     if (moveSpeedCurve.keys.Length > 1)
                     {
-                        Vector3 startPos = currentPathIndex > 0 ? GetWorldPosition(currentPath[currentPathIndex - 1]) : pathfindingObject.transform.position;
-                        float pathProgress = 1f - (Vector3.Distance(pathfindingObject.transform.position, targetWorld) / Vector3.Distance(startPos, targetWorld));
+                        Vector3 startPos = currentPathIndex > 0
+                            ? GetWorldPosition(currentPath[currentPathIndex - 1])
+                            : pathfindingObject.transform.position;
+                        float pathProgress = 1f - (Vector3.Distance(pathfindingObject.transform.position, targetWorld) /
+                                                   Mathf.Max(0.0001f, Vector3.Distance(startPos, targetWorld)));
                         pathProgress = Mathf.Clamp01(pathProgress);
-                        float speedMultiplier = moveSpeedCurve.Evaluate(pathProgress);
-                        currentSpeed = moveSpeed * speedMultiplier;
+                        currentSpeed = moveSpeed * moveSpeedCurve.Evaluate(pathProgress);
                     }
 
-                    // 更新抖动
                     if (enableMovementJitter)
                     {
                         jitterTimer += Time.deltaTime;
@@ -1252,168 +876,121 @@ namespace EasyPack
                         {
                             jitterTimer = 0f;
                             currentJitterOffset = GenerateJitterOffset(pathfindingObject.transform.position);
-
                             if (showJitterDebug && jitterHistory.Count < 50)
-                            {
                                 jitterHistory.Add(pathfindingObject.transform.position + currentJitterOffset);
-                            }
                         }
                     }
 
-                    // 移动到目标位置
                     Vector3 jitteredTarget = targetWorld + currentJitterOffset;
-                    Vector3 newPosition = Vector3.MoveTowards(
-                        pathfindingObject.transform.position,
-                        jitteredTarget,
-                        currentSpeed * Time.deltaTime
-                    );
+                    Vector3 newPos = Vector3.MoveTowards(pathfindingObject.transform.position, jitteredTarget, currentSpeed * Time.deltaTime);
 
-                    // 旋转到移动方向
                     if (autoRotateToDirection)
                     {
-                        Vector3 direction = (jitteredTarget - pathfindingObject.transform.position).normalized;
-                        if (direction.magnitude > 0.1f)
+                        Vector3 dir = (jitteredTarget - pathfindingObject.transform.position).normalized;
+                        if (dir.sqrMagnitude > 0.01f)
                         {
-                            Quaternion targetRotation = Quaternion.LookRotation(Vector3.forward, direction);
-                            pathfindingObject.transform.rotation = Quaternion.Lerp(
-                                pathfindingObject.transform.rotation,
-                                targetRotation,
-                                rotationSpeed * Time.deltaTime
-                            );
+                            Quaternion targetRot = Quaternion.LookRotation(Vector3.forward, dir);
+                            pathfindingObject.transform.rotation =
+                                Quaternion.Lerp(pathfindingObject.transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
                         }
                     }
 
-                    pathfindingObject.transform.position = newPosition;
-                    OnMovementUpdate?.Invoke(newPosition);
-
+                    pathfindingObject.transform.position = newPos;
+                    OnMovementUpdate?.Invoke(newPos);
                     yield return null;
                 }
 
                 isMovingToTarget = false;
                 currentPathIndex++;
-
                 if (currentPathIndex < currentPath.Count)
-                {
                     currentJitterOffset = GenerateJitterOffset(pathfindingObject.transform.position);
-                }
             }
 
-            // 移动完成处理
-            Vector3 finalTarget = GetWorldPosition(currentPath[currentPath.Count - 1]);
-
-            // 平滑到最终位置
+            Vector3 finalTarget = GetWorldPosition(currentPath[^1]);
             while (Vector3.Distance(pathfindingObject.transform.position, finalTarget) > 0.01f)
             {
                 currentJitterOffset = Vector3.Lerp(currentJitterOffset, Vector3.zero, Time.deltaTime * 3f);
-
-                pathfindingObject.transform.position = Vector3.MoveTowards(
-                    pathfindingObject.transform.position,
-                    finalTarget,
-                    moveSpeed * Time.deltaTime
-                );
+                pathfindingObject.transform.position =
+                    Vector3.MoveTowards(pathfindingObject.transform.position, finalTarget, moveSpeed * Time.deltaTime);
                 yield return null;
             }
-
             pathfindingObject.transform.position = finalTarget;
             currentJitterOffset = Vector3.zero;
             isMovingToTarget = false;
-
             OnMovementComplete?.Invoke(finalTarget);
             moveCoroutine = null;
         }
-
         #endregion
 
-        #region 抖动相关
-
-        /// <summary>
-        /// 生成抖动偏移
-        /// </summary>
+        #region 抖动
         private Vector3 GenerateJitterOffset(Vector3 currentWorldPos)
         {
-            if (!enableMovementJitter || jitterStrength <= 0f)
-                return Vector3.zero;
-
+            if (!enableMovementJitter || jitterStrength <= 0f) return Vector3.zero;
             Vector3 randomOffset = new Vector3(
                 UnityEngine.Random.Range(-1f, 1f),
                 UnityEngine.Random.Range(-1f, 1f),
-                0f
-            ).normalized * (jitterStrength * UnityEngine.Random.Range(0.5f, 1f));
+                0f).normalized * (jitterStrength * UnityEngine.Random.Range(0.5f, 1f));
 
-            if (preventJitterIntoNull)
+            if (preventJitterIntoNull && allTilemaps.Count > 0)
             {
-                Vector3 targetWorldPos = currentWorldPos + randomOffset;
-                Vector3Int targetTilePos = allTilemaps[0].WorldToCell(targetWorldPos);
-
-                if (!IsPositionValid(targetTilePos))
+                Vector3Int tilePos = allTilemaps[0].WorldToCell(currentWorldPos + randomOffset);
+                if (!IsPositionValid(tilePos))
                 {
-                    Vector3[] fallbackDirections = {
-                    Vector3.right, Vector3.left, Vector3.up, Vector3.down,
-                    new Vector3(1, 1, 0).normalized, new Vector3(-1, 1, 0).normalized,
-                    new Vector3(1, -1, 0).normalized, new Vector3(-1, -1, 0).normalized
-                };
-
-                    foreach (var direction in fallbackDirections)
+                    Vector3[] fallback =
                     {
-                        Vector3 fallbackOffset = direction * (jitterStrength * 0.5f);
-                        Vector3 fallbackWorldPos = currentWorldPos + fallbackOffset;
-                        Vector3Int fallbackTilePos = allTilemaps[0].WorldToCell(fallbackWorldPos);
-
-                        if (IsPositionValid(fallbackTilePos))
-                        {
-                            return fallbackOffset;
-                        }
+                        Vector3.right, Vector3.left, Vector3.up, Vector3.down,
+                        new Vector3(1,1,0).normalized, new Vector3(-1,1,0).normalized,
+                        new Vector3(1,-1,0).normalized, new Vector3(-1,-1,0).normalized
+                    };
+                    foreach (var d in fallback)
+                    {
+                        Vector3 fo = d * (jitterStrength * 0.5f);
+                        Vector3Int ft = allTilemaps[0].WorldToCell(currentWorldPos + fo);
+                        if (IsPositionValid(ft)) return fo;
                     }
-
                     return Vector3.zero;
                 }
             }
-
             return randomOffset;
         }
-
         #endregion
 
-        #region 工具方法
-
-        /// <summary>
-        /// 获取GameObject下方的瓦片位置
-        /// </summary>
-        private Vector3Int GetTilePositionFromGameObject(GameObject obj)
+        #region 工具方法 / 设置接口 / 调试
+        public Vector3Int GetTilePositionFromGameObject(GameObject obj)
         {
-            if (obj == null || allTilemaps.Count == 0) return Vector3Int.zero;
+            if (obj == null)
+                return Vector3Int.zero;
 
-            Vector3 worldPos = obj.transform.position;
-            Vector3Int cellPos = allTilemaps[0].WorldToCell(worldPos);
-            return cellPos;
-        }
+            Tilemap refMap = null;
+            if (allTilemaps.Count > 0) refMap = allTilemaps[0];
+            else if (conversionTilemap != null) refMap = conversionTilemap;
 
-        /// <summary>
-        /// 将瓦片坐标转换为世界坐标
-        /// </summary>
-        private Vector3 GetWorldPosition(Vector3Int cellPosition)
-        {
-            if (allTilemaps.Count == 0) return Vector3.zero;
-
-            Vector3 worldPos = allTilemaps[0].CellToWorld(cellPosition);
-
-            if (useTileCenterOffset)
+            if (refMap == null)
             {
-                Vector3 cellSize = allTilemaps[0].cellSize;
-                Vector3 actualOffset = new Vector3(
-                    tileOffset.x * cellSize.x,
-                    tileOffset.y * cellSize.y,
-                    tileOffset.z * cellSize.z
-                );
-                worldPos += actualOffset;
+                Debug.LogWarning($"[{name}] 无可用 Tilemap 进行坐标转换，请配置 Tilemap 或共享服务。");
+                return Vector3Int.zero;
             }
 
-            return worldPos;
+            return refMap.WorldToCell(obj.transform.position);
         }
 
-        #endregion
+        private Vector3 GetWorldPosition(Vector3Int cell)
+        {
+            Tilemap refMap = null;
+            if (allTilemaps.Count > 0) refMap = allTilemaps[0];
+            else if (conversionTilemap != null) refMap = conversionTilemap;
 
-        #region 设置接口
+            if (refMap == null)
+                return Vector3.zero;
+
+            Vector3 worldPos = refMap.CellToWorld(cell);
+            if (useTileCenterOffset)
+            {
+                var cs = refMap.cellSize;
+                worldPos += new Vector3(cs.x * tileOffset.x, cs.y * tileOffset.y, cs.z * tileOffset.z);
+            }
+            return worldPos;
+        }
 
         public void SetTargetObject(GameObject target) => targetObject = target;
         public void SetPathfindingObject(GameObject pathfinder) => pathfindingObject = pathfinder;
@@ -1422,117 +999,71 @@ namespace EasyPack
         public void SetJitterEnabled(bool enabled) => enableMovementJitter = enabled;
         public void SetJitterStrength(float strength) => jitterStrength = Mathf.Clamp01(strength);
         public void SetJitterFrequency(float frequency) => jitterFrequency = Mathf.Max(0.1f, frequency);
-
-        // 平滑路径过渡设置
         public void SetSmoothPathTransition(bool enabled) => enableSmoothPathTransition = enabled;
         public void SetMaxBacktrackDistance(float distance) => maxBacktrackDistance = Mathf.Max(0.1f, distance);
 
-        #endregion
-
-        #region 调试相关
-
-        // 调试绘制
         private void OnDrawGizmos()
         {
             if (unifiedMap == null) return;
-
-            // 绘制可行走区域
             if (showWalkableArea)
             {
                 Gizmos.color = walkableAreaColor;
                 foreach (var tile in unifiedMap.walkableTiles.Keys)
                 {
-                    Vector3 worldPos = GetWorldPosition(tile);
-                    Gizmos.DrawWireCube(worldPos, Vector3.one * 0.3f);
+                    Gizmos.DrawWireCube(GetWorldPosition(tile), Vector3.one * 0.3f);
                 }
             }
-
-            // 绘制路径
             if (showDebugPath && currentPath != null && currentPath.Count > 0)
             {
                 Gizmos.color = pathColor;
                 for (int i = 0; i < currentPath.Count - 1; i++)
                 {
-                    Vector3 from = GetWorldPosition(currentPath[i]);
-                    Vector3 to = GetWorldPosition(currentPath[i + 1]);
-                    Gizmos.DrawLine(from, to);
-                    Gizmos.DrawWireSphere(from, 0.15f);
+                    Gizmos.DrawLine(GetWorldPosition(currentPath[i]), GetWorldPosition(currentPath[i + 1]));
+                    Gizmos.DrawWireSphere(GetWorldPosition(currentPath[i]), 0.15f);
                 }
-
-                // 高亮当前目标点
                 if (currentPathIndex < currentPath.Count)
                 {
                     Gizmos.color = Color.yellow;
-                    Vector3 currentTargetPos = GetWorldPosition(currentPath[currentPathIndex]);
-                    Gizmos.DrawWireSphere(currentTargetPos, 0.2f);
+                    Gizmos.DrawWireSphere(GetWorldPosition(currentPath[currentPathIndex]), 0.2f);
                 }
             }
-
-            // 绘制动态障碍物
             if (considerDynamicObstacles)
             {
                 Gizmos.color = obstacleColor;
-                foreach (var obstacle in dynamicObstacles)
-                {
-                    if (obstacle != null)
-                    {
-                        Gizmos.DrawWireSphere(obstacle.position, obstacleCheckRadius);
-                    }
-                }
+                foreach (var o in dynamicObstacles)
+                    if (o != null) Gizmos.DrawWireSphere(o.position, obstacleCheckRadius);
             }
-
-            // 绘制抖动调试信息
-            if (showJitterDebug && enableMovementJitter)
-            {
-                Gizmos.color = jitterDebugColor;
-                if (pathfindingObject != null && currentJitterOffset != Vector3.zero)
-                {
-                    Vector3 currentPos = pathfindingObject.transform.position;
-                    Vector3 jitteredPos = currentPos + currentJitterOffset;
-                    Gizmos.DrawLine(currentPos, jitteredPos);
-                    Gizmos.DrawWireSphere(jitteredPos, 0.1f);
-                }
-            }
-
-            // 绘制起点和终点
             if (pathfindingObject != null)
             {
-                Vector3Int startPos = GetTilePositionFromGameObject(pathfindingObject);
-                Vector3 startWorld = GetWorldPosition(startPos);
                 Gizmos.color = startPointColor;
-                Gizmos.DrawWireCube(startWorld, Vector3.one * 0.6f);
+                Gizmos.DrawWireCube(GetWorldPosition(GetTilePositionFromGameObject(pathfindingObject)), Vector3.one * 0.6f);
             }
-
             if (targetObject != null)
             {
-                Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
-                Vector3 targetWorld = GetWorldPosition(targetPos);
                 Gizmos.color = targetPointColor;
-                Gizmos.DrawWireCube(targetWorld, Vector3.one * 0.6f);
+                Gizmos.DrawWireCube(GetWorldPosition(GetTilePositionFromGameObject(targetObject)), Vector3.one * 0.6f);
+            }
+            if (showJitterDebug && enableMovementJitter && pathfindingObject != null && currentJitterOffset != Vector3.zero)
+            {
+                Gizmos.color = jitterDebugColor;
+                Vector3 cp = pathfindingObject.transform.position;
+                Gizmos.DrawLine(cp, cp + currentJitterOffset);
+                Gizmos.DrawWireSphere(cp + currentJitterOffset, 0.1f);
             }
         }
-
         #endregion
 
         #region 辅助结构
-
-
-        /// <summary>
-        /// 最小堆（按 fCost / hCost）用于优化 OpenSet
-        /// </summary>
         internal class PathNodeMinHeap
         {
             private readonly List<PathNode> _list = new List<PathNode>();
-
             public int Count => _list.Count;
-
             public void Add(PathNode node)
             {
                 node.heapIndex = _list.Count;
                 _list.Add(node);
                 HeapifyUp(node.heapIndex);
             }
-
             public PathNode Pop()
             {
                 PathNode root = _list[0];
@@ -1547,54 +1078,45 @@ namespace EasyPack
                 root.heapIndex = -1;
                 return root;
             }
-
-            public void Update(PathNode node)
+            public void Update(PathNode node) => HeapifyUp(node.heapIndex);
+            private void HeapifyUp(int i)
             {
-                // gCost 减小 -> fCost 下降，向上堆化
-                HeapifyUp(node.heapIndex);
-            }
-
-            private void HeapifyUp(int index)
-            {
-                while (index > 0)
+                while (i > 0)
                 {
-                    int parent = (index - 1) >> 1;
-                    if (Compare(_list[index], _list[parent]) < 0)
+                    int p = (i - 1) >> 1;
+                    if (Compare(_list[i], _list[p]) < 0)
                     {
-                        Swap(index, parent);
-                        index = parent;
+                        Swap(i, p);
+                        i = p;
                     }
                     else break;
                 }
             }
-
-            private void HeapifyDown(int index)
+            private void HeapifyDown(int i)
             {
                 int count = _list.Count;
                 while (true)
                 {
-                    int left = (index << 1) + 1;
+                    int left = (i << 1) + 1;
                     if (left >= count) break;
                     int right = left + 1;
                     int smallest = left;
                     if (right < count && Compare(_list[right], _list[left]) < 0)
                         smallest = right;
-                    if (Compare(_list[smallest], _list[index]) < 0)
+                    if (Compare(_list[smallest], _list[i]) < 0)
                     {
-                        Swap(smallest, index);
-                        index = smallest;
+                        Swap(smallest, i);
+                        i = smallest;
                     }
                     else break;
                 }
             }
-
             private int Compare(PathNode a, PathNode b)
             {
                 int fc = a.fCost.CompareTo(b.fCost);
                 if (fc != 0) return fc;
                 return a.hCost.CompareTo(b.hCost);
             }
-
             private void Swap(int i, int j)
             {
                 var tmp = _list[i];
@@ -1607,21 +1129,8 @@ namespace EasyPack
         #endregion
     }
 
+    public enum PathSmoothingType { None, LineOfSight, Bezier }
 
-
-    /// <summary>
-    /// 路径平滑类型
-    /// </summary>
-    public enum PathSmoothingType
-    {
-        None,
-        LineOfSight,
-        Bezier
-    }
-
-    /// <summary>
-    /// 寻路选项
-    /// </summary>
     [System.Serializable]
     public class PathfindingOptions
     {
@@ -1632,18 +1141,14 @@ namespace EasyPack
         public bool considerTerrain = false;
     }
 
-    /// <summary>
-    /// 寻路统计信息
-    /// </summary>
     [System.Serializable]
     public class PathfindingStats
     {
         public bool success = false;
-        public float searchTime = 0f; // 毫秒
+        public float searchTime = 0f;
         public int iterations = 0;
         public int nodesExplored = 0;
         public int pathLength = 0;
-
         public void Reset()
         {
             success = false;
@@ -1651,89 +1156,6 @@ namespace EasyPack
             iterations = 0;
             nodesExplored = 0;
             pathLength = 0;
-        }
-    }
-
-    /// <summary>
-    /// 统一地图数据结构
-    /// </summary>
-    public class UnifiedMap
-    {
-        public Dictionary<Vector3Int, TileInfo> walkableTiles = new Dictionary<Vector3Int, TileInfo>();
-        public BoundsInt bounds;
-
-        public void AddWalkableTile(Vector3Int position, Tilemap tilemap, float cost = 1f)
-        {
-            var tileInfo = new TileInfo
-            {
-                tilemap = tilemap,
-                cost = cost,
-                position = position
-            };
-
-            walkableTiles[position] = tileInfo;
-            UpdateBounds(position);
-        }
-
-        public bool IsWalkable(Vector3Int position)
-        {
-            return walkableTiles.ContainsKey(position);
-        }
-
-        public TileInfo GetTileInfo(Vector3Int position)
-        {
-            return walkableTiles.TryGetValue(position, out TileInfo info) ? info : null;
-        }
-
-        private void UpdateBounds(Vector3Int position)
-        {
-            if (walkableTiles.Count == 1)
-            {
-                bounds = new BoundsInt(position.x, position.y, 0, 1, 1, 1);
-            }
-            else
-            {
-                int minX = Mathf.Min(bounds.xMin, position.x);
-                int minY = Mathf.Min(bounds.yMin, position.y);
-                int maxX = Mathf.Max(bounds.xMax, position.x + 1);
-                int maxY = Mathf.Max(bounds.yMax, position.y + 1);
-
-                bounds = new BoundsInt(minX, minY, 0, maxX - minX, maxY - minY, 1);
-            }
-        }
-    }
-
-    /// <summary>
-    /// 瓦片信息
-    /// </summary>
-    [System.Serializable]
-    public class TileInfo
-    {
-        public Tilemap tilemap;
-        public float cost = 1f;
-        public Vector3Int position;
-        public TileBase tileBase;
-    }
-
-    /// <summary>
-    /// 路径节点
-    /// </summary>
-    public class PathNode
-    {
-        public Vector3Int position;
-        public float gCost;
-        public float hCost;
-        public float fCost => gCost + hCost;
-        public PathNode parent;
-
-        public int heapIndex = -1;
-
-        public PathNode(Vector3Int pos, float g, float h, PathNode parentNode)
-        {
-            position = pos;
-            gCost = g;
-            hCost = h;
-            parent = parentNode;
         }
     }
 }
