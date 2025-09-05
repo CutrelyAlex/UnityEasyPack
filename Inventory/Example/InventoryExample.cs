@@ -20,272 +20,6 @@ public class InventoryExample : MonoBehaviour
     }
 
 
-    private void Test()
-    {
-        Debug.Log("===== 测试嵌套背包和事件系统 =====");
-
-        // 1. 测试嵌套背包
-        TestNestedContainers();
-
-        // 2. 测试事件系统
-        TestEventSystem();
-
-        Debug.Log("===== 测试完成 =====\n");
-    }
-
-    /// <summary>
-    /// 测试嵌套容器功能（使用 InventoryManager + 容器ID引用）
-    /// </summary>
-    private void TestNestedContainers()
-    {
-        Debug.Log("【测试1】嵌套容器功能");
-
-        // 创建主背包并注册到管理器
-        var playerBackpack = new LinerContainer("main_backpack", "冒险者背包", "MainBag", 10);
-        _invMgr.RegisterContainer(playerBackpack);
-
-        // 创建可作为容器的物品（仅保存容器ID引用）
-        var backpackItem = new Item
-        {
-            ID = "small_backpack",
-            Name = "小背包",
-            Type = "Container",
-            IsStackable = false,
-            Description = "一个小型背包，可以存放物品",
-            isContanierItem = true
-        };
-
-        // 为容器物品创建内部存储容器并注册到管理器；物品仅记录容器ID
-        var innerContainer = new LinerContainer("inner_container", "小背包内部", "Bag", 5);
-        _invMgr.RegisterContainer(innerContainer);
-        backpackItem.ContainerIds = new List<string> { innerContainer.ID };
-
-        // 向主背包添加这个背包物品
-        Debug.Log("1.1 将小背包添加到主背包中");
-        playerBackpack.AddItems(backpackItem);
-        DisplayInventoryContents(playerBackpack);
-
-        // 创建一些物品添加到内部容器
-        Debug.Log("1.2 向小背包(内部容器)添加物品");
-        var apple = CreateGameItem("apple", "苹果", true, 10, "Food");
-        var potion = CreateGameItem("potion", "药水", true, 5, "Consumable");
-
-        innerContainer.AddItems(apple, 3);
-        innerContainer.AddItems(potion, 2);
-
-        Debug.Log("小背包内部内容:");
-        DisplayInventoryContents(innerContainer);
-
-        // 测试从内部容器移除物品
-        Debug.Log("1.3 从小背包中移除物品");
-        var removeResult = innerContainer.RemoveItem("apple", 1);
-        Debug.Log($"从小背包移除1个苹果: {(removeResult == RemoveItemResult.Success ? "成功" : "失败")}");
-        DisplayInventoryContents(innerContainer);
-
-        // 测试在背包间移动物品（通过 InventoryManager 以容器ID引用）
-        Debug.Log("1.4 从主背包取出物品放入小背包");
-        var bread = CreateGameItem("bread", "面包", true, 5, "Food");
-        playerBackpack.AddItems(bread, 2);
-        Debug.Log("主背包添加了2个面包:");
-        DisplayInventoryContents(playerBackpack);
-
-        Debug.Log("将面包从主背包移动到小背包中:");
-        var bread_slot = -1;
-        for (int i = 0; i < playerBackpack.Slots.Count; i++)
-        {
-            if (playerBackpack.Slots[i].IsOccupied && playerBackpack.Slots[i].Item.ID == "bread")
-            {
-                bread_slot = i;
-                break;
-            }
-        }
-
-        if (bread_slot != -1)
-        {
-            // 使用管理器按容器ID移动，避免直接依赖容器实例
-            var moved = _invMgr.MoveItem("main_backpack", bread_slot, "inner_container", -1);
-            Debug.Log($"移动结果: {(moved == InventoryManager.MoveResult.Success ? "成功" : "失败")}");
-
-            Debug.Log("移动后主背包内容:");
-            DisplayInventoryContents(playerBackpack);
-
-            Debug.Log("移动后小背包内容:");
-            DisplayInventoryContents(innerContainer);
-        }
-
-        Debug.Log("1.5 从主背包中取出小背包");
-        var backpack_slot = -1;
-        for (int i = 0; i < playerBackpack.Slots.Count; i++)
-        {
-            if (playerBackpack.Slots[i].IsOccupied && playerBackpack.Slots[i].Item.ID == "small_backpack")
-            {
-                backpack_slot = i;
-                break;
-            }
-        }
-
-        if (backpack_slot != -1)
-        {
-            Debug.Log($"移除小背包前，内部物品数量：药水x{innerContainer.GetItemTotalCount("potion")}，苹果x{innerContainer.GetItemTotalCount("apple")}，面包x{innerContainer.GetItemTotalCount("bread")}");
-            var removeResult2 = playerBackpack.RemoveItemAtIndex(backpack_slot);
-            Debug.Log($"移除小背包结果: {removeResult2}");
-            DisplayInventoryContents(playerBackpack);
-
-            Debug.Log("小背包被移除后，其内容仍然保持：");
-            DisplayInventoryContents(innerContainer);
-        }
-    }
-
-    /// <summary>
-    /// 测试背包事件系统
-    /// </summary>
-    private void TestEventSystem()
-    {
-        Debug.Log("\n【测试2】背包事件系统");
-
-        // 创建背包容器
-        var backpack = new LinerContainer("event_backpack", "事件测试背包", "Backpack", 5);
-
-        // 为了便于在日志中识别，添加前缀
-        Debug.Log("2.1 注册事件监听器");
-
-        // 注册添加物品结果事件（统一处理成功和失败）
-        backpack.OnItemAddResult += (item, requestedCount, actualCount, result, slots) => {
-            if (result == AddItemResult.Success)
-            {
-                Debug.Log($"[事件] 添加成功: {item.Name} x{actualCount}/{requestedCount} 到槽位: {string.Join(",", slots)}");
-            }
-            else
-            {
-                Debug.Log($"[事件] 添加失败: {item?.Name ?? "null"} x{requestedCount}, 原因: {result}");
-            }
-        };
-
-        // 注册移除物品结果事件（统一处理成功和失败）
-        backpack.OnItemRemoveResult += (itemId, requestedCount, actualCount, result, slots) => {
-            if (result == RemoveItemResult.Success)
-            {
-                Debug.Log($"[事件] 移除成功: 物品ID {itemId} x{actualCount}/{requestedCount} 从槽位: {string.Join(",", slots)}");
-            }
-            else
-            {
-                Debug.Log($"[事件] 移除失败: 物品ID {itemId} x{requestedCount}, 原因: {result}");
-            }
-        };
-
-        // 注册物品数量变更事件
-        backpack.OnSlotCountChanged += (slotIndex, item, oldCount, newCount) => {
-            Debug.Log($"[事件] 数量变更: 槽位 {slotIndex} 中 {item.Name} 从 {oldCount} 变为 {newCount}");
-        };
-
-        // 注册物品总数变更事件
-        backpack.OnItemTotalCountChanged += (itemId, item, oldTotal, newTotal) => {
-            Debug.Log($"[事件] 物品总量变更: {item?.Name ?? itemId} 总数从 {oldTotal} 变为 {newTotal}");
-        };
-
-        // 2.2 测试添加物品触发事件
-        Debug.Log("2.2 测试添加物品触发事件");
-        var apple = CreateGameItem("apple", "苹果", true, 5, "Food");
-        var sword = CreateGameItem("sword", "剑", false, 1, "Weapon");
-
-        Debug.Log("添加3个苹果到背包");
-        backpack.AddItems(apple, 3);
-
-        Debug.Log("添加1把剑到背包");
-        backpack.AddItems(sword);
-
-        // 2.3 测试添加失败事件
-        Debug.Log("2.3 测试添加失败事件");
-        Debug.Log("尝试添加null物品，应触发添加失败事件");
-        backpack.AddItems(null, 1);
-
-        // 添加超过容量的物品
-        var shield = CreateGameItem("shield", "盾", false, 1, "Weapon");
-        var bow = CreateGameItem("bow", "弓", false, 1, "Weapon");
-        var axe = CreateGameItem("axe", "斧", false, 1, "Weapon");
-        var hammer = CreateGameItem("hammer", "锤", false, 1, "Weapon");
-
-        Debug.Log("填满背包");
-        backpack.AddItems(shield);
-        backpack.AddItems(bow);
-        backpack.AddItems(axe);
-
-        Debug.Log("尝试添加锤到已满背包，应触发添加失败事件");
-        backpack.AddItems(hammer);
-
-        // 2.4 测试移除物品事件
-        Debug.Log("2.4 测试移除物品事件");
-        Debug.Log("从背包中移除1个苹果");
-        backpack.RemoveItem("apple", 1);
-
-        // 2.5 测试移除失败事件
-        Debug.Log("2.5 测试移除失败事件");
-        Debug.Log("尝试移除不存在的物品，应触发移除失败事件");
-        backpack.RemoveItem("banana", 1);
-
-        Debug.Log("尝试移除数量过多的物品，应触发移除失败事件");
-        backpack.RemoveItem("apple", 10);
-
-        // 2.6 测试物品总量变更事件
-        Debug.Log("2.6 测试物品总量变更事件");
-
-        // 创建新容器，专门测试总量事件
-        var testBag = new LinerContainer("total_test_bag", "总量测试背包", "Backpack", 10);
-
-        // 注册总量变更事件
-        testBag.OnItemTotalCountChanged += (itemId, item, oldTotal, newTotal) => {
-            Debug.Log($"[总量事件] 物品 {item?.Name ?? itemId} 总数从 {oldTotal} 变为 {newTotal}");
-        };
-
-        // 测试场景1：添加新物品
-        var potion = CreateGameItem("potion", "药水", true, 20, "Consumable");
-        Debug.Log("测试场景1: 添加新物品 - 5瓶药水");
-        testBag.AddItems(potion, 5);
-
-        // 测试场景2：添加已有物品，应该触发总量变化
-        Debug.Log("测试场景2: 再添加3瓶药水，总量应从5变为8");
-        testBag.AddItems(potion, 3);
-
-        // 测试场景3：添加不同物品
-        var gold = CreateGameItem("gold", "金币", true, 999, "Currency");
-        Debug.Log("测试场景3: 添加100金币");
-        testBag.AddItems(gold, 100);
-
-        // 测试场景4：移除部分物品
-        Debug.Log("测试场景4: 移除2瓶药水，总量应从8变为6");
-        testBag.RemoveItem("potion", 2);
-
-        // 测试场景5：移除全部物品
-        Debug.Log("测试场景5: 移除全部药水，总量应从6变为0");
-        testBag.RemoveItem("potion", 6);
-
-        // 测试场景6：移除部分金币
-        Debug.Log("测试场景6: 移除50金币，总量应从100变为50");
-        testBag.RemoveItem("gold", 50);
-
-        // 测试场景7：多槽位测试
-        Debug.Log("测试场景7: 添加多个堆叠上限为10的物品");
-        var gem = CreateGameItem("gem", "宝石", true, 10, "Gem");
-
-        // 添加25个宝石，应该分布在3个槽位中(10+10+5)
-        testBag.AddItems(gem, 25);
-        DisplayInventoryContents(testBag);
-
-        // 移除5个宝石，总数应从25变为20
-        Debug.Log("移除5个宝石，总量应变化");
-        testBag.RemoveItem("gem", 5);
-        DisplayInventoryContents(testBag);
-
-        // 移除11个宝石，应该移除一个满槽位，剩余9个在一个槽位中
-        Debug.Log("移除11个宝石");
-        testBag.RemoveItem("gem", 11);
-        DisplayInventoryContents(testBag);
-
-        // 显示最终背包内容
-        Debug.Log("最终背包内容:");
-        DisplayInventoryContents(backpack);
-    }
-
     private void ShowInventoryUseCases()
     {
         Debug.Log("===== 背包系统使用案例展示 =====");
@@ -308,8 +42,23 @@ public class InventoryExample : MonoBehaviour
         // 案例6: 背包整理功能
         ShowInventorySorting();
 
+        // 案例7: 序列化与反序列化
+        ShowInventorySerialization();
+
+        // 新增扩展示例（源于测试脚本中已有但示例未覆盖的功能）
+        ShowOrganizeInventory();                  // 案例8: OrganizeInventory 合并+排序
+        ShowAdvancedQueriesAndStatistics();       // 案例9: 各类查询与统计
+        ShowInventoryManagerBasics();             // 案例10: 容器注册/分类/优先级
+        ShowGlobalConditionsDemo();               // 案例11: 全局条件启用/禁用
+        ShowCrossContainerAdvancedOps();          // 案例12: Transfer / AutoMove / Batch / Distribute
+        ShowGlobalSearchDemo();                   // 案例13: 全局搜索与统计
+        ShowConditionAndAttributeSerialization(); // 案例14: 条件 + 属性序列化
+        ShowSlotAndCapacityEdgeCases();           // 案例15: 指定槽位/容量/满与空
+
+
         Debug.Log("===== 背包系统使用案例展示完成 =====");
     }
+
 
     // 案例1: 创建不同类型的容器
     private void ShowContainerCreation()
@@ -502,6 +251,325 @@ public class InventoryExample : MonoBehaviour
         DisplayInventoryContents(playerBackpack);
         Debug.Log("物品已按照类型(A消耗品 > B武器 > C防具 > D食物 > E货币)和名称排序");
     }
+
+    /// <summary>
+    /// 案例7: 序列化 / 反序列化（含完整 JSON 与精简 ID 模式）
+    /// </summary>
+    /// <summary>
+    /// 案例7: 序列化 / 反序列化（完整 JSON 模式）
+    /// </summary>
+    private void ShowInventorySerialization()
+    {
+        Debug.Log("案例7: 序列化 / 反序列化");
+
+        // 1. 创建一个容器并添加物品
+        var bag = new LinerContainer("serialize_demo_bag", "序列化演示背包", "Backpack", 12);
+        var potion = CreateGameItem("health_potion", "生命药水", true, 20, "Consumable");
+        var sword = CreateGameItem("iron_sword", "铁剑", false, 1, "Equipment");
+        var gem = CreateGameItem("ruby_gem", "红宝石", true, 50, "Gem");
+        gem.Attributes["Quality"] = "Rare";
+        gem.Attributes["Power"] = 12.5f;
+
+        bag.AddItems(potion, 15);
+        bag.AddItems(sword, 1);
+        bag.AddItems(gem, 7, slotIndex: 3);
+
+        Debug.Log("原始背包内容：");
+        DisplayInventoryContents(bag);
+
+        // 2. 序列化
+        string fullJson = ContainerSerializer.ToJson(bag, prettyPrint: true);
+        Debug.Log($"[完整 JSON]\n{fullJson}");
+
+        // 3. 反序列化为新实例并校验
+        var bagRestored = ContainerSerializer.FromJson(fullJson);
+        Debug.Log("反序列化后的背包内容：");
+        DisplayInventoryContents(bagRestored);
+
+        Debug.Assert(bagRestored.GetItemTotalCount("health_potion") == 15, "药水数量应保持 15");
+        Debug.Assert(bagRestored.GetItemTotalCount("iron_sword") == 1, "铁剑数量应保持 1");
+        Debug.Assert(bagRestored.GetItemTotalCount("ruby_gem") == 7, "红宝石数量应保持 7");
+
+        // 4. 修改原背包验证独立性
+        bag.RemoveItem("health_potion", 5);
+        Debug.Log($"修改原背包后验证独立性：原={bag.GetItemTotalCount("health_potion")}, 反序列化副本={bagRestored.GetItemTotalCount("health_potion")} (应仍为15)");
+
+        Debug.Log("案例7 序列化 / 反序列化 完成\n");
+    }
+
+    // 案例8: OrganizeInventory（与 SortInventory 区别：会先合并可堆叠，再排序并紧凑化槽位）
+    private void ShowOrganizeInventory()
+    {
+        Debug.Log("案例8: OrganizeInventory 合并与紧凑整理");
+        var bag = new LinerContainer("organize_demo", "整理演示包", "Backpack", 12);
+
+        var apple = CreateGameItem("apple", "苹果", true, 10, "Food");
+        var potion = CreateGameItem("potion", "药水", true, 20, "Consumable");
+        var sword = CreateGameItem("iron_sword", "铁剑", false, 1, "Weapon");
+
+        bag.AddItems(apple, 7, 0);   // 0: 7
+        bag.AddItems(apple, 9, 3);   // 3: 9 -> 会与0合并成 10 + 6
+        bag.AddItems(potion, 15, 6); // 6: 15
+        bag.AddItems(potion, 8, 8);  // 8: 8 -> 合并 20 + 3
+        bag.AddItems(sword, 5);      // 若不可堆叠多把占多个槽
+
+        Debug.Log("整理前：");
+        DisplayInventoryContents(bag);
+
+        bag.OrganizeInventory();
+
+        Debug.Log("Organize 后（应合并堆叠并紧凑排序）：");
+        DisplayInventoryContents(bag);
+    }
+
+    // 案例9: 查询与统计（HasItem / 计数 / 按类型/属性/名称 / 自定义条件 / 总重量 / 唯一物品数）
+    private void ShowAdvancedQueriesAndStatistics()
+    {
+        Debug.Log("案例9: 高级查询与统计");
+        var bag = new LinerContainer("query_demo", "查询演示包", "Backpack", 10);
+
+        var ironSword = CreateGameItem("iron_sword", "铁剑", false, 1, "Weapon");
+        ironSword.Attributes["Damage"] = 12;
+        ironSword.Attributes["Material"] = "Iron";
+
+        var steelSword = CreateGameItem("steel_sword", "钢剑", false, 1, "Weapon");
+        steelSword.Attributes["Damage"] = 18;
+        steelSword.Attributes["Material"] = "Steel";
+
+        var hp = CreateGameItem("health_potion", "生命药水", true, 20, "Potion");
+        hp.Attributes["Healing"] = 50;
+
+        var mp = CreateGameItem("mana_potion", "魔法药水", true, 20, "Potion");
+        mp.Attributes["Mana"] = 40;
+
+        bag.AddItems(ironSword);
+        bag.AddItems(steelSword);
+        bag.AddItems(hp, 7);
+        bag.AddItems(mp, 5);
+
+        Debug.Log($"HasItem(iron_sword) = {bag.HasItem("iron_sword")}");
+        Debug.Log($"生命药水总数 = {bag.GetItemTotalCount("health_potion")}");
+        Debug.Log($"唯一物品种类数 = {bag.GetUniqueItemCount()}");
+        Debug.Log($"总重量 = {bag.GetTotalWeight()}");
+
+        var weapons = bag.GetItemsByType("Weapon");
+        Debug.Log($"武器条目数={weapons.Count}");
+
+        var ironStuff = bag.GetItemsByAttribute("Material", "Iron");
+        Debug.Log($"材质=Iron 条目数={ironStuff.Count}");
+
+        var nameLike = bag.GetItemsByName("药水");
+        Debug.Log($"名称包含 '药水' 的条目数={nameLike.Count}");
+
+        var highDamage = bag.GetItemsWhere(i => i.Type == "Weapon" && i.Attributes.ContainsKey("Damage") && (int)i.Attributes["Damage"] >= 15);
+        Debug.Log($"高伤害武器条目数(>=15)={highDamage.Count}");
+    }
+    // 案例10: InventoryManager 基础（注册 / 分类 / 优先级 / 查询）
+    private void ShowInventoryManagerBasics()
+    {
+        Debug.Log("案例10: InventoryManager 注册 / 分类 / 优先级");
+        var mgr = new InventoryManager();
+        var bag1 = new LinerContainer("player_bag1", "玩家背包1", "Backpack", 10);
+        var bag2 = new LinerContainer("player_bag2", "玩家背包2", "Backpack", 15);
+        var chest = new LinerContainer("home_chest", "家用储物箱", "Storage", 30);
+
+        mgr.RegisterContainer(bag1, priority: 100, category: "Player");
+        mgr.RegisterContainer(bag2, priority: 80, category: "Player");
+        mgr.RegisterContainer(chest, priority: 20, category: "Home");
+
+        var byType = mgr.GetContainersByType("Backpack");
+        Debug.Log($"类型=Backpack 数量={byType.Count}");
+
+        var byCat = mgr.GetContainersByCategory("Player");
+        Debug.Log($"分类=Player 数量={byCat.Count}");
+
+        var ordered = mgr.GetContainersByPriority();
+        Debug.Log($"优先级最高={ordered[0].Name}");
+    }
+
+    // 案例11: 全局条件（启用 / 禁用）
+    private void ShowGlobalConditionsDemo()
+    {
+        Debug.Log("案例11: 全局物品条件");
+        var mgr = new InventoryManager();
+
+        var bag = new LinerContainer("gcond_bag", "全局条件背包", "Backpack", 8);
+        var chest = new LinerContainer("gcond_chest", "全局条件箱", "Storage", 8);
+        mgr.RegisterContainer(bag);
+        mgr.RegisterContainer(chest);
+
+        // 添加全局条件：只允许 Weapon 且 属性 Rarity == Rare
+        var typeCond = new ItemTypeCondition("Weapon");
+        var rarityCond = new AttributeCondition("Rarity", "Rare");
+        mgr.AddGlobalItemCondition(typeCond);
+        mgr.AddGlobalItemCondition(rarityCond);
+
+        // 启用
+        mgr.SetGlobalConditionsEnabled(true);
+
+        var rareSword = CreateGameItem("rare_sword", "稀有剑", false, 1, "Weapon");
+        rareSword.Attributes["Rarity"] = "Rare";
+
+        var commonSword = CreateGameItem("common_sword", "普通剑", false, 1, "Weapon");
+        commonSword.Attributes["Rarity"] = "Common";
+
+        var potion = CreateGameItem("potion", "药水", true, 10, "Consumable");
+        potion.Attributes["Rarity"] = "Rare";
+
+        var (r1, _) = bag.AddItems(rareSword);
+        var (r2, _) = bag.AddItems(commonSword);
+        var (r3, _) = bag.AddItems(potion);
+
+        Debug.Log($"添加稀有剑结果={r1} (应 Success)");
+        Debug.Log($"添加普通剑结果={r2} (应 ItemConditionNotMet)");
+        Debug.Log($"添加药水结果={r3} (应 ItemConditionNotMet)");
+
+        // 关闭全局条件再试
+        mgr.SetGlobalConditionsEnabled(false);
+        var (r4, _) = bag.AddItems(potion);
+        Debug.Log($"关闭后添加药水结果={r4} (应 Success)");
+    }
+    // 案例12: 跨容器高级操作（Transfer / AutoMove / BatchMove / Distribute）
+    private void ShowCrossContainerAdvancedOps()
+    {
+        Debug.Log("案例12: 跨容器高级操作");
+        var mgr = new InventoryManager();
+        var src = new LinerContainer("src_bag", "源包", "Backpack", 12);
+        var dst = new LinerContainer("dst_bag", "目标包", "Backpack", 12);
+        var extra = new LinerContainer("extra_bag", "额外包", "Backpack", 12);
+        mgr.RegisterContainer(src);
+        mgr.RegisterContainer(dst);
+        mgr.RegisterContainer(extra);
+
+        var apple = CreateGameItem("apple", "苹果", true, 10, "Food");
+        src.AddItems(apple, 23); // 10 + 10 + 3
+
+        // Transfer 指定数量
+        var (trRes, movedCount) = mgr.TransferItems("apple", 8, "src_bag", "dst_bag");
+        Debug.Log($"Transfer 8苹果 结果={trRes} 实际移动={movedCount}");
+
+        // AutoMove 剩余全部
+        var (autoRes, autoCount) = mgr.AutoMoveItem("apple", "src_bag", "dst_bag");
+        Debug.Log($"AutoMove 剩余苹果 结果={autoRes} 移动={autoCount}");
+
+        // BatchMove （构造一个移动列表 - 这里移动 dst 的第0槽到 extra）
+        var batch = new List<InventoryManager.MoveRequest>
+        {
+            new InventoryManager.MoveRequest("dst_bag", 0, "extra_bag"),
+            new InventoryManager.MoveRequest("dst_bag", 1, "extra_bag")
+        };
+        var batchResults = mgr.BatchMoveItems(batch);
+        Debug.Log($"BatchMove 条目数={batchResults.Count}");
+
+        // Distribute 分发（把 125 个苹果按顺序分配回三个容器）
+        var distItem = CreateGameItem("apple", "苹果", true, 10, "Food");
+        var distribution = mgr.DistributeItems(distItem, 125, new List<string> { "src_bag", "dst_bag", "extra_bag" });
+        Debug.Log($"分发苹果结果: {string.Join(";", distribution)}");
+    }
+
+    // 案例13: 全局搜索 (FindItemGlobally / GetGlobalItemCount / 按类型/名称/属性搜索)
+    private void ShowGlobalSearchDemo()
+    {
+        Debug.Log("案例13: 全局搜索");
+        var mgr = new InventoryManager();
+        var b1 = new LinerContainer("gs_b1", "包1", "Backpack", 10);
+        var b2 = new LinerContainer("gs_b2", "包2", "Backpack", 10);
+        var eq = new LinerContainer("gs_equip", "装备栏", "Equipment", 6);
+        mgr.RegisterContainer(b1);
+        mgr.RegisterContainer(b2);
+        mgr.RegisterContainer(eq);
+
+        var apple = CreateGameItem("apple", "苹果", true, 10, "Food");
+        var sword = CreateGameItem("sword", "剑", false, 1, "Weapon");
+        sword.Attributes["Material"] = "Iron";
+        var potion = CreateGameItem("potion", "药水", true, 20, "Consumable");
+
+        b1.AddItems(apple, 7);
+        b2.AddItems(apple, 11);
+        b1.AddItems(potion, 5);
+        eq.AddItems(sword);
+
+        var applePositions = mgr.FindItemGlobally("apple");
+        Debug.Log($"全局找到苹果位置条数={applePositions.Count} 全局数量={mgr.GetGlobalItemCount("apple")}");
+
+        var containersHavingSword = mgr.FindContainersWithItem("sword");
+        Debug.Log($"持有剑的容器数={containersHavingSword.Count}");
+
+        var typeSearch = mgr.SearchItemsByType("Weapon");
+        Debug.Log($"按类型Weapon搜索数={typeSearch.Count}");
+
+        var nameSearch = mgr.SearchItemsByName("药水");
+        Debug.Log($"名称包含'药水'={nameSearch.Count}");
+
+        var attrSearch = mgr.SearchItemsByAttribute("Material", "Iron");
+        Debug.Log($"属性 Material=Iron 条目={attrSearch.Count}");
+    }
+
+    // 案例14: 条件 + 属性 序列化验证
+    private void ShowConditionAndAttributeSerialization()
+    {
+        Debug.Log("案例14: 条件与属性序列化");
+        var chest = new LinerContainer("cond_serial_chest", "条件箱", "Chest", 6);
+        chest.ContainerCondition.Add(new ItemTypeCondition("Gem"));
+        chest.ContainerCondition.Add(new AttributeCondition("Level", 5, AttributeComparisonType.GreaterThanOrEqual));
+
+        var gem = CreateGameItem("mystic_gem", "秘法宝石", true, 30, "Gem");
+        gem.Attributes["Level"] = 8;
+        gem.Attributes["Quality"] = "Epic";
+        chest.AddItems(gem, 12);
+
+        string json = ContainerSerializer.ToJson(chest, true);
+        Debug.Log("[序列化 JSON]\n" + json);
+
+        var restored = ContainerSerializer.FromJson(json);
+        Debug.Log("反序列化后内容：");
+        DisplayInventoryContents(restored);
+
+        // 验证条件功能仍有效
+        var lowGem = CreateGameItem("low_gem", "低阶宝石", true, 30, "Gem");
+        lowGem.Attributes["Level"] = 2;
+        var (rAdd, _) = restored.AddItems(lowGem, 1);
+        Debug.Log($"向反序列化容器添加低阶宝石结果={rAdd} (应 ItemConditionNotMet)");
+
+        // 验证属性保持
+        var idx = restored.FindFirstSlotIndex("mystic_gem");
+        if (idx >= 0)
+        {
+            var slot = restored.Slots[idx];
+            Debug.Log($"宝石属性: Level={slot.Item.Attributes["Level"]}, Quality={slot.Item.Attributes["Quality"]}");
+        }
+    }
+
+    // 案例15: 指定槽位添加 / 容量限制 / Full 与 IsEmpty
+    private void ShowSlotAndCapacityEdgeCases()
+    {
+        Debug.Log("案例15: 槽位与容量边界");
+        var limited = new LinerContainer("limited_bag", "有限包", "Backpack", 3);
+        var itemA = CreateGameItem("a_item", "物品A", false, 1, "Misc");
+        var itemB = CreateGameItem("b_item", "物品B", false, 1, "Misc");
+
+        // 指定槽位
+        limited.AddItems(itemA, 1, slotIndex: 2);
+        Debug.Log("指定槽位2放入物品A");
+        DisplayInventoryContents(limited);
+
+        // 再放不同物品到同槽 -> 应失败
+        var (resFail, _) = limited.AddItems(itemB, 1, slotIndex: 2);
+        Debug.Log($"尝试在已占用不同物品槽添加 => {resFail}");
+
+        // 填满
+        limited.AddItems(itemB);              // 自动填0
+        limited.AddItems(itemB.Clone());      // 自动填1
+        Debug.Log($"Full = {limited.Full} (应为 True)");
+        DisplayInventoryContents(limited);
+
+        // 移除全部
+        limited.RemoveItemAtIndex(0);
+        limited.RemoveItemAtIndex(1);
+        limited.RemoveItemAtIndex(2);
+        Debug.Log($"清空后 IsEmpty={limited.IsEmpty()} Full={limited.Full}");
+    }
+
 
     // 辅助方法: 创建游戏物品
     private IItem CreateGameItem(string id, string name, bool isStackable, int maxStack = 1, string type = "Default")
