@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -9,7 +8,7 @@ namespace EasyPack
     /// EmeCard 系统示例：
     /// 展示卡牌容器、标签、固有子卡、事件、规则匹配、效果管线与产卡工厂。
     /// </summary>
-    public class EmeCardExample : MonoBehaviour
+    public partial class EmeCardExample : MonoBehaviour
     {
         private CardRuleEngine _engine;
         private CardFactory _factory;
@@ -51,14 +50,6 @@ namespace EasyPack
                         t.AddTag(Tag);
                 }
             }
-        }
-
-        // 示例用：执行任意委托的效果，便于演示链式事件触发/日志等
-        private sealed class InvokeEffect : IRuleEffect
-        {
-            private readonly System.Action<CardRuleContext, IReadOnlyList<Card>> _action;
-            public InvokeEffect(System.Action<CardRuleContext, IReadOnlyList<Card>> action) => _action = action;
-            public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched) => _action?.Invoke(ctx, matched);
         }
 
         void Start()
@@ -138,13 +129,18 @@ namespace EasyPack
             {
                 Trigger = CardEventType.Tick,
                 Scope = RuleScope.Owner,
-                ConsumeInputs = true,
                 Requirements = new List<CardRequirement>
                 {
                     new CardRequirement { Kind = MatchKind.Tag, Value = "可燃烧", MinCount = 1 },
                     new CardRequirement { Kind = MatchKind.Tag, Value = "火",     MinCount = 1 }
                 },
-                OutputCardIds = new List<string> { "灰烬" }
+                Effects = new List<IRuleEffect>
+                {
+                    // 先移除匹配到的输入（含“可燃烧”“火”）
+                    new RemoveCardsEffect { TargetKind = TargetKind.Matched },
+                    // 再产出“灰烬”
+                    new CreateCardsEffect { CardIds = new List<string> { "灰烬" } }
+                }
             });
 
             fire.Tick(1f); // 本次 Tick 将匹配并执行燃烧配方
@@ -164,14 +160,19 @@ namespace EasyPack
             {
                 Trigger = CardEventType.Use,
                 Scope = RuleScope.Owner,
-                ConsumeInputs = true,
                 Requirements = new List<CardRequirement>
                 {
                     new CardRequirement { Kind = MatchKind.Tag, Value = "制作", MinCount = 1, IncludeSelf = true },
                     new CardRequirement { Kind = MatchKind.Id,  Value = "树木", MinCount = 1 },
                     new CardRequirement { Kind = MatchKind.Tag, Value = "火",   MinCount = 1 },
                 },
-                OutputCardIds = new List<string> { "灰烬" }
+                Effects = new List<IRuleEffect>
+                {
+                    // 精确移除“树木”“火”，不移除“制作”本体
+                    new RemoveCardsEffect { TargetKind = TargetKind.ById,  TargetValueFilter = "树木" },
+                    new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "火"   },
+                    new CreateCardsEffect { CardIds = new List<string> { "灰烬" } }
+                }
             });
 
             make.Use(); // 主动触发制作
@@ -244,16 +245,19 @@ namespace EasyPack
                 Trigger = CardEventType.Condition,
                 CustomId = "PlayerEnter",
                 Scope = RuleScope.Self, // 在地块自身容器范围内匹配
-                ConsumeInputs = true,
                 Requirements = new List<CardRequirement>
                 {
                     new CardRequirement { Kind = MatchKind.Tag, Value = "草地", MinCount = 1, IncludeSelf = true }, // 匹配容器自身
                     new CardRequirement { Kind = MatchKind.Tag, Value = "树木", MinCount = 1 },
                     new CardRequirement { Kind = MatchKind.Tag, Value = "火",   MinCount = 1 },
                 },
-                OutputCardIds = new List<string> { "灰烬" },
                 Effects = new List<IRuleEffect>
                 {
+                    // 产出/消耗通过效果管线完成
+                    new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "树木" },
+                    new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "火"   },
+                    new CreateCardsEffect { CardIds = new List<string> { "灰烬" } },
+
                     // 链式事件：让进入者（事件Data携带的玩家）获得经验
                     new InvokeEffect((ctx, matched) =>
                     {
