@@ -1,0 +1,34 @@
+using System;
+using System.Collections.Generic;
+
+namespace EasyPack
+{
+    // 按 ID 创建卡牌实例
+    public interface ICardFactory
+    {
+        Card Create(string id);
+    }
+
+    public sealed class CardFactory : ICardFactory
+    {
+        private readonly Dictionary<string, Func<Card>> _constructors = new Dictionary<string, Func<Card>>(StringComparer.Ordinal);
+
+        public void Register(string id, Func<Card> ctor)
+        {
+            if (string.IsNullOrEmpty(id)) throw new ArgumentNullException(nameof(id));
+            if (ctor == null) throw new ArgumentNullException(nameof(ctor));
+            _constructors[id] = ctor;
+        }
+
+        public Card Create(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            Func<Card> ctor;
+            if (_constructors.TryGetValue(id, out ctor))
+            {
+                return ctor();
+            }
+            return null;
+        }
+    }
+}
