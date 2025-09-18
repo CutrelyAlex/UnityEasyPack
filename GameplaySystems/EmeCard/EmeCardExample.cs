@@ -236,18 +236,16 @@ namespace EasyPack
             _engine.Attach(tileDirt);
             _engine.Attach(player);
 
-            // 规则1：条件触发 + 复杂组合（容器自身 + 容器内多素材）
-            // 当：有玩家进入“草地格”（由地块触发 Condition("PlayerEnter")）
-            // 且：容器是“草地”（匹配容器自身标签），并且容器内同时存在“树木”和“火”
-            // 则：消耗“树木”和“火”，生成“灰烬”；然后链式触发玩家获得经验事件（Custom("GainXP")）。
+            // 规则1：玩家进入草地格 -> 燃烧树木+火 -> 产出灰烬 -> 链式给玩家加经验
             _engine.RegisterRule(new CardRule
             {
                 Trigger = CardEventType.Custom,
-                CustomId = "PlayerEnter",
-                Scope = RuleScope.Self,
+                Scope = RuleScope.Self, // 在地块自身容器范围内匹配
                 Requirements = new List<IRuleRequirement>
                 {
-                    new CardRequirement { Kind = MatchKind.Tag, Value = "草地", MinCount = 1, IncludeSelf = true },
+                    // 用 Requirement 而非 CustomId 表达事件过滤
+                    new ConditionRequirement(ctx => ctx.Event.ID == "PlayerEnter"),
+                    new CardRequirement { Kind = MatchKind.Tag, Value = "草地", MinCount = 1, IncludeSelf = true }, // 匹配容器自身
                     new CardRequirement { Kind = MatchKind.Tag, Value = "树木", MinCount = 1 },
                     new CardRequirement { Kind = MatchKind.Tag, Value = "火",   MinCount = 1 },
                 },
@@ -256,6 +254,7 @@ namespace EasyPack
                     new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "树木" },
                     new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "火"   },
                     new CreateCardsEffect { CardIds = new List<string> { "灰烬" } },
+                    // 链式事件：让进入者（事件Data携带的玩家）获得经验
                     new InvokeEffect((ctx, matched) =>
                     {
                         var p = ctx.Event.Data as Card;
@@ -272,8 +271,11 @@ namespace EasyPack
             _engine.RegisterRule(new CardRule
             {
                 Trigger = CardEventType.Custom,
-                CustomId = "GainXP",
                 Scope = RuleScope.Self, // 事件源就是玩家自身
+                Requirements = new List<IRuleRequirement>
+                {
+                    new ConditionRequirement(ctx => ctx.Event.ID == "GainXP"),
+                },
                 Effects = new List<IRuleEffect>
                 {
                     new ModifyPropertyEffect
@@ -290,18 +292,20 @@ namespace EasyPack
                 }
             });
 
-            // 规则3：时间切换（条件触发）演示
-            // 夜晚到来时（Condition("TimeNight")）地块内“火把”获得“火”标签（点燃）
+            // 用于模拟“是否为夜晚”的条件变量
+            bool isNight = false;
+
+            // 规则3：时间切换演示（改为 Tick + ConditionRequirement）——夜晚点燃火把（添加“火”标签）
             var torch = new SimpleCard(new CardData("火把", "火把", "", CardCategory.Item), null, "火把");
             tileGrass.AddChild(torch);
 
             _engine.RegisterRule(new CardRule
             {
-                Trigger = CardEventType.Custom,
-                CustomId = "TimeNight",
-                Scope = RuleScope.Self,
+                Trigger = CardEventType.Tick, // 改为 Tick
+                Scope = RuleScope.Self, // 由地块触发
                 Requirements = new List<IRuleRequirement>
                 {
+                    new ConditionRequirement(ctx => isNight), // 仅在夜晚为真时命中
                     new CardRequirement { Kind = MatchKind.Tag, Value = "草地", MinCount = 1, IncludeSelf = true },
                     new CardRequirement { Kind = MatchKind.Tag, Value = "火把", MinCount = 1 }
                 },
@@ -317,7 +321,7 @@ namespace EasyPack
             // 玩家移动到泥地格：从草地移除 -> 加入泥地
             if (player.Owner != null) player.Owner.RemoveChild(player);
             tileDirt.AddChild(player);
-            // 触发“进入泥地”条件（这里无规则响应，只作演示）
+            // 触发“进入泥地”（这里无规则响应，只作演示）
             tileDirt.Custom("PlayerEnter", player);
             Debug.Log("玩家移动到泥地格");
 
@@ -328,9 +332,14 @@ namespace EasyPack
 
             PrintChildren(tileGrass, "进入草地后（执行燃烧与经验链式）");
 
-            // 夜晚到来：触发时间条件 -> 规则3 点燃火把（添加“火”标签）
-            tileGrass.Custom("TimeNight", null);
+            // 夜晚到来：设置 isNight 为 true -> Tick 一次触发规则3
+            tileGrass.Tick(1f);
             Debug.Log($"火把是否带有'火'标签: {torch.HasTag("火")}");
+            isNight = true;
+            tileGrass.Tick(1f);
+            Debug.Log($"火把是否带有'火'标签: {torch.HasTag("火")}");
+            // 恢复为白天
+            isNight = false;
 
             Debug.Log("\n=== EmeCard 条件/组合/事件流 示例结束 ===");
         }
