@@ -6,24 +6,17 @@ namespace EasyPack
 {
     /// <summary>
     /// 规则引擎：
-    /// - 通过订阅卡牌事件（<see cref="Attach(Card)"/>）接入事件流；
-    /// - 按事件类型分派规则，进行作用域选择与条件匹配；
-    /// - 命中时执行效果管线（效果可自行进行消耗/产出等操作，如 RemoveCardsEffect/CreateCardsEffect）。
+    /// - 通过订阅卡牌事件（Attach）接入事件流；
+    /// - 按事件类型分派规则，进行作用域选择与要求项匹配；
+    /// - 命中时执行效果管线（效果可进行消耗/产出等操作）。
     /// </summary>
     public sealed class CardRuleEngine
     {
         private readonly Dictionary<CardEventType, List<CardRule>> _rules = new Dictionary<CardEventType, List<CardRule>>();
 
-        /// <summary>
-        /// 可选的卡牌工厂，供产卡类效果使用（如 <c>CreateCardsEffect</c>）。
-        /// 不设置则不产卡，但其他效果仍可执行。
-        /// </summary>
+        /// <summary>可选的卡牌工厂，供产卡类效果使用。</summary>
         public ICardFactory CardFactory { get; set; }
 
-        /// <summary>
-        /// 创建规则引擎实例。
-        /// </summary>
-        /// <param name="factory">可选的卡牌工厂，用于生成效果产物。</param>
         public CardRuleEngine(ICardFactory factory = null)
         {
             CardFactory = factory;
@@ -31,19 +24,12 @@ namespace EasyPack
                 _rules[t] = new List<CardRule>();
         }
 
-        /// <summary>
-        /// 注册一条规则。
-        /// </summary>
-        /// <param name="rule">要注册的规则实例。</param>
         public void RegisterRule(CardRule rule)
         {
             if (rule == null) throw new ArgumentNullException(nameof(rule));
             _rules[rule.Trigger].Add(rule);
         }
 
-        /// <summary>
-        /// 接入/断开卡牌事件。
-        /// </summary>
         public void Attach(Card card) => card.OnEvent += Handle;
         public void Detach(Card card) => card.OnEvent -= Handle;
 
@@ -55,7 +41,7 @@ namespace EasyPack
 
             foreach (var rule in rules)
             {
-                if ((evt.Type == CardEventType.Custom || evt.Type == CardEventType.Condition) &&
+                if (evt.Type == CardEventType.Custom &&
                     !string.IsNullOrEmpty(rule.CustomId) &&
                     !string.Equals(rule.CustomId, evt.ID, StringComparison.Ordinal))
                 {
@@ -65,17 +51,16 @@ namespace EasyPack
                 var container = SelectContainer(rule.Scope, source);
                 if (container == null) continue;
 
-                if (TryMatch(container, source, rule, out var matched))
+                var ctx = new CardRuleContext
                 {
-                    var ctx = new CardRuleContext
-                    {
-                        Source = source,
-                        Container = container,
-                        Event = evt,
-                        Factory = CardFactory
-                    };
+                    Source = source,
+                    Container = container,
+                    Event = evt,
+                    Factory = CardFactory
+                };
 
-                    // 执行效果管线
+                if (TryMatch(ctx, rule.Requirements, out var matched))
+                {
                     if (rule.Effects != null && rule.Effects.Count > 0)
                     {
                         foreach (var eff in rule.Effects)
@@ -95,38 +80,20 @@ namespace EasyPack
             }
         }
 
-        private static bool TryMatch(Card container, Card source, CardRule rule, out List<Card> matched)
+        private static bool TryMatch(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll)
         {
-            matched = new List<Card>();
-            IEnumerable<Card> poolBase = container.Children;
+            matchedAll = new List<Card>();
+            if (requirements == null || requirements.Count == 0) return true; // 无要求项视为命中
 
-            foreach (var req in rule.Requirements)
+            foreach (var req in requirements)
             {
-                IEnumerable<Card> pool = poolBase;
+                if (req == null) return false;
 
-                if (req.IncludeSelf)
-                {
-                    if (ReferenceEquals(container, source)) pool = pool.Concat(new[] { container });
-                    else if (ReferenceEquals(container, source.Owner)) pool = pool.Concat(new[] { source });
-                }
-
-                var picks = new List<Card>();
-                foreach (var c in pool)
-                {
-                    if (req.Matches(c))
-                    {
-                        picks.Add(c);
-                        if (picks.Count >= req.MinCount) break;
-                    }
-                }
-
-                if (picks.Count < req.MinCount)
-                {
-                    matched.Clear();
+                if (!req.TryMatch(ctx, out var picks))
                     return false;
-                }
 
-                matched.AddRange(picks);
+                if (picks != null && picks.Count > 0)
+                    matchedAll.AddRange(picks);
             }
 
             return true;

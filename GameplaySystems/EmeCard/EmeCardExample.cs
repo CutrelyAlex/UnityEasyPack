@@ -103,7 +103,7 @@ namespace EasyPack
             {
                 Trigger = CardEventType.Tick,
                 Scope = RuleScope.Owner,
-                Requirements = new List<CardRequirement>
+                Requirements = new List<IRuleRequirement>
                 {
                     new CardRequirement { Kind = MatchKind.Tag, Value = "火", MinCount = 1 }
                 },
@@ -129,7 +129,7 @@ namespace EasyPack
             {
                 Trigger = CardEventType.Tick,
                 Scope = RuleScope.Owner,
-                Requirements = new List<CardRequirement>
+                Requirements = new List<IRuleRequirement>
                 {
                     new CardRequirement { Kind = MatchKind.Tag, Value = "可燃烧", MinCount = 1 },
                     new CardRequirement { Kind = MatchKind.Tag, Value = "火",     MinCount = 1 }
@@ -160,7 +160,7 @@ namespace EasyPack
             {
                 Trigger = CardEventType.Use,
                 Scope = RuleScope.Owner,
-                Requirements = new List<CardRequirement>
+                Requirements = new List<IRuleRequirement>
                 {
                     new CardRequirement { Kind = MatchKind.Tag, Value = "制作", MinCount = 1, IncludeSelf = true },
                     new CardRequirement { Kind = MatchKind.Id,  Value = "树木", MinCount = 1 },
@@ -187,7 +187,7 @@ namespace EasyPack
             {
                 Trigger = CardEventType.Use,
                 Scope = RuleScope.Owner,
-                Requirements = new List<CardRequirement>
+                Requirements = new List<IRuleRequirement>
                 {
                     new CardRequirement { Kind = MatchKind.Tag, Value = "砍",  MinCount = 1, IncludeSelf = true },
                     new CardRequirement { Kind = MatchKind.Id,  Value = "树木", MinCount = 1 },
@@ -242,30 +242,27 @@ namespace EasyPack
             // 则：消耗“树木”和“火”，生成“灰烬”；然后链式触发玩家获得经验事件（Custom("GainXP")）。
             _engine.RegisterRule(new CardRule
             {
-                Trigger = CardEventType.Condition,
+                Trigger = CardEventType.Custom,
                 CustomId = "PlayerEnter",
-                Scope = RuleScope.Self, // 在地块自身容器范围内匹配
-                Requirements = new List<CardRequirement>
+                Scope = RuleScope.Self,
+                Requirements = new List<IRuleRequirement>
                 {
-                    new CardRequirement { Kind = MatchKind.Tag, Value = "草地", MinCount = 1, IncludeSelf = true }, // 匹配容器自身
+                    new CardRequirement { Kind = MatchKind.Tag, Value = "草地", MinCount = 1, IncludeSelf = true },
                     new CardRequirement { Kind = MatchKind.Tag, Value = "树木", MinCount = 1 },
                     new CardRequirement { Kind = MatchKind.Tag, Value = "火",   MinCount = 1 },
                 },
                 Effects = new List<IRuleEffect>
                 {
-                    // 产出/消耗通过效果管线完成
                     new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "树木" },
                     new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "火"   },
                     new CreateCardsEffect { CardIds = new List<string> { "灰烬" } },
-
-                    // 链式事件：让进入者（事件Data携带的玩家）获得经验
                     new InvokeEffect((ctx, matched) =>
                     {
                         var p = ctx.Event.Data as Card;
                         if (p != null)
                         {
                             p.Custom("GainXP", 10f);
-                            Debug.Log($"[条件-进入草地] 触发链式事件：玩家获得经验 +10");
+                            Debug.Log($"[进入草地] 触发链式事件：玩家获得经验 +10");
                         }
                     })
                 }
@@ -300,10 +297,10 @@ namespace EasyPack
 
             _engine.RegisterRule(new CardRule
             {
-                Trigger = CardEventType.Condition,
+                Trigger = CardEventType.Custom,
                 CustomId = "TimeNight",
-                Scope = RuleScope.Self, // 由某一格或“世界”触发，这里演示从地块触发
-                Requirements = new List<CardRequirement>
+                Scope = RuleScope.Self,
+                Requirements = new List<IRuleRequirement>
                 {
                     new CardRequirement { Kind = MatchKind.Tag, Value = "草地", MinCount = 1, IncludeSelf = true },
                     new CardRequirement { Kind = MatchKind.Tag, Value = "火把", MinCount = 1 }
@@ -321,18 +318,18 @@ namespace EasyPack
             if (player.Owner != null) player.Owner.RemoveChild(player);
             tileDirt.AddChild(player);
             // 触发“进入泥地”条件（这里无规则响应，只作演示）
-            tileDirt.Condition("PlayerEnter", player);
+            tileDirt.Custom("PlayerEnter", player);
             Debug.Log("玩家移动到泥地格");
 
             // 玩家再移动回草地格：将触发“进入草地”的条件 -> 执行规则1（燃烧树木+火 -> 灰烬；链式触发玩家GainXP -> 规则2修改XP）
             if (player.Owner != null) player.Owner.RemoveChild(player);
             tileGrass.AddChild(player);
-            tileGrass.Condition("PlayerEnter", player);
+            tileGrass.Custom("PlayerEnter", player);
 
             PrintChildren(tileGrass, "进入草地后（执行燃烧与经验链式）");
 
             // 夜晚到来：触发时间条件 -> 规则3 点燃火把（添加“火”标签）
-            tileGrass.Condition("TimeNight", null);
+            tileGrass.Custom("TimeNight", null);
             Debug.Log($"火把是否带有'火'标签: {torch.HasTag("火")}");
 
             Debug.Log("\n=== EmeCard 条件/组合/事件流 示例结束 ===");

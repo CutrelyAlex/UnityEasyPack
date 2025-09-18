@@ -1,11 +1,16 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace EasyPack
 {
     /// <summary>
-    /// 单个卡牌匹配条件。
+    /// 单个卡牌匹配条件（基于容器子卡的筛选）：
+    /// - 支持标签/ID/类别；
+    /// - 支持 MinCount 与 IncludeSelf；
+    /// - 命中会返回被选中的卡牌列表（最多 MinCount 个）。
     /// </summary>
-    public sealed class CardRequirement
+    public sealed class CardRequirement : IRuleRequirement
     {
         /// <summary>
         /// 匹配方式（标签/ID/类别）。
@@ -35,8 +40,6 @@ namespace EasyPack
         /// <summary>
         /// 判断指定卡牌是否满足该条件。
         /// </summary>
-        /// <param name="c">待检查的卡牌。</param>
-        /// <returns>满足则返回 true。</returns>
         public bool Matches(Card c)
         {
             switch (Kind)
@@ -46,6 +49,36 @@ namespace EasyPack
                 case MatchKind.Category: return Category.HasValue && c.Category == Category.Value;
                 default: return false;
             }
+        }
+
+        /// <summary>
+        /// 在容器上下文中尝试匹配，命中返回至多 MinCount 张卡。
+        /// </summary>
+        public bool TryMatch(CardRuleContext ctx, out List<Card> matched)
+        {
+            matched = new List<Card>();
+            if (ctx == null || ctx.Container == null) return false;
+
+            IEnumerable<Card> pool = ctx.Container.Children;
+
+            if (IncludeSelf)
+            {
+                if (ReferenceEquals(ctx.Container, ctx.Source))
+                    pool = pool.Concat(new[] { ctx.Container });
+                else if (ReferenceEquals(ctx.Container, ctx.Source?.Owner))
+                    pool = pool.Concat(new[] { ctx.Source });
+            }
+
+            foreach (var c in pool)
+            {
+                if (Matches(c))
+                {
+                    matched.Add(c);
+                    if (matched.Count >= MinCount) break;
+                }
+            }
+
+            return matched.Count >= MinCount;
         }
     }
 }

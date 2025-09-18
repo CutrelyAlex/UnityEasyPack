@@ -51,10 +51,10 @@ namespace EasyPack
         public RuleScope Scope = RuleScope.Owner;
 
         /// <summary>
-        /// 匹配条件集合。所有条件均需满足（与关系）。
-        /// 每个条件可要求最小匹配数量（MinCount）。
+        /// 匹配条件集合（与关系）。项类型为 <see cref="IRuleRequirement"/>，可使用
+        /// <see cref="CardRequirement"/> 或 <see cref="ConditionRequirement"/>，也可自定义扩展。
         /// </summary>
-        public List<CardRequirement> Requirements = new List<CardRequirement>();
+        public List<IRuleRequirement> Requirements = new List<IRuleRequirement>();
 
         /// <summary>
         /// 命中后执行的效果管线（非产卡副作用，如修改属性、移除卡、日志等）。
