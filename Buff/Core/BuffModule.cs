@@ -11,6 +11,7 @@ namespace EasyPack
         OnReduceStack,
         OnUpdate,
         OnTick,
+        Condition,
 
         Custom
     }
@@ -24,7 +25,12 @@ namespace EasyPack
         // 自定义回调名称到处理方法的映射
         private readonly Dictionary<string, Action<Buff, object[]>> _customCallbackHandlers = new Dictionary<string, Action<Buff, object[]>>();
 
+        // 条件触发逻辑
+        public Func<Buff, bool> TriggerCondition { get; set; }
+
         public int Priority { get; set; } = 0; // 控制多个模块的执行顺序，数字越大越先执行
+
+        public Buff ParentBuff { get; private set; } // 父级 Buff 的引用
 
         /// <summary>
         /// 为指定的回调类型注册处理方法
@@ -49,6 +55,7 @@ namespace EasyPack
             if (string.IsNullOrEmpty(customCallbackName))
                 throw new ArgumentException("自定义回调名称不能为空");
 
+
             _customCallbackHandlers[customCallbackName] = handler;
         }
 
@@ -61,6 +68,11 @@ namespace EasyPack
             {
                 return !string.IsNullOrEmpty(customCallbackName) &&
                        _customCallbackHandlers.ContainsKey(customCallbackName);
+            }
+
+            if (TriggerCondition != null)
+            {
+                return TriggerCondition(ParentBuff);
             }
 
             return _callbackHandlers.ContainsKey(callbackType);
@@ -87,6 +99,14 @@ namespace EasyPack
             {
                 handler(buff, parameters);
             }
+        }
+        /// <summary>
+        /// 设置父级 Buff 引用
+        /// </summary>
+        /// <param name="parentBuff"></param>
+        public void SetParentBuff(Buff parentBuff)
+        {
+            ParentBuff = parentBuff;
         }
     }
 }

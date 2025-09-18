@@ -110,6 +110,12 @@ namespace EasyPack
                     CurrentStacks = 1
                 };
 
+                // 设置 BuffModules 的父级引用
+                foreach (var module in buffData.BuffModules)
+                {
+                    module.SetParentBuff(buff);
+                }
+
                 // 添加到各种管理列表和索引
                 buffs.Add(buff);
                 _buffPositions[buff] = _allBuffs.Count;
