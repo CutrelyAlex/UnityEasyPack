@@ -790,8 +790,8 @@ namespace EasyPack
         public ConditionalEffectModule()
         {
             RegisterCallback(BuffCallBackType.OnCreate, OnCreate);
-            RegisterCustomCallback("LowHealth", OnLowHealth);
-            RegisterCustomCallback("HighDamage", OnHighDamage);
+            RegisterCallback("LowHealth", OnLowHealth);
+            RegisterCallback("HighDamage", OnHighDamage);
         }
 
         private void OnCreate(Buff buff, object[] parameters)

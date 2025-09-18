@@ -34,7 +34,7 @@ namespace EasyPack
         public void RegisterCallback(BuffCallBackType callbackType, Action<Buff, object[]> handler)
         {
             if (callbackType == BuffCallBackType.Custom)
-                throw new ArgumentException("使用RegisterCustomCallback方法注册自定义回调");
+                throw new ArgumentException("使用RegisterCallback的重载方法注册自定义回调");
 
             _callbackHandlers[callbackType] = handler;
         }
@@ -44,7 +44,7 @@ namespace EasyPack
         /// </summary>
         /// <param name="customCallbackName">自定义回调名称</param>
         /// <param name="handler">处理方法</param>
-        public void RegisterCustomCallback(string customCallbackName, Action<Buff, object[]> handler)
+        public void RegisterCallback(string customCallbackName, Action<Buff, object[]> handler)
         {
             if (string.IsNullOrEmpty(customCallbackName))
                 throw new ArgumentException("自定义回调名称不能为空");
