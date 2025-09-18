@@ -30,5 +30,34 @@ namespace EasyPack
                 return 0f;
             }
         }
+
+        /// <summary>
+        /// 便捷访问事件 ID（等价于 Event.ID）。
+        /// </summary>
+        public string EventId => Event.ID;
+
+        /// <summary>
+        /// 将 Event.Data 作为 Card 返回（失败则为 null）。
+        /// </summary>
+        public Card DataCard => Event.Data as Card;
+
+        /// <summary>
+        /// 将 Event.Data 以引用类型泛型进行安全转换（失败返回 null）。
+        /// </summary>
+        public T DataAs<T>() where T : class => Event.Data as T;
+
+        /// <summary>
+        /// Try 模式获取 Event.Data（值类型或引用类型均可）。
+        /// </summary>
+        public bool TryGetData<T>(out T value)
+        {
+            if (Event.Data is T v)
+            {
+                value = v;
+                return true;
+            }
+            value = default;
+            return false;
+        }
     }
 }

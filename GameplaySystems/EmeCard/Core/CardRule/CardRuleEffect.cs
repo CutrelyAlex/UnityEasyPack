@@ -31,7 +31,7 @@ namespace EasyPack
                 case TargetKind.Container:
                     return ctx.Container != null ? new[] { ctx.Container } : Array.Empty<Card>();
                 case TargetKind.ContainerChildren:
-                    return ctx.Container != null ? (IReadOnlyList<Card>)ctx.Container.Children.ToList() : Array.Empty<Card>();
+                    return ctx.Container != null ? ctx.Container.Children.ToList() : Array.Empty<Card>();
                 case TargetKind.ByTag:
                     return ctx.Container != null && !string.IsNullOrEmpty(value)
                         ? ctx.Container.Children.Where(c => c.HasTag(value)).ToList()
