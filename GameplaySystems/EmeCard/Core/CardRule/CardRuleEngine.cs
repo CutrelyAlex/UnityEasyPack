@@ -6,7 +6,8 @@ namespace EasyPack
 {
     /// <summary>
     /// 规则引擎：
-    /// - 通过订阅卡牌事件（Attach）接入事件流；
+    /// - 通过订阅卡牌事件接入事件流（入队）；
+    /// - 使用内部队列按 FIFO 顺序依次处理事件，避免重入（效果触发的新事件会排在后面）；
     /// - 按事件类型分派规则，进行作用域选择与要求项匹配；
     /// - 命中时执行效果管线（效果可进行消耗/产出等操作）。
     /// </summary>
@@ -16,6 +17,16 @@ namespace EasyPack
 
         /// <summary>可选的卡牌工厂，供产卡类效果使用。</summary>
         public ICardFactory CardFactory { get; set; }
+
+        // 事件队列与泵
+        private struct EventEntry
+        {
+            public Card Source;
+            public CardEvent Event;
+            public EventEntry(Card s, CardEvent e) { Source = s; Event = e; }
+        }
+        private readonly Queue<EventEntry> _pending = new Queue<EventEntry>();
+        private bool _isPumping = false;
 
         public CardRuleEngine(ICardFactory factory = null)
         {
@@ -30,11 +41,42 @@ namespace EasyPack
             _rules[rule.Trigger].Add(rule);
         }
 
-        public void Attach(Card card) => card.OnEvent += Handle;
-        public void Detach(Card card) => card.OnEvent -= Handle;
+        public void Attach(Card card) => card.OnEvent += OnCardEvent;
+        public void Detach(Card card) => card.OnEvent -= OnCardEvent;
 
-        // 处理卡牌事件 -> 规则分派/匹配/执行
-        private void Handle(Card source, CardEvent evt)
+        // 接收卡牌事件：统一入队，必要时自动泵
+        private void OnCardEvent(Card source, CardEvent evt)
+        {
+            _pending.Enqueue(new EventEntry(source, evt));
+            if (!_isPumping) Pump();
+        }
+
+        /// <summary>
+        /// 主动驱动队列（通常无需手动调用）。可用于限制每帧处理事件数量。
+        /// </summary>
+        /// <param name="maxEvents">本次最多处理的事件数，默认尽可能多。</param>
+        public void Pump(int maxEvents = int.MaxValue)
+        {
+            if (_isPumping) return;
+            _isPumping = true;
+            int processed = 0;
+            try
+            {
+                while (_pending.Count > 0 && processed < maxEvents)
+                {
+                    var entry = _pending.Dequeue();
+                    Process(entry.Source, entry.Event);
+                    processed++;
+                }
+            }
+            finally
+            {
+                _isPumping = false;
+            }
+        }
+
+        // 处理单个事件 -> 规则分派/匹配/执行
+        private void Process(Card source, CardEvent evt)
         {
             var rules = _rules[evt.Type];
             if (rules == null || rules.Count == 0) return;
