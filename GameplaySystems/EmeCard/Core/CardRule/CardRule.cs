@@ -1,4 +1,3 @@
-using CardModel;
 using System.Collections.Generic;
 
 namespace EasyPack
