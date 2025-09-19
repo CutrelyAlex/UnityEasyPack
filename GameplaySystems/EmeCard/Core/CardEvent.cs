@@ -6,8 +6,7 @@ namespace EasyPack
         RemovedFromOwner,
         Tick,           // 按时
         Use,            // 主动使用
-        Custom,
-        Condition
+        Custom
     }
     public readonly struct CardEvent
     {

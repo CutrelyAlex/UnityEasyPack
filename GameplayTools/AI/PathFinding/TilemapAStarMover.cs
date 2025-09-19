@@ -242,7 +242,7 @@ namespace EasyPack
             if (useSharedService)
             {
                 if (sharedService == null)
-                    sharedService = PathfindingService.Instance ?? FindObjectOfType<PathfindingService>();
+                    sharedService = PathfindingService.Instance ?? FindFirstObjectByType<PathfindingService>();
                 if (sharedService != null)
                 {
                     // 若自己有配置 Grid，先收集再注册
@@ -463,7 +463,7 @@ namespace EasyPack
             if (useSharedService == false) return;
             if (service != null) sharedService = service;
             if (sharedService == null)
-                sharedService = PathfindingService.Instance ?? FindObjectOfType<PathfindingService>();
+                sharedService = PathfindingService.Instance ?? FindFirstObjectByType<PathfindingService>();
             if (sharedService == null) return;
             sharedService.RegisterTilemaps(allTilemaps, gridObjects);
             var map = sharedService.GetUnifiedMap();

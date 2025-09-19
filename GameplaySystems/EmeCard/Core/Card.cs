@@ -70,7 +70,7 @@ namespace EasyPack
         public CardCategory Category => Data != null ? Data.Category : CardCategory.Item;
 
         /// <summary>
-        /// 可选：实例级属性（数值系统），与 <see cref="Data"/> 解耦。
+        /// 数值属性。
         /// </summary>
         public GameProperty Property { get; set; }
 
@@ -81,7 +81,7 @@ namespace EasyPack
         private readonly HashSet<string> _tags = new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>
-        /// 标签集合（只读视图）。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal"/>）。
+        /// 标签集合。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal"/>）。
         /// </summary>
         public IReadOnlyCollection<string> Tags => _tags;
 
@@ -207,15 +207,6 @@ namespace EasyPack
         /// <param name="id">自定义事件标识，用于规则过滤。</param>
         /// <param name="data">可选载荷。</param>
         public void Custom(string id, object data = null) => RaiseEvent(new CardEvent(CardEventType.Custom, id, data));
-
-        /// <summary>
-        /// 触发条件事件（<see cref="CardEventType.Condition"/>）。
-        /// 常用于“玩家移动”“时间切换”“区域进入”等外部条件达成场景。
-        /// </summary>
-        /// <param name="id">条件事件标识，用于规则过滤。</param>
-        /// <param name="data">可选载荷（例如位置、时间段等）。</param>
-        public void Condition(string id, object data = null) => RaiseEvent(new CardEvent(CardEventType.Condition, id, data));
-
         #endregion
     }
 }
