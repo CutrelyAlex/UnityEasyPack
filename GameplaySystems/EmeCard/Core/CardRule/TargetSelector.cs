@@ -4,8 +4,31 @@ using System.Linq;
 
 namespace EasyPack
 {
+    // 决定效果作用对象
+    public enum TargetKind
+    {
+        Matched,            // 匹配到的卡
+        Source,             // 触发源
+        Container,          // 匹配容器本体
+        ContainerChildren,  // 容器内所有子卡
+        ByTag,              // 按标签过滤容器内子卡
+        ById                // 按ID过滤容器内子卡
+    }
+    /// <summary>
+    /// 目标选择器：基于 <see cref="TargetKind"/> 从上下文（<see cref="CardRuleContext"/>）中挑选目标卡牌。
+    /// 注意：
+    /// - 选择范围以 <see cref="CardRuleContext.Container"/> 作为容器，默认仅扫描其直接子卡（不递归）。
+    /// - <see cref="TargetKind.Matched"/> 通常由效果方直接使用（即传入匹配结果），本选择器不处理该分支。
+    /// </summary>
     public static class TargetSelector
     {
+        /// <summary>
+        /// 根据 <paramref name="kind"/> 在上下文中选择目标列表。
+        /// </summary>
+        /// <param name="kind">目标类型。</param>
+        /// <param name="ctx">规则执行上下文。</param>
+        /// <param name="value">可选过滤值（用于 ByTag/ById）。</param>
+        /// <returns>选中的卡牌列表（只读）。当上下文无效或无结果时返回空数组。</returns>
         public static IReadOnlyList<Card> Select(TargetKind kind, CardRuleContext ctx, string value = null)
         {
             switch (kind)
