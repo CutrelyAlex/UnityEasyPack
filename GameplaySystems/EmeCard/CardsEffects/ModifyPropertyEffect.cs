@@ -19,7 +19,7 @@ namespace EasyPack
             if (TargetKind == TargetKind.Matched)
                 targets = matched;
             else
-                targets = TargetSelector.Select(TargetKind, ctx, TargetValueFilter);
+                targets = TargetSelector.SelectOnContext(TargetKind, ctx, TargetValueFilter);
 
             foreach (var t in targets)
             {

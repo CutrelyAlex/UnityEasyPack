@@ -3,18 +3,6 @@ using System.Collections.Generic;
 namespace EasyPack
 {
     /// <summary>
-    /// 匹配条件类型：用于规则在容器中筛选卡牌的方式。
-    /// </summary>
-    public enum MatchKind
-    {
-        /// <summary>按标签匹配。</summary>
-        Tag,
-        /// <summary>按卡牌 ID 精确匹配。</summary>
-        Id,
-        /// <summary>按类别匹配。</summary>
-        Category
-    }
-    /// <summary>
     /// 规则作用域：决定在何处进行匹配与执行。
     /// </summary>
     public enum RuleScope
@@ -48,6 +36,23 @@ namespace EasyPack
         /// 规则的匹配与执行作用域（Self/Owner）。
         /// </summary>
         public RuleScope Scope = RuleScope.Owner;
+
+        // <summary>
+        /// 当 Scope=Owner 时：向上取第 N 级持有者。
+        /// 取值说明：1=直接Owner（默认）、0=等价于 Self、-1=一直取到最顶层Root、N>1=沿Owner链上溯N层（不足则停在最顶层）。
+        /// </summary>
+        public int OwnerHops = 1;
+
+        /// <summary>
+        /// 是否在容器内递归搜索子级（匹配阶段）。默认 false 表示仅一层 Children。
+        /// </summary>
+        public bool Recursive = false;
+
+        /// <summary>
+        /// 递归搜索的最大深度（>0 生效，1 表示仅子级一层；int.MaxValue 表示不限深）。
+        /// </summary>
+        public int MaxDepth = int.MaxValue;
+
 
         /// <summary>
         /// 匹配条件集合（与关系）。项类型为 <see cref="IRuleRequirement"/>，可使用

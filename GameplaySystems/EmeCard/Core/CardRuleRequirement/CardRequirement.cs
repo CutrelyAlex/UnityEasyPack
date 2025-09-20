@@ -59,7 +59,9 @@ namespace EasyPack
             matched = new List<Card>();
             if (ctx == null || ctx.Container == null) return false;
 
-            IEnumerable<Card> pool = ctx.Container.Children;
+            IEnumerable<Card> pool = ctx.RecursiveSearch
+                ? TraversalUtil.EnumerateDescendants(ctx.Container, ctx.MaxDepth)
+                : (IEnumerable<Card>)ctx.Container.Children;
 
             if (IncludeSelf)
             {

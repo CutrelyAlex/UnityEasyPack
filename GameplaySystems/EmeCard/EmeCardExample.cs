@@ -45,7 +45,7 @@ namespace EasyPack
                 IReadOnlyList<Card> targets =
                     TargetKind == TargetKind.Matched
                         ? matched
-                        : TargetSelector.Select(TargetKind, ctx, TargetValueFilter);
+                        : TargetSelector.SelectOnContext(TargetKind, ctx, TargetValueFilter);
 
                 foreach (var t in targets)
                 {

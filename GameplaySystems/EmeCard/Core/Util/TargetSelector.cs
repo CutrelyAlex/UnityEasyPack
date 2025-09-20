@@ -10,10 +10,14 @@ namespace EasyPack
         Matched,            // 匹配到的卡
         Source,             // 触发源
         Container,          // 匹配容器本体
-        ContainerChildren,  // 容器内所有子卡
-        ByTag,              // 按标签过滤容器内子卡
-        ById                // 按ID过滤容器内子卡
+        ContainerChildren,  // 容器内所有子卡（仅一层）
+        ContainerDescendants, // 容器内所有子卡（递归）
+        ByTag,              // 按标签过滤容器内子卡（仅一层）
+        ByTagRecursive,     // 按标签过滤容器内子卡（递归）
+        ById,               // 按ID过滤容器内子卡（仅一层）
+        ByIdRecursive       // 按ID过滤容器内子卡（递归）
     }
+
     /// <summary>
     /// 目标选择器：基于 <see cref="TargetKind"/> 从上下文（<see cref="CardRuleContext"/>）中挑选目标卡牌。
     /// 注意：
@@ -39,17 +43,38 @@ namespace EasyPack
                     return ctx.Container != null ? new[] { ctx.Container } : Array.Empty<Card>();
                 case TargetKind.ContainerChildren:
                     return ctx.Container != null ? ctx.Container.Children.ToList() : Array.Empty<Card>();
+                case TargetKind.ContainerDescendants:
+                    return ctx.Container != null ? TraversalUtil.EnumerateDescendants(ctx.Container, int.MaxValue).ToList() : Array.Empty<Card>();
                 case TargetKind.ByTag:
                     return ctx.Container != null && !string.IsNullOrEmpty(value)
                         ? ctx.Container.Children.Where(c => c.HasTag(value)).ToList()
+                        : Array.Empty<Card>();
+                case TargetKind.ByTagRecursive:
+                    return ctx.Container != null && !string.IsNullOrEmpty(value)
+                        ? TraversalUtil.EnumerateDescendants(ctx.Container, int.MaxValue).Where(c => c.HasTag(value)).ToList()
                         : Array.Empty<Card>();
                 case TargetKind.ById:
                     return ctx.Container != null && !string.IsNullOrEmpty(value)
                         ? ctx.Container.Children.Where(c => string.Equals(c.Id, value, StringComparison.Ordinal)).ToList()
                         : Array.Empty<Card>();
+                case TargetKind.ByIdRecursive:
+                    return ctx.Container != null && !string.IsNullOrEmpty(value)
+                        ? TraversalUtil.EnumerateDescendants(ctx.Container, int.MaxValue).Where(c => string.Equals(c.Id, value, StringComparison.Ordinal)).ToList()
+                        : Array.Empty<Card>();
                 default:
                     return Array.Empty<Card>();
             }
+        }
+
+        /// <summary>
+        /// 在既有选择基础上限制数量（take>0 生效）。
+        /// </summary>
+        public static IReadOnlyList<Card> Select(TargetKind kind, CardRuleContext ctx, string value, int take)
+        {
+            var list = Select(kind, ctx, value);
+            if (take > 0 && list.Count > take)
+                return list.Take(take).ToList();
+            return list;
         }
     }
 }
