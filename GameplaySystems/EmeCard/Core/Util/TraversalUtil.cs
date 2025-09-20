@@ -4,7 +4,12 @@ namespace EasyPack
 {
     internal static class TraversalUtil
     {
-        // 枚举 root 的子树（不包含 root），最大深度限制：1=仅直接子级，int.MaxValue=无限
+        /// <summary>
+        /// 枚举 root 的子树（不包含 root），最大深度限制：1=仅直接子级，int.MaxValue=无限
+        /// </summary>
+        /// <param name="root"></param>
+        /// <param name="maxDepth"></param>
+        /// <returns></returns>
         public static IEnumerable<Card> EnumerateDescendants(Card root, int maxDepth)
         {
             if (root == null || maxDepth <= 0) yield break;

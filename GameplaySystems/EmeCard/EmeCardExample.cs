@@ -6,9 +6,11 @@ namespace EasyPack
 {
     /// <summary>
     /// Best Practice 示例（万物卡）：
-    /// - 展示有序事件驱动（Tick/Use/Custom），用 Requirement 做清晰的条件组合；
-    /// - 展示规则效果管线（移除/产出/属性修改/调用）；
-    /// - 展示通过工厂注册/创建卡牌。
+    /// - 展示有序事件驱动（Tick/Use/Custom/Added/Removed），用 Requirement 做清晰的条件组合；
+    /// - 展示规则效果管线（移除/产出/属性修改/调用/打标签）；
+    /// - 展示通过工厂注册/创建卡牌；
+    /// - 展示 Scope 与 OwnerHops 以及 TargetKind 的使用差异；
+    /// - 展示递归匹配（CardRule.Recursive/MaxDepth）与递归选择（TargetKind.*Recursive/ContainerDescendants）。
     /// </summary>
     public sealed class EmeCardExample : MonoBehaviour
     {
@@ -45,7 +47,7 @@ namespace EasyPack
                 IReadOnlyList<Card> targets =
                     TargetKind == TargetKind.Matched
                         ? matched
-                        : TargetSelector.SelectOnContext(TargetKind, ctx, TargetValueFilter);
+                        : TargetSelector.Select(TargetKind, ctx, TargetValueFilter);
 
                 foreach (var t in targets)
                 {
@@ -91,7 +93,12 @@ namespace EasyPack
             tileGrass.AddChild(fire);
             tileGrass.AddChild(make);
             tileGrass.AddChild(chop);
-           
+
+            // 追加一组“深层子项”，用于演示递归匹配/选择
+            var nest = new SimpleCard(new CardData("巢", "巢", "", CardCategory.Item), new GameProperty("Temperature", 10f), "可燃烧");
+            tree.AddChild(nest);
+            var ember = new SimpleCard(new CardData("余烬", "余烬", "", CardCategory.Item), null, "火");
+            nest.AddChild(ember);
 
             // 3) 接入事件（谁会发事件就接谁）
             _engine.Attach(tileGrass);
@@ -100,10 +107,11 @@ namespace EasyPack
             _engine.Attach(make);
             _engine.Attach(chop);
             _engine.Attach(fire);
+            _engine.Attach(ember);
 
             // 4) 规则注册
 
-            // R1: Tick加热（容器内存在“火” -> 所有“可燃烧”升温 +1）
+            // R1: Tick加热（容器内存在“火” -> 所有“可燃烧”升温 +1）[一层匹配/一层选择]
             _engine.RegisterRule(new CardRule
             {
                 Trigger = CardEventType.Tick,
@@ -124,7 +132,7 @@ namespace EasyPack
                 }
             });
 
-            // R2: Tick燃烧配方（可燃烧 + 火 -> 灰烬；消耗材料；且温度>23才燃烧）
+            // R2: Tick燃烧配方（可燃烧 + 火 -> 灰烬；消耗材料；且温度>23才燃烧）[一层匹配/一层选择]
             _engine.RegisterRule(new CardRule
             {
                 Trigger = CardEventType.Tick,
@@ -197,7 +205,7 @@ namespace EasyPack
                 }
             });
 
-            // R6: Custom-进入草地 -> 链式给玩家加经验
+            // R6: Custom-进入草地 -> 链式给玩家加经验（Scope.Self + IncludeSelf）
             _engine.RegisterRule(new CardRule
             {
                 Trigger = CardEventType.Custom,
@@ -218,7 +226,7 @@ namespace EasyPack
                 }
             });
 
-            // R7: Custom-GainXP -> 修改玩家XP
+            // R7: Custom-GainXP -> 修改玩家XP（Scope.Self）
             _engine.RegisterRule(new CardRule
             {
                 Trigger = CardEventType.Custom,
@@ -261,17 +269,137 @@ namespace EasyPack
                 }
             });
 
+            // R9: AddedToOwner - 玩家被加入到“草地”持有者时加经验（Scope.Self，检查事件载荷中的 Owner）
+            _engine.RegisterRule(new CardRule
+            {
+                Trigger = CardEventType.AddedToOwner,
+                Scope = RuleScope.Self,
+                Requirements = new List<IRuleRequirement>
+                {
+                    new ConditionRequirement(ctx => ctx.Source.HasTag("玩家")),
+                    new ConditionRequirement(ctx => (ctx.Event.Data as Card)?.HasTag("草地") == true),
+                },
+                Effects = new List<IRuleEffect>
+                {
+                    new InvokeEffect((ctx, _) =>
+                    {
+                        ctx.Source.Custom("GainXP", 2f);
+                        Debug.Log("[事件] 玩家加入草地（AddedToOwner）：额外经验 +2");
+                    })
+                }
+            });
+
+            // R10: RemovedFromOwner - 玩家离开“草地”时日志（Scope.Self）
+            _engine.RegisterRule(new CardRule
+            {
+                Trigger = CardEventType.RemovedFromOwner,
+                Scope = RuleScope.Self,
+                Requirements = new List<IRuleRequirement>
+                {
+                    new ConditionRequirement(ctx => ctx.Source.HasTag("玩家")),
+                    new ConditionRequirement(ctx => (ctx.Event.Data as Card)?.HasTag("草地") == true),
+                },
+                Effects = new List<IRuleEffect>
+                {
+                    new InvokeEffect((ctx, _) => Debug.Log("[事件] 玩家离开草地（RemovedFromOwner）"))
+                }
+            });
+
+            // R11: Custom-CheckActions - 使用 Category 匹配（容器内至少2个 Action）
+            _engine.RegisterRule(new CardRule
+            {
+                Trigger = CardEventType.Custom,
+                Scope = RuleScope.Owner,
+                Requirements = new List<IRuleRequirement>
+                {
+                    new ConditionRequirement(ctx => ctx.EventId == "CheckActions"),
+                    new CardRequirement { Kind = MatchKind.Category, Category = CardCategory.Action, MinCount = 2 }
+                },
+                Effects = new List<IRuleEffect>
+                {
+                    new InvokeEffect((ctx, _) => Debug.Log("[类别匹配] 容器内存在至少 2 个 Action 卡"))
+                }
+            });
+
+            // R12: Custom-MarkTile - 使用 TargetKind.Container / ContainerChildren 给容器与子项打标签（仅一层选择）
+            _engine.RegisterRule(new CardRule
+            {
+                Trigger = CardEventType.Custom,
+                Scope = RuleScope.Self,
+                Requirements = new List<IRuleRequirement>
+                {
+                    new ConditionRequirement(ctx => ctx.EventId == "MarkTile"),
+                    new CardRequirement { Kind = MatchKind.Tag, Value = "草地", MinCount = 1, IncludeSelf = true }
+                },
+                Effects = new List<IRuleEffect>
+                {
+                    new AddTagEffect { TargetKind = TargetKind.Container, Tag = "高亮" },
+                    new AddTagEffect { TargetKind = TargetKind.ContainerChildren, Tag = "检查中" },
+                    new InvokeEffect((ctx, _) => Debug.Log("[标记] 草地及子项添加标签：高亮/检查中（仅一层）"))
+                }
+            });
+
+            // R13: Tick-递归加热演示（Owner 作用域 + 递归匹配 + 递归选择）
+            // 要点：
+            // - Recursive=true/MaxDepth=int.MaxValue：在容器子树中寻找“火”（匹配）；
+            // - TargetKind.ByTagRecursive：对整个子树内“可燃烧”目标加温（选择）。
+            _engine.RegisterRule(new CardRule
+            {
+                Trigger = CardEventType.Tick,
+                Scope = RuleScope.Owner,
+                Recursive = true,
+                MaxDepth = int.MaxValue,
+                Requirements = new List<IRuleRequirement>
+                {
+                    new CardRequirement { Kind = MatchKind.Tag, Value = "火", MinCount = 1 }
+                },
+                Effects = new List<IRuleEffect>
+                {
+                    new ModifyPropertyEffect
+                    {
+                        TargetKind = TargetKind.ByTagRecursive,
+                        TargetValueFilter = "可燃烧",
+                        ApplyMode = ModifyPropertyEffect.Mode.AddToBase,
+                        Value = 0.5f
+                    }
+                }
+            });
+
+            // R14: Use制作（OwnerHops=-1 到 Root“世界”作为容器）+ 递归选择 ContainerDescendants
+            // 要点：
+            // - Scope=Owner + OwnerHops=-1：以“世界”为容器；
+            // - Container / ContainerDescendants：分别给世界和其所有后代打标签。
+            _engine.RegisterRule(new CardRule
+            {
+                Trigger = CardEventType.Use,
+                Scope = RuleScope.Owner,
+                OwnerHops = -1, // Root
+                Requirements = new List<IRuleRequirement>
+                {
+                    new CardRequirement { Kind = MatchKind.Tag, Value = "制作", MinCount = 1, IncludeSelf = true }
+                },
+                Effects = new List<IRuleEffect>
+                {
+                    new AddTagEffect { TargetKind = TargetKind.Container, Tag = "世界标记" },
+                    new AddTagEffect { TargetKind = TargetKind.ContainerDescendants, Tag = "扫描完成" },
+                    new InvokeEffect((ctx, _) => Debug.Log("[OwnerHops] 以 Root(世界) 为容器，对全局后代进行递归打标：扫描完成"))
+                }
+            });
+
             // 5) 演示流程
             PrintChildren(tileGrass, "初始 草地");
             PrintChildren(tileDirt, "初始 泥地");
 
-            // 玩家往返移动，触发进入草地加经验
+            // 玩家往返移动，触发进入草地加经验（R6/R7 以及 R9/R10）
             if (player.Owner != null) player.Owner.RemoveChild(player);
             tileDirt.AddChild(player);
             tileDirt.Custom("PlayerEnter", player);
             if (player.Owner != null) player.Owner.RemoveChild(player);
             tileGrass.AddChild(player);
             tileGrass.Custom("PlayerEnter", player);
+
+            // 使用 Category 匹配（检查容器内是否有至少2个Action: 制作/砍）
+            make.Custom("CheckActions");
 
             // 制作：树木 -> 木棍
             make.Use();
@@ -281,6 +409,9 @@ namespace EasyPack
             make.Use();
             PrintChildren(tileGrass, "制作火把后");
 
+            // 标记草地及其子项（Container / ContainerChildren）
+            tileGrass.Custom("MarkTile");
+
             // 夜晚到来：点燃火把（Tick）
             _isNight = true;
             tileGrass.Tick(1f);
@@ -288,13 +419,17 @@ namespace EasyPack
             tileGrass.AddChild(fire);
             tileGrass.AddChild(tree);
 
-            // 加热/燃烧演示（若仍有“火”和“可燃烧”）
+            // 加热/燃烧演示（若仍有“火”和“可燃烧”），包含递归加热（R13）
             fire.Tick(1f);
+            ember.Tick(1f); // 深层“余烬”也发 Tick，驱动递归规则链
             PrintChildren(tileGrass, "一次加热/燃烧后");
             fire.Tick(1f);
             fire.Tick(1f);
             fire.Tick(1f);
             PrintChildren(tileGrass, "3次加热/燃烧后");
+
+            // 触发 OwnerHops 到 Root 的全局打标（R14）
+            make.Use();
 
             Debug.Log("=== EmeCard Best Practice 示例结束 ===");
         }
