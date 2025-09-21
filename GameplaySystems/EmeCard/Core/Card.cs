@@ -21,8 +21,8 @@ namespace EasyPack
     /// - 作为“容器”可持有子卡牌（<see cref="Children"/>），并维护所属关系（<see cref="Owner"/>）。
     /// - 具备标签系统（<see cref="Tags"/>），用于规则匹配与检索。
     /// - 暴露统一事件入口（<see cref="OnEvent"/>），通过 <see cref="RaiseEvent(CardEvent)"/> 分发，包括
-    ///   <see cref="CardEventType.Tick"/>、<see cref="CardEventType.Use"/>、<see cref="CardEventType.Custom"/>、<see cref="CardEventType.Condition"/>、
-    ///   以及持有关系变化（Added/Removed）。
+    ///   <see cref="CardEventType.Tick"/>、<see cref="CardEventType.Use"/>、<see cref="CardEventType.Custom"/>，
+    ///   以及持有关系变化（<see cref="CardEventType.AddedToOwner"/> / <see cref="CardEventType.RemovedFromOwner"/>）。
     /// - 可选关联一个 <see cref="GameProperty"/>（实例级数值）。
     /// </summary>
     public abstract class Card

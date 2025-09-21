@@ -90,7 +90,7 @@ namespace EasyPack
                     continue;
                 }
 
-                var container = SelectContainer(rule.Scope, source);
+                var container = SelectContainer(rule.Scope, source, rule.OwnerHops);
                 if (container == null) continue;
 
                 var ctx = new CardRuleContext
@@ -98,7 +98,9 @@ namespace EasyPack
                     Source = source,
                     Container = container,
                     Event = evt,
-                    Factory = CardFactory
+                    Factory = CardFactory,
+                    RecursiveSearch = rule.Recursive,
+                    MaxDepth = rule.MaxDepth
                 };
 
                 if (TryMatch(ctx, rule.Requirements, out var matched))
@@ -112,14 +114,35 @@ namespace EasyPack
             }
         }
 
-        private static Card SelectContainer(RuleScope scope, Card source)
+        private static Card SelectContainer(RuleScope scope, Card source, int ownerHops)
         {
-            switch (scope)
+            if (source == null) return null;
+
+            if (scope == RuleScope.Self || ownerHops == 0)
+                return source;
+
+            if (scope == RuleScope.Owner)
             {
-                case RuleScope.Self: return source;
-                case RuleScope.Owner: return source.Owner ?? source;
-                default: return source;
+                if (ownerHops < 0)
+                {
+                    // 到最顶层 Root
+                    var curr = source;
+                    while (curr.Owner != null) curr = curr.Owner;
+                    return curr;
+                }
+
+                int hops = Math.Max(1, ownerHops);
+                var node = source;
+                while (hops > 0 && node.Owner != null)
+                {
+                    node = node.Owner;
+                    hops--;
+                }
+                // 若没有 Owner，退回自身
+                return node ?? source;
             }
+
+            return source;
         }
 
         private static bool TryMatch(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll)

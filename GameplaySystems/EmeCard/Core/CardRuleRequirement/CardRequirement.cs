@@ -5,6 +5,18 @@ using System.Linq;
 namespace EasyPack
 {
     /// <summary>
+    /// 匹配条件类型：用于规则在容器中筛选卡牌的方式。
+    /// </summary>
+    public enum MatchKind
+    {
+        /// <summary>按标签匹配。</summary>
+        Tag,
+        /// <summary>按卡牌 ID 精确匹配。</summary>
+        Id,
+        /// <summary>按类别匹配。</summary>
+        Category
+    }
+    /// <summary>
     /// 单个卡牌匹配条件（基于容器子卡的筛选）：
     /// - 支持标签/ID/类别；
     /// - 支持 MinCount 与 IncludeSelf；
@@ -59,7 +71,9 @@ namespace EasyPack
             matched = new List<Card>();
             if (ctx == null || ctx.Container == null) return false;
 
-            IEnumerable<Card> pool = ctx.Container.Children;
+            IEnumerable<Card> pool = ctx.RecursiveSearch
+                ? TraversalUtil.EnumerateDescendants(ctx.Container, ctx.MaxDepth)
+                : (IEnumerable<Card>)ctx.Container.Children;
 
             if (IncludeSelf)
             {
