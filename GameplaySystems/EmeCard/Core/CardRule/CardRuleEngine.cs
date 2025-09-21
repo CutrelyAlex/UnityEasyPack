@@ -78,21 +78,23 @@ namespace EasyPack
         // 处理单个事件 -> 规则分派/匹配/执行
         private void Process(Card source, CardEvent evt)
         {
+            // 根据事件类型获取不同的规则集
             var rules = _rules[evt.Type];
             if (rules == null || rules.Count == 0) return;
 
             foreach (var rule in rules)
             {
+                // 如果事件类型为自定义，则根据id去匹配对应规则
                 if (evt.Type == CardEventType.Custom &&
                     !string.IsNullOrEmpty(rule.CustomId) &&
                     !string.Equals(rule.CustomId, evt.ID, StringComparison.Ordinal))
                 {
                     continue;
                 }
-
+                // 根据规则与触发源匹配作用域对应容器
                 var container = SelectContainer(rule.Scope, source, rule.OwnerHops);
                 if (container == null) continue;
-
+                // 分配效果触发的上下文信息
                 var ctx = new CardRuleContext
                 {
                     Source = source,
@@ -102,7 +104,7 @@ namespace EasyPack
                     RecursiveSearch = rule.Recursive,
                     MaxDepth = rule.MaxDepth
                 };
-
+                // 根据规则的匹配条件从容器中找到符合条件的卡牌
                 if (TryMatch(ctx, rule.Requirements, out var matched))
                 {
                     if (rule.Effects != null && rule.Effects.Count > 0)
