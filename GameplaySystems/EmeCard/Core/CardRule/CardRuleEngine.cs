@@ -8,7 +8,7 @@ namespace EasyPack
     /// 规则引擎：
     /// - 通过订阅卡牌事件接入事件流（入队）；
     /// - 使用内部队列按 FIFO 顺序依次处理事件，避免重入（效果触发的新事件会排在后面）；
-    /// - 按事件类型分派规则，进行作用域选择与要求项匹配；
+    /// - 按事件类型分派规则，进行容器选择与要求项匹配；
     /// - 命中时执行效果管线（效果可进行消耗/产出等操作）。
     /// </summary>
     public sealed class CardRuleEngine
@@ -78,23 +78,21 @@ namespace EasyPack
         // 处理单个事件 -> 规则分派/匹配/执行
         private void Process(Card source, CardEvent evt)
         {
-            // 根据事件类型获取不同的规则集
             var rules = _rules[evt.Type];
             if (rules == null || rules.Count == 0) return;
 
             foreach (var rule in rules)
             {
-                // 如果事件类型为自定义，则根据id去匹配对应规则
                 if (evt.Type == CardEventType.Custom &&
                     !string.IsNullOrEmpty(rule.CustomId) &&
                     !string.Equals(rule.CustomId, evt.ID, StringComparison.Ordinal))
                 {
                     continue;
                 }
-                // 根据规则与触发源匹配作用域对应容器
-                var container = SelectContainer(rule.Scope, source, rule.OwnerHops);
+
+                var container = SelectContainer(rule.OwnerHops, source);
                 if (container == null) continue;
-                // 分配效果触发的上下文信息
+
                 var ctx = new CardRuleContext
                 {
                     Source = source,
@@ -104,7 +102,7 @@ namespace EasyPack
                     RecursiveSearch = rule.Recursive,
                     MaxDepth = rule.MaxDepth
                 };
-                // 根据规则的匹配条件从容器中找到符合条件的卡牌
+
                 if (TryMatch(ctx, rule.Requirements, out var matched))
                 {
                     if (rule.Effects != null && rule.Effects.Count > 0)
@@ -116,35 +114,28 @@ namespace EasyPack
             }
         }
 
-        private static Card SelectContainer(RuleScope scope, Card source, int ownerHops)
+        // 基于 OwnerHops 选择容器：0=Self，1=Owner，N>1 上溯，-1=Root
+        private static Card SelectContainer(int ownerHops, Card source)
         {
             if (source == null) return null;
 
-            if (scope == RuleScope.Self || ownerHops == 0)
-                return source;
+            if (ownerHops == 0) return source;
 
-            if (scope == RuleScope.Owner)
+            if (ownerHops < 0)
             {
-                if (ownerHops < 0)
-                {
-                    // 到最顶层 Root
-                    var curr = source;
-                    while (curr.Owner != null) curr = curr.Owner;
-                    return curr;
-                }
-
-                int hops = Math.Max(1, ownerHops);
-                var node = source;
-                while (hops > 0 && node.Owner != null)
-                {
-                    node = node.Owner;
-                    hops--;
-                }
-                // 若没有 Owner，退回自身
-                return node ?? source;
+                var curr = source;
+                while (curr.Owner != null) curr = curr.Owner;
+                return curr;
             }
 
-            return source;
+            var node = source;
+            int hops = ownerHops;
+            while (hops > 0 && node.Owner != null)
+            {
+                node = node.Owner;
+                hops--;
+            }
+            return node ?? source;
         }
 
         private static bool TryMatch(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll)
