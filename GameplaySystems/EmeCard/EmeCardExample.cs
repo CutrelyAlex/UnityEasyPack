@@ -10,7 +10,7 @@ namespace EasyPack
     /// - 展示规则效果管线（移除/产出/属性修改/调用/打标签）；
     /// - 展示通过工厂注册/创建卡牌；
     /// - 展示锚点选择（OwnerHops）与 TargetKind 的使用差异；
-    /// - 展示递归匹配（CardRule.Recursive/MaxDepth）与递归选择（TargetKind.*Recursive/ContainerDescendants）。
+    /// - 展示递归选择（TargetKind.*Recursive/ContainerDescendants）。
     /// </summary>
     public sealed partial class EmeCardExample : MonoBehaviour
     {
@@ -51,7 +51,8 @@ namespace EasyPack
             // 注册产物
             _factory.Register("灰烬", () => new SimpleCard(new CardData("灰烬", "灰烬", "燃烧后产生的灰烬", CardCategory.Item), null, "灰烬"));
             _factory.Register("木棍", () => new SimpleCard(new CardData("木棍", "木棍", "基础材料", CardCategory.Item), null, "木棍"));
-            _factory.Register("火把", () => new SimpleCard(new CardData("火把", "火把", "可点燃", CardCategory.Item), null, "火把"));
+            // 火把自带计时属性 Ticks，从 0 开始
+            _factory.Register("火把", () => new SimpleCard(new CardData("火把", "火把", "可点燃", CardCategory.Item), new GameProperty("Ticks", 0f), "火把"));
 
             // 2) 世界布置
             var world = new SimpleCard(new CardData("世界", "世界", "", CardCategory.Item), null, "世界");
@@ -63,7 +64,7 @@ namespace EasyPack
             var player = new SimpleCard(new CardData("玩家", "玩家", "", CardCategory.Item), new GameProperty("XP", 0f), "玩家");
             tileGrass.AddChild(player);
 
-            var tree = new SimpleCard(new CardData("树木", "树木", "", CardCategory.Item), new GameProperty("Temperature", 20f), "树木", "可燃烧");
+            var tree = new SimpleCard(new CardData("树木", "树木", "", CardCategory.Item), null, "树木", "可燃烧");
             var fire = new SimpleCard(new CardData("火", "火", "", CardCategory.Item), null, "火");
             var make = new SimpleCard(new CardData("制作", "制作", "", CardCategory.Action), null, "制作");
             var chop = new SimpleCard(new CardData("砍", "砍", "", CardCategory.Action), null, "砍");
@@ -82,189 +83,124 @@ namespace EasyPack
 
             // 4) 规则注册
 
-            // R1: Tick加热（容器内存在“火” -> 所有“可燃烧”升温 +1）
-            _engine.RegisterRule(new CardRule
-            {
-                Trigger = CardEventType.Tick,
-                // OwnerHops = 1 默认即为容器=Owner
-                Requirements = new List<IRuleRequirement>
-                {
-                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火", MinCount = 1 }
-                },
-                Effects = new List<IRuleEffect>
-                {
-                    new ModifyPropertyEffect
-                    {
-                        TargetKind = TargetKind.ByTag,
-                        TargetValueFilter = "可燃烧",
-                        ApplyMode = ModifyPropertyEffect.Mode.AddToBase,
-                        Value = 1f
-                    }
-                }
-            });
-
-            // R2: Tick燃烧配方（可燃烧 + 火 -> 灰烬；消耗材料；且温度>23才燃烧）
-            _engine.RegisterRule(new CardRule
-            {
-                Trigger = CardEventType.Tick,
-                Requirements = new List<IRuleRequirement>
-                {
-                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "可燃烧", MinCount = 1 },
-                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火", MinCount = 1 },
-                    new ConditionRequirement(ctx =>
-                        ctx.Container.Children.Any(c => c.HasTag("可燃烧") && (c.Property?.GetBaseValue() ?? 0f) > 23f))
-                },
-                Effects = new List<IRuleEffect>
-                {
-                    new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "树木" },
-                    new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "火"   },
-                    new CreateCardsEffect { CardIds = new List<string> { "灰烬" } }
-                }
-            });
-
-            // R3: Use制作（制作 + 树木 -> 木棍；不消耗“制作”）
-            _engine.RegisterRule(new CardRule
-            {
-                Trigger = CardEventType.Use,
-                Requirements = new List<IRuleRequirement>
-                {
-                    // 原“Source 本体含‘制作’”改为条件判断
-                    new ConditionRequirement(ctx => ctx.Source.HasTag("制作")),
-                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ById, Filter = "树木", MinCount = 1 }
-                },
-                Effects = new List<IRuleEffect>
-                {
-                    new RemoveCardsEffect { TargetKind = TargetKind.ById, TargetValueFilter = "树木" },
-                    new CreateCardsEffect { CardIds = new List<string> { "木棍" } }
-                }
-            });
-
-            // R4: Use制作（制作 + 木棍 + 火 -> 火把）
-            _engine.RegisterRule(new CardRule
-            {
-                Trigger = CardEventType.Use,
-                Requirements = new List<IRuleRequirement>
-                {
-                    new ConditionRequirement(ctx => ctx.Source.HasTag("制作")),
-                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "木棍", MinCount = 1 },
-                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火",   MinCount = 1 }
-                },
-                Effects = new List<IRuleEffect>
-                {
-                    new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "木棍" },
-                    new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "火"   },
-                    new CreateCardsEffect { CardIds = new List<string> { "火把" } }
-                }
-            });
-
-            // R5: Use砍树（砍 + 树木 -> 移除树）
+            // R1: Use(砍) + 同容器有 玩家 + 树木 -> 产出 木棍（移除1个树木）
             _engine.RegisterRule(new CardRule
             {
                 Trigger = CardEventType.Use,
                 Requirements = new List<IRuleRequirement>
                 {
                     new ConditionRequirement(ctx => ctx.Source.HasTag("砍")),
-                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ById, Filter = "树木", MinCount = 1 }
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "玩家", MinCount = 1 },
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ById,  Filter = "树木", MinCount = 1 },
                 },
                 Effects = new List<IRuleEffect>
                 {
-                    new RemoveCardsEffect { TargetKind = TargetKind.ById, TargetValueFilter = "树木" }
+                    new RemoveCardsEffect { TargetKind = TargetKind.ById, TargetValueFilter = "树木", Take = 1 },
+                    new CreateCardsEffect { CardIds = new List<string> { "木棍" } }
                 }
             });
 
-            // R6: Custom-进入草地（以 Self 为容器 -> OwnerHops=0）
+            // R2: Use(制作) + 同容器有 玩家 + 木棍 + 火 -> 产出 火把（移除1个木棍和1个火）
             _engine.RegisterRule(new CardRule
             {
-                Trigger = CardEventType.Custom,
-                OwnerHops = 0,
+                Trigger = CardEventType.Use,
                 Requirements = new List<IRuleRequirement>
                 {
-                    new ConditionRequirement(ctx => ctx.EventId == "PlayerEnter"),
-                    // 检查容器本体是否草地
-                    new ConditionRequirement(ctx => ctx.Container != null && ctx.Container.HasTag("草地"))
+                    new ConditionRequirement(ctx => ctx.Source.HasTag("制作")),
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "玩家", MinCount = 1 },
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "木棍", MinCount = 1 },
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火",   MinCount = 1 },
                 },
                 Effects = new List<IRuleEffect>
                 {
+                    new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "木棍", Take = 1 },
+                    new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "火",   Take = 1 },
+                    new CreateCardsEffect { CardIds = new List<string> { "火把" } }
+                }
+            });
+
+            // R3: Tick(Self) 同容器有“火把” -> 给所有火把 Ticks += 1
+            _engine.RegisterRule(new CardRule
+            {
+                Trigger = CardEventType.Tick,
+                OwnerHops = 0, // Self 容器：对触发 Tick 的容器自身处理
+                Requirements = new List<IRuleRequirement>
+                {
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火把", MinCount = 1 },
+                },
+                Effects = new List<IRuleEffect>
+                {
+                    new ModifyPropertyEffect
+                    {
+                        TargetKind = TargetKind.ByTag,
+                        TargetValueFilter = "火把",
+                        ApplyMode = ModifyPropertyEffect.Mode.AddToBase,
+                        Value = 1f
+                    },
                     new InvokeEffect((ctx, _) =>
                     {
-                        var p = ctx.DataCard;
-                        if (p != null) p.Custom("GainXP", 5f);
-                        Debug.Log("[进入草地] 玩家获得经验 +5");
+                        var torches = TargetSelector.Select(TargetKind.ByTag, ctx, "火把");
+                        var ticks = torches.Select(t => t.Property?.GetBaseValue() ?? 0f).ToList();
+                        Debug.Log($"[Tick] 本容器火把 Ticks: {(ticks.Count==0?"(无)":string.Join(", ", ticks))}");
                     })
                 }
             });
 
-            // R7: Custom-GainXP（Self 容器）
-            _engine.RegisterRule(new CardRule
-            {
-                Trigger = CardEventType.Custom,
-                OwnerHops = 0,
-                Requirements = new List<IRuleRequirement>
-                {
-                    new ConditionRequirement(ctx => ctx.EventId == "GainXP")
-                },
-                Effects = new List<IRuleEffect>
-                {
-                    new InvokeEffect((ctx, _) =>
-                    {
-                        float inc = 0f;
-                        if (ctx.Event.Data is float f) inc = f;
-                        var gp = ctx.Source.Property;
-                        if (gp != null)
-                        {
-                            gp.SetBaseValue(gp.GetBaseValue() + inc);
-                            Debug.Log($"[玩家经验] 增加 {inc} -> 当前XP: {gp.GetBaseValue()}");
-                        }
-                    })
-                }
-            });
-
-            // R8: Tick-夜晚点燃火把（Self 容器）
+            // R4: Tick(Self) 有 Ticks >= 5 的火把 -> 移除并产出等量的“灰烬”
             _engine.RegisterRule(new CardRule
             {
                 Trigger = CardEventType.Tick,
                 OwnerHops = 0,
                 Requirements = new List<IRuleRequirement>
                 {
-                    new ConditionRequirement(ctx => _isNight),
-                    new ConditionRequirement(ctx => ctx.Container != null && ctx.Container.HasTag("草地")),
-                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火把", MinCount = 1 }
+                    // 只要容器里存在任意火把即可进入效果，由效果内逐个检查 Ticks
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火把", MinCount = 1 },
                 },
                 Effects = new List<IRuleEffect>
                 {
-                    new AddTagEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "火把", Tag = "火" },
-                    new InvokeEffect((ctx, _) => Debug.Log("[夜晚] 草地格：火把被点燃（添加标签：火）"))
+                    new InvokeEffect((ctx, _) =>
+                    {
+                        var torches = TargetSelector.Select(TargetKind.ByTag, ctx, "火把").ToList();
+                        int toRemove = 0;
+                        foreach (var t in torches)
+                        {
+                            var gp = t.Property;
+                            if (gp != null && gp.GetBaseValue() >= 5f)
+                            {
+                                // 移除该火把
+                                t.Owner?.RemoveChild(t, force: false);
+                                toRemove++;
+                            }
+                        }
+                        // 按移除数量产出灰烬
+                        for (int i = 0; i < toRemove; i++)
+                        {
+                            var ash = _factory.Create("灰烬");
+                            if (ash != null) ctx.Container.AddChild(ash);
+                        }
+                        if (toRemove > 0)
+                            Debug.Log($"[燃尽] 有 {toRemove} 个火把燃尽，生成同量灰烬");
+                    })
                 }
             });
 
-            // 5) 演示流程
+            // 5) 演示流程（简单驱动）
             PrintChildren(tileGrass, "初始 草地");
-            PrintChildren(tileDirt, "初始 泥地");
 
-            if (player.Owner != null) player.Owner.RemoveChild(player);
-            tileDirt.AddChild(player);
-            tileDirt.Custom("PlayerEnter", player);
-            if (player.Owner != null) player.Owner.RemoveChild(player);
-            tileGrass.AddChild(player);
-            tileGrass.Custom("PlayerEnter", player);
+            // Use(砍) -> 产出木棍
+            chop.Use();
+            PrintChildren(tileGrass, "砍树后");
 
-            make.Use();
-            PrintChildren(tileGrass, "制作木棍后");
-
+            // Use(制作) -> 产出火把
             make.Use();
             PrintChildren(tileGrass, "制作火把后");
 
-            tileGrass.Tick(1f);
-            Debug.Log($"火把是否带有'火'标签: {tileGrass.Children.Any(c => c.HasTag("火把") && c.HasTag("火"))}");
-            tileGrass.AddChild(fire);
-            tileGrass.AddChild(tree);
-
-            fire.Tick(1f);
-            PrintChildren(tileGrass, "一次加热/燃烧后");
-            fire.Tick(1f);
-            fire.Tick(1f);
-            fire.Tick(1f);
-            PrintChildren(tileGrass, "3次加热/燃烧后");
+            // 连续 Tick 5 次 -> 火把燃尽为灰烬
+            for (int i = 1; i <= 5; i++)
+            {
+                tileGrass.Tick(1f);
+            }
+            PrintChildren(tileGrass, "5次Tick后");
 
             Debug.Log("=== EmeCard Best Practice 示例结束 ===");
         }
