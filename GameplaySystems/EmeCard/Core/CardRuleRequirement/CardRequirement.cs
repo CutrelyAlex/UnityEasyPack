@@ -57,69 +57,14 @@ namespace EasyPack
             };
 
             // 选择集合（递归类 TargetKind 使用深度限制）
-            IReadOnlyList<Card> picks = Select(localCtx, TargetKind, Filter);
-
+            var picks = TargetSelector.Select(TargetKind, localCtx, Filter);
             int count = picks?.Count ?? 0;
             if (count == 0) return MinCount <= 0;
 
-            // 按约定仅返回至多 MinCount 个
             int take = MinCount > 0 ? MinCount : count;
             matched.AddRange(picks.Take(take));
 
             return count >= (MinCount > 0 ? MinCount : 0);
-        }
-
-        // 与 TargetSelector 保持一致语义；递归选择尊重 ctx.MaxDepth
-        private static IReadOnlyList<Card> Select(CardRuleContext ctx, TargetKind kind, string value)
-        {
-            if (ctx == null || ctx.Container == null) return Array.Empty<Card>();
-
-            switch (kind)
-            {
-                case TargetKind.Source:
-                    return ctx.Source != null ? new[] { ctx.Source } : Array.Empty<Card>();
-
-                case TargetKind.Container:
-                    return new[] { ctx.Container };
-
-                case TargetKind.ContainerChildren:
-                    return ctx.Container.Children.ToList();
-
-                case TargetKind.ContainerDescendants:
-                {
-                    int max = ctx.MaxDepth > 0 ? ctx.MaxDepth : int.MaxValue;
-                    return TraversalUtil.EnumerateDescendants(ctx.Container, max).ToList();
-                }
-
-                case TargetKind.ByTag:
-                    if (string.IsNullOrEmpty(value)) return Array.Empty<Card>();
-                    return ctx.Container.Children.Where(c => c.HasTag(value)).ToList();
-
-                case TargetKind.ByTagRecursive:
-                    if (string.IsNullOrEmpty(value)) return Array.Empty<Card>();
-                    {
-                        int max = ctx.MaxDepth > 0 ? ctx.MaxDepth : int.MaxValue;
-                        return TraversalUtil.EnumerateDescendants(ctx.Container, max)
-                                            .Where(c => c.HasTag(value)).ToList();
-                    }
-
-                case TargetKind.ById:
-                    if (string.IsNullOrEmpty(value)) return Array.Empty<Card>();
-                    return ctx.Container.Children.Where(c => string.Equals(c.Id, value, StringComparison.Ordinal)).ToList();
-
-                case TargetKind.ByIdRecursive:
-                    if (string.IsNullOrEmpty(value)) return Array.Empty<Card>();
-                    {
-                        int max = ctx.MaxDepth > 0 ? ctx.MaxDepth : int.MaxValue;
-                        return TraversalUtil.EnumerateDescendants(ctx.Container, max)
-                                            .Where(c => string.Equals(c.Id, value, StringComparison.Ordinal)).ToList();
-                    }
-
-                // Matched 在 Requirement 里不适用，返回空
-                case TargetKind.Matched:
-                default:
-                    return Array.Empty<Card>();
-            }
         }
     }
 }
