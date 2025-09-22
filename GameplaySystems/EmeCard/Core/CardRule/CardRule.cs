@@ -37,7 +37,7 @@ namespace EasyPack
         /// </summary>
         public RuleScope Scope = RuleScope.Owner;
 
-        // <summary>
+        /// <summary>
         /// 当 Scope=Owner 时：向上取第 N 级持有者。
         /// 取值说明：1=直接Owner（默认）、0=等价于 Self、-1=一直取到最顶层Root、N>1=沿Owner链上溯N层（不足则停在最顶层）。
         /// </summary>

@@ -73,7 +73,7 @@ namespace EasyPack
 
             IEnumerable<Card> pool = ctx.RecursiveSearch
                 ? TraversalUtil.EnumerateDescendants(ctx.Container, ctx.MaxDepth)
-                : (IEnumerable<Card>)ctx.Container.Children;
+                : (IEnumerable<Card>)ctx.Container.Children; // 冰:这里改成RecursiveSearch==false只返回容器，==true之后再往下遍历感觉会更清晰
 
             if (IncludeSelf)
             {
