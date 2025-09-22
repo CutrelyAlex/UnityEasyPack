@@ -7,15 +7,17 @@ namespace EasyPack
     // 决定效果作用对象
     public enum TargetKind
     {
-        Matched,            // 匹配到的卡
-        Source,             // 触发源
-        Container,          // 匹配容器本体
-        ContainerChildren,  // 容器内所有子卡（仅一层）
+        Matched,              // 匹配到的卡
+        Source,               // 触发源
+        Container,            // 匹配容器本体
+        ContainerChildren,    // 容器内所有子卡（仅一层）
         ContainerDescendants, // 容器内所有子卡（递归）
-        ByTag,              // 按标签过滤容器内子卡（仅一层）
-        ByTagRecursive,     // 按标签过滤容器内子卡（递归）
-        ById,               // 按ID过滤容器内子卡（仅一层）
-        ByIdRecursive       // 按ID过滤容器内子卡（递归）
+        ByTag,                // 按标签过滤容器内子卡（仅一层）
+        ByTagRecursive,       // 按标签过滤容器内子卡（递归）
+        ById,                 // 按ID过滤容器内子卡（仅一层）
+        ByIdRecursive,        // 按ID过滤容器内子卡（递归）
+        ByCategory,           // 按类别过滤容器内子卡（仅一层）
+        ByCategoryRecursive   // 按类别过滤容器内子卡（递归）
     }
 
     /// <summary>
@@ -62,6 +64,18 @@ namespace EasyPack
                     return TraversalUtil.EnumerateDescendants(ctx.Container, max)
                                         .Where(c => string.Equals(c.Id, value, StringComparison.Ordinal)).ToList();
                 }
+                case TargetKind.ByCategory:
+                {
+                    if (!TryParseCategory(value, out var cat)) return Array.Empty<Card>();
+                    return ctx.Container.Children.Where(c => c.Category == cat).ToList();
+                }
+                case TargetKind.ByCategoryRecursive:
+                {
+                    if (!TryParseCategory(value, out var cat)) return Array.Empty<Card>();
+                    int max = ctx.MaxDepth > 0 ? ctx.MaxDepth : int.MaxValue;
+                    return TraversalUtil.EnumerateDescendants(ctx.Container, max)
+                                        .Where(c => c.Category == cat).ToList();
+                }
                 default:
                     return Array.Empty<Card>();
             }
@@ -76,6 +90,13 @@ namespace EasyPack
             if (take > 0 && list.Count > take)
                 return list.Take(take).ToList();
             return list;
+        }
+
+        private static bool TryParseCategory(string value, out CardCategory cat)
+        {
+            cat = default(CardCategory);
+            if (string.IsNullOrEmpty(value)) return false;
+            return Enum.TryParse<CardCategory>(value, true, out cat);
         }
     }
 }
