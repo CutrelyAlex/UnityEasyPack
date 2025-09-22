@@ -8,8 +8,6 @@ namespace EasyPack
     /// - 使用外部提供的 Func<CardRuleContext, bool> 进行布尔校验；
     /// - 默认不返回匹配卡集合（返回空集合）。
     /// </summary>
-    
-    
     public sealed class ConditionRequirement : IRuleRequirement
     {
         public Func<CardRuleContext, bool> Condition { get; }
