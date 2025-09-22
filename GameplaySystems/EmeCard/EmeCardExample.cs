@@ -12,7 +12,7 @@ namespace EasyPack
     /// - 展示 Scope 与 OwnerHops 以及 TargetKind 的使用差异；
     /// - 展示递归匹配（CardRule.Recursive/MaxDepth）与递归选择（TargetKind.*Recursive/ContainerDescendants）。
     /// </summary>
-    public sealed class EmeCardExample : MonoBehaviour
+    public sealed partial class EmeCardExample : MonoBehaviour
     {
         private CardRuleEngine _engine;
         private CardFactory _factory;
@@ -31,28 +31,6 @@ namespace EasyPack
                     {
                         if (!string.IsNullOrEmpty(t)) AddTag(t);
                     }
-                }
-            }
-        }
-
-        // 演示：添加标签的效果
-        private sealed class AddTagEffect : IRuleEffect
-        {
-            public TargetKind TargetKind { get; set; } = TargetKind.Matched;
-            public string TargetValueFilter { get; set; }
-            public string Tag { get; set; }
-
-            public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
-            {
-                IReadOnlyList<Card> targets =
-                    TargetKind == TargetKind.Matched
-                        ? matched
-                        : TargetSelector.Select(TargetKind, ctx, TargetValueFilter);
-
-                foreach (var t in targets)
-                {
-                    if (!string.IsNullOrEmpty(Tag))
-                        t.AddTag(Tag);
                 }
             }
         }

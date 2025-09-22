@@ -6,7 +6,7 @@ namespace EasyPack
     /// 产卡效果：在上下文容器中创建指定ID的新卡牌。
     /// 依赖 CardRuleContext.Factory；若未设置工厂则不生效。
     /// </summary>
-    public sealed class CreateCardsEffect : IRuleEffect
+    public class CreateCardsEffect : IRuleEffect
     {
         /// <summary>要创建的卡牌ID列表。</summary>
         public List<string> CardIds { get; set; } = new List<string>();
