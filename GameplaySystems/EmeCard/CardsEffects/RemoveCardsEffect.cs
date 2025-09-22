@@ -8,7 +8,7 @@ namespace EasyPack
     {
         public TargetKind TargetKind { get; set; } = TargetKind.Matched;
         public string TargetValueFilter { get; set; }
-        public int Take { get; set; } = 1;
+        public int Take { get; set; } = 0;
         public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
             IReadOnlyList<Card> targets;
