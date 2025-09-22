@@ -12,7 +12,7 @@ namespace EasyPack
     /// - 展示锚点选择（OwnerHops）与 TargetKind 的使用差异；
     /// - 展示递归匹配（CardRule.Recursive/MaxDepth）与递归选择（TargetKind.*Recursive/ContainerDescendants）。
     /// </summary>
-    public sealed class EmeCardExample : MonoBehaviour
+    public sealed partial class EmeCardExample : MonoBehaviour
     {
         private CardRuleEngine _engine;
         private CardFactory _factory;
@@ -89,7 +89,7 @@ namespace EasyPack
                 // OwnerHops = 1 默认即为容器=Owner
                 Requirements = new List<IRuleRequirement>
                 {
-                    new CardRequirement { Kind = MatchKind.Tag, Value = "火", MinCount = 1 }
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火", MinCount = 1 }
                 },
                 Effects = new List<IRuleEffect>
                 {
@@ -109,8 +109,8 @@ namespace EasyPack
                 Trigger = CardEventType.Tick,
                 Requirements = new List<IRuleRequirement>
                 {
-                    new CardRequirement { Kind = MatchKind.Tag, Value = "可燃烧", MinCount = 1 },
-                    new CardRequirement { Kind = MatchKind.Tag, Value = "火", MinCount = 1 },
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "可燃烧", MinCount = 1 },
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火", MinCount = 1 },
                     new ConditionRequirement(ctx =>
                         ctx.Container.Children.Any(c => c.HasTag("可燃烧") && (c.Property?.GetBaseValue() ?? 0f) > 23f))
                 },
@@ -128,9 +128,9 @@ namespace EasyPack
                 Trigger = CardEventType.Use,
                 Requirements = new List<IRuleRequirement>
                 {
-                    // 以 Owner 为容器（默认），但把 Source 本体也纳入 -> 用 Anchor=Source + ContainerOnly 来替代旧 IncludeSelf
-                    new CardRequirement { Anchor = RequirementAnchor.Source, Search = RequirementSearchScope.ContainerOnly, Kind = MatchKind.Tag, Value = "制作", MinCount = 1 },
-                    new CardRequirement { Kind = MatchKind.Id,  Value = "树木", MinCount = 1 }
+                    // 原“Source 本体含‘制作’”改为条件判断
+                    new ConditionRequirement(ctx => ctx.Source.HasTag("制作")),
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ById, Filter = "树木", MinCount = 1 }
                 },
                 Effects = new List<IRuleEffect>
                 {
@@ -145,9 +145,9 @@ namespace EasyPack
                 Trigger = CardEventType.Use,
                 Requirements = new List<IRuleRequirement>
                 {
-                    new CardRequirement { Anchor = RequirementAnchor.Source, Search = RequirementSearchScope.ContainerOnly, Kind = MatchKind.Tag, Value = "制作", MinCount = 1 },
-                    new CardRequirement { Kind = MatchKind.Tag, Value = "木棍", MinCount = 1 },
-                    new CardRequirement { Kind = MatchKind.Tag, Value = "火",   MinCount = 1 }
+                    new ConditionRequirement(ctx => ctx.Source.HasTag("制作")),
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "木棍", MinCount = 1 },
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火",   MinCount = 1 }
                 },
                 Effects = new List<IRuleEffect>
                 {
@@ -163,8 +163,8 @@ namespace EasyPack
                 Trigger = CardEventType.Use,
                 Requirements = new List<IRuleRequirement>
                 {
-                    new CardRequirement { Anchor = RequirementAnchor.Source, Search = RequirementSearchScope.ContainerOnly, Kind = MatchKind.Tag, Value = "砍", MinCount = 1 },
-                    new CardRequirement { Kind = MatchKind.Id,  Value = "树木", MinCount = 1 }
+                    new ConditionRequirement(ctx => ctx.Source.HasTag("砍")),
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ById, Filter = "树木", MinCount = 1 }
                 },
                 Effects = new List<IRuleEffect>
                 {
@@ -180,7 +180,8 @@ namespace EasyPack
                 Requirements = new List<IRuleRequirement>
                 {
                     new ConditionRequirement(ctx => ctx.EventId == "PlayerEnter"),
-                    new CardRequirement { Anchor = RequirementAnchor.Container, Search = RequirementSearchScope.ContainerOnly, Kind = MatchKind.Tag, Value = "草地", MinCount = 1 }
+                    // 检查容器本体是否草地
+                    new ConditionRequirement(ctx => ctx.Container != null && ctx.Container.HasTag("草地"))
                 },
                 Effects = new List<IRuleEffect>
                 {
@@ -226,8 +227,8 @@ namespace EasyPack
                 Requirements = new List<IRuleRequirement>
                 {
                     new ConditionRequirement(ctx => _isNight),
-                    new CardRequirement { Anchor = RequirementAnchor.Container, Search = RequirementSearchScope.ContainerOnly, Kind = MatchKind.Tag, Value = "草地", MinCount = 1 },
-                    new CardRequirement { Kind = MatchKind.Tag, Value = "火把", MinCount = 1 }
+                    new ConditionRequirement(ctx => ctx.Container != null && ctx.Container.HasTag("草地")),
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火把", MinCount = 1 }
                 },
                 Effects = new List<IRuleEffect>
                 {
@@ -235,8 +236,6 @@ namespace EasyPack
                     new InvokeEffect((ctx, _) => Debug.Log("[夜晚] 草地格：火把被点燃（添加标签：火）"))
                 }
             });
-
-            // 其余示例规则若有 Scope=Self，请改为 OwnerHops=0；Scope=Owner 则可省略（默认 =1）
 
             // 5) 演示流程
             PrintChildren(tileGrass, "初始 草地");
