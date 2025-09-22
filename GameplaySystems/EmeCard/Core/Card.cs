@@ -13,7 +13,9 @@ namespace EasyPack
         /// <summary>属性/状态类。</summary>
         Attribute,
         /// <summary>行为/动作类。</summary>
-        Action
+        Action,
+        /// <summary>环境类。</summary>
+        Environment
     }
 
     /// <summary>

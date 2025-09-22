@@ -149,7 +149,11 @@ namespace EasyPack
                 {
                     new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "树木" },
                     new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "火"   },
-                    new CreateCardsEffect { CardIds = new List<string> { "灰烬" } }
+                    new CreateCardsEffect { CardIds = new List<string> { "灰烬" } },
+                    new InvokeEffect((context, cards) =>
+                    {
+                    Debug.Log("[Tick燃烧]可燃烧 + 火 -> 灰烬");
+                } )
                 }
             });
 
@@ -166,7 +170,12 @@ namespace EasyPack
                 Effects = new List<IRuleEffect>
                 {
                     new RemoveCardsEffect { TargetKind = TargetKind.ById, TargetValueFilter = "树木" },
-                    new CreateCardsEffect { CardIds = new List<string> { "木棍" } }
+                    new CreateCardsEffect { CardIds = new List<string> { "木棍" } },
+                    new InvokeEffect((context, cards) =>
+                    {
+                        Debug.Log("[制作]制作 + 树木 -> 木棍");
+                    } )
+                    
                 }
             });
 
@@ -185,7 +194,11 @@ namespace EasyPack
                 {
                     new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "木棍" },
                     new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "火"   },
-                    new CreateCardsEffect { CardIds = new List<string> { "火把" } }
+                    new CreateCardsEffect { CardIds = new List<string> { "火把" } },
+                    new InvokeEffect((context, cards) =>
+                    {
+                Debug.Log("[制作] 制作 + 木棍 + 火 -> 火把");
+                } )
                 }
             });
 
@@ -201,7 +214,11 @@ namespace EasyPack
                 },
                 Effects = new List<IRuleEffect>
                 {
-                    new RemoveCardsEffect { TargetKind = TargetKind.ById, TargetValueFilter = "树木" }
+                    new RemoveCardsEffect { TargetKind = TargetKind.ById, TargetValueFilter = "树木" },
+                    new InvokeEffect((context, cards) =>
+                    {
+                        Debug.Log("[砍] 消耗一棵树");
+                    } )
                 }
             });
 
@@ -374,6 +391,7 @@ namespace EasyPack
                 Trigger = CardEventType.Use,
                 Scope = RuleScope.Owner,
                 OwnerHops = -1, // Root
+                //Recursive = true,
                 Requirements = new List<IRuleRequirement>
                 {
                     new CardRequirement { Kind = MatchKind.Tag, Value = "制作", MinCount = 1, IncludeSelf = true }
@@ -401,14 +419,29 @@ namespace EasyPack
             // 使用 Category 匹配（检查容器内是否有至少2个Action: 制作/砍）
             make.Custom("CheckActions");
 
+            Debug.LogWarning("———— 关于Use的一些bug ————");
+            
+            PrintChildren(tileGrass,"开始时的状态");
             // 制作：树木 -> 木棍
             make.Use();
             PrintChildren(tileGrass, "制作木棍后");
 
+            PrintChildren(tileGrass, "制作火把前打印一次");
+            Debug.LogWarning("这里应该是因为制作木棍后规则引擎继续匹配到了制作火把的规则，所以火把提前被制作出来");
+            
             // 再制作：木棍 + 火 -> 火把
             make.Use();
             PrintChildren(tileGrass, "制作火把后");
+            
+            // 测试用：添加一棵树
+            tileGrass.AddChild(tree);
+            PrintChildren(tileGrass, "这里添加了一棵树");
+            // 砍树
+            chop.Use();
+            PrintChildren(tileGrass, "砍树后");
+            Debug.LogWarning("这里调用的是砍的Use方法，但是提前匹配到制作木棍规则导致树木缺失，导致后续砍树规则缺失条件");
 
+            Debug.LogWarning("———— 这里结束 ————");
             // 标记草地及其子项（Container / ContainerChildren）
             tileGrass.Custom("MarkTile");
 
