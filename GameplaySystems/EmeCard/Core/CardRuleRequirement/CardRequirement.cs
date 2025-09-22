@@ -53,7 +53,6 @@ namespace EasyPack
                 Container = root,
                 Event = ctx.Event,
                 Factory = ctx.Factory,
-                RecursiveSearch = ctx.RecursiveSearch,
                 MaxDepth = ctx.MaxDepth
             };
 

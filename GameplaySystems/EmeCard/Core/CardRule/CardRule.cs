@@ -28,11 +28,6 @@ namespace EasyPack
         public int OwnerHops = 1;
 
         /// <summary>
-        /// 是否在容器内递归搜索子级（匹配阶段）。默认 false 表示仅一层 Children。
-        /// </summary>
-        public bool Recursive = false;
-
-        /// <summary>
         /// 递归搜索的最大深度（>0 生效，1 表示仅子级一层；int.MaxValue 表示不限深）。
         /// </summary>
         public int MaxDepth = int.MaxValue;

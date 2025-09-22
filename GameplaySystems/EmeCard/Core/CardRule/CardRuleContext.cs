@@ -18,11 +18,6 @@ namespace EasyPack
         public ICardFactory Factory;
 
         /// <summary>
-        /// 匹配时是否递归搜索容器子树（默认 false）。
-        /// </summary>
-        public bool RecursiveSearch;
-
-        /// <summary>
         /// 递归搜索最大深度（>0 生效，1 表示仅子级一层）。
         /// </summary>
         public int MaxDepth;

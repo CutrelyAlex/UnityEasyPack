@@ -99,7 +99,6 @@ namespace EasyPack
                     Container = container,
                     Event = evt,
                     Factory = CardFactory,
-                    RecursiveSearch = rule.Recursive,
                     MaxDepth = rule.MaxDepth
                 };
 
@@ -115,6 +114,7 @@ namespace EasyPack
         }
 
         // 基于 OwnerHops 选择容器：0=Self，1=Owner，N>1 上溯，-1=Root
+
         private static Card SelectContainer(int ownerHops, Card source)
         {
             if (source == null) return null;
@@ -141,19 +141,14 @@ namespace EasyPack
         private static bool TryMatch(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll)
         {
             matchedAll = new List<Card>();
-            if (requirements == null || requirements.Count == 0) return true; // 无要求项视为命中
+            if (requirements == null || requirements.Count == 0) return true;
 
             foreach (var req in requirements)
             {
                 if (req == null) return false;
-
-                if (!req.TryMatch(ctx, out var picks))
-                    return false;
-
-                if (picks != null && picks.Count > 0)
-                    matchedAll.AddRange(picks);
+                if (!req.TryMatch(ctx, out var picks)) return false;
+                if (picks != null && picks.Count > 0) matchedAll.AddRange(picks);
             }
-
             return true;
         }
     }
