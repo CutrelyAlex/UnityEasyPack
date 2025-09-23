@@ -8,8 +8,8 @@ namespace EasyPack
     /// </summary>
     public enum CardCategory
     {
-        /// <summary>物品类。</summary>
-        Item,
+        /// <summary>物品/实体类。</summary>
+        Object,
         /// <summary>属性/状态类。</summary>
         Attribute,
         /// <summary>行为/动作类。</summary>
@@ -67,9 +67,9 @@ namespace EasyPack
         public string Description => Data != null ? Data.Description : string.Empty;
 
         /// <summary>
-        /// 卡牌类别，来自 <see cref="Data"/>；若为空则默认 <see cref="CardCategory.Item"/>。
+        /// 卡牌类别，来自 <see cref="Data"/>；若为空则默认 <see cref="CardCategory.Object"/>。
         /// </summary>
-        public CardCategory Category => Data != null ? Data.Category : CardCategory.Item;
+        public CardCategory Category => Data != null ? Data.Category : CardCategory.Object;
 
         /// <summary>
         /// 数值属性。
