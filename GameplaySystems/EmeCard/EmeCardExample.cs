@@ -46,7 +46,7 @@ namespace EasyPack
             // 1) 工厂与引擎
             _factory = new CardFactory();
             _engine = new CardRuleEngine(_factory);
-            _engine.Policy.FirstMatchOnly = true;
+            _engine.Policy.FirstMatchOnly = false;
 
             // 注册产物
             _factory.Register("灰烬", () => new SimpleCard(new CardData("灰烬", "灰烬", "燃烧后产生的灰烬", CardCategory.Object), null, "灰烬"));
@@ -91,6 +91,10 @@ namespace EasyPack
             // R1: Use(制作) + 同容器有 玩家 + 木棍 + 火 -> 产出 火把（移除1个木棍和1个火）
             _engine.RegisterRule(b => b
                 .Trigger(CardEventType.Use)
+                .Policy(c =>
+                {
+                    c.StopEventOnSuccess = true;
+                })
                 .WhenSourceTag("制作")
                 .NeedContainerTag("玩家")
                 .NeedContainerTag("木棍")
@@ -104,6 +108,10 @@ namespace EasyPack
             // R2: Use(制作) + 同容器有 玩家 + 树木 -> 产出 木棍（移除1个树木）
             _engine.RegisterRule(b => b
                 .Trigger(CardEventType.Use)
+                .Policy(c =>
+                {
+                    c.StopEventOnSuccess = true;
+                })
                 .WhenSourceTag("制作")
                 .NeedContainerTag("玩家")
                 .NeedContainerId("树木")
