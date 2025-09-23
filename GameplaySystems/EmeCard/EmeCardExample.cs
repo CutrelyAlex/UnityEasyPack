@@ -50,22 +50,24 @@ namespace EasyPack
             _engine.Policy.FirstMatchOnly = true;
 
             // 注册产物
-            _factory.Register("灰烬", () => new SimpleCard(new CardData("灰烬", "灰烬", "燃烧后产生的灰烬", CardCategory.Item), null, "灰烬"));
-            _factory.Register("木棍", () => new SimpleCard(new CardData("木棍", "木棍", "基础材料", CardCategory.Item), null, "木棍"));
-            _factory.Register("火把", () => new SimpleCard(new CardData("火把", "火把", "可点燃", CardCategory.Item), new GameProperty("Ticks", 0f), "火把"));
+
+            _factory.Register("灰烬", () => new SimpleCard(new CardData("灰烬", "灰烬", "燃烧后产生的灰烬", CardCategory.Object), null, "灰烬"));
+            _factory.Register("木棍", () => new SimpleCard(new CardData("木棍", "木棍", "基础材料", CardCategory.Object), null, "木棍"));
+            _factory.Register("火把", () => new SimpleCard(new CardData("火把", "火把", "可点燃", CardCategory.Object), new GameProperty("Ticks", 0f), "火把"));
+
 
             // 2) 世界布置
-            var world = new SimpleCard(new CardData("世界", "世界", "", CardCategory.Item), null, "世界");
-            var tileGrass = new SimpleCard(new CardData("草地格", "草地格", "", CardCategory.Item), null, "草地");
-            var tileDirt = new SimpleCard(new CardData("泥地格", "泥地格", "", CardCategory.Item), null, "泥土");
+            var world = new SimpleCard(new CardData("世界", "世界", "", CardCategory.Object), null, "世界");
+            var tileGrass = new SimpleCard(new CardData("草地格", "草地格", "", CardCategory.Object), null, "草地");
+            var tileDirt = new SimpleCard(new CardData("泥地格", "泥地格", "", CardCategory.Object), null, "泥土");
             world.AddChild(tileGrass);
             world.AddChild(tileDirt);
 
-            var player = new SimpleCard(new CardData("玩家", "玩家", "", CardCategory.Item), new GameProperty("XP", 0f), "玩家");
+            var player = new SimpleCard(new CardData("玩家", "玩家", "", CardCategory.Object), new GameProperty("XP", 0f), "玩家");
             tileGrass.AddChild(player);
 
-            var tree = new SimpleCard(new CardData("树木", "树木", "", CardCategory.Item), null, "树木", "可燃烧");
-            var fire = new SimpleCard(new CardData("火", "火", "", CardCategory.Item), null, "火");
+            var tree = new SimpleCard(new CardData("树木", "树木", "", CardCategory.Object), null, "树木", "可燃烧");
+            var fire = new SimpleCard(new CardData("火", "火", "", CardCategory.Object), null, "火");
             var make = new SimpleCard(new CardData("制作", "制作", "", CardCategory.Action), null, "制作");
             var chop = new SimpleCard(new CardData("砍", "砍", "", CardCategory.Action), null, "砍");
             tileGrass.AddChild(tree);
@@ -74,7 +76,7 @@ namespace EasyPack
             tileGrass.AddChild(chop);
 
             // 去重测试对象：同一卡带有两个标签 "A" 与 "B"，并有计数属性 Counter=0
-            var dedupObj = new SimpleCard(new CardData("去重对象", "去重对象", "", CardCategory.Item), 
+            var dedupObj = new SimpleCard(new CardData("去重对象", "去重对象", "", CardCategory.Object), 
                 new GameProperty("Counter", 0f), "A", "B");
             tileGrass.AddChild(dedupObj);
 

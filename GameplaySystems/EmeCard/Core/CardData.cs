@@ -9,7 +9,7 @@ public sealed class CardData
     public string[] DefaultTags { get; }
 
     public CardData(string id, string name = "Default", string desc = "",
-                    CardCategory category = CardCategory.Item, string[] defaultTags = null)
+                    CardCategory category = CardCategory.Object, string[] defaultTags = null)
     {
         ID = id;
         Name = name;
