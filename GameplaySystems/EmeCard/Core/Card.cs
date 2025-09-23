@@ -133,7 +133,7 @@ namespace EasyPack
         /// 成功加入后，将向子卡派发 <see cref="CardEventType.AddedToOwner"/> 事件，
         /// 其 <see cref="CardEvent.Data"/> 为旧持有者（此处即 <c>this</c>）。
         /// </remarks>
-        public void AddChild(Card child, bool intrinsic = false)
+        public Card AddChild(Card child, bool intrinsic = false)
         {
             if (child == null) throw new ArgumentNullException(nameof(child));
             if (child.Owner != null) throw new InvalidOperationException("子卡牌已被其他卡牌持有。");
@@ -144,6 +144,8 @@ namespace EasyPack
 
             // 通知子卡
             child.RaiseEvent(new CardEvent(CardEventType.AddedToOwner, data: this));
+
+            return this;
         }
 
         /// <summary>

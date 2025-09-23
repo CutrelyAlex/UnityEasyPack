@@ -23,7 +23,7 @@ namespace EasyPack
         /// </summary>
         public EnginePolicy Policy { get; } = new EnginePolicy();
 
-        
+
         private readonly Queue<EventEntry> _pending = new Queue<EventEntry>();
         private bool _isPumping = false;
         // 事件队列与泵
@@ -47,8 +47,18 @@ namespace EasyPack
             _rules[rule.Trigger].Add(rule);
         }
 
-        public void Attach(Card card) => card.OnEvent += OnCardEvent;
-        public void Detach(Card card) => card.OnEvent -= OnCardEvent;
+        public CardRuleEngine Attach(Card card)
+        {
+            card.OnEvent += OnCardEvent;
+            return this;
+        }
+
+
+        public CardRuleEngine Detach(Card card)
+        {
+            card.OnEvent -= OnCardEvent;
+            return this;
+        }
 
         // 接收卡牌事件：统一入队，必要时自动泵
         private void OnCardEvent(Card source, CardEvent evt)
