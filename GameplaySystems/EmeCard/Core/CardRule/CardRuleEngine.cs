@@ -18,6 +18,14 @@ namespace EasyPack
         /// <summary>可选的卡牌工厂，供产卡类效果使用。</summary>
         public ICardFactory CardFactory { get; set; }
 
+        /// <summary>
+        /// 引擎策略
+        /// </summary>
+        public EnginePolicy Policy { get; } = new EnginePolicy();
+
+        
+        private readonly Queue<EventEntry> _pending = new Queue<EventEntry>();
+        private bool _isPumping = false;
         // 事件队列与泵
         private struct EventEntry
         {
@@ -25,8 +33,6 @@ namespace EasyPack
             public CardEvent Event;
             public EventEntry(Card s, CardEvent e) { Source = s; Event = e; }
         }
-        private readonly Queue<EventEntry> _pending = new Queue<EventEntry>();
-        private bool _isPumping = false;
 
         public CardRuleEngine(ICardFactory factory = null)
         {
@@ -75,14 +81,17 @@ namespace EasyPack
             }
         }
 
-        // 处理单个事件 -> 规则分派/匹配/执行
         private void Process(Card source, CardEvent evt)
         {
             var rules = _rules[evt.Type];
             if (rules == null || rules.Count == 0) return;
 
-            foreach (var rule in rules)
+            // 记录所有命中与上下文快照（按注册顺序）
+            var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>();
+            for (int i = 0; i < rules.Count; i++)
             {
+                var rule = rules[i];
+
                 if (evt.Type == CardEventType.Custom &&
                     !string.IsNullOrEmpty(rule.CustomId) &&
                     !string.Equals(rule.CustomId, evt.ID, StringComparison.Ordinal))
@@ -104,17 +113,98 @@ namespace EasyPack
 
                 if (TryMatch(ctx, rule.Requirements, out var matched))
                 {
-                    if (rule.Effects != null && rule.Effects.Count > 0)
-                    {
-                        foreach (var eff in rule.Effects)
-                            eff.Execute(ctx, matched);
-                    }
+                    // 规则去重
+                    if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
+                        matched = matched.Distinct().ToList();
+
+                    evals.Add((rule, matched, ctx, i));
+                }
+            }
+
+            if (evals.Count == 0) return;
+
+            if (Policy.FirstMatchOnly)
+            {
+                // 只执行具体度最高的一条
+                var winner = SelectMostSpecific(evals);
+                if (winner != null && winner.Value.rule.Effects != null)
+                {
+                    foreach (var eff in winner.Value.rule.Effects)
+                        eff.Execute(winner.Value.ctx, winner.Value.matched);
+                }
+            }
+            else
+            {
+                // 执行全部命中（按注册顺序）
+                foreach (var e in evals.OrderBy(e => e.orderIndex))
+                {
+                    if (e.rule.Effects == null) continue;
+                    foreach (var eff in e.rule.Effects)
+                        eff.Execute(e.ctx, e.matched);
                 }
             }
         }
 
-        // 基于 OwnerHops 选择容器：0=Self，1=Owner，N>1 上溯，-1=Root
+        private static (CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)? SelectMostSpecific(
+           List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+        {
+            if (evals == null || evals.Count == 0) return null;
 
+            return evals
+                .OrderByDescending(e => ComputeSpecificity(e.rule))
+                .ThenBy(e => e.orderIndex)
+                .First();
+        }
+
+        // “具体度”评分：材料越多/需求越明确，得分越高。可被 RulePolicy.SpecificityOverride 覆盖
+        private static int ComputeSpecificity(CardRule rule)
+        {
+            var ov = rule.Policy?.SpecificityOverride;
+            if (ov.HasValue) return ov.Value;
+
+            int score = 0;
+            if (rule.Requirements == null) return score;
+
+            foreach (var req in rule.Requirements)
+            {
+                if (req is CardRequirement cr)
+                {
+                    switch (cr.TargetKind)
+                    {
+                        case TargetKind.ById:
+                        case TargetKind.ByTag:
+                        case TargetKind.ByCategory:
+                        case TargetKind.ByIdRecursive:
+                        case TargetKind.ByTagRecursive:
+                        case TargetKind.ByCategoryRecursive:
+                        case TargetKind.ContainerChildren:
+                        case TargetKind.ContainerDescendants:
+                            score += Math.Max(cr.MinCount, 1);
+                            if (cr.Root == RequirementRoot.Container) score += 1;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+            return score;
+        }
+
+        private CardRuleContext BuildContext(CardRule rule, Card source, CardEvent evt)
+        {
+            var container = SelectContainer(rule.OwnerHops, source);
+            if (container == null) return null;
+            return new CardRuleContext
+            {
+                Source = source,
+                Container = container,
+                Event = evt,
+                Factory = CardFactory,
+                MaxDepth = rule.MaxDepth
+            };
+        }
+
+        // 基于 OwnerHops 选择容器：0=Self，1=Owner，N>1 上溯，-1=Root
         private static Card SelectContainer(int ownerHops, Card source)
         {
             if (source == null) return null;

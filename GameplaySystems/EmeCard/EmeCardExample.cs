@@ -47,11 +47,11 @@ namespace EasyPack
             // 1) 工厂与引擎
             _factory = new CardFactory();
             _engine = new CardRuleEngine(_factory);
+            _engine.Policy.FirstMatchOnly = true;
 
             // 注册产物
             _factory.Register("灰烬", () => new SimpleCard(new CardData("灰烬", "灰烬", "燃烧后产生的灰烬", CardCategory.Item), null, "灰烬"));
             _factory.Register("木棍", () => new SimpleCard(new CardData("木棍", "木棍", "基础材料", CardCategory.Item), null, "木棍"));
-            // 火把自带计时属性 Ticks，从 0 开始
             _factory.Register("火把", () => new SimpleCard(new CardData("火把", "火把", "可点燃", CardCategory.Item), new GameProperty("Ticks", 0f), "火把"));
 
             // 2) 世界布置
@@ -73,6 +73,11 @@ namespace EasyPack
             tileGrass.AddChild(make);
             tileGrass.AddChild(chop);
 
+            // 去重测试对象：同一卡带有两个标签 "A" 与 "B"，并有计数属性 Counter=0
+            var dedupObj = new SimpleCard(new CardData("去重对象", "去重对象", "", CardCategory.Item), 
+                new GameProperty("Counter", 0f), "A", "B");
+            tileGrass.AddChild(dedupObj);
+
             // 3) 接入事件
             _engine.Attach(tileGrass);
             _engine.Attach(tileDirt);
@@ -83,24 +88,7 @@ namespace EasyPack
 
             // 4) 规则注册
 
-            // R1: Use(砍) + 同容器有 玩家 + 树木 -> 产出 木棍（移除1个树木）
-            _engine.RegisterRule(new CardRule
-            {
-                Trigger = CardEventType.Use,
-                Requirements = new List<IRuleRequirement>
-                {
-                    new ConditionRequirement(ctx => ctx.Source.HasTag("砍")),
-                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "玩家", MinCount = 1 },
-                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ById,  Filter = "树木", MinCount = 1 },
-                },
-                Effects = new List<IRuleEffect>
-                {
-                    new RemoveCardsEffect { TargetKind = TargetKind.ById, TargetValueFilter = "树木", Take = 1 },
-                    new CreateCardsEffect { CardIds = new List<string> { "木棍" } }
-                }
-            });
-
-            // R2: Use(制作) + 同容器有 玩家 + 木棍 + 火 -> 产出 火把（移除1个木棍和1个火）
+            // R1: Use(制作) + 同容器有 玩家 + 树木 -> 产出 木棍（移除1个树木）
             _engine.RegisterRule(new CardRule
             {
                 Trigger = CardEventType.Use,
@@ -116,6 +104,31 @@ namespace EasyPack
                     new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "木棍", Take = 1 },
                     new RemoveCardsEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = "火",   Take = 1 },
                     new CreateCardsEffect { CardIds = new List<string> { "火把" } }
+                },
+                Policy = new RulePolicy
+                {
+                    DistinctMatched = true
+                }
+            });
+
+            // R2: Use(制作) + 同容器有 玩家 + 木棍 + 火 -> 产出 火把（移除1个木棍和1个火）
+            _engine.RegisterRule(new CardRule
+            {
+                Trigger = CardEventType.Use,
+                Requirements = new List<IRuleRequirement>
+                {
+                    new ConditionRequirement(ctx => ctx.Source.HasTag("制作")),
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "玩家", MinCount = 1 },
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ById,  Filter = "树木", MinCount = 1 },
+                },
+                Effects = new List<IRuleEffect>
+                {
+                    new RemoveCardsEffect { TargetKind = TargetKind.ById, TargetValueFilter = "树木", Take = 1 },
+                    new CreateCardsEffect { CardIds = new List<string> { "木棍" } }
+                },
+                Policy = new RulePolicy
+                { 
+                    DistinctMatched = true
                 }
             });
 
@@ -153,7 +166,6 @@ namespace EasyPack
                 OwnerHops = 0,
                 Requirements = new List<IRuleRequirement>
                 {
-                    // 只要容器里存在任意火把即可进入效果，由效果内逐个检查 Ticks
                     new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "火把", MinCount = 1 },
                 },
                 Effects = new List<IRuleEffect>
@@ -167,12 +179,10 @@ namespace EasyPack
                             var gp = t.Property;
                             if (gp != null && gp.GetBaseValue() >= 5f)
                             {
-                                // 移除该火把
                                 t.Owner?.RemoveChild(t, force: false);
                                 toRemove++;
                             }
                         }
-                        // 按移除数量产出灰烬
                         for (int i = 0; i < toRemove; i++)
                         {
                             var ash = _factory.Create("灰烬");
@@ -184,11 +194,45 @@ namespace EasyPack
                 }
             });
 
+            // RD: 去重测试规则：同一卡被两条条件命中（Tag=A 与 Tag=B）
+            _engine.RegisterRule(new CardRule
+            {
+                Trigger = CardEventType.Custom,
+                OwnerHops = 0,
+                Requirements = new List<IRuleRequirement>
+                {
+                    new ConditionRequirement(ctx => ctx.EventId == "DedupTest"),
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "A", MinCount = 1 },
+                    new CardRequirement { Root = RequirementRoot.Container, TargetKind = TargetKind.ByTag, Filter = "B", MinCount = 1 },
+                },
+                Effects = new List<IRuleEffect>
+                {
+                    // 使用 Matched：如果引擎做了去重，这里应只+1；否则会+2
+                    new ModifyPropertyEffect
+                    {
+                        TargetKind = TargetKind.Matched,
+                        ApplyMode = ModifyPropertyEffect.Mode.AddToBase,
+                        Value = 1f
+                    },
+                    new InvokeEffect((ctx, matched) =>
+                    {
+                        var obj = ctx.Container.Children.FirstOrDefault(c => c.Id == "去重对象");
+                        float v = obj?.Property?.GetBaseValue() ?? -1f;
+                        if (Mathf.Approximately(v, 1f))
+                            Debug.Log("matched 去重生效，Counter=1");
+                        else if (Mathf.Approximately(v, 2f))
+                            Debug.LogWarning("未去重：Counter=2");
+                        else
+                            Debug.LogWarning($"非预期 Counter={v}");
+                    })
+                }
+            });
+
             // 5) 演示流程（简单驱动）
             PrintChildren(tileGrass, "初始 草地");
 
-            // Use(砍) -> 产出木棍
-            chop.Use();
+            // Use(制作) -> 产出木棍
+            make.Use();
             PrintChildren(tileGrass, "砍树后");
 
             // Use(制作) -> 产出火把
@@ -201,6 +245,9 @@ namespace EasyPack
                 tileGrass.Tick(1f);
             }
             PrintChildren(tileGrass, "5次Tick后");
+
+            // 触发去重测试
+            tileGrass.Custom("DedupTest");
 
             Debug.Log("=== EmeCard Best Practice 示例结束 ===");
         }

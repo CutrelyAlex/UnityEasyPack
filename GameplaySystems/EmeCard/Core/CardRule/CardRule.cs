@@ -42,5 +42,10 @@ namespace EasyPack
         /// 命中后执行的效果管线
         /// </summary>
         public List<IRuleEffect> Effects = new List<IRuleEffect>();
+
+        /// <summary>
+        /// 规则执行策略
+        /// </summary>
+        public RulePolicy Policy { get; set; } = new RulePolicy();
     }
 }

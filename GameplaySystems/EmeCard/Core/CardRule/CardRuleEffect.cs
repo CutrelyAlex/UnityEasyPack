@@ -9,7 +9,8 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// 目标选择配置：供效果声明目标类型/过滤值/数量上限。
+    /// 目标选择配置
+    /// 供效果声明目标类型/过滤值/数量上限。
     /// </summary>
     public interface ITargetSelection
     {
