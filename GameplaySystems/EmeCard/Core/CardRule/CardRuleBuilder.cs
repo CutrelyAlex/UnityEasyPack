@@ -37,6 +37,8 @@ namespace EasyPack
             return this;
         }
         public CardRuleBuilder Policy(Action<RulePolicy> configure) { configure?.Invoke(_rule.Policy); return this; }
+
+        public CardRuleBuilder StopEventOnSuccess(bool enabled = true) { _rule.Policy.StopEventOnSuccess = true; return this; }
         #endregion
 
         #region Requirements 便捷
