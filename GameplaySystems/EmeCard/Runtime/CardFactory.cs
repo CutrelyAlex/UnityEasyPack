@@ -7,6 +7,7 @@ namespace EasyPack
     public interface ICardFactory
     {
         Card Create(string id);
+        T Create<T>(string id) where T:Card;
     }
 
     public sealed class CardFactory : ICardFactory
@@ -22,11 +23,15 @@ namespace EasyPack
 
         public Card Create(string id)
         {
+            return Create<Card>(id);
+        }
+        public T Create<T>(string id) where T:Card
+        {
             if (string.IsNullOrEmpty(id)) return null;
             Func<Card> ctor;
             if (_constructors.TryGetValue(id, out ctor))
             {
-                return ctor();
+                return ctor() as T;
             }
             return null;
         }
