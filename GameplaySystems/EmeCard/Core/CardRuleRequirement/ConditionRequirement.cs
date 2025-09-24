@@ -5,7 +5,7 @@ namespace EasyPack
 {
     /// <summary>
     /// 自定义条件要求（不基于子卡筛选）：
-    /// - 使用外部提供的 Func<CardRuleContext, bool> 进行布尔校验；
+    /// - 使用外部提供的 Func&lt;CardRuleContext, bool&gt; 进行布尔校验；
     /// - 默认不返回匹配卡集合（返回空集合）。
     /// </summary>
     public sealed class ConditionRequirement : IRuleRequirement
