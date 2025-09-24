@@ -13,7 +13,7 @@ namespace EasyPack
     /// </summary>
     public sealed partial class EmeCardExample : MonoBehaviour
     {
-        private CardRuleEngine _engine;
+        private CardEngine _engine;
         private CardFactory _factory;
         private bool _isNight;
 
@@ -45,7 +45,7 @@ namespace EasyPack
 
             // 1) 工厂与引擎
             _factory = new CardFactory();
-            _engine = new CardRuleEngine(_factory);
+            _engine = new CardEngine(_factory);
             _engine.Policy.FirstMatchOnly = false;
 
             // 注册产物

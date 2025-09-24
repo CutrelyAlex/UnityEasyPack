@@ -5,7 +5,7 @@ namespace EasyPack
     /// <summary>
     /// 数据驱动的卡牌规则。
     /// </summary>
-    public sealed class CardRule
+    public class CardRule
     {
         /// <summary>
         /// 事件触发类型。

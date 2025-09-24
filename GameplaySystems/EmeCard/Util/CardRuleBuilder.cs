@@ -54,7 +54,7 @@ namespace EasyPack
 
         public CardRuleBuilder NeedCard(RequirementRoot root, TargetKind kind, string filter = null, int min = 1)
         {
-            _rule.Requirements.Add(new CardRequirement { Root = root, TargetKind = kind, Filter = filter, MinCount = min });
+            _rule.Requirements.Add(new CardsRequirement { Root = root, TargetKind = kind, Filter = filter, MinCount = min });
             return this;
         }
         public CardRuleBuilder AddRequirement(IRuleRequirement requirement)
@@ -98,14 +98,14 @@ namespace EasyPack
 
     public static class RuleRegistrationExtensions
     {
-        public static CardRule RegisterRule(this CardRuleEngine engine, CardRuleBuilder builder)
+        public static CardRule RegisterRule(this CardEngine engine, CardRuleBuilder builder)
         {
             var rule = builder?.Build();
             if (rule != null) engine.RegisterRule(rule);
             return rule;
         }
 
-        public static CardRule RegisterRule(this CardRuleEngine engine, Action<CardRuleBuilder> configure)
+        public static CardRule RegisterRule(this CardEngine engine, Action<CardRuleBuilder> configure)
         {
             var b = new CardRuleBuilder();
             configure?.Invoke(b);
