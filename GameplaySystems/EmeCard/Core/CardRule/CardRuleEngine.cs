@@ -1,32 +1,28 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace EasyPack
 {
-    /// <summary>
-    /// 规则引擎：
-    /// - 通过订阅卡牌事件接入事件流（入队）；
-    /// - 使用内部队列按 FIFO 顺序依次处理事件，避免重入（效果触发的新事件会排在后面）；
-    /// - 按事件类型分派规则，进行容器选择与要求项匹配；
-    /// - 命中时执行效果管线（效果可进行消耗/产出等操作）。
-    /// </summary>
     public sealed class CardRuleEngine
     {
         private readonly Dictionary<CardEventType, List<CardRule>> _rules = new Dictionary<CardEventType, List<CardRule>>();
-
-        /// <summary>可选的卡牌工厂，供产卡类效果使用。</summary>
         public ICardFactory CardFactory { get; set; }
 
-        // 事件队列与泵
+        /// <summary>引擎策略</summary>
+        public EnginePolicy Policy { get; } = new EnginePolicy();
+
+        private bool _isPumping = false;
+
+        // 事件封装
         private struct EventEntry
         {
             public Card Source;
             public CardEvent Event;
             public EventEntry(Card s, CardEvent e) { Source = s; Event = e; }
         }
-        private readonly Queue<EventEntry> _pending = new Queue<EventEntry>();
-        private bool _isPumping = false;
+        private readonly Queue<EventEntry> _queue = new Queue<EventEntry>();
 
         public CardRuleEngine(ICardFactory factory = null)
         {
@@ -41,20 +37,15 @@ namespace EasyPack
             _rules[rule.Trigger].Add(rule);
         }
 
-        public void Attach(Card card) => card.OnEvent += OnCardEvent;
-        public void Detach(Card card) => card.OnEvent -= OnCardEvent;
+        public CardRuleEngine Attach(Card card) { card.OnEvent += OnCardEvent; return this; }
+        public CardRuleEngine Detach(Card card) { card.OnEvent -= OnCardEvent; return this; }
 
-        // 接收卡牌事件：统一入队，必要时自动泵
         private void OnCardEvent(Card source, CardEvent evt)
         {
-            _pending.Enqueue(new EventEntry(source, evt));
+            _queue.Enqueue(new EventEntry(source, evt));
             if (!_isPumping) Pump();
         }
 
-        /// <summary>
-        /// 主动驱动队列（通常无需手动调用）。可用于限制每帧处理事件数量。
-        /// </summary>
-        /// <param name="maxEvents">本次最多处理的事件数，默认尽可能多。</param>
         public void Pump(int maxEvents = int.MaxValue)
         {
             if (_isPumping) return;
@@ -62,9 +53,9 @@ namespace EasyPack
             int processed = 0;
             try
             {
-                while (_pending.Count > 0 && processed < maxEvents)
+                while (_queue.Count > 0 && processed < maxEvents)
                 {
-                    var entry = _pending.Dequeue();
+                    var entry = _queue.Dequeue();
                     Process(entry.Source, entry.Event);
                     processed++;
                 }
@@ -75,14 +66,17 @@ namespace EasyPack
             }
         }
 
-        // 处理单个事件 -> 规则分派/匹配/执行
         private void Process(Card source, CardEvent evt)
         {
             var rules = _rules[evt.Type];
             if (rules == null || rules.Count == 0) return;
 
-            foreach (var rule in rules)
+            // 评估阶段：记录所有命中与上下文快照（按注册顺序）
+            var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>();
+            for (int i = 0; i < rules.Count; i++)
             {
+                var rule = rules[i];
+
                 if (evt.Type == CardEventType.Custom &&
                     !string.IsNullOrEmpty(rule.CustomId) &&
                     !string.Equals(rule.CustomId, evt.ID, StringComparison.Ordinal))
@@ -90,31 +84,63 @@ namespace EasyPack
                     continue;
                 }
 
-                var container = SelectContainer(rule.OwnerHops, source);
-                if (container == null) continue;
-
-                var ctx = new CardRuleContext
-                {
-                    Source = source,
-                    Container = container,
-                    Event = evt,
-                    Factory = CardFactory,
-                    MaxDepth = rule.MaxDepth
-                };
+                var ctx = BuildContext(rule, source, evt);
+                if (ctx == null) continue;
 
                 if (TryMatch(ctx, rule.Requirements, out var matched))
                 {
-                    if (rule.Effects != null && rule.Effects.Count > 0)
-                    {
-                        foreach (var eff in rule.Effects)
-                            eff.Execute(ctx, matched);
-                    }
+                    if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
+                        matched = matched.Distinct().ToList();
+
+                    evals.Add((rule, matched, ctx, i));
+                }
+            }
+
+            if (evals.Count == 0) return;
+
+            // 排序：按注册顺序或优先级
+            IEnumerable<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> ordered =
+                Policy.RuleSelection == RuleSelectionMode.Priority
+                    ? evals.OrderBy(e => e.rule.Priority).ThenBy(e => e.orderIndex)
+                    : evals.OrderBy(e => e.orderIndex);
+
+            if (Policy.FirstMatchOnly)
+            {
+                var first = ordered.First();
+                ExecuteOne(first);
+            }
+            else
+            {
+                foreach (var e in ordered)
+                {
+                    if (ExecuteOne(e)) break; // 支持规则级 StopEventOnSuccess
                 }
             }
         }
 
-        // 基于 OwnerHops 选择容器：0=Self，1=Owner，N>1 上溯，-1=Root
+        private bool ExecuteOne((CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex) e)
+        {
+            if (e.rule.Effects == null || e.rule.Effects.Count == 0) return false;
+            foreach (var eff in e.rule.Effects)
+                eff.Execute(e.ctx, e.matched);
+            return e.rule.Policy?.StopEventOnSuccess == true;
+        }
 
+        private CardRuleContext BuildContext(CardRule rule, Card source, CardEvent evt)
+        {
+            var container = SelectContainer(rule.OwnerHops, source);
+            if (container == null) return null;
+            return new CardRuleContext
+            {
+                Source = source,
+                Container = container,
+                Event = evt,
+                Factory = CardFactory,
+                MaxDepth = rule.MaxDepth
+            };
+        }
+
+        // 基于 OwnerHops 选择容器：0=Self，1=Owner，N>1 上溯，-1=Root
         private static Card SelectContainer(int ownerHops, Card source)
         {
             if (source == null) return null;
