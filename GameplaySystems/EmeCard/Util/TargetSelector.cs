@@ -4,20 +4,56 @@ using System.Linq;
 
 namespace EasyPack
 {
-    // 决定效果作用对象
+    
+    /// <summary>
+    /// 决定效果作用对象
+    /// </summary>
     public enum TargetKind
     {
-        Matched,              // 匹配到的卡
-        Source,               // 触发源
-        Container,            // 匹配容器本体
-        ContainerChildren,    // 容器内所有子卡（仅一层）
-        ContainerDescendants, // 容器内所有子卡（递归）
-        ByTag,                // 按标签过滤容器内子卡（仅一层）
-        ByTagRecursive,       // 按标签过滤容器内子卡（递归）
-        ById,                 // 按ID过滤容器内子卡（仅一层）
-        ByIdRecursive,        // 按ID过滤容器内子卡（递归）
-        ByCategory,           // 按类别过滤容器内子卡（仅一层）
-        ByCategoryRecursive   // 按类别过滤容器内子卡（递归）
+        /// <summary>
+        /// 匹配到的卡
+        /// </summary>
+        Matched,
+        /// <summary>
+        /// 触发源
+        /// </summary>
+        Source,
+        /// <summary>
+        /// 匹配容器本体
+        /// </summary>
+        Container,
+        /// <summary>
+        /// 容器内所有子卡（仅一层）
+        /// </summary>
+        ContainerChildren,
+        /// <summary>
+        /// 容器内所有子卡（递归）
+        /// </summary>
+        ContainerDescendants,
+        /// <summary>
+        /// 按标签过滤容器内子卡（仅一层）
+        /// </summary>
+        ByTag,
+        /// <summary>
+        /// 按标签过滤容器内子卡（递归）
+        /// </summary>
+        ByTagRecursive,
+        /// <summary>
+        /// 按ID过滤容器内子卡（仅一层）
+        /// </summary>
+        ById,
+        /// <summary>
+        /// 按ID过滤容器内子卡（递归）
+        /// </summary>
+        ByIdRecursive,
+        /// <summary>
+        /// 按类别过滤容器内子卡（仅一层）
+        /// </summary>
+        ByCategory,
+        /// <summary>
+        /// 按类别过滤容器内子卡（递归）
+        /// </summary>
+        ByCategoryRecursive
     }
 
     /// <summary>

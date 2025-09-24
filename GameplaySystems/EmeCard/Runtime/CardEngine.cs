@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace EasyPack
 {
-    public sealed class CardRuleEngine
+    public sealed class CardEngine
     {
         private readonly Dictionary<CardEventType, List<CardRule>> _rules = new Dictionary<CardEventType, List<CardRule>>();
         public ICardFactory CardFactory { get; set; }
@@ -24,7 +24,7 @@ namespace EasyPack
         }
         private readonly Queue<EventEntry> _queue = new Queue<EventEntry>();
 
-        public CardRuleEngine(ICardFactory factory = null)
+        public CardEngine(ICardFactory factory = null)
         {
             CardFactory = factory;
             foreach (CardEventType t in Enum.GetValues(typeof(CardEventType)))
@@ -37,8 +37,8 @@ namespace EasyPack
             _rules[rule.Trigger].Add(rule);
         }
 
-        public CardRuleEngine Attach(Card card) { card.OnEvent += OnCardEvent; return this; }
-        public CardRuleEngine Detach(Card card) { card.OnEvent -= OnCardEvent; return this; }
+        public CardEngine Attach(Card card) { card.OnEvent += OnCardEvent; return this; }
+        public CardEngine Detach(Card card) { card.OnEvent -= OnCardEvent; return this; }
 
         private void OnCardEvent(Card source, CardEvent evt)
         {
