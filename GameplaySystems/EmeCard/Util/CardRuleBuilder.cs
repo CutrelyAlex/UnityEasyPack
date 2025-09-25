@@ -73,24 +73,26 @@ namespace EasyPack
         /// </summary>
         /// <param name="tag">目标标签</param>
         public CardRuleBuilder WhenSourceTag(string tag) => Where(ctx => ctx.Source != null && ctx.Source.HasTag(tag));
+        // <summary>
+        /// 检查触发源Id
+        /// </summary>
+        /// <param name="Id">目标Id</param>
+        public CardRuleBuilder WhenSourceId(string Id) => Where(ctx => ctx.Source != null && ctx.Source.Id==Id);
         /// <summary>
         /// 检查容器对应卡牌标签
         /// </summary>
         /// <param name="tag">标签</param>
-        /// <param name="min">阈值</param>
-        public CardRuleBuilder NeedContainerTag(string tag, int min = 1) => NeedCard(RequirementRoot.Container, TargetKind.ByTag, tag, min);
+        public CardRuleBuilder NeedContainerTag(string tag) => NeedCard(RequirementRoot.Container, TargetKind.ByTag, tag);
         /// <summary>
         /// 检查容器对应卡牌Id
         /// </summary>
         /// <param name="id">卡牌Id</param>
-        /// <param name="min">阈值</param>
-        public CardRuleBuilder NeedContainerId(string id, int min = 1) => NeedCard(RequirementRoot.Container, TargetKind.ById, id, min);
+        public CardRuleBuilder NeedContainerId(string id) => NeedCard(RequirementRoot.Container, TargetKind.ById, id);
         /// <summary>
         /// 检查容器对应卡牌类型
         /// </summary>
         /// <param name="category">卡牌类型</param>
-        /// <param name="min">阈值</param>
-        public CardRuleBuilder NeedContainerCategory(CardCategory category, int min = 1) => NeedCard(RequirementRoot.Container, TargetKind.ByCategory, category.ToString(), min);
+        public CardRuleBuilder NeedContainerCategory(CardCategory category) => NeedCard(RequirementRoot.Container, TargetKind.ByCategory, category.ToString());
         /// <summary>
         /// 添加自定义卡牌匹配器
         /// </summary>
