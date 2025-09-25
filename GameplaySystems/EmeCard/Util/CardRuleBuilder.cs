@@ -28,7 +28,7 @@ namespace EasyPack
             return this;
         }
         /// <summary>
-        /// 容器锚点选择
+        /// 容器锚点选择(无父容器则默认返回自身)
         /// </summary>
         /// <param name="hops">0=Self，1=Owner（默认），N>1 上溯，-1=Root。</param>
         public CardRuleBuilder OwnerHops(int hops) { _rule.OwnerHops = hops; return this; }
