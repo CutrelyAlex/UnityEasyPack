@@ -58,7 +58,7 @@ namespace EasyPack
         public bool CheckSlotCondition(IItem item)
         {
             return item != null 
-                && (SlotCondition == null || SlotCondition.IsCondition(item));
+                && (SlotCondition == null || SlotCondition.CheckCondition(item));
         }
         public void ClearSlot()
         {

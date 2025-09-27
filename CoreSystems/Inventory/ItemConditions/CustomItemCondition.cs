@@ -23,7 +23,7 @@ namespace EasyPack
             Condition = condition;
         }
 
-        public bool IsCondition(IItem item)
+        public bool CheckCondition(IItem item)
         { 
             if(Condition == null)
             {

@@ -8,7 +8,7 @@ namespace EasyPack
     public static class ContainerSerializer
     {
         // Container -> DTO
-        public static SerializableContainer Serialize(Container container, Func<IItem, string> itemToJson = null, bool prettyPrint = false)
+        public static SerializableContainer Serialize(Container container, bool prettyPrint = false)
         {
             if (container == null) return null;
 
@@ -46,11 +46,7 @@ namespace EasyPack
                 if (slot == null || !slot.IsOccupied || slot.Item == null) continue;
 
                 string itemJson = null;
-                if (itemToJson != null)
-                {
-                    itemJson = itemToJson(slot.Item);
-                }
-                else if (slot.Item is Item concrete)
+                if (slot.Item is Item concrete)
                 {
                     itemJson = concrete.ToJson(prettyPrint);
                 }
@@ -67,8 +63,9 @@ namespace EasyPack
             return dto;
         }
 
-        // DTO -> Container（当前示例支持 LinerContainer）
-        public static Container Deserialize(SerializableContainer data, Func<string, Item> itemFromJson = null)
+        // DTO -> Container
+        // TODO : 支持其他容器
+        public static Container Deserialize(SerializableContainer data)
         {
             if (data == null) return null;
 
@@ -76,8 +73,6 @@ namespace EasyPack
             switch (data.ContainerKind)
             {
                 case "LinerContainer":
-                case null:
-                case "":
                     container = new LinerContainer(data.ID, data.Name, data.Type, data.Capacity);
                     break;
                 default:
@@ -111,13 +106,12 @@ namespace EasyPack
             container.ContainerCondition = conds;
 
             // 还原物品到指定槽位
-            var fromJson = itemFromJson ?? (s => Item.FromJson(s));
             if (data.Slots != null)
             {
                 foreach (var s in data.Slots)
                 {
                     if (string.IsNullOrEmpty(s.ItemJson)) continue;
-                    var item = fromJson(s.ItemJson);
+                    var item = Item.FromJson(s.ItemJson);
                     if (item == null) continue;
 
                     var (res, added) = container.AddItems(item, s.ItemCount, s.Index >= 0 ? s.Index : -1);

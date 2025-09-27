@@ -9,6 +9,6 @@ namespace EasyPack
         public int Index;
         public string ItemJson;
         public int ItemCount; 
-        public ConditionDTO SlotCondition;
+        public SerializableCondition SlotCondition;
     }
 }

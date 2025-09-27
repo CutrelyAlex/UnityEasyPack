@@ -14,7 +14,7 @@ namespace EasyPack
             ItemType = itemType;
         }
 
-        public bool IsCondition(IItem item)
+        public bool CheckCondition(IItem item)
         {
             return item != null && item.Type == ItemType;
         }
@@ -22,16 +22,16 @@ namespace EasyPack
         // 序列化支持
         public string Kind => "ItemType";
 
-        public ConditionDTO ToDto()
+        public SerializableCondition ToDto()
         {
-            var dto = new ConditionDTO { Kind = Kind };
+            var dto = new SerializableCondition { Kind = Kind };
             var entry = new CustomDataEntry { Id = "ItemType" };
             entry.SetValue(ItemType, CustomDataType.String);
             dto.Params.Add(entry);
             return dto;
         }
 
-        public static ItemTypeCondition FromDto(ConditionDTO dto)
+        public static ItemTypeCondition FromDto(SerializableCondition dto)
         {
             if (dto == null || dto.Params == null) return null;
             string t = null;

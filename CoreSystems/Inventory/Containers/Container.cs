@@ -21,7 +21,7 @@ public abstract class Container
     public IReadOnlyList<ISlot> Slots => _slots.AsReadOnly();
 
     // 缓存管理器
-    protected readonly ContainerCacheManager _cacheManager;
+    protected readonly ContainerCacheService _cacheService;
 
     // 查询服务
     private readonly IItemQueryService _queryService;
@@ -34,8 +34,8 @@ public abstract class Container
         Capacity = capacity;
         ContainerCondition = new List<IItemCondition>();
 
-        _cacheManager = new ContainerCacheManager(capacity);
-        _queryService = new ItemQueryService(_slots.AsReadOnly(), _cacheManager);
+        _cacheService = new ContainerCacheService(capacity);
+        _queryService = new ItemQueryService(_slots.AsReadOnly(), _cacheService);
         RebuildCaches();
     }
     #endregion
@@ -190,7 +190,7 @@ public abstract class Container
             if (_slots.Count < Capacity)
                 return false;
 
-            if (_cacheManager.GetEmptySlotIndices().Count > 0)
+            if (_cacheService.GetEmptySlotIndices().Count > 0)
                 return false;
 
             if (_notFullStackSlotsCount > 0)
@@ -215,7 +215,7 @@ public abstract class Container
         {
             foreach (var condition in ContainerCondition)
             {
-                if (!condition.IsCondition(item))
+                if (!condition.CheckCondition(item))
                     return false;
             }
         }
@@ -242,7 +242,7 @@ public abstract class Container
             // 如果物品可堆叠，检查是否有相同物品且未达到堆叠上限的槽位
             if (item.IsStackable)
             {
-                if (_cacheManager.TryGetItemSlotIndices(item.ID, out var indices))
+                if (_cacheService.TryGetItemSlotIndices(item.ID, out var indices))
                 {
                     foreach (int slotIndex in indices)
                     {
@@ -269,13 +269,13 @@ public abstract class Container
     }
     #endregion
 
-    #region 缓存相关方法
+    #region 缓存服务
     /// <summary>
     /// 初始化或重建所有缓存
     /// </summary>
     public void RebuildCaches()
     {
-        _cacheManager.RebuildCaches(_slots.AsReadOnly());
+        _cacheService.RebuildCaches(_slots.AsReadOnly());
 
         // 重建可继续堆叠占用槽位计数
         _notFullStackSlotsCount = 0;
@@ -295,7 +295,7 @@ public abstract class Container
     /// </summary>
     public void ValidateCaches()
     {
-        _cacheManager.ValidateCaches(_slots.AsReadOnly());
+        _cacheService.ValidateCaches(_slots.AsReadOnly());
     }
 
     private void ApplyBatchCacheUpdates(BatchCacheUpdates updates)
@@ -303,30 +303,30 @@ public abstract class Container
         // 数量缓存只更新一次
         if (updates.TotalCountDelta != 0)
         {
-            _cacheManager.UpdateItemCountCache(updates.ItemId, updates.TotalCountDelta);
+            _cacheService.UpdateItemCountCache(updates.ItemId, updates.TotalCountDelta);
         }
 
         // 批量更新槽位索引缓存
         foreach (var (slotIndex, isAdding) in updates.SlotIndexUpdates)
         {
-            _cacheManager.UpdateItemSlotIndexCache(updates.ItemId, slotIndex, isAdding);
+            _cacheService.UpdateItemSlotIndexCache(updates.ItemId, slotIndex, isAdding);
         }
 
         // 批量更新类型索引缓存
         foreach (var (slotIndex, isAdding) in updates.TypeIndexUpdates)
         {
-            _cacheManager.UpdateItemTypeCache(updates.ItemType, slotIndex, isAdding);
+            _cacheService.UpdateItemTypeCache(updates.ItemType, slotIndex, isAdding);
         }
 
         // 批量更新空槽位缓存
         foreach (var (slotIndex, isEmpty) in updates.EmptySlotUpdates)
         {
-            _cacheManager.UpdateEmptySlotCache(slotIndex, isEmpty);
+            _cacheService.UpdateEmptySlotCache(slotIndex, isEmpty);
         }
     }
     #endregion
 
-    #region 物品查询
+    #region 查询服务
 
     public bool HasItem(string itemId) => _queryService.HasItem(itemId);
     public int GetItemTotalCount(string itemId) => _queryService.GetItemTotalCount(itemId);
@@ -385,7 +385,7 @@ public abstract class Container
         List<(ISlot slot, int removeAmount, int slotIndex)> removals = new();
 
         // 使用缓存的槽位索引集合
-        if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices) && indices != null && indices.Count > 0)
+        if (_cacheService.TryGetItemSlotIndices(itemId, out var indices) && indices != null && indices.Count > 0)
         {
             foreach (int i in indices)
             {
@@ -418,12 +418,12 @@ public abstract class Container
                 if (removeAmount == slot.ItemCount)
                 {
                     slot.ClearSlot();
-                    _cacheManager.UpdateEmptySlotCache(slotIndex, true);
-                    _cacheManager.UpdateItemSlotIndexCache(itemId, slotIndex, false);
-                    _cacheManager.UpdateItemTypeCache(itemType, slotIndex, false);
+                    _cacheService.UpdateEmptySlotCache(slotIndex, true);
+                    _cacheService.UpdateItemSlotIndexCache(itemId, slotIndex, false);
+                    _cacheService.UpdateItemTypeCache(itemType, slotIndex, false);
                     if (!itemCompletelyRemoved)
                     {
-                        itemCompletelyRemoved = !_cacheManager.HasItemInCache(itemId);
+                        itemCompletelyRemoved = !_cacheService.HasItemInCache(itemId);
                     }
                 }
                 else
@@ -432,7 +432,7 @@ public abstract class Container
                 }
 
                 // 更新数量缓存
-                _cacheManager.UpdateItemCountCache(itemId, -removeAmount);
+                _cacheService.UpdateItemCountCache(itemId, -removeAmount);
 
                 affectedSlots.Add(slotIndex);
 
@@ -503,9 +503,9 @@ public abstract class Container
         if (slot.ItemCount - count <= 0)
         {
             slot.ClearSlot();
-            _cacheManager.UpdateEmptySlotCache(index, true);
-            _cacheManager.UpdateItemSlotIndexCache(itemId, index, false);
-            _cacheManager.UpdateItemTypeCache(itemType, index, false);
+            _cacheService.UpdateEmptySlotCache(index, true);
+            _cacheService.UpdateItemSlotIndexCache(itemId, index, false);
+            _cacheService.UpdateItemTypeCache(itemType, index, false);
         }
         else
         {
@@ -513,7 +513,7 @@ public abstract class Container
         }
 
         // 更新数量缓存
-        _cacheManager.UpdateItemCountCache(itemId, -count);
+        _cacheService.UpdateItemCountCache(itemId, -count);
 
         // 触发物品数量变更事件
         OnSlotQuantityChanged(index, item, oldCount, slot.ItemCount);
@@ -698,7 +698,7 @@ public abstract class Container
                 else
                 {
                     exceededCount = count;
-                    bool noEmptySlots = _cacheManager.GetEmptySlotIndices().Count == 0;
+                    bool noEmptySlots = _cacheService.GetEmptySlotIndices().Count == 0;
                     AddItemResult result = noEmptySlots ? AddItemResult.ContainerIsFull : AddItemResult.NoSuitableSlotFound;
                     OnItemAddResult?.Invoke(item, count, 0, result, emptySlots);
                     return (result, 0);
@@ -790,7 +790,7 @@ public abstract class Container
 
         int maxStack = item.MaxStackCount;
 
-        if (maxStack <= 1 || !_cacheManager.TryGetItemSlotIndices(item.ID, out var indices) || indices.Count == 0)
+        if (maxStack <= 1 || !_cacheService.TryGetItemSlotIndices(item.ID, out var indices) || indices.Count == 0)
             return (0, new List<int>(0), new Dictionary<int, (int oldCount, int newCount)>(0));
 
         // 数组池化
@@ -932,7 +932,7 @@ public abstract class Container
             ? Math.Min(remainingCount, maxStack)
             : (isStackable ? remainingCount : 1);
 
-        var emptySlotIndices = _cacheManager.GetEmptySlotIndices();
+        var emptySlotIndices = _cacheService.GetEmptySlotIndices();
 
         // 使用空槽位缓存
         foreach (int i in emptySlotIndices)
@@ -947,9 +947,9 @@ public abstract class Container
             if (slot.SetItem(item, addCount))
             {
                 // 批量更新缓存
-                _cacheManager.UpdateEmptySlotCache(i, false);
-                _cacheManager.UpdateItemSlotIndexCache(item.ID, i, true);
-                _cacheManager.UpdateItemTypeCache(item.Type, i, true);
+                _cacheService.UpdateEmptySlotCache(i, false);
+                _cacheService.UpdateItemSlotIndexCache(item.ID, i, true);
+                _cacheService.UpdateItemTypeCache(item.Type, i, true);
 
                 OnSlotQuantityChanged(i, slot.Item, 0, slot.ItemCount);
                 return (true, addCount, remainingCount - addCount, i);
@@ -968,8 +968,8 @@ public abstract class Container
             if (slot.SetItem(item, addCount))
             {
                 // 更新缓存状态
-                _cacheManager.UpdateItemSlotIndexCache(item.ID, i, true);
-                _cacheManager.UpdateItemTypeCache(item.Type, i, true);
+                _cacheService.UpdateItemSlotIndexCache(item.ID, i, true);
+                _cacheService.UpdateItemTypeCache(item.Type, i, true);
                
                 OnSlotQuantityChanged(i, slot.Item, 0, slot.ItemCount);
                 return (true, addCount, remainingCount - addCount, i);
@@ -1003,8 +1003,8 @@ public abstract class Container
                 _slots.Add(newSlot);
 
                 // 更新缓存
-                _cacheManager.UpdateItemSlotIndexCache(item.ID, newSlotIndex, true);
-                _cacheManager.UpdateItemTypeCache(item.Type, newSlotIndex, true);
+                _cacheService.UpdateItemSlotIndexCache(item.ID, newSlotIndex, true);
+                _cacheService.UpdateItemTypeCache(item.Type, newSlotIndex, true);
 
                 // 触发数量变更
                 OnSlotQuantityChanged(newSlotIndex, newSlot.Item, 0, newSlot.ItemCount);

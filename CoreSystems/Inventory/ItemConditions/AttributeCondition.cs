@@ -48,7 +48,7 @@ namespace EasyPack
             ComparisonType = comparisonType;
         }
 
-        public bool IsCondition(IItem item)
+        public bool CheckCondition(IItem item)
         {
             if (item == null || item.Attributes == null)
                 return false;
@@ -126,9 +126,9 @@ namespace EasyPack
         // 自序列化支持
         public string Kind => "Attr";
 
-        public ConditionDTO ToDto()
+        public SerializableCondition ToDto()
         {
-            var dto = new ConditionDTO { Kind = Kind };
+            var dto = new SerializableCondition { Kind = Kind };
 
             var name = new CustomDataEntry { Id = "Name" };
             name.SetValue(AttributeName, CustomDataType.String);
@@ -146,7 +146,7 @@ namespace EasyPack
             return dto;
         }
 
-        public static AttributeCondition FromDto(ConditionDTO dto)
+        public static AttributeCondition FromDto(SerializableCondition dto)
         {
             if (dto == null || dto.Params == null) return null;
 

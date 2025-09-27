@@ -137,7 +137,7 @@ namespace EasyPack
         {
             if (child == null) throw new ArgumentNullException(nameof(child));
             if (child.Owner != null) throw new InvalidOperationException("子卡牌已被其他卡牌持有。");
-            if (child == this) throw new Exception("不能添加自身");
+            if (child == this) throw new Exception("卡牌不能添加自身为子卡牌。");
 
             
             _children.Add(child);
@@ -204,14 +204,14 @@ namespace EasyPack
         /// <summary>
         /// 触发主动使用事件（<see cref="CardEventType.Use"/>）。
         /// </summary>
-        /// <param name="data">可选载荷；由订阅者按需解释（例如目标信息）。</param>
+        /// <param name="data">可选自定义信息；由订阅者按需解释（例如目标信息）。</param>
         public void Use(object data = null) => RaiseEvent(new CardEvent(CardEventType.Use, data: data));
 
         /// <summary>
         /// 触发自定义事件（<see cref="CardEventType.Custom"/>）。
         /// </summary>
         /// <param name="id">自定义事件标识，用于规则过滤。</param>
-        /// <param name="data">可选载荷。</param>
+        /// <param name="data">可选自定义信息。</param>
         public void Custom(string id, object data = null) => RaiseEvent(new CardEvent(CardEventType.Custom, id, data));
         #endregion
     }

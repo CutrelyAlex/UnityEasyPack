@@ -7,6 +7,7 @@ namespace EasyPack
 {
     public sealed class CardEngine
     {
+        #region 基本属性
         private readonly Dictionary<CardEventType, List<CardRule>> _rules = new Dictionary<CardEventType, List<CardRule>>();
         public ICardFactory CardFactory { get; set; }
 
@@ -30,6 +31,10 @@ namespace EasyPack
             foreach (CardEventType t in Enum.GetValues(typeof(CardEventType)))
                 _rules[t] = new List<CardRule>();
         }
+
+        #endregion
+
+        #region 规则处理
 
         public void RegisterRule(CardRule rule)
         {
@@ -87,7 +92,7 @@ namespace EasyPack
                 var ctx = BuildContext(rule, source, evt);
                 if (ctx == null) continue;
 
-                if (TryMatch(ctx, rule.Requirements, out var matched))
+                if (EvaluateRequirements(ctx, rule.Requirements, out var matched))
                 {
                     if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
                         matched = matched.Distinct().ToList();
@@ -139,7 +144,9 @@ namespace EasyPack
                 MaxDepth = rule.MaxDepth
             };
         }
+        #endregion
 
+        #region 容器方法
         // 基于 OwnerHops 选择容器：0=Self，1=Owner，N>1 上溯，-1=Root
         private static Card SelectContainer(int ownerHops, Card source)
         {
@@ -164,7 +171,19 @@ namespace EasyPack
             return node ?? source;
         }
 
-        private static bool TryMatch(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll)
+        /// <summary>
+        /// 评估一组规则要求（requirements）在给定上下文下是否全部成立，并聚合每个要求项命中的卡牌集合。
+        /// </summary>
+        /// <param name="ctx">规则执行上下文</param>
+        /// <param name="requirements">要评估的要求项列表。如果为 null 或空，则视为匹配成功。</param>
+        /// <param name="matchedAll">
+        /// 输出参数：聚合所有要求项命中的卡牌集合。方法返回时该集合已被初始化（非 null）。
+        /// 每个要求项如返回非空/非空集合，其元素将被追加到此聚合列表中。
+        /// </param>
+        /// <returns>
+        /// 若所有要求项都匹配成功返回 true；如任一要求为 null 或 TryMatch 返回 false 则立即返回 false（短路）。
+        /// </returns>
+        private static bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll)
         {
             matchedAll = new List<Card>();
             if (requirements == null || requirements.Count == 0) return true;
@@ -177,5 +196,6 @@ namespace EasyPack
             }
             return true;
         }
+        #endregion
     }
 }
