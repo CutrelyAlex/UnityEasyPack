@@ -30,9 +30,42 @@ namespace EasyPack
     /// </summary>
     public class Card
     {
-        public Card(CardData data)
+        public Card(CardData data, GameProperty gameProperty = null, params string[] extraTags)
         {
             Data = data;
+            if(gameProperty != null)
+            {
+                Properties.Add(gameProperty);
+            }
+
+
+            if (Data?.DefaultTags != null)
+            {
+                foreach (var t in Data.DefaultTags)
+                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+            }
+            if (extraTags != null)
+            {
+                foreach (var t in extraTags)
+                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+            }
+        }
+
+        public Card(CardData data, IEnumerable<GameProperty> properties = null, params string[] extraTags)
+        {
+            Data = data;
+            Properties = properties?.ToList() ?? new List<GameProperty>();
+
+            if (Data?.DefaultTags != null)
+            {
+                foreach (var t in Data.DefaultTags)
+                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+            }
+            if (extraTags != null)
+            {
+                foreach (var t in extraTags)
+                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+            }
         }
 
 

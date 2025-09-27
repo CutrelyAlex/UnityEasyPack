@@ -18,27 +18,6 @@ namespace EasyPack
         private CardFactory _factory;
         private bool _isNight;
 
-        // 简易卡类型
-        // 只展示需修复的 SimpleCard 构造和相关属性部分
-        private sealed class SimpleCard : Card
-        {
-            public SimpleCard(CardData data, IEnumerable<GameProperty> properties = null, params string[] extraTags)
-            {
-                Data = data;
-                Properties = properties != null ? new List<GameProperty>(properties) : new List<GameProperty>();
-                if (extraTags != null)
-                {
-                    foreach (var t in extraTags)
-                    {
-                        if (!string.IsNullOrEmpty(t)) AddTag(t);
-                    }
-                }
-            }
-            // 传单个 GameProperty
-            public SimpleCard(CardData data, GameProperty property, params string[] extraTags)
-                : this(data, property != null ? new[] { property } : null, extraTags) { }
-        }
-
         private void Start()
         {
             RunBestPracticeDemo();
@@ -54,33 +33,46 @@ namespace EasyPack
             _engine.Policy.FirstMatchOnly = false;
 
             // 注册卡牌的模板
-            _factory.Register("灰烬", () => new SimpleCard(new CardData("灰烬", "灰烬", "燃烧后产生的灰烬", CardCategory.Object), property:null, "灰烬"));
-            _factory.Register("木棍", () => new SimpleCard(new CardData("木棍", "木棍", "基础材料", CardCategory.Object), property:null, "木棍"));
-            _factory.Register("火把", () => new SimpleCard(new CardData("火把", "火把", "可点燃", CardCategory.Object), new GameProperty("Ticks", 0f), "火把"));
-
+            _factory.Register("灰烬", () => new Card(new CardData("灰烬", "灰烬", "燃烧后产生的灰烬", CardCategory.Object), properties: null, "灰烬"));
+            _factory.Register("木棍", () => new Card(new CardData("木棍", "木棍", "基础材料", CardCategory.Object), properties: null, "木棍"));
+            _factory.Register("火把", () => new Card(new CardData("火把", "火把", "可点燃", CardCategory.Object), new GameProperty("Ticks", 0f), "火把"));
+            _factory.Register("世界", () => new Card(new CardData("世界", "世界", "", CardCategory.Object), properties: null, "世界"));
+            _factory.Register("草地格", () => new Card(new CardData("草地格", "草地格", "", CardCategory.Object), properties: null, "草地"));
+            _factory.Register("泥地格", () => new Card(new CardData("泥地格", "泥地格", "", CardCategory.Object), properties: null, "泥土"));
+            _factory.Register("玩家", () => new Card(new CardData("玩家", "玩家", "", CardCategory.Object), new GameProperty("XP", 0f), "玩家"));
+            _factory.Register("树木", () => new Card(new CardData("树木", "树木", "", CardCategory.Object), properties: null, "树木", "可燃烧"));
+            _factory.Register("火", () => new Card(new CardData("火", "火", "", CardCategory.Object), properties: null, "火"));
+            _factory.Register("制作", () => new Card(new CardData("制作", "制作", "", CardCategory.Action), properties: null, "制作"));
+            _factory.Register("砍", () => new Card(new CardData("砍", "砍", "", CardCategory.Action),  properties: null, "砍"));
+            _factory.Register("去重对象", () => new Card(
+                new CardData("去重对象", "去重对象", "", CardCategory.Object),
+                new List<GameProperty> { new GameProperty("Counter", 0f) },
+                "A", "B"));
             // 2) 世界布置
-            var world = new SimpleCard(new CardData("世界", "世界", "", CardCategory.Object), property: null, "世界");
-            var tileGrass = new SimpleCard(new CardData("草地格", "草地格", "", CardCategory.Object), property: null, "草地");
-            var tileDirt = new SimpleCard(new CardData("泥地格", "泥地格", "", CardCategory.Object), property: null, "泥土");
+            var world = _engine.CreateCard("世界");
+            var tileGrass = _engine.CreateCard("草地格");
+            var tileDirt = _engine.CreateCard("泥地格");
             world.AddChild(tileGrass);
             world.AddChild(tileDirt);
 
-            var player = new SimpleCard(new CardData("玩家", "玩家", "", CardCategory.Object), new GameProperty("XP", 0f), "玩家");
+            var player = _engine.CreateCard("玩家");
             tileGrass.AddChild(player);
 
-            var tree = new SimpleCard(new CardData("树木", "树木", "", CardCategory.Object), property: null, "树木", "可燃烧");
-            var fire = new SimpleCard(new CardData("火", "火", "", CardCategory.Object), property: null, "火");
-            var make = new SimpleCard(new CardData("制作", "制作", "", CardCategory.Action), property: null, "制作");
-            var chop = new SimpleCard(new CardData("砍", "砍", "", CardCategory.Action), property: null, "砍");
+            var tree = _engine.CreateCard("树木");
+            var fire = _engine.CreateCard("火");
+            var make = _engine.CreateCard("制作");
+            var chop = _engine.CreateCard("砍");
             tileGrass.AddChild(tree);
             tileGrass.AddChild(fire);
             tileGrass.AddChild(make);
             tileGrass.AddChild(chop);
 
+            var gp = new List<GameProperty>
+            { new GameProperty("Counter", 0f)};
             // 去重测试对象：同一卡带有两个标签 "A" 与 "B"，并有计数属性 Counter=0
-            var dedupObj = new SimpleCard(new CardData("去重对象", "去重对象", "", CardCategory.Object),
-                new GameProperty("Counter", 0f), "A", "B");
+            var dedupObj = _engine.CreateCard("去重对象");
             tileGrass.AddChild(dedupObj);
+
 
             // 3) 接入事件（链式 Attach）
             _engine
