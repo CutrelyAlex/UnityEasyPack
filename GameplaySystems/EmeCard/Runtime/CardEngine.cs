@@ -7,7 +7,7 @@ namespace EasyPack
 {
     public sealed class CardEngine
     {
-        public CardEngine(ICardFactory factory = null)
+        public CardEngine(ICardFactory factory)
         {
             CardFactory = factory;
             foreach (CardEventType t in Enum.GetValues(typeof(CardEventType)))
@@ -15,7 +15,7 @@ namespace EasyPack
         }
 
         #region 基本属性
-        public ICardFactory CardFactory { get; set; } = new CardFactory();
+        public ICardFactory CardFactory { get; set; }
         public EnginePolicy Policy { get; } = new EnginePolicy();
 
         private bool _isPumping = false;
@@ -195,14 +195,14 @@ namespace EasyPack
         #endregion
 
         #region 卡牌创建
-        public Card CreateCard(string id)
+        public T CreateCard<T>(string id)where T:Card
         {
             if (id == null) throw new ArgumentNullException(nameof(id));
 
-            Card card = null;
+            T card = null;
             if (CardFactory != null)
             {
-                card = CardFactory.Create(id);
+                card = CardFactory.Create<T>(id);
             }
 
             if (card == null)
@@ -213,6 +213,11 @@ namespace EasyPack
             RegisterCard(card);
 
             return card;
+        }
+
+        public Card CreateCard(string id)
+        {
+            return CreateCard<Card>(id);
         }
         #endregion
 

@@ -30,6 +30,7 @@ namespace EasyPack
     /// </summary>
     public class Card
     {
+        public Card(){}//临时用于保证卡牌单例正常运行
         public Card(CardData data, GameProperty gameProperty = null, params string[] extraTags)
         {
             Data = data;
