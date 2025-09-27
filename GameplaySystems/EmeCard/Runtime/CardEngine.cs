@@ -7,24 +7,6 @@ namespace EasyPack
 {
     public sealed class CardEngine
     {
-        #region 基本属性
-        private readonly Dictionary<CardEventType, List<CardRule>> _rules = new Dictionary<CardEventType, List<CardRule>>();
-        public ICardFactory CardFactory { get; set; }
-
-        /// <summary>引擎策略</summary>
-        public EnginePolicy Policy { get; } = new EnginePolicy();
-
-        private bool _isPumping = false;
-
-        // 事件封装
-        private struct EventEntry
-        {
-            public Card Source;
-            public CardEvent Event;
-            public EventEntry(Card s, CardEvent e) { Source = s; Event = e; }
-        }
-        private readonly Queue<EventEntry> _queue = new Queue<EventEntry>();
-
         public CardEngine(ICardFactory factory = null)
         {
             CardFactory = factory;
@@ -32,6 +14,25 @@ namespace EasyPack
                 _rules[t] = new List<CardRule>();
         }
 
+        #region 基本属性
+        public ICardFactory CardFactory { get; set; } = new CardFactory();
+        public EnginePolicy Policy { get; } = new EnginePolicy();
+
+        private bool _isPumping = false;
+        #endregion
+
+        #region 事件和缓存
+        private struct EventEntry
+        {
+            public Card Source;
+            public CardEvent Event;
+            public EventEntry(Card s, CardEvent e) { Source = s; Event = e; }
+        }
+        private readonly Dictionary<CardEventType, List<CardRule>> _rules = new();
+        private readonly Queue<EventEntry> _queue = new();
+        private readonly HashSet<Card> _attachedCards = new();
+        private readonly HashSet<Card> _registeredCards = new();
+        private readonly Dictionary<CardKey, Card> _cardMap = new();
         #endregion
 
         #region 规则处理
@@ -42,8 +43,18 @@ namespace EasyPack
             _rules[rule.Trigger].Add(rule);
         }
 
-        public CardEngine Attach(Card card) { card.OnEvent += OnCardEvent; return this; }
-        public CardEngine Detach(Card card) { card.OnEvent -= OnCardEvent; return this; }
+        public CardEngine Attach(Card card)
+        {
+            if (card == null) throw new ArgumentNullException(nameof(card));
+            _attachedCards.Add(card);
+            return this;
+        }
+        public CardEngine Detach(Card card)
+        {
+            if (card == null) throw new ArgumentNullException(nameof(card));
+            _attachedCards.Remove(card);
+            return this;
+        }
 
         private void OnCardEvent(Card source, CardEvent evt)
         {
@@ -76,7 +87,6 @@ namespace EasyPack
             var rules = _rules[evt.Type];
             if (rules == null || rules.Count == 0) return;
 
-            // 评估阶段：记录所有命中与上下文快照（按注册顺序）
             var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>();
             for (int i = 0; i < rules.Count; i++)
             {
@@ -103,7 +113,6 @@ namespace EasyPack
 
             if (evals.Count == 0) return;
 
-            // 排序：按注册顺序或优先级
             IEnumerable<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> ordered =
                 Policy.RuleSelection == RuleSelectionMode.Priority
                     ? evals.OrderBy(e => e.rule.Priority).ThenBy(e => e.orderIndex)
@@ -118,7 +127,7 @@ namespace EasyPack
             {
                 foreach (var e in ordered)
                 {
-                    if (ExecuteOne(e)) break; // 支持规则级 StopEventOnSuccess
+                    if (ExecuteOne(e)) break;
                 }
             }
         }
@@ -147,7 +156,6 @@ namespace EasyPack
         #endregion
 
         #region 容器方法
-        // 基于 OwnerHops 选择容器：0=Self，1=Owner，N>1 上溯，-1=Root
         private static Card SelectContainer(int ownerHops, Card source)
         {
             if (source == null) return null;
@@ -171,18 +179,6 @@ namespace EasyPack
             return node ?? source;
         }
 
-        /// <summary>
-        /// 评估一组规则要求（requirements）在给定上下文下是否全部成立，并聚合每个要求项命中的卡牌集合。
-        /// </summary>
-        /// <param name="ctx">规则执行上下文</param>
-        /// <param name="requirements">要评估的要求项列表。如果为 null 或空，则视为匹配成功。</param>
-        /// <param name="matchedAll">
-        /// 输出参数：聚合所有要求项命中的卡牌集合。方法返回时该集合已被初始化（非 null）。
-        /// 每个要求项如返回非空/非空集合，其元素将被追加到此聚合列表中。
-        /// </param>
-        /// <returns>
-        /// 若所有要求项都匹配成功返回 true；如任一要求为 null 或 TryMatch 返回 false 则立即返回 false（短路）。
-        /// </returns>
         private static bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll)
         {
             matchedAll = new List<Card>();
@@ -197,5 +193,134 @@ namespace EasyPack
             return true;
         }
         #endregion
+
+        #region 卡牌创建
+        public Card CreateCard(string id)
+        {
+            if (id == null) throw new ArgumentNullException(nameof(id));
+
+            Card card = null;
+            if (CardFactory != null)
+            {
+                card = CardFactory.Create(id);
+            }
+
+            if (card == null)
+            {
+                return null;
+            }
+
+            RegisterCard(card);
+
+            return card;
+        }
+        #endregion
+
+        #region 查询服务
+        public Card GetCardByKey(string id, int index)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            var key = new CardKey(id, index);
+            if (_cardMap.TryGetValue(key, out var c)) return c;
+
+            return null;
+        }
+
+        public IEnumerable<Card> GetCardsById(string id)
+        {
+            if (string.IsNullOrEmpty(id)) yield break;
+            foreach (var kv in _cardMap)
+            {
+                if (string.Equals(kv.Key.Id, id, StringComparison.Ordinal))
+                    yield return kv.Value;
+            }
+        }
+
+        public Card GetCardById(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+
+            foreach (var kv in _cardMap)
+            {
+                if (string.Equals(kv.Key.Id, id, StringComparison.Ordinal))
+                    return kv.Value;
+            }
+
+            return null;
+        }
+        #endregion
+
+        #region 卡牌缓存处理
+        private void RegisterCard(Card c)
+        {
+            if (c == null) return;
+            if (_registeredCards.Add(c))
+            {
+                c.OnEvent += OnCardEvent;
+
+                var key = new CardKey(c.Id, c.Index);
+                if (_cardMap.TryGetValue(key, out var existing))
+                {
+                    if (!ReferenceEquals(existing, c))
+                    {
+                        int next = 0;
+                        while (_cardMap.ContainsKey(new CardKey(c.Id, next))) next++;
+                        c.Index = next;
+                        key = new CardKey(c.Id, c.Index);
+                    }
+                    else
+                    {
+                        _cardMap[key] = c;
+                        return;
+                    }
+                }
+                _cardMap[key] = c;
+            }
+        }
+
+        private void UnregisterCard(Card c)
+        {
+            if (c == null) return;
+            if (_registeredCards.Remove(c))
+            {
+                c.OnEvent -= OnCardEvent;
+                var key = new CardKey(c.Id, c.Index);
+                if (_cardMap.TryGetValue(key, out var existing) && ReferenceEquals(existing, c))
+                    _cardMap.Remove(key);
+            }
+        }
+        #endregion
+    }
+
+    public readonly struct CardKey : IEquatable<CardKey>
+    {
+        public readonly string Id;
+        public readonly int Index;
+
+        public CardKey(string id, int index)
+        {
+            Id = id ?? string.Empty;
+            Index = index;
+        }
+
+        public bool Equals(CardKey other)
+        {
+            return string.Equals(Id, other.Id, StringComparison.Ordinal) && Index == other.Index;
+        }
+
+        public override bool Equals(object obj) => obj is CardKey k && Equals(k);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(Id ?? string.Empty);
+                hash = hash * 31 + Index;
+                return hash;
+            }
+        }
+
+        public override string ToString() => $"{Id}#{Index}";
     }
 }

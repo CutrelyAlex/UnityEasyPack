@@ -53,7 +53,7 @@ namespace EasyPack
             _engine = new CardEngine(_factory);
             _engine.Policy.FirstMatchOnly = false;
 
-            // 注册产物
+            // 注册卡牌的模板
             _factory.Register("灰烬", () => new SimpleCard(new CardData("灰烬", "灰烬", "燃烧后产生的灰烬", CardCategory.Object), property:null, "灰烬"));
             _factory.Register("木棍", () => new SimpleCard(new CardData("木棍", "木棍", "基础材料", CardCategory.Object), property:null, "木棍"));
             _factory.Register("火把", () => new SimpleCard(new CardData("火把", "火把", "可点燃", CardCategory.Object), new GameProperty("Ticks", 0f), "火把"));

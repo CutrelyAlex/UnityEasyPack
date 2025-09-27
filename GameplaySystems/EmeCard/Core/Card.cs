@@ -28,8 +28,14 @@ namespace EasyPack
     ///   以及持有关系变化（<see cref="CardEventType.AddedToOwner"/> / <see cref="CardEventType.RemovedFromOwner"/>）。
     /// - 可选关联一个 <see cref="GameProperty"/>（实例级数值）。
     /// </summary>
-    public abstract class Card
+    public class Card
     {
+        public Card(CardData data)
+        {
+            Data = data;
+        }
+
+
         #region 基本数据
 
         private CardData _data;
@@ -53,7 +59,12 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// 卡牌唯一标识，来自 <see cref="Data"/>。
+        /// 实例索引：用于区分同一 ID 的多个实例（由持有者在 AddChild 时分配，从 0 起）。
+        /// </summary>
+        public int Index { get; internal set; } = 0;
+
+        /// <summary>
+        /// 卡牌标识，来自 <see cref="Data"/>。
         /// </summary>
         public string Id => Data != null ? Data.ID : string.Empty;
 
