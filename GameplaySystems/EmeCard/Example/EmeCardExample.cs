@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -18,12 +19,13 @@ namespace EasyPack
         private bool _isNight;
 
         // 简易卡类型
+        // 只展示需修复的 SimpleCard 构造和相关属性部分
         private sealed class SimpleCard : Card
         {
-            public SimpleCard(CardData data, GameProperty property = null, params string[] extraTags)
+            public SimpleCard(CardData data, IEnumerable<GameProperty> properties = null, params string[] extraTags)
             {
                 Data = data;
-                Property = property;
+                Properties = properties != null ? new List<GameProperty>(properties) : new List<GameProperty>();
                 if (extraTags != null)
                 {
                     foreach (var t in extraTags)
@@ -32,6 +34,9 @@ namespace EasyPack
                     }
                 }
             }
+            // 传单个 GameProperty
+            public SimpleCard(CardData data, GameProperty property, params string[] extraTags)
+                : this(data, property != null ? new[] { property } : null, extraTags) { }
         }
 
         private void Start()
@@ -49,24 +54,24 @@ namespace EasyPack
             _engine.Policy.FirstMatchOnly = false;
 
             // 注册产物
-            _factory.Register("灰烬", () => new SimpleCard(new CardData("灰烬", "灰烬", "燃烧后产生的灰烬", CardCategory.Object), null, "灰烬"));
-            _factory.Register("木棍", () => new SimpleCard(new CardData("木棍", "木棍", "基础材料", CardCategory.Object), null, "木棍"));
+            _factory.Register("灰烬", () => new SimpleCard(new CardData("灰烬", "灰烬", "燃烧后产生的灰烬", CardCategory.Object), property:null, "灰烬"));
+            _factory.Register("木棍", () => new SimpleCard(new CardData("木棍", "木棍", "基础材料", CardCategory.Object), property:null, "木棍"));
             _factory.Register("火把", () => new SimpleCard(new CardData("火把", "火把", "可点燃", CardCategory.Object), new GameProperty("Ticks", 0f), "火把"));
 
             // 2) 世界布置
-            var world = new SimpleCard(new CardData("世界", "世界", "", CardCategory.Object), null, "世界");
-            var tileGrass = new SimpleCard(new CardData("草地格", "草地格", "", CardCategory.Object), null, "草地");
-            var tileDirt = new SimpleCard(new CardData("泥地格", "泥地格", "", CardCategory.Object), null, "泥土");
+            var world = new SimpleCard(new CardData("世界", "世界", "", CardCategory.Object), property: null, "世界");
+            var tileGrass = new SimpleCard(new CardData("草地格", "草地格", "", CardCategory.Object), property: null, "草地");
+            var tileDirt = new SimpleCard(new CardData("泥地格", "泥地格", "", CardCategory.Object), property: null, "泥土");
             world.AddChild(tileGrass);
             world.AddChild(tileDirt);
 
             var player = new SimpleCard(new CardData("玩家", "玩家", "", CardCategory.Object), new GameProperty("XP", 0f), "玩家");
             tileGrass.AddChild(player);
 
-            var tree = new SimpleCard(new CardData("树木", "树木", "", CardCategory.Object), null, "树木", "可燃烧");
-            var fire = new SimpleCard(new CardData("火", "火", "", CardCategory.Object), null, "火");
-            var make = new SimpleCard(new CardData("制作", "制作", "", CardCategory.Action), null, "制作");
-            var chop = new SimpleCard(new CardData("砍", "砍", "", CardCategory.Action), null, "砍");
+            var tree = new SimpleCard(new CardData("树木", "树木", "", CardCategory.Object), property: null, "树木", "可燃烧");
+            var fire = new SimpleCard(new CardData("火", "火", "", CardCategory.Object), property: null, "火");
+            var make = new SimpleCard(new CardData("制作", "制作", "", CardCategory.Action), property: null, "制作");
+            var chop = new SimpleCard(new CardData("砍", "砍", "", CardCategory.Action), property: null, "砍");
             tileGrass.AddChild(tree);
             tileGrass.AddChild(fire);
             tileGrass.AddChild(make);
@@ -129,7 +134,7 @@ namespace EasyPack
                 .DoInvoke((ctx, _) =>
                 {
                     var torches = TargetSelector.Select(TargetKind.ByTag, ctx, "火把");
-                    var ticks = torches.Select(t => t.Property?.GetBaseValue() ?? 0f).ToList();
+                    var ticks = torches.Select(t => t.Properties[0]?.GetBaseValue() ?? 0f).ToList();
                     Debug.Log($"[Tick] 本容器火把 Ticks: {(ticks.Count == 0 ? "(无)" : string.Join(", ", ticks))}");
                 })
             );
@@ -159,7 +164,7 @@ namespace EasyPack
                     }
                     foreach (var t in torches)
                     {
-                        var gp = t.Property;
+                        var gp = t.Properties[0];
                         if (gp != null && gp.GetBaseValue() >= 5f)
                         {
                             Debug.Log("尝试燃尽火把");

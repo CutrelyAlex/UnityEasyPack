@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace EasyPack
 {
@@ -74,8 +75,8 @@ namespace EasyPack
         /// <summary>
         /// 数值属性。
         /// </summary>
-        public GameProperty Property { get; set; }
-
+        public List<GameProperty> Properties { get; set; } = new List<GameProperty>();
+        public GameProperty GetProperty(string id) => Properties?.FirstOrDefault(p => p.ID == id);
         #endregion
 
         #region 标签和持有关系
