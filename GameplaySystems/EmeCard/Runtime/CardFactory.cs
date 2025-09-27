@@ -8,11 +8,14 @@ namespace EasyPack
     {
         Card Create(string id);
         T Create<T>(string id) where T:Card;
+
+        CardEngine Owner { get; set; }
     }
 
     public sealed class CardFactory : ICardFactory
     {
         private readonly Dictionary<string, Func<Card>> _constructors = new(StringComparer.Ordinal);
+        public CardEngine Owner { get; set; }
 
         public void Register(string id, Func<Card> ctor)
         {

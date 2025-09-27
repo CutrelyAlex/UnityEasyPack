@@ -10,6 +10,7 @@ namespace EasyPack
         public CardEngine(ICardFactory factory = null)
         {
             CardFactory = factory;
+            factory.Owner = this;
             foreach (CardEventType t in Enum.GetValues(typeof(CardEventType)))
                 _rules[t] = new List<CardRule>();
         }
@@ -197,7 +198,7 @@ namespace EasyPack
                 return null;
             }
 
-            RegisterCard(card);
+            AddCard(card);
 
             return card;
         }
@@ -238,7 +239,7 @@ namespace EasyPack
         #endregion
 
         #region 卡牌缓存处理
-        public CardEngine RegisterCard(Card c)
+        public CardEngine AddCard(Card c)
         {
             if (c == null) return this;
             if (_registeredCards.Add(c))
@@ -266,7 +267,7 @@ namespace EasyPack
             return this;
         }
 
-        public CardEngine UnregisterCard(Card c)
+        public CardEngine RemoveCard(Card c)
         {
             if (c == null) return this;
             if (_registeredCards.Remove(c))

@@ -26,6 +26,8 @@ namespace EasyPack
         /// <summary>产卡工厂。</summary>
         public ICardFactory Factory;
 
+        
+
         /// <summary>
         /// 递归搜索最大深度（>0 生效，1 表示仅子级一层）。
         /// </summary>

@@ -37,7 +37,7 @@ namespace EasyPack
             {
                 for (int i = 0; i < CountPerId; i++)
                 {
-                    var card = ctx.Factory.Create(id);
+                    var card = ctx.Factory.Owner.CreateCard(id);
                     if (card != null)
                         ctx.Container.AddChild(card);
                 }
