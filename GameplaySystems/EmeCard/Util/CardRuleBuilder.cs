@@ -94,6 +94,11 @@ namespace EasyPack
         /// <param name="category">卡牌类型</param>
         public CardRuleBuilder NeedContainerCategory(CardCategory category) => NeedCard(RequirementRoot.Container, TargetKind.ByCategory, category.ToString());
         /// <summary>
+        /// 根据标签递归获取子卡牌
+        /// </summary>
+        /// <param name="tag">标签</param>
+        public CardRuleBuilder NeedContainerDescendantsTag(string tag) => NeedCard(RequirementRoot.Container, TargetKind.ByTagRecursive,tag,0);
+        /// <summary>
         /// 添加自定义卡牌匹配器
         /// </summary>
         /// <param name="root">目标根</param>
