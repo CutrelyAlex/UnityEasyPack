@@ -14,7 +14,6 @@ namespace EasyPack
         NotContains,
         Exists
     }
-
     public class AttributeCondition : IItemCondition, ISerializableCondition
     {
         public string AttributeName { get; set; }
@@ -126,9 +125,9 @@ namespace EasyPack
         // 自序列化支持
         public string Kind => "Attr";
 
-        public SerializableCondition ToDto()
+        public SerializedCondition ToDto()
         {
-            var dto = new SerializableCondition { Kind = Kind };
+            var dto = new SerializedCondition { Kind = Kind };
 
             var name = new CustomDataEntry { Id = "Name" };
             name.SetValue(AttributeName, CustomDataType.String);
@@ -146,9 +145,9 @@ namespace EasyPack
             return dto;
         }
 
-        public static AttributeCondition FromDto(SerializableCondition dto)
+        public ISerializableCondition FromDto(SerializedCondition dto)
         {
-            if (dto == null || dto.Params == null) return null;
+            if (dto == null || dto.Params == null) return this;
 
             string name = null;
             object value = null;
@@ -165,8 +164,13 @@ namespace EasyPack
                 }
             }
 
-            if (string.IsNullOrEmpty(name)) return null;
-            return new AttributeCondition(name, value, (AttributeComparisonType)cmp);
+            if (!string.IsNullOrEmpty(name))
+            {
+                AttributeName = name;
+                AttributeValue = value;
+                ComparisonType = (AttributeComparisonType)cmp;
+            }
+            return this;
         }
     }
 }

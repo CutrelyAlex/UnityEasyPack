@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace EasyPack
 {
@@ -10,9 +11,6 @@ namespace EasyPack
     public sealed class AllCondition : IItemCondition
     {
         public List<IItemCondition> Children { get; } = new List<IItemCondition>();
-
-        public AllCondition() { }
-
         public AllCondition(params IItemCondition[] children)
         {
             if (children != null)
@@ -48,6 +46,8 @@ namespace EasyPack
             }
             return this;
         }
+
+        public string Kind => "All";
     }
 
     /// <summary>

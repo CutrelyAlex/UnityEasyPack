@@ -8,11 +8,11 @@ namespace EasyPack
     public static class ContainerSerializer
     {
         // Container -> DTO
-        public static SerializableContainer Serialize(Container container, bool prettyPrint = false)
+        public static SerializedContainer Serialize(Container container, bool prettyPrint = false)
         {
             if (container == null) return null;
 
-            var dto = new SerializableContainer
+            var dto = new SerializedContainer
             {
                 ContainerKind = container.GetType().Name,
                 ID = container.ID,
@@ -51,7 +51,7 @@ namespace EasyPack
                     itemJson = concrete.ToJson(prettyPrint);
                 }
 
-                dto.Slots.Add(new SerializableSlot
+                dto.Slots.Add(new SerializedSlot
                 {
                     Index = slot.Index,
                     ItemJson = itemJson,
@@ -65,7 +65,7 @@ namespace EasyPack
 
         // DTO -> Container
         // TODO : 支持其他容器
-        public static Container Deserialize(SerializableContainer data)
+        public static Container Deserialize(SerializedContainer data)
         {
             if (data == null) return null;
 
@@ -80,7 +80,7 @@ namespace EasyPack
                     break;
             }
 
-            // 还原容器条件（按 Kind 分发）
+            // 还原容器条件（自动分发到各条件类型的 FromDto 实例方法）
             var conds = new List<IItemCondition>();
             if (data.ContainerConditions != null)
             {
@@ -91,11 +91,12 @@ namespace EasyPack
                     switch (c.Kind)
                     {
                         case "ItemType":
-                            cond = ItemTypeCondition.FromDto(c);
+                            cond = new ItemTypeCondition("").FromDto(c);
                             break;
                         case "Attr":
-                            cond = AttributeCondition.FromDto(c);
+                            cond = new AttributeCondition("", null).FromDto(c);
                             break;
+                        // 可扩展其它条件类型
                         default:
                             Debug.LogWarning($"未知条件 Kind: {c.Kind}，已跳过。");
                             break;
@@ -111,7 +112,7 @@ namespace EasyPack
                 foreach (var s in data.Slots)
                 {
                     if (string.IsNullOrEmpty(s.ItemJson)) continue;
-                    var item = Item.FromJson(s.ItemJson);
+                    var item = ItemSerializer.FromJson(s.ItemJson);
                     if (item == null) continue;
 
                     var (res, added) = container.AddItems(item, s.ItemCount, s.Index >= 0 ? s.Index : -1);
@@ -134,8 +135,8 @@ namespace EasyPack
         public static Container FromJson(string json, Func<string, Item> itemFromJson = null)
         {
             if (string.IsNullOrEmpty(json)) return null;
-            var dto = JsonUtility.FromJson<SerializableContainer>(json);
-            return Deserialize(dto, itemFromJson);
+            var dto = JsonUtility.FromJson<SerializedContainer>(json);
+            return Deserialize(dto);
         }
     }
 }

@@ -7,6 +7,7 @@ namespace EasyPack
     public interface ISerializableCondition : IItemCondition
     {
         string Kind { get; }
-        SerializableCondition ToDto();
+        SerializedCondition ToDto();
+        ISerializableCondition FromDto(SerializedCondition dto);
     }
 }

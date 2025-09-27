@@ -76,7 +76,7 @@ namespace EasyPack
         #endregion
     }
 
-    public static class ItemSerializeExtension
+    public static class ItemSerializer
     {
         /// <summary>
         /// 将 Item 实例序列化为 JSON 字符串
@@ -84,7 +84,7 @@ namespace EasyPack
         public static string ToJson(this Item item, bool prettyPrint = false)
         {
             if (item == null) return null;
-            var dto = new SerializeableItem
+            var dto = new SerializedItem
             {
                 ID = item.ID,
                 Name = item.Name,
@@ -109,10 +109,10 @@ namespace EasyPack
         {
             if (string.IsNullOrEmpty(json)) return null;
 
-            SerializeableItem dto = null;
+            SerializedItem dto = null;
             try
             {
-                dto = JsonUtility.FromJson<SerializeableItem>(json);
+                dto = JsonUtility.FromJson<SerializedItem>(json);
             }
             catch
             {
@@ -158,5 +158,4 @@ namespace EasyPack
             return item;
         }
     }
-}
 }
