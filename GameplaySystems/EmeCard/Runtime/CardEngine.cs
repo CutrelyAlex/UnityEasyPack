@@ -17,6 +17,9 @@ namespace EasyPack
 
         #region 基本属性
         public ICardFactory CardFactory { get; set; }
+        /// <summary>
+        /// 引擎全局策略
+        /// </summary>
         public EnginePolicy Policy { get; } = new EnginePolicy();
 
         private bool _isPumping = false;
@@ -29,29 +32,42 @@ namespace EasyPack
             public CardEvent Event;
             public EventEntry(Card s, CardEvent e) { Source = s; Event = e; }
         }
+        // 规则表
         private readonly Dictionary<CardEventType, List<CardRule>> _rules = new();
+        // 卡牌事件队列
         private readonly Queue<EventEntry> _queue = new();
+        // 已注册的卡牌集合
         private readonly HashSet<Card> _registeredCards = new();
+        // 卡牌Key->Card缓存
         private readonly Dictionary<CardKey, Card> _cardMap = new();
-
+        // id->index集合缓存
         private readonly Dictionary<string, HashSet<int>> _idIndexes = new();
 
         #endregion
 
         #region 规则处理
-
+        /// <summary>
+        /// 注册一条规则到引擎。
+        /// </summary>
+        /// <param name="rule">规则实例。</param>
         public void RegisterRule(CardRule rule)
         {
             if (rule == null) throw new ArgumentNullException(nameof(rule));
             _rules[rule.Trigger].Add(rule);
         }
 
+        /// <summary>
+        /// 卡牌事件回调，入队并驱动事件处理。
+        /// </summary>
         private void OnCardEvent(Card source, CardEvent evt)
         {
             _queue.Enqueue(new EventEntry(source, evt));
             if (!_isPumping) Pump();
         }
-
+        /// <summary>
+        /// 事件主循环，依次处理队列中的所有事件。
+        /// </summary>
+        /// <param name="maxEvents">最大处理事件数。</param>
         public void Pump(int maxEvents = int.MaxValue)
         {
             if (_isPumping) return;
@@ -72,6 +88,9 @@ namespace EasyPack
             }
         }
 
+        /// <summary>
+        /// 处理单个事件，匹配规则并执行效果。
+        /// </summary>
         private void Process(Card source, CardEvent evt)
         {
             var rules = _rules[evt.Type];
@@ -185,6 +204,9 @@ namespace EasyPack
         #endregion
 
         #region 卡牌创建
+        /// <summary>
+        /// 按ID创建并注册卡牌实例。
+        /// </summary>
         public T CreateCard<T>(string id) where T : Card
         {
             if (id == null) throw new ArgumentNullException(nameof(id));
@@ -204,7 +226,9 @@ namespace EasyPack
 
             return card;
         }
-
+        /// <summary>
+        /// 按ID创建并注册Card类型的卡牌。
+        /// </summary>
         public Card CreateCard(string id)
         {
             return CreateCard<Card>(id);
@@ -212,6 +236,9 @@ namespace EasyPack
         #endregion
 
         #region 查询服务
+        /// <summary>
+        /// 按ID和Index精确查找卡牌。
+        /// </summary>
         public Card GetCardByKey(string id, int index)
         {
             if (string.IsNullOrEmpty(id)) return null;
@@ -220,7 +247,9 @@ namespace EasyPack
 
             return null;
         }
-
+        /// <summary>
+        /// 按ID返回所有已注册卡牌。
+        /// </summary>
         public IEnumerable<Card> GetCardsById(string id)
         {
             if (string.IsNullOrEmpty(id)) yield break;
@@ -230,7 +259,9 @@ namespace EasyPack
                     yield return kv.Value;
             }
         }
-
+        /// <summary>
+        /// 按ID返回第一个已注册卡牌。
+        /// </summary>
         public Card GetCardById(string id)
         {
             if (string.IsNullOrEmpty(id)) return null;
@@ -246,6 +277,9 @@ namespace EasyPack
         #endregion
 
         #region 卡牌缓存处理
+        /// <summary>
+        /// 添加卡牌到引擎，分配唯一Index并订阅事件。
+        /// </summary>
         public CardEngine AddCard(Card c)
         {
             if (c == null) return this;
@@ -274,7 +308,9 @@ namespace EasyPack
             }
             return this;
         }
-
+        /// <summary>
+        /// 移除卡牌，移除事件订阅与索引。
+        /// </summary>
         public CardEngine RemoveCard(Card c)
         {
             if (c == null) return this;
