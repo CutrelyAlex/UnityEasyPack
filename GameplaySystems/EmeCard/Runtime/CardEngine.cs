@@ -43,19 +43,6 @@ namespace EasyPack
             _rules[rule.Trigger].Add(rule);
         }
 
-        public CardEngine Attach(Card card)
-        {
-            if (card == null) throw new ArgumentNullException(nameof(card));
-            _attachedCards.Add(card);
-            return this;
-        }
-        public CardEngine Detach(Card card)
-        {
-            if (card == null) throw new ArgumentNullException(nameof(card));
-            _attachedCards.Remove(card);
-            return this;
-        }
-
         private void OnCardEvent(Card source, CardEvent evt)
         {
             _queue.Enqueue(new EventEntry(source, evt));
@@ -251,9 +238,9 @@ namespace EasyPack
         #endregion
 
         #region 卡牌缓存处理
-        private void RegisterCard(Card c)
+        public CardEngine RegisterCard(Card c)
         {
-            if (c == null) return;
+            if (c == null) return this;
             if (_registeredCards.Add(c))
             {
                 c.OnEvent += OnCardEvent;
@@ -271,16 +258,17 @@ namespace EasyPack
                     else
                     {
                         _cardMap[key] = c;
-                        return;
+                        return this;
                     }
                 }
                 _cardMap[key] = c;
             }
+            return this;
         }
 
-        private void UnregisterCard(Card c)
+        public CardEngine UnregisterCard(Card c)
         {
-            if (c == null) return;
+            if (c == null) return this;
             if (_registeredCards.Remove(c))
             {
                 c.OnEvent -= OnCardEvent;
@@ -288,6 +276,7 @@ namespace EasyPack
                 if (_cardMap.TryGetValue(key, out var existing) && ReferenceEquals(existing, c))
                     _cardMap.Remove(key);
             }
+            return this;
         }
         #endregion
     }

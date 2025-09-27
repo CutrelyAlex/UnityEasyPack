@@ -74,16 +74,7 @@ namespace EasyPack
             tileGrass.AddChild(dedupObj);
 
 
-            // 3) 接入事件（链式 Attach）
-            _engine
-                .Attach(tileGrass)
-                .Attach(tileDirt)
-                .Attach(player)
-                .Attach(make)
-                .Attach(chop)
-                .Attach(fire);
-
-            // 4) 规则注册（使用 Builder 语法糖）
+            // 3) 规则注册（使用 Builder 语法糖）
 
             // R1: Use(制作) + 同容器有 玩家 + 木棍 + 火 -> 产出 火把（移除1个木棍和1个火）
             _engine.RegisterRule(b => b
