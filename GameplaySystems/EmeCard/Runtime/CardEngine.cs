@@ -31,9 +31,11 @@ namespace EasyPack
         }
         private readonly Dictionary<CardEventType, List<CardRule>> _rules = new();
         private readonly Queue<EventEntry> _queue = new();
-        private readonly HashSet<Card> _attachedCards = new();
         private readonly HashSet<Card> _registeredCards = new();
         private readonly Dictionary<CardKey, Card> _cardMap = new();
+
+        private readonly Dictionary<string, HashSet<int>> _idIndexes = new();
+
         #endregion
 
         #region 规则处理
@@ -183,7 +185,7 @@ namespace EasyPack
         #endregion
 
         #region 卡牌创建
-        public T CreateCard<T>(string id)where T:Card
+        public T CreateCard<T>(string id) where T : Card
         {
             if (id == null) throw new ArgumentNullException(nameof(id));
 
@@ -251,22 +253,23 @@ namespace EasyPack
             {
                 c.OnEvent += OnCardEvent;
 
-                var key = new CardKey(c.Id, c.Index);
-                if (_cardMap.TryGetValue(key, out var existing))
+                var id = c.Id;
+                if (!_idIndexes.TryGetValue(id, out var indexes))
                 {
-                    if (!ReferenceEquals(existing, c))
-                    {
-                        int next = 0;
-                        while (_cardMap.ContainsKey(new CardKey(c.Id, next))) next++;
-                        c.Index = next;
-                        key = new CardKey(c.Id, c.Index);
-                    }
-                    else
-                    {
-                        _cardMap[key] = c;
-                        return this;
-                    }
+                    indexes = new HashSet<int>();
+                    _idIndexes[id] = indexes;
                 }
+
+                int next = c.Index;
+                if (next < 0 || indexes.Contains(next))
+                {
+                    next = 0;
+                    while (indexes.Contains(next)) next++;
+                    c.Index = next;
+                }
+
+                indexes.Add(c.Index);
+                var key = new CardKey(c.Id, c.Index);
                 _cardMap[key] = c;
             }
             return this;
@@ -281,6 +284,13 @@ namespace EasyPack
                 var key = new CardKey(c.Id, c.Index);
                 if (_cardMap.TryGetValue(key, out var existing) && ReferenceEquals(existing, c))
                     _cardMap.Remove(key);
+
+                if (_idIndexes.TryGetValue(c.Id, out var indexes))
+                {
+                    indexes.Remove(c.Index);
+                    if (indexes.Count == 0)
+                        _idIndexes.Remove(c.Id);
+                }
             }
             return this;
         }
