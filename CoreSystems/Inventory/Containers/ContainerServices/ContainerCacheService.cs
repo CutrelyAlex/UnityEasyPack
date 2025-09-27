@@ -8,7 +8,7 @@ namespace EasyPack
     /// <summary>
     /// 容器缓存管理器，用于高效查询容器的高频只读操作
     /// </summary>
-    public class ContainerCacheManager
+    public class ContainerCacheService
     {
         #region 缓存字段
         // 物品槽位索引缓存
@@ -25,7 +25,7 @@ namespace EasyPack
         #endregion
 
         #region 构造函数
-        public ContainerCacheManager(int capacity)
+        public ContainerCacheService(int capacity)
         {
             if (capacity > 500)
             {

@@ -87,6 +87,7 @@ public class LinerContainer : Container
         SortInventory();
     }
     #endregion
+
     #region 辅助方法
 
     private void InitializeSlots(int capacity)
@@ -169,11 +170,11 @@ public class LinerContainer : Container
     {
         if (isCompleteMove)
         {
-            _cacheManager.UpdateEmptySlotCache(sourceSlotIndex, true);
-            _cacheManager.UpdateItemSlotIndexCache(sourceItem.ID, sourceSlotIndex, false);
-            _cacheManager.UpdateItemTypeCache(sourceItem.Type, sourceSlotIndex, false);
+            _cacheService.UpdateEmptySlotCache(sourceSlotIndex, true);
+            _cacheService.UpdateItemSlotIndexCache(sourceItem.ID, sourceSlotIndex, false);
+            _cacheService.UpdateItemTypeCache(sourceItem.Type, sourceSlotIndex, false);
         }
-        _cacheManager.UpdateItemCountCache(sourceItem.ID, -count);
+        _cacheService.UpdateItemCountCache(sourceItem.ID, -count);
     }
 
     private List<(int index, IItem item, int count)> CollectOccupiedSlots()

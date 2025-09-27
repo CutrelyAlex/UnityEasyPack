@@ -35,9 +35,9 @@ namespace EasyPack
     public class ItemQueryService : IItemQueryService
     {
         private readonly IReadOnlyList<ISlot> _slots;
-        private readonly ContainerCacheManager _cacheManager;
+        private readonly ContainerCacheService _cacheManager;
 
-        public ItemQueryService(IReadOnlyList<ISlot> slots, ContainerCacheManager cacheManager)
+        public ItemQueryService(IReadOnlyList<ISlot> slots, ContainerCacheService cacheManager)
         {
             _slots = slots ?? throw new ArgumentNullException(nameof(slots));
             _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));

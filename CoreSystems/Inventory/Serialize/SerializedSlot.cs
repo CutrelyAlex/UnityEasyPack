@@ -4,11 +4,11 @@ using UnityEngine;
 namespace EasyPack
 {
     [Serializable]
-    public class SerializableSlot
+    public class SerializedSlot
     {
         public int Index;
         public string ItemJson;
         public int ItemCount; 
-        public ConditionDTO SlotCondition;
+        public SerializedCondition SlotCondition;
     }
 }

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace EasyPack
 {
     [Serializable]
-    public class SerializableContainer
+    public class SerializedContainer
     {
         public string ContainerKind;
         public string ID;
@@ -16,7 +16,7 @@ namespace EasyPack
         public bool IsGrid;
         public Vector2 Grid; // 若为网格容器可使用
 
-        public List<SerializableSlot> Slots = new List<SerializableSlot>();
-        public List<ConditionDTO> ContainerConditions = new List<ConditionDTO>();
+        public List<SerializedSlot> Slots = new List<SerializedSlot>();
+        public List<SerializedCondition> ContainerConditions = new List<SerializedCondition>();
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace EasyPack
 {
@@ -27,8 +28,47 @@ namespace EasyPack
     ///   以及持有关系变化（<see cref="CardEventType.AddedToOwner"/> / <see cref="CardEventType.RemovedFromOwner"/>）。
     /// - 可选关联一个 <see cref="GameProperty"/>（实例级数值）。
     /// </summary>
-    public abstract class Card
+    public class Card
     {
+        public Card(CardData data, GameProperty gameProperty = null, params string[] extraTags)
+        {
+            Data = data;
+            if(gameProperty != null)
+            {
+                Properties.Add(gameProperty);
+            }
+
+
+            if (Data?.DefaultTags != null)
+            {
+                foreach (var t in Data.DefaultTags)
+                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+            }
+            if (extraTags != null)
+            {
+                foreach (var t in extraTags)
+                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+            }
+        }
+
+        public Card(CardData data, IEnumerable<GameProperty> properties = null, params string[] extraTags)
+        {
+            Data = data;
+            Properties = properties?.ToList() ?? new List<GameProperty>();
+
+            if (Data?.DefaultTags != null)
+            {
+                foreach (var t in Data.DefaultTags)
+                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+            }
+            if (extraTags != null)
+            {
+                foreach (var t in extraTags)
+                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+            }
+        }
+
+
         #region 基本数据
 
         private CardData _data;
@@ -52,7 +92,12 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// 卡牌唯一标识，来自 <see cref="Data"/>。
+        /// 实例索引：用于区分同一 ID 的多个实例（由持有者在 AddChild 时分配，从 0 起）。
+        /// </summary>
+        public int Index { get; internal set; } = 0;
+
+        /// <summary>
+        /// 卡牌标识，来自 <see cref="Data"/>。
         /// </summary>
         public string Id => Data != null ? Data.ID : string.Empty;
 
@@ -74,8 +119,8 @@ namespace EasyPack
         /// <summary>
         /// 数值属性。
         /// </summary>
-        public GameProperty Property { get; set; }
-
+        public List<GameProperty> Properties { get; set; } = new List<GameProperty>();
+        public GameProperty GetProperty(string id) => Properties?.FirstOrDefault(p => p.ID == id);
         #endregion
 
         #region 标签和持有关系
@@ -137,7 +182,7 @@ namespace EasyPack
         {
             if (child == null) throw new ArgumentNullException(nameof(child));
             if (child.Owner != null) throw new InvalidOperationException("子卡牌已被其他卡牌持有。");
-            if (child == this) throw new Exception("不能添加自身");
+            if (child == this) throw new Exception("卡牌不能添加自身为子卡牌。");
 
             
             _children.Add(child);
@@ -204,14 +249,14 @@ namespace EasyPack
         /// <summary>
         /// 触发主动使用事件（<see cref="CardEventType.Use"/>）。
         /// </summary>
-        /// <param name="data">可选载荷；由订阅者按需解释（例如目标信息）。</param>
+        /// <param name="data">可选自定义信息；由订阅者按需解释（例如目标信息）。</param>
         public void Use(object data = null) => RaiseEvent(new CardEvent(CardEventType.Use, data: data));
 
         /// <summary>
         /// 触发自定义事件（<see cref="CardEventType.Custom"/>）。
         /// </summary>
         /// <param name="id">自定义事件标识，用于规则过滤。</param>
-        /// <param name="data">可选载荷。</param>
+        /// <param name="data">可选自定义信息。</param>
         public void Custom(string id, object data = null) => RaiseEvent(new CardEvent(CardEventType.Custom, id, data));
         #endregion
     }

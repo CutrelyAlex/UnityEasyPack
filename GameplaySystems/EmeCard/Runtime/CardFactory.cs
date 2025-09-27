@@ -12,7 +12,7 @@ namespace EasyPack
 
     public sealed class CardFactory : ICardFactory
     {
-        private readonly Dictionary<string, Func<Card>> _constructors = new Dictionary<string, Func<Card>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, Func<Card>> _constructors = new(StringComparer.Ordinal);
 
         public void Register(string id, Func<Card> ctor)
         {

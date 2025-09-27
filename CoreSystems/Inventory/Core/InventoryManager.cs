@@ -376,7 +376,7 @@ public class InventoryManager
 
             foreach (var condition in _globalItemConditions)
             {
-                if (!condition.IsCondition(item))
+                if (!condition.CheckCondition(item))
                     return false;
             }
             return true;

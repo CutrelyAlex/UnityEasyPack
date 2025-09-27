@@ -74,37 +74,45 @@ namespace EasyPack
             return clone;
         }
         #endregion
+    }
 
-        #region 序列化
-        public string ToJson(bool prettyPrint = false)
+    public static class ItemSerializer
+    {
+        /// <summary>
+        /// 将 Item 实例序列化为 JSON 字符串
+        /// </summary>
+        public static string ToJson(this Item item, bool prettyPrint = false)
         {
-            var dto = new SerializeableItem
+            if (item == null) return null;
+            var dto = new SerializedItem
             {
-                ID = this.ID,
-                Name = this.Name,
-                Type = this.Type,
-                Description = this.Description,
-                Weight = this.Weight,
-                IsStackable = this.IsStackable,
-                MaxStackCount = this.MaxStackCount,
-                isContanierItem = this.isContanierItem,
-                Attributes = CustomDataUtility.ToEntries(this.Attributes),
-                ContainerIds = (this.isContanierItem && this.ContainerIds != null && this.ContainerIds.Count > 0)
-                    ? new List<string>(this.ContainerIds)
+                ID = item.ID,
+                Name = item.Name,
+                Type = item.Type,
+                Description = item.Description,
+                Weight = item.Weight,
+                IsStackable = item.IsStackable,
+                MaxStackCount = item.MaxStackCount,
+                isContanierItem = item.isContanierItem,
+                Attributes = CustomDataUtility.ToEntries(item.Attributes),
+                ContainerIds = (item.isContanierItem && item.ContainerIds != null && item.ContainerIds.Count > 0)
+                    ? new List<string>(item.ContainerIds)
                     : null
             };
-
             return JsonUtility.ToJson(dto, prettyPrint);
         }
 
+        /// <summary>
+        /// 从 JSON 字符串反序列化为 Item 实例
+        /// </summary>
         public static Item FromJson(string json, ICustomDataSerializer fallbackSerializer = null)
         {
             if (string.IsNullOrEmpty(json)) return null;
 
-            SerializeableItem dto = null;
+            SerializedItem dto = null;
             try
             {
-                dto = JsonUtility.FromJson<SerializeableItem>(json);
+                dto = JsonUtility.FromJson<SerializedItem>(json);
             }
             catch
             {
@@ -126,7 +134,6 @@ namespace EasyPack
 
             if (dto.Attributes != null)
             {
-                // 若存在自定义序列化类型，注入回条目以便 GetValue 能正确解析 Custom 类型
                 if (fallbackSerializer != null)
                 {
                     for (int i = 0; i < dto.Attributes.Count; i++)
@@ -150,6 +157,5 @@ namespace EasyPack
 
             return item;
         }
-        #endregion
     }
 }
