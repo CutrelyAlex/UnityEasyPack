@@ -73,31 +73,58 @@ namespace EasyPack
         /// </summary>
         /// <param name="tag">目标标签</param>
         public CardRuleBuilder WhenSourceTag(string tag) => Where(ctx => ctx.Source != null && ctx.Source.HasTag(tag));
-        // <summary>
+        /// <summary>
         /// 检查触发源Id
         /// </summary>
-        /// <param name="Id">目标Id</param>
-        public CardRuleBuilder WhenSourceId(string Id) => Where(ctx => ctx.Source != null && ctx.Source.Id==Id);
+        /// <param name="id">目标Id</param>
+        public CardRuleBuilder WhenSourceId(string id) => Where(ctx => ctx.Source != null && ctx.Source.Id==id);
+        /// <summary>
+        /// 检查触发源类型
+        /// </summary>
+        /// <param name="category"></param>
+        public CardRuleBuilder WhenSourceCategory(CardCategory category) => Where(ctx => ctx.Source != null && ctx.Source.Category == category);
         /// <summary>
         /// 检查容器对应卡牌标签
         /// </summary>
         /// <param name="tag">标签</param>
-        public CardRuleBuilder NeedContainerTag(string tag) => NeedCard(RequirementRoot.Container, TargetKind.ByTag, tag);
+        public CardRuleBuilder WhenContainerTag(string tag) =>  Where(ctx => ctx.Container != null && ctx.Container.HasTag(tag));
         /// <summary>
         /// 检查容器对应卡牌Id
         /// </summary>
         /// <param name="id">卡牌Id</param>
-        public CardRuleBuilder NeedContainerId(string id) => NeedCard(RequirementRoot.Container, TargetKind.ById, id);
+        public CardRuleBuilder WhenContainerId(string id) => Where(ctx => ctx.Container != null && ctx.Container.Id==id);
         /// <summary>
         /// 检查容器对应卡牌类型
         /// </summary>
         /// <param name="category">卡牌类型</param>
-        public CardRuleBuilder NeedContainerCategory(CardCategory category) => NeedCard(RequirementRoot.Container, TargetKind.ByCategory, category.ToString());
+        public CardRuleBuilder WhenContainerCategory(CardCategory category) =>Where(ctx => ctx.Container != null && ctx.Container.Category == category);
+        /// <summary>
+        /// 根据标签获取一层子卡牌
+        /// </summary>
+        /// <param name="tag">标签</param>
+        /// <param name="min">所需及获取数量，为0则获取全部</param>
+        /// <returns></returns>
+        public CardRuleBuilder NeedContainerTag(string tag,int min=0) => NeedCard(RequirementRoot.Container, TargetKind.ByTag, tag,min);
+        /// <summary>
+        /// 根据Id获取一层子卡牌
+        /// </summary>
+        /// <param name="id">卡牌Id</param>
+        /// <param name="min">所需及获取数量，为0则获取全部</param>
+        /// <returns></returns>
+        public CardRuleBuilder NeedContainerId(string id,int min=0) => NeedCard(RequirementRoot.Container, TargetKind.ById, id,min);
+        /// <summary>
+        /// 根据类型获取一层子卡牌
+        /// </summary>
+        /// <param name="category">卡牌类型</param>
+        /// <param name="min">所需及获取数量，为0则获取全部</param>
+        /// <returns></returns>
+        public CardRuleBuilder NeedContainerCategory(CardCategory category,int min=0) => NeedCard(RequirementRoot.Container, TargetKind.ByCategory, category.ToString(),min);
         /// <summary>
         /// 根据标签递归获取子卡牌
         /// </summary>
         /// <param name="tag">标签</param>
-        public CardRuleBuilder NeedContainerDescendantsTag(string tag) => NeedCard(RequirementRoot.Container, TargetKind.ByTagRecursive,tag,0);
+        /// <param name="min">所需及获取数量，为0则获取全部</param>
+        public CardRuleBuilder NeedContainerDescendantsTag(string tag,int min=0) => NeedCard(RequirementRoot.Container, TargetKind.ByTagRecursive,tag,min);
         /// <summary>
         /// 添加自定义卡牌匹配器
         /// </summary>
