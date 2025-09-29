@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace EasyPack
 {
@@ -219,6 +220,24 @@ namespace EasyPack
         /// </summary>
         /// <param name="action">要触发的事件</param>
         public CardRuleBuilder DoInvoke(Action<CardRuleContext, IReadOnlyList<Card>> action) { _rule.Effects.Add(new InvokeEffect(action)); return this; }
+
+        /// <summary>
+        /// 批量触发匹配卡牌自定义事件
+        /// </summary>
+        /// <param name="eventId">事件Id</param>
+        public CardRuleBuilder BatchCustom(string eventId)
+        {
+            //居然能运行，好神奇
+            DoInvoke((context, list) =>
+            {
+                foreach (Card target in list)
+                {
+                    Debug.Log(target.Id);
+                    target.Custom(eventId);
+                }
+            });
+            return this;
+        }
         #endregion
 
         public CardRule Build() => _rule;
