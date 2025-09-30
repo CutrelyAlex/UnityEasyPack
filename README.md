@@ -6,17 +6,7 @@
 直接Clone到项目里即可，无需其他依赖。
 
 ## 目前支持
-- 基于组件的**BUFF系统**
-- 基于修饰器的**游戏属性**
-- **组合式的属性**
-- Inventory系统
-- Gameplay的寻路
-- "万物卡牌"
-
-可以查看每个模块下的 Example 文件夹查看使用示例~
-
-## 下一步
-- [x] 重构Buff系统
-- [x] 背包系统(InventoryKit)
-- [ ] 序列化表达式
-- [ ] 方便的添加SO、Database、编辑甚至是编辑器
+- Gameproperty，基于Modifier的游戏属性系统
+- Buff，支持自定义效果和触发条件、时间等的Buff系统
+- Inventory，比较强大的背包/仓库系统
+- EmeCard，一个"万物卡牌"系统，规则驱动
