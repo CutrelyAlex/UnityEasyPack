@@ -37,7 +37,7 @@ namespace EasyPack
         public Dictionary<string, object> Attributes { get; set; } = new Dictionary<string, object>();
 
 
-        public bool isContanierItem = false;
+        public bool IsContanierItem = false;
         public List<string> ContainerIds { get; set; } // 容器类型的物品对于的ID区域
 
         #endregion
@@ -54,7 +54,7 @@ namespace EasyPack
                 Weight = this.Weight,
                 IsStackable = this.IsStackable,
                 MaxStackCount = this.MaxStackCount,
-                isContanierItem = this.isContanierItem
+                IsContanierItem = this.IsContanierItem
             };
 
             if (this.Attributes != null)
@@ -93,9 +93,9 @@ namespace EasyPack
                 Weight = item.Weight,
                 IsStackable = item.IsStackable,
                 MaxStackCount = item.MaxStackCount,
-                isContanierItem = item.isContanierItem,
+                isContanierItem = item.IsContanierItem,
                 Attributes = CustomDataUtility.ToEntries(item.Attributes),
-                ContainerIds = (item.isContanierItem && item.ContainerIds != null && item.ContainerIds.Count > 0)
+                ContainerIds = (item.IsContanierItem && item.ContainerIds != null && item.ContainerIds.Count > 0)
                     ? new List<string>(item.ContainerIds)
                     : null
             };
@@ -129,7 +129,7 @@ namespace EasyPack
                 Weight = dto.Weight,
                 IsStackable = dto.IsStackable,
                 MaxStackCount = dto.MaxStackCount,
-                isContanierItem = dto.isContanierItem,
+                IsContanierItem = dto.isContanierItem,
             };
 
             if (dto.Attributes != null)
@@ -151,7 +151,7 @@ namespace EasyPack
 
             if (dto.ContainerIds != null && dto.ContainerIds.Count > 0)
             {
-                item.isContanierItem = true;
+                item.IsContanierItem = true;
                 item.ContainerIds = new List<string>(dto.ContainerIds);
             }
 
