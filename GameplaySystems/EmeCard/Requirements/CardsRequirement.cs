@@ -53,10 +53,12 @@ namespace EasyPack
 
             var picks = TargetSelector.Select(Scope, FilterMode, localCtx, FilterValue);
             int count = picks?.Count ?? 0;
-            if (count == 0) return MinCount <= 0;
 
             int take = MinCount > 0 ? MinCount : count;
-            matched.AddRange(picks.Take(take));
+            if (count > 0)
+            {
+                matched.AddRange(picks.Take(take));
+            }
 
             return count >= (MinCount > 0 ? MinCount : 0);
         }
