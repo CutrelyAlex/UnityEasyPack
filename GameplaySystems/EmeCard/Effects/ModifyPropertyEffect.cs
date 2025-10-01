@@ -16,22 +16,32 @@ namespace EasyPack
         /// <summary>
         /// 选择起点（默认 Container）。
         /// </summary>
-        public EffectRoot Root { get; set; } = EffectRoot.Container;
+        public SelectionRoot Root { get; set; } = SelectionRoot.Container;
 
         /// <summary>
-        /// 目标类型
+        /// 选择范围（默认 Matched）。
         /// </summary>
-        public TargetKind TargetKind { get; set; } = TargetKind.Matched;
+        public TargetScope Scope { get; set; } = TargetScope.Matched;
+
+        /// <summary>
+        /// 过滤模式（默认 None）。
+        /// </summary>
+        public FilterMode Filter { get; set; } = FilterMode.None;
 
         /// <summary>
         /// 目标过滤值
         /// </summary>
-        public string TargetValueFilter { get; set; }
+        public string FilterValue { get; set; }
 
         /// <summary>
-        /// 限量（<=0 不限）只对前 N 个目标生效。
+        /// 仅作用前 N 个目标（null 表示不限制）。
         /// </summary>
-        public int Take { get; set; } = 0;
+        public int? Take { get; set; } = null;
+
+        /// <summary>
+        /// 递归深度限制（仅对 Scope=Descendants 生效，null 表示不限制）。
+        /// </summary>
+        public int? MaxDepth { get; set; } = null;
 
         /// <summary>
         /// 要修改的属性名（留空代表全部属性）。
@@ -65,15 +75,38 @@ namespace EasyPack
         /// 执行属性修改。
         /// </summary>
         /// <param name="ctx">规则上下文。</param>
-        /// <param name="matched">匹配阶段的结果（当 <see cref="TargetKind"/>=Matched 时使用）。</param>
+        /// <param name="matched">匹配阶段的结果（当 <see cref="Scope"/>=Matched 时使用）。</param>
         public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
-            IReadOnlyList<Card> targets =
-                TargetKind == TargetKind.Matched
-                    ? (matched == null || matched.Count == 0
-                        ? matched
-                        : (Take > 0 ? matched.Take(Take).ToList() : matched))
-                    : TargetSelector.SelectForEffect(this, ctx);
+            IReadOnlyList<Card> targets;
+            
+            if (Scope == TargetScope.Matched)
+            {
+                // 使用匹配结果
+                if (matched == null || matched.Count == 0)
+                {
+                    return;
+                }
+                
+                targets = matched;
+                
+                // 应用过滤条件（FilterMode）
+                if (Filter != FilterMode.None && !string.IsNullOrEmpty(FilterValue))
+                {
+                    targets = TargetSelector.ApplyFilter(targets, Filter, FilterValue);
+                }
+                
+                // 应用 Take 限制
+                if (Take.HasValue && Take.Value > 0 && targets.Count > Take.Value)
+                {
+                    targets = targets.Take(Take.Value).ToList();
+                }
+            }
+            else
+            {
+                // 使用 TargetSelector 选择
+                targets = TargetSelector.SelectForEffect(this, ctx);
+            }
 
             if (targets == null) return;
 

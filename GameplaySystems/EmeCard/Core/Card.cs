@@ -30,7 +30,17 @@ namespace EasyPack
     /// </summary>
     public class Card
     {
-        public Card(){}//临时用于保证卡牌单例正常运行
+        /// <summary>
+        /// 无参构造函数（临时用于保证卡牌单例正常运行）
+        /// </summary>
+        public Card(){}
+        
+        /// <summary>
+        /// 构造函数：创建卡牌，可选单个属性
+        /// </summary>
+        /// <param name="data">卡牌数据</param>
+        /// <param name="gameProperty">可选的单个游戏属性</param>
+        /// <param name="extraTags">额外标签</param>
         public Card(CardData data, GameProperty gameProperty = null, params string[] extraTags)
         {
             Data = data;
@@ -38,7 +48,6 @@ namespace EasyPack
             {
                 Properties.Add(gameProperty);
             }
-
 
             if (Data?.DefaultTags != null)
             {
@@ -52,7 +61,13 @@ namespace EasyPack
             }
         }
 
-        public Card(CardData data, IEnumerable<GameProperty> properties = null, params string[] extraTags)
+        /// <summary>
+        /// 构造函数：创建卡牌，可选多个属性
+        /// </summary>
+        /// <param name="data">卡牌数据</param>
+        /// <param name="properties">属性列表</param>
+        /// <param name="extraTags">额外标签</param>
+        public Card(CardData data, IEnumerable<GameProperty> properties, params string[] extraTags)
         {
             Data = data;
             Properties = properties?.ToList() ?? new List<GameProperty>();
@@ -67,6 +82,17 @@ namespace EasyPack
                 foreach (var t in extraTags)
                     if (!string.IsNullOrEmpty(t)) _tags.Add(t);
             }
+        }
+
+        /// <summary>
+        /// 简化构造函数：仅提供卡牌数据和标签（无属性）
+        /// 此构造函数消除了传入 null 时的歧义
+        /// </summary>
+        /// <param name="data">卡牌数据</param>
+        /// <param name="extraTags">额外标签</param>
+        public Card(CardData data, params string[] extraTags)
+            : this(data, (IEnumerable<GameProperty>)null, extraTags)
+        {
         }
 
 

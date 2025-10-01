@@ -4,12 +4,12 @@ using System.Linq;
 namespace EasyPack
 {
     /// <summary>
-    /// 移除卡牌效果：不产出新卡，仅从容器中移除选中的目标卡。
+    /// 移除卡牌效果：将符合条件的目标卡牌从容器中移除。
     /// <para>
-    /// - 当目标为“固有子卡”（intrinsic）时不会被移除
+    /// - 当目标为"固有子卡"（intrinsic）时不会被移除
     /// </para>
     /// <para>
-    /// - 若 <see cref="TargetKind"/> 为 <see cref="TargetKind.Matched"/> 且匹配集中出现重复项，则会按重复次数尝试处理
+    /// - 若 <see cref="Scope"/> 为 <see cref="TargetScope.Matched"/> 且匹配集中出现重复项，则会按重复次数尝试处理
     /// </para>
     /// <para>
     /// - 建议配合规则或设置 <see cref="Take"/> 进行限量，以避免重复副作用
@@ -18,47 +18,66 @@ namespace EasyPack
     public class RemoveCardsEffect : IRuleEffect, ITargetSelection
     {
         /// <summary>
-        /// 选择起点（默认 Container）。
+        /// 根容器：选择从哪个容器开始。
+        /// <para>Container = 触发容器（规则所在的容器）</para>
+        /// <para>Source = 触发源卡牌（触发规则的卡牌本身）</para>
         /// </summary>
-        public EffectRoot Root { get; set; } = EffectRoot.Container;
+        public SelectionRoot Root { get; set; } = SelectionRoot.Container;
 
         /// <summary>
-        /// 目标类型：
-        /// - Matched：直接使用匹配阶段返回的 matched 列表
-        /// - ByTag/ById/ByCategory/Children/Descendants...：在本效果执行时基于 Root 选定的根重新选择。
+        /// 选择范围：决定在哪个层级查找目标卡牌。
         /// </summary>
-        public TargetKind TargetKind { get; set; } = TargetKind.Matched;
+        public TargetScope Scope { get; set; } = TargetScope.Matched;
 
         /// <summary>
-        /// 目标过滤值：当 <see cref="TargetKind"/> 为 ByTag/ById/ByCategory 等需要参数的选择器时生效，其它类型忽略。
+        /// 过滤模式：如何筛选目标卡牌。
         /// </summary>
-        public string TargetValueFilter { get; set; }
+        public FilterMode Filter { get; set; } = FilterMode.None;
 
         /// <summary>
-        /// 仅作用前 N 个目标（<=0 表示不限制）。
-        /// <para>- 对 Matched：在 matched 上截断</para>
-        /// <para>- 对其它 TargetKind：在选择时生效</para>
+        /// 过滤值：根据 <see cref="Filter"/> 模式提供对应的值。
         /// </summary>
-        public int Take { get; set; } = 0;
+        public string FilterValue { get; set; }
 
         /// <summary>
-        /// 执行移除逻辑。
+        /// 数量限制：最多移除多少张卡牌。
         /// </summary>
-        /// <param name="ctx">规则上下文（包含容器与工厂等）。</param>
-        /// <param name="matched">匹配阶段的命中集合（当 <see cref="TargetKind"/>=Matched 时使用）。</param>
+        public int? Take { get; set; } = null;
+
+        /// <summary>
+        /// 递归深度限制：仅对 <see cref="Scope"/> 为 <see cref="TargetScope.Descendants"/> 时生效。
+        /// </summary>
+        public int? MaxDepth { get; set; } = null;
+
+        /// <summary>
+        /// 执行移除卡牌效果。
+        /// </summary>
+        /// <param name="ctx">规则执行上下文</param>
+        /// <param name="matched">规则匹配阶段的结果（当 <see cref="Scope"/> 为 <see cref="TargetScope.Matched"/> 时使用）</param>
         public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
             IReadOnlyList<Card> targets;
 
-            if (TargetKind == TargetKind.Matched)
+            // 如果 Scope == Matched，使用已匹配的卡牌，但仍需要应用过滤
+            if (Scope == TargetScope.Matched)
             {
                 if (matched == null || matched.Count == 0)
                 {
-                    targets = matched;
+                    return;
                 }
-                else
+
+                targets = matched;
+
+                // 应用过滤条件（FilterMode）
+                if (Filter != FilterMode.None && !string.IsNullOrEmpty(FilterValue))
                 {
-                    targets = (Take > 0) ? matched.Take(Take).ToList() : matched;
+                    targets = TargetSelector.ApplyFilter(targets, Filter, FilterValue);
+                }
+
+                // 应用 Take 限制
+                if (Take.HasValue && Take.Value > 0 && targets.Count > Take.Value)
+                {
+                    targets = targets.Take(Take.Value).ToList();
                 }
             }
             else
@@ -66,14 +85,13 @@ namespace EasyPack
                 targets = TargetSelector.SelectForEffect(this, ctx);
             }
 
-            if (targets == null) return;
+            if (targets == null || targets.Count == 0)
+                return;
 
-            // ToArray 快照以避免遍历中集合被修改
             foreach (var t in targets.ToArray())
             {
                 if (t?.Owner != null)
                 {
-                    // 固有子卡不会被移除（force=false）
                     t.Owner.RemoveChild(t, force: false);
                 }
             }

@@ -5,45 +5,40 @@ using System.Linq;
 namespace EasyPack
 {
     /// <summary>
-    /// 要求项的根锚点：决定以谁为根进行选择。
-    /// </summary>
-    public enum RequirementRoot
-    {
-        /// <summary>以上下文容器（ctx.Container）为根。</summary>
-        Container,
-        /// <summary>以触发源（ctx.Source）为根。</summary>
-        Source
-    }
-
-    /// <summary>
     /// 选择器式要求项：
-    /// - 以 Root(容器/源) 为根，使用 TargetKind + Filter 选择目标；
+    /// - 以 Root(容器/源) 为根，使用 Scope + FilterMode + FilterValue 选择目标；
     /// - 命中条件：被选择的数量 >= MinCount；
-    /// - matched 返回至多 MinCount 个目标，供效果作为“Matched”输入。
+    /// - matched 返回至多 MinCount 个目标，供效果作为"Matched"输入。
     /// 说明：
-    /// - 递归类 TargetKind（Descendants/ByTagRecursive/ByIdRecursive/ByCategoryRecursive）会尊重 ctx.MaxDepth；
-    /// - 非递归类 TargetKind 只在根的一层 Children 内选择。
+    /// - Scope=Descendants 时会尊重 MaxDepth；
+    /// - Scope=Children 只在根的一层 Children 内选择。
     /// </summary>
     public sealed class CardsRequirement : IRuleRequirement
     {
         /// <summary>选择起点（默认 Container）。</summary>
-        public RequirementRoot Root = RequirementRoot.Container;
+        public SelectionRoot Root = SelectionRoot.Container;
 
-        /// <summary>选择类型（支持 Children/Descendants/ByTag/ById/ByCategory 等）。</summary>
-        public TargetKind TargetKind = TargetKind.Children;
+        /// <summary>选择范围（默认 Children）。</summary>
+        public TargetScope Scope = TargetScope.Children;
 
-        /// <summary>过滤值（当 ByTag/ById/ByCategory 等需要时填写）。</summary>
-        public string Filter;
+        /// <summary>过滤模式（默认 None）。</summary>
+        public FilterMode FilterMode = FilterMode.None;
 
-        /// <summary>至少需要命中的数量（默认 1<=0 视为无需命中）。</summary>
+        /// <summary>过滤值（当 FilterMode 为 ByTag/ById/ByCategory 时填写）。</summary>
+        public string FilterValue;
+
+        /// <summary>至少需要命中的数量（默认 1，&lt;=0 视为无需命中）。</summary>
         public int MinCount = 1;
+
+        /// <summary>递归深度限制（仅对 Scope=Descendants 生效，null 或 &lt;=0 表示不限制）。</summary>
+        public int? MaxDepth = null;
 
         public bool TryMatch(CardRuleContext ctx, out List<Card> matched)
         {
             matched = new List<Card>();
             if (ctx == null) return false;
 
-            var root = Root == RequirementRoot.Container ? ctx.Container : ctx.Source;
+            var root = Root == SelectionRoot.Container ? ctx.Container : ctx.Source;
             if (root == null) return false;
 
             // 以 root 为容器重建局部上下文，统一走 TargetSelector
@@ -53,10 +48,10 @@ namespace EasyPack
                 Container = root,
                 Event = ctx.Event,
                 Factory = ctx.Factory,
-                MaxDepth = ctx.MaxDepth
+                MaxDepth = MaxDepth ?? ctx.MaxDepth
             };
 
-            var picks = TargetSelector.Select(TargetKind, localCtx, Filter);
+            var picks = TargetSelector.Select(Scope, FilterMode, localCtx, FilterValue);
             int count = picks?.Count ?? 0;
             if (count == 0) return MinCount <= 0;
 
