@@ -358,6 +358,10 @@ namespace EasyPack
         public CardRuleBuilder DoAddTagToMatched(string tag)
             => DoAddTag(tag, SelectionRoot.Container, TargetScope.Matched);
 
+        /// <summary>给源卡牌自身添加标签</summary>
+        public CardRuleBuilder DoAddTagToSource(string tag)
+            => DoInvoke((ctx, matched) => ctx.Source.AddTag(tag));
+
         /// <summary>给容器子卡中指定标签的卡牌添加新标签</summary>
         public CardRuleBuilder DoAddTagToTag(string targetTag, string newTag, int? take = null)
             => DoAddTag(newTag, SelectionRoot.Container, TargetScope.Children, FilterMode.ByTag, targetTag, take);
