@@ -14,6 +14,11 @@ namespace EasyPack
     public class ModifyPropertyEffect : IRuleEffect, ITargetSelection
     {
         /// <summary>
+        /// 选择起点（默认 Container）。
+        /// </summary>
+        public EffectRoot Root { get; set; } = EffectRoot.Container;
+
+        /// <summary>
         /// 目标类型
         /// </summary>
         public TargetKind TargetKind { get; set; } = TargetKind.Matched;
@@ -68,7 +73,7 @@ namespace EasyPack
                     ? (matched == null || matched.Count == 0
                         ? matched
                         : (Take > 0 ? matched.Take(Take).ToList() : matched))
-                    : TargetSelector.Select(TargetKind, ctx, TargetValueFilter, Take);
+                    : TargetSelector.SelectForEffect(this, ctx);
 
             if (targets == null) return;
 

@@ -18,10 +18,14 @@ namespace EasyPack
     public class RemoveCardsEffect : IRuleEffect, ITargetSelection
     {
         /// <summary>
+        /// 选择起点（默认 Container）。
+        /// </summary>
+        public EffectRoot Root { get; set; } = EffectRoot.Container;
+
+        /// <summary>
         /// 目标类型：
         /// - Matched：直接使用匹配阶段返回的 matched 列表
-        /// <para></para>
-        /// - ByTag/ById/ByCategory/Container...：在本效果执行时基于 <see cref="CardRuleContext.Container"/> 重新选择。
+        /// - ByTag/ById/ByCategory/Children/Descendants...：在本效果执行时基于 Root 选定的根重新选择。
         /// </summary>
         public TargetKind TargetKind { get; set; } = TargetKind.Matched;
 
@@ -31,11 +35,9 @@ namespace EasyPack
         public string TargetValueFilter { get; set; }
 
         /// <summary>
-        /// 仅作用前 N 个目标（&lt;=0 表示不限制）。
+        /// 仅作用前 N 个目标（<=0 表示不限制）。
         /// <para>- 对 Matched：在 matched 上截断</para>
-        /// <para>
-        /// - 对其它 TargetKind：在 <see cref="TargetSelector.Select(TargetKind, CardRuleContext, string, int)"/> 中生效；
-        /// </para>
+        /// <para>- 对其它 TargetKind：在选择时生效</para>
         /// </summary>
         public int Take { get; set; } = 0;
 
@@ -61,7 +63,7 @@ namespace EasyPack
             }
             else
             {
-                targets = TargetSelector.Select(TargetKind, ctx, TargetValueFilter, Take);
+                targets = TargetSelector.SelectForEffect(this, ctx);
             }
 
             if (targets == null) return;

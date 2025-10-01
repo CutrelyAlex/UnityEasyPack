@@ -21,21 +21,21 @@ namespace EasyPack
     /// - 命中条件：被选择的数量 >= MinCount；
     /// - matched 返回至多 MinCount 个目标，供效果作为“Matched”输入。
     /// 说明：
-    /// - 递归类 TargetKind（ContainerDescendants/ByTagRecursive/ByIdRecursive/ByCategoryRecursive）会尊重 ctx.MaxDepth；
-    /// - 非递归类 TargetKind 只在根的一层 Children 内选择，Container 则仅选择根本体。
+    /// - 递归类 TargetKind（Descendants/ByTagRecursive/ByIdRecursive/ByCategoryRecursive）会尊重 ctx.MaxDepth；
+    /// - 非递归类 TargetKind 只在根的一层 Children 内选择。
     /// </summary>
     public sealed class CardsRequirement : IRuleRequirement
     {
         /// <summary>选择起点（默认 Container）。</summary>
         public RequirementRoot Root = RequirementRoot.Container;
 
-        /// <summary>选择类型（支持 Container/Children/Descendants/ByTag/ById/ByCategory 等）。</summary>
-        public TargetKind TargetKind = TargetKind.ContainerChildren;
+        /// <summary>选择类型（支持 Children/Descendants/ByTag/ById/ByCategory 等）。</summary>
+        public TargetKind TargetKind = TargetKind.Children;
 
         /// <summary>过滤值（当 ByTag/ById/ByCategory 等需要时填写）。</summary>
         public string Filter;
 
-        /// <summary>至少需要命中的数量（默认 1&lt;=0 视为无需命中）。</summary>
+        /// <summary>至少需要命中的数量（默认 1<=0 视为无需命中）。</summary>
         public int MinCount = 1;
 
         public bool TryMatch(CardRuleContext ctx, out List<Card> matched)

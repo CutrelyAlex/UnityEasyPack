@@ -9,6 +9,11 @@ namespace EasyPack
     public class AddTagEffect : IRuleEffect, ITargetSelection
     {
         /// <summary>
+        /// 选择起点（默认 Container）。
+        /// </summary>
+        public EffectRoot Root { get; set; } = EffectRoot.Container;
+
+        /// <summary>
         /// 目标类型（默认 Matched）。
         /// </summary>
         public TargetKind TargetKind { get; set; } = TargetKind.Matched;
@@ -35,21 +40,39 @@ namespace EasyPack
         /// <param name="matched">匹配阶段结果（当 <see cref="TargetKind"/>=Matched 时使用）。</param>
         public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
-            IReadOnlyList<Card> targets =
-                TargetKind == TargetKind.Matched
-                    ? (matched == null || matched.Count == 0
-                        ? matched
-                        : (Take > 0 ? matched.Take(Take).ToList() : matched))
-                    : TargetSelector.Select(TargetKind, ctx, TargetValueFilter, Take);
-
+            IReadOnlyList<Card> targets;
+            
+            if (TargetKind == TargetKind.Matched)
+            {
+                if (matched == null || matched.Count == 0)
+                {
+                    targets = matched;
+                }
+                else if (Take > 0 && matched.Count > Take)
+                {
+                    // 预分配容量
+                    var limited = new List<Card>(Take);
+                    for (int i = 0; i < Take && i < matched.Count; i++)
+                        limited.Add(matched[i]);
+                    targets = limited;
+                }
+                else
+                {
+                    targets = matched;
+                }
+            }
+            else
+            {
+                targets = TargetSelector.SelectForEffect(this, ctx);
+            }
+            
             if (targets == null) return;
-
-            foreach (var t in targets)
+            
+            for (int i = 0; i < targets.Count; i++)
             {
                 if (!string.IsNullOrEmpty(Tag))
-                    t.AddTag(Tag);
+                    targets[i].AddTag(Tag);
             }
         }
     }
-
 }

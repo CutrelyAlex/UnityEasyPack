@@ -52,7 +52,7 @@ namespace EasyPack
 
         #region 容器锚点便捷
         /// <summary>
-        /// 容器锚点选择
+        /// 容器锚点选择，用于匹配和执行的容器
         /// 0=Self，1=Owner（默认），N>1 上溯，-1=Root。
         /// </summary>
         /// <param name="hops">0=Self，1=Owner（默认），N>1 上溯，-1=Root。</param>
@@ -170,7 +170,7 @@ namespace EasyPack
         /// <summary>
         /// 获取容器的一层子卡（不带筛选）
         /// </summary>
-        public CardRuleBuilder NeedContainerChildren(int min = 1) => NeedCard(RequirementRoot.Container, TargetKind.ContainerChildren, null, min);
+        public CardRuleBuilder NeedContainerChildren(int min = 1) => NeedCard(RequirementRoot.Container, TargetKind.Children, null, min);
         #endregion
 
         #region Requirements Need (Source)
@@ -193,7 +193,7 @@ namespace EasyPack
         /// <summary>
         /// 获取源卡的一层子卡（不带筛选）
         /// </summary>
-        public CardRuleBuilder NeedSourceChildren(int min = 1) => NeedCard(RequirementRoot.Source, TargetKind.ContainerChildren, null, min);
+        public CardRuleBuilder NeedSourceChildren(int min = 1) => NeedCard(RequirementRoot.Source, TargetKind.Children, null, min);
         #endregion
 
         #region Requirements 自定义
