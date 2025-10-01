@@ -86,6 +86,7 @@ namespace EasyPack
             FilterMode filter = FilterMode.None,
             string filterValue = null,
             int minCount = 1,
+            int maxMatched = -1,
             int? maxDepth = null)
         {
             _rule.Requirements.Add(new CardsRequirement
@@ -95,6 +96,7 @@ namespace EasyPack
                 FilterMode = filter,
                 FilterValue = filterValue,
                 MinCount = minCount,
+                MaxMatched = maxMatched,
                 MaxDepth = maxDepth
             });
             return this;
@@ -173,40 +175,40 @@ namespace EasyPack
 
         #region 条件要求 - 便捷语法糖
         /// <summary>需要容器的直接子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedTag(string tag, int minCount = 1)
-            => Need(SelectionRoot.Container, TargetScope.Children, FilterMode.ByTag, tag, minCount);
+        public CardRuleBuilder NeedTag(string tag, int minCount = 1, int maxMatched = -1)
+            => Need(SelectionRoot.Container, TargetScope.Children, FilterMode.ByTag, tag, minCount, maxMatched);
 
         /// <summary>需要容器的直接子卡中有指定ID的卡牌</summary>
-        public CardRuleBuilder NeedId(string id, int minCount = 1)
-            => Need(SelectionRoot.Container, TargetScope.Children, FilterMode.ById, id, minCount);
+        public CardRuleBuilder NeedId(string id, int minCount = 1, int maxMatched = -1)
+            => Need(SelectionRoot.Container, TargetScope.Children, FilterMode.ById, id, minCount, maxMatched);
 
         /// <summary>需要容器的直接子卡中有指定类别的卡牌</summary>
-        public CardRuleBuilder NeedCategory(CardCategory category, int minCount = 1)
-            => Need(SelectionRoot.Container, TargetScope.Children, FilterMode.ByCategory, category.ToString(), minCount);
+        public CardRuleBuilder NeedCategory(CardCategory category, int minCount = 1, int maxMatched = -1)
+            => Need(SelectionRoot.Container, TargetScope.Children, FilterMode.ByCategory, category.ToString(), minCount, maxMatched);
 
         /// <summary>需要容器的所有后代中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedTagRecursive(string tag, int minCount = 1, int? maxDepth = null)
-            => Need(SelectionRoot.Container, TargetScope.Descendants, FilterMode.ByTag, tag, minCount, maxDepth);
+        public CardRuleBuilder NeedTagRecursive(string tag, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
+            => Need(SelectionRoot.Container, TargetScope.Descendants, FilterMode.ByTag, tag, minCount, maxMatched, maxDepth);
 
         /// <summary>需要容器的所有后代中有指定ID的卡牌</summary>
-        public CardRuleBuilder NeedIdRecursive(string id, int minCount = 1, int? maxDepth = null)
-            => Need(SelectionRoot.Container, TargetScope.Descendants, FilterMode.ById, id, minCount, maxDepth);
+        public CardRuleBuilder NeedIdRecursive(string id, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
+            => Need(SelectionRoot.Container, TargetScope.Descendants, FilterMode.ById, id, minCount, maxMatched, maxDepth);
 
         /// <summary>需要容器的所有后代中有指定类别的卡牌</summary>
-        public CardRuleBuilder NeedCategoryRecursive(CardCategory category, int minCount = 1, int? maxDepth = null)
-            => Need(SelectionRoot.Container, TargetScope.Descendants, FilterMode.ByCategory, category.ToString(), minCount, maxDepth);
+        public CardRuleBuilder NeedCategoryRecursive(CardCategory category, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
+            => Need(SelectionRoot.Container, TargetScope.Descendants, FilterMode.ByCategory, category.ToString(), minCount, maxMatched, maxDepth);
 
         /// <summary>需要源卡的直接子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceTag(string tag, int minCount = 1)
-            => Need(SelectionRoot.Source, TargetScope.Children, FilterMode.ByTag, tag, minCount);
+        public CardRuleBuilder NeedSourceTag(string tag, int minCount = 1, int maxMatched = -1)
+            => Need(SelectionRoot.Source, TargetScope.Children, FilterMode.ByTag, tag, minCount, maxMatched);
 
         /// <summary>需要源卡的直接子卡中有指定ID的卡牌</summary>
-        public CardRuleBuilder NeedSourceId(string id, int minCount = 1)
-            => Need(SelectionRoot.Source, TargetScope.Children, FilterMode.ById, id, minCount);
+        public CardRuleBuilder NeedSourceId(string id, int minCount = 1, int maxMatched = -1)
+            => Need(SelectionRoot.Source, TargetScope.Children, FilterMode.ById, id, minCount, maxMatched);
 
         /// <summary>需要源卡的所有后代中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceTagRecursive(string tag, int minCount = 1, int? maxDepth = null)
-            => Need(SelectionRoot.Source, TargetScope.Descendants, FilterMode.ByTag, tag, minCount, maxDepth);
+        public CardRuleBuilder NeedSourceTagRecursive(string tag, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
+            => Need(SelectionRoot.Source, TargetScope.Descendants, FilterMode.ByTag, tag, minCount, maxMatched, maxDepth);
         #endregion
 
         #region 效果执行 - 核心
