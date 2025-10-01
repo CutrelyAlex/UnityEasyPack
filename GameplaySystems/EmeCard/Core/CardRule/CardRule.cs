@@ -20,7 +20,7 @@ namespace EasyPack
         public int MaxDepth = int.MaxValue;
 
         /// <summary>
-        /// 规则优先级（数值越小优先级越高）。当引擎选择模式为 Priority 时生效。
+        /// 规则优先级（数值越小优先级越高）。当引擎Policy选择模式为 Priority 时生效。
         /// </summary>
         public int Priority = 0;
 

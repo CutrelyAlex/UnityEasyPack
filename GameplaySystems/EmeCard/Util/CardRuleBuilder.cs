@@ -5,7 +5,7 @@ using UnityEngine;
 namespace EasyPack
 {
     /// <summary>
-    /// 规则流式构建器：减少样板代码，提升可读性。
+    /// 规则流式构建语法糖
     /// </summary>
     public sealed class CardRuleBuilder
     {
@@ -16,7 +16,6 @@ namespace EasyPack
             Policy = new RulePolicy { DistinctMatched = true }
         };
 
-        #region 基本配置
         /// <summary>
         /// 设置事件触发类型及过滤器
         /// </summary>
@@ -28,11 +27,45 @@ namespace EasyPack
             _rule.CustomId = customId;
             return this;
         }
+
+        #region 事件便捷
         /// <summary>
-        /// 容器锚点选择(无父容器则默认返回自身)
+        /// 自定义事件便捷设置
+        /// </summary>
+        public CardRuleBuilder TriggerCustom(string id)
+        {
+            return Trigger(CardEventType.Custom, id);
+        }
+
+        /// <summary>按时事件便捷设置</summary>
+        public CardRuleBuilder TriggerTick() => Trigger(CardEventType.Tick);
+
+        /// <summary>主动使用事件便捷设置</summary>
+        public CardRuleBuilder TriggerUse() => Trigger(CardEventType.Use);
+
+        /// <summary>加入持有者事件便捷设置</summary>
+        public CardRuleBuilder TriggerAddedToOwner() => Trigger(CardEventType.AddedToOwner);
+
+        /// <summary>从持有者移除事件便捷设置</summary>
+        public CardRuleBuilder TriggerRemovedFromOwner() => Trigger(CardEventType.RemovedFromOwner);
+        #endregion
+
+        #region 容器锚点便捷
+        /// <summary>
+        /// 容器锚点选择
+        /// 0=Self，1=Owner（默认），N>1 上溯，-1=Root。
         /// </summary>
         /// <param name="hops">0=Self，1=Owner（默认），N>1 上溯，-1=Root。</param>
         public CardRuleBuilder OwnerHops(int hops) { _rule.OwnerHops = hops; return this; }
+        /// <summary>选择自身作为容器（OwnerHops=0）。</summary>
+        public CardRuleBuilder Self() { return OwnerHops(0); }
+        /// <summary>选择直接父级作为容器（OwnerHops=1）。</summary>
+        public CardRuleBuilder Owner() { return OwnerHops(1); }
+        /// <summary>选择根作为容器（OwnerHops=-1）。</summary>
+        public CardRuleBuilder Root() { return OwnerHops(-1); }
+        #endregion
+
+        #region 策略配置
         /// <summary>
         /// /// <summary>递归选择的最大深度（仅对递归类 TargetKind 生效）。</summary>
         /// </summary>
@@ -41,9 +74,6 @@ namespace EasyPack
 
         /// <summary>设置规则优先级（数值越小优先）。</summary>
         public CardRuleBuilder Priority(int priority) { _rule.Priority = priority; return this; }
-        #endregion
-
-        #region 策略配置
         public CardRuleBuilder Policy(Action<RulePolicy> configure) { configure?.Invoke(_rule.Policy); return this; }
         /// <summary>
         /// 是否对聚合的 matched 去重（仅影响 TargetKind=Matched 的效果）
@@ -56,10 +86,10 @@ namespace EasyPack
         /// <summary>
         /// 该规则命中并执行后，是否中止本次事件的后续规则（可选，用于强短路）
         /// </summary>
-        public CardRuleBuilder StopEventOnSuccess(bool enabled = true) { _rule.Policy.StopEventOnSuccess = true; return this; }
+        public CardRuleBuilder StopAfterThisRule() { _rule.Policy.StopEventOnSuccess = true; return this; }
         #endregion
 
-        #region Requirements 便捷
+        #region Requirements When
         /// <summary>
         /// 添加自定义条件要求
         /// </summary>
@@ -78,7 +108,7 @@ namespace EasyPack
         /// 检查触发源Id
         /// </summary>
         /// <param name="id">目标Id</param>
-        public CardRuleBuilder WhenSourceId(string id) => Where(ctx => ctx.Source != null && ctx.Source.Id==id);
+        public CardRuleBuilder WhenSourceId(string id) => Where(ctx => ctx.Source != null && ctx.Source.Id == id);
         /// <summary>
         /// 检查触发源类型
         /// </summary>
@@ -88,44 +118,85 @@ namespace EasyPack
         /// 检查容器对应卡牌标签
         /// </summary>
         /// <param name="tag">标签</param>
-        public CardRuleBuilder WhenContainerTag(string tag) =>  Where(ctx => ctx.Container != null && ctx.Container.HasTag(tag));
+        public CardRuleBuilder WhenContainerTag(string tag) => Where(ctx => ctx.Container != null && ctx.Container.HasTag(tag));
         /// <summary>
         /// 检查容器对应卡牌Id
         /// </summary>
         /// <param name="id">卡牌Id</param>
-        public CardRuleBuilder WhenContainerId(string id) => Where(ctx => ctx.Container != null && ctx.Container.Id==id);
+        public CardRuleBuilder WhenContainerId(string id) => Where(ctx => ctx.Container != null && ctx.Container.Id == id);
         /// <summary>
         /// 检查容器对应卡牌类型
         /// </summary>
         /// <param name="category">卡牌类型</param>
-        public CardRuleBuilder WhenContainerCategory(CardCategory category) =>Where(ctx => ctx.Container != null && ctx.Container.Category == category);
+        public CardRuleBuilder WhenContainerCategory(CardCategory category) => Where(ctx => ctx.Container != null && ctx.Container.Category == category);
+        #endregion
+
+        #region Requirements Need (Container)
         /// <summary>
         /// 根据标签获取一层子卡牌
         /// </summary>
         /// <param name="tag">标签</param>
         /// <param name="min">所需及获取数量，为0则获取全部</param>
         /// <returns></returns>
-        public CardRuleBuilder NeedContainerTag(string tag,int min=0) => NeedCard(RequirementRoot.Container, TargetKind.ByTag, tag,min);
+        public CardRuleBuilder NeedContainerTag(string tag, int min = 0) => NeedCard(RequirementRoot.Container, TargetKind.ByTag, tag, min);
         /// <summary>
         /// 根据Id获取一层子卡牌
         /// </summary>
         /// <param name="id">卡牌Id</param>
         /// <param name="min">所需及获取数量，为0则获取全部</param>
         /// <returns></returns>
-        public CardRuleBuilder NeedContainerId(string id,int min=0) => NeedCard(RequirementRoot.Container, TargetKind.ById, id,min);
+        public CardRuleBuilder NeedContainerId(string id, int min = 0) => NeedCard(RequirementRoot.Container, TargetKind.ById, id, min);
         /// <summary>
         /// 根据类型获取一层子卡牌
         /// </summary>
         /// <param name="category">卡牌类型</param>
         /// <param name="min">所需及获取数量，为0则获取全部</param>
         /// <returns></returns>
-        public CardRuleBuilder NeedContainerCategory(CardCategory category,int min=0) => NeedCard(RequirementRoot.Container, TargetKind.ByCategory, category.ToString(),min);
+        public CardRuleBuilder NeedContainerCategory(CardCategory category, int min = 0) => NeedCard(RequirementRoot.Container, TargetKind.ByCategory, category.ToString(), min);
         /// <summary>
         /// 根据标签递归获取子卡牌
         /// </summary>
         /// <param name="tag">标签</param>
         /// <param name="min">所需及获取数量，为0则获取全部</param>
-        public CardRuleBuilder NeedContainerDescendantsTag(string tag,int min=0) => NeedCard(RequirementRoot.Container, TargetKind.ByTagRecursive,tag,min);
+        public CardRuleBuilder NeedContainerDescendantsTag(string tag, int min = 0) => NeedCard(RequirementRoot.Container, TargetKind.ByTagRecursive, tag, min);
+        /// <summary>
+        /// 根据Id递归获取子卡牌
+        /// </summary>
+        public CardRuleBuilder NeedContainerDescendantsId(string id, int min = 0) => NeedCard(RequirementRoot.Container, TargetKind.ByIdRecursive, id, min);
+        /// <summary>
+        /// 根据类型递归获取子卡牌
+        /// </summary>
+        public CardRuleBuilder NeedContainerDescendantsCategory(CardCategory category, int min = 0) => NeedCard(RequirementRoot.Container, TargetKind.ByCategoryRecursive, category.ToString(), min);
+        /// <summary>
+        /// 获取容器的一层子卡（不带筛选）
+        /// </summary>
+        public CardRuleBuilder NeedContainerChildren(int min = 1) => NeedCard(RequirementRoot.Container, TargetKind.ContainerChildren, null, min);
+        #endregion
+
+        #region Requirements Need (Source)
+        /// <summary>
+        /// 根据标签获取源卡的一层子卡牌
+        /// </summary>
+        public CardRuleBuilder NeedSourceTag(string tag, int min = 0) => NeedCard(RequirementRoot.Source, TargetKind.ByTag, tag, min);
+        /// <summary>
+        /// 根据Id获取源卡的一层子卡牌
+        /// </summary>
+        public CardRuleBuilder NeedSourceId(string id, int min = 0) => NeedCard(RequirementRoot.Source, TargetKind.ById, id, min);
+        /// <summary>
+        /// 根据类型获取源卡的一层子卡牌
+        /// </summary>
+        public CardRuleBuilder NeedSourceCategory(CardCategory category, int min = 0) => NeedCard(RequirementRoot.Source, TargetKind.ByCategory, category.ToString(), min);
+        /// <summary>
+        /// 根据标签递归获取源卡子卡牌
+        /// </summary>
+        public CardRuleBuilder NeedSourceDescendantsTag(string tag, int min = 0) => NeedCard(RequirementRoot.Source, TargetKind.ByTagRecursive, tag, min);
+        /// <summary>
+        /// 获取源卡的一层子卡（不带筛选）
+        /// </summary>
+        public CardRuleBuilder NeedSourceChildren(int min = 1) => NeedCard(RequirementRoot.Source, TargetKind.ContainerChildren, null, min);
+        #endregion
+
+        #region Requirements 自定义
         /// <summary>
         /// 添加自定义卡牌匹配器
         /// </summary>
@@ -174,6 +245,8 @@ namespace EasyPack
             if (effects != null) foreach (var e in effects) if (e != null) _rule.Effects.Add(e);
             return this;
         }
+
+        #region Effects Remove
         /// <summary>
         /// 按标签移除卡牌
         /// </summary>
@@ -186,6 +259,9 @@ namespace EasyPack
         /// <param name="id">卡牌Id</param>
         /// <param name="take">作用数量</param>
         public CardRuleBuilder DoRemoveById(string id, int take = 0) { _rule.Effects.Add(new RemoveCardsEffect { TargetKind = TargetKind.ById, TargetValueFilter = id, Take = take }); return this; }
+        #endregion
+
+        #region Effects Modify
         /// <summary>
         /// 按标签修改卡牌自定义值
         /// </summary>
@@ -193,11 +269,15 @@ namespace EasyPack
         /// <param name="value">传入值</param>
         /// <param name="mode">修改选项</param>
         /// <param name="take">作用数量</param>
-        public CardRuleBuilder DoModifyByTag(string tag, float value, ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase, int take = 0)
+        /// <param name="propertyName">要修改的属性名（空为全部属性）</param>
+        public CardRuleBuilder DoModifyByTag(string tag, float value, ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase, int take = 0, string propertyName = "")
         {
-            _rule.Effects.Add(new ModifyPropertyEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = tag, ApplyMode = mode, Value = value, Take = take });
+            _rule.Effects.Add(new ModifyPropertyEffect { TargetKind = TargetKind.ByTag, TargetValueFilter = tag, ApplyMode = mode, Value = value, Take = take, PropertyName = propertyName ?? string.Empty });
             return this;
         }
+        #endregion
+
+        #region Effects AddTag/Create/Invoke
         /// <summary>
         /// 按标签添加标签
         /// </summary>
@@ -238,6 +318,7 @@ namespace EasyPack
             });
             return this;
         }
+        #endregion
         #endregion
 
         public CardRule Build() => _rule;

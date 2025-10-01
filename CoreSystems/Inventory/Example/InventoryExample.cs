@@ -255,9 +255,6 @@ public class InventoryExample : MonoBehaviour
     /// <summary>
     /// 案例7: 序列化 / 反序列化（含完整 JSON 与精简 ID 模式）
     /// </summary>
-    /// <summary>
-    /// 案例7: 序列化 / 反序列化（完整 JSON 模式）
-    /// </summary>
     private void ShowInventorySerialization()
     {
         Debug.Log("案例7: 序列化 / 反序列化");
