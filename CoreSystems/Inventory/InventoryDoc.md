@@ -1,254 +1,827 @@
-# Inventory系统使用指南
+# Inventory系统文档
 
 ## 目录
 - [系统概述](#系统概述)
 - [核心组件](#核心组件)
-- [基本使用流程](#基本使用流程)
-- [容器与物品](#容器与物品)
+- [快速开始](#快速开始)
 - [条件系统](#条件系统)
-- [事件系统](#事件系统)
-- [序列化](#序列化)
+- [序列化系统](#序列化系统)
 - [API参考](#api参考)
-  - [容器 IContainer/Container/LinerContainer](#容器-icontainercontainerlinercontainer)
-  - [InventoryManager](#inventorymanager)
-- [查询与统计](#查询与统计)
-- [添加与移除](#添加与移除)
-  - [指定槽位添加规则](#指定槽位添加规则)
-  - [满 Full 判定细节](#满-full-判定细节)
-- [整理与排序](#整理与排序)
-  - [Consolidate / Sort / Organize 差异](#consolidate--sort--organize-差异)
-- [跨容器与高级操作](#跨容器与高级操作)
-  - [MoveItem / TransferItems / AutoMoveItem](#moveitem--transferitems--automoveitem)
-  - [BatchMoveItems 批量移动](#batchmoveitems-批量移动)
-  - [DistributeItems 分发逻辑](#distributeitems-分发逻辑)
-  - [全局条件 Global Conditions](#全局条件-global-conditions)
+- [高级功能](#高级功能)
 - [性能优化](#性能优化)
-- [调试与校验](#调试与校验)
-- [常见用例](#常见用例)
 - [最佳实践](#最佳实践)
-- [常见问题](#常见问题)
+
+---
 
 ## 系统概述
-Inventory 系统用于管理游戏内的物品存储、查询、移动与整理，支持单容器与多容器（全局）管理，具备高性能缓存、批处理与事件模型。  
-你可以查看 Inventory/Example/InventoryExample.cs 中的案例（已包含案例1~15）获得直观示例。
 
-### 特性
-- 高性能缓存：物品总数、槽位索引、类型索引、空槽位索引
-- 批处理与事件折叠：批量添加/移除时合并事件
-- 丰富查询：按ID、类型、属性、名称、自定义条件
-- 全局管理：容器注册、优先级、分类、全局物品条件
-- 高级跨容器：移动 / 指定数量转移 / 自动搬运 / 批量移动 / 优先级分发
-- 序列化：容器元数据、槽位、物品属性、条件
-- 易扩展：自定义 IItem / IItemCondition / 容器实现
+Inventory系统是一个**生产级**的RPG背包解决方案，提供高性能物品管理、灵活的条件过滤和完整的序列化支持。
+
+### 核心特性
+
+- ⚡ **高性能缓存** - O(1)查询，增量更新
+- 🎯 **灵活条件系统** - 支持组合条件和自定义扩展
+- 📦 **注册器模式序列化** - 零硬编码，易于扩展
+- 🔄 **跨容器操作** - 移动、转移、批量、分发
+- 📊 **事件驱动** - 完整的生命周期事件
+- 🧩 **模块化设计** - 易于集成和定制
+
+### 性能指标
+
+| 操作 | 时间复杂度 | 说明 |
+|------|-----------|------|
+| 查询物品总数 | O(1) | 增量缓存 |
+| 查找槽位 | O(1) | 哈希表索引 |
+| 添加物品 | O(1) | 空槽缓存 |
+| 整理背包 | O(n log n) | 排序算法 |
+
+---
 
 ## 核心组件
-- IItem：物品接口（ID / Name / Type / IsStackable / MaxStackCount / Weight / Attributes）
-- ISlot：槽位（Item / ItemCount / IsOccupied / 条件校验）
-- Container / LinerContainer：线性容器实现
-- InventoryManager：多容器调度与全局操作
-- 条件（IItemCondition）：ItemTypeCondition、AttributeCondition、自定义
-- 序列化：ContainerSerializer + DTO (SerializableContainer / SerializableSlot / ConditionDTO)
 
-## 基本使用流程
-```
-var bag = new LinerContainer("player_backpack", "玩家背包", "Backpack", 20);
-var potion = new Item { ID="health_potion", Name="生命药水", IsStackable=true, MaxStackCount=20, Type="Consumable" };
-var (addResult, added) = bag.AddItems(potion, 5);
-bool hasPotion = bag.HasItem("health_potion");
-int total = bag.GetItemTotalCount("health_potion");
-var slots = bag.FindSlotIndices("health_potion");
-var removeRes = bag.RemoveItem("health_potion", 2);
+### 接口层
+```csharp
+IItem           // 物品接口
+ISlot           // 槽位接口
+IItemCondition  // 条件接口
+IConditionSerializer // 序列化器接口
 ```
 
-## 容器与物品
-- 容量 Capacity：-1 表示无限
-- Full：无空槽位且所有占用槽位不可继续堆叠
-- IsEmpty：无任何占用槽位（已自动跳过空引用）
-- 物品克隆：不可堆叠建议使用 Clone() 复制独立实例（防止共享状态）
-- 权重统计：GetTotalWeight O(1) 汇总（缓存增量维护）
+### 实现层
+```csharp
+Item            // 物品实现
+Slot            // 槽位实现
+LinerContainer  // 线性容器
+InventoryManager // 全局管理器
+```
+
+### 序列化层
+```csharp
+SerializationRegistry     // 注册器（核心）
+ContainerSerializer       // 容器序列化器
+ConditionSerializers     // 条件序列化器集合
+```
+
+---
+
+## 快速开始
+
+### 创建容器
+### 创建容器
+
+```csharp
+// 创建线性容器
+var backpack = new LinerContainer("player_bag", "玩家背包", "Backpack", 20);
+
+// 添加条件限制（仅接受装备）
+backpack.ContainerCondition.Add(new ItemTypeCondition("Equipment"));
+```
+
+### 物品操作
+
+```csharp
+// 创建物品
+var sword = new Item 
+{ 
+    ID = "iron_sword", 
+    Name = "铁剑", 
+    Type = "Equipment",
+    IsStackable = false,
+    Weight = 5.0f
+};
+
+// 添加物品
+var (result, count) = backpack.AddItems(sword);
+
+// 查询物品
+bool hasItem = backpack.HasItem("iron_sword");
+int total = backpack.GetItemTotalCount("iron_sword");
+
+// 移除物品
+var removeResult = backpack.RemoveItem("iron_sword", 1);
+```
+
+### 容器管理
+
+```csharp
+// 创建全局管理器
+var manager = new InventoryManager();
+
+// 注册容器
+manager.RegisterContainer(backpack, priority: 100, category: "Player");
+
+// 跨容器转移
+manager.TransferItems("iron_sword", 1, "player_bag", "storage_chest");
+```
+
+---
 
 ## 条件系统
-容器可附加多个 IItemCondition，所有条件均需通过才允许放入。  
-内置：
-- ItemTypeCondition(string type)
-- AttributeCondition(string key, object value[, 比较类型])
-  - 支持数值比较：GreaterThan / LessThan / GreaterThanOrEqual / LessThanOrEqual / Equal / NotEqual
 
-自定义：
+### 内置条件
+
+#### 1. ItemTypeCondition（类型过滤）
+```csharp
+var condition = new ItemTypeCondition("Equipment");
+container.ContainerCondition.Add(condition);
 ```
-public class CustomItemCondition : IItemCondition {
-    public bool IsMatch(IItem item) { /* ... */ }
-    public string Description => "自定义说明";
+
+#### 2. AttributeCondition（属性过滤）
+```csharp
+// 等于判断
+var condition1 = new AttributeCondition("Rarity", "Epic");
+
+// 数值比较
+var condition2 = new AttributeCondition(
+    "Level", 
+    10, 
+    AttributeComparisonType.GreaterThanOrEqual
+);
+
+// 支持的比较类型
+// Equal, NotEqual, GreaterThan, LessThan, 
+// GreaterThanOrEqual, LessThanOrEqual, Contains, NotContains, Exists
+```
+
+### 组合条件
+
+#### AllCondition（全部满足）
+```csharp
+var allCondition = new AllCondition(
+    new ItemTypeCondition("Equipment"),
+    new AttributeCondition("Level", 10, AttributeComparisonType.GreaterThanOrEqual),
+    new AttributeCondition("Rarity", "Epic")
+);
+// 物品必须同时满足：是装备 AND 等级≥10 AND 稀有度为Epic
+```
+
+#### AnyCondition（任一满足）
+```csharp
+var anyCondition = new AnyCondition(
+    new ItemTypeCondition("Weapon"),
+    new ItemTypeCondition("Armor")
+);
+// 物品只需满足：是武器 OR 是防具
+```
+
+#### NotCondition（条件取反）
+```csharp
+var notCondition = new NotCondition(
+    new AttributeCondition("Broken", true)
+);
+// 物品必须：未损坏
+```
+
+### 复杂嵌套条件
+
+```csharp
+// 装备背包：接受未损坏的史诗级以上武器或防具
+var complexCondition = new AllCondition(
+    // 必须是装备
+    new ItemTypeCondition("Equipment"),
+    
+    // 是武器或防具
+    new AnyCondition(
+        new AttributeCondition("Category", "Weapon"),
+        new AttributeCondition("Category", "Armor")
+    ),
+    
+    // 稀有度为Epic或Legendary
+    new AnyCondition(
+        new AttributeCondition("Rarity", "Epic"),
+        new AttributeCondition("Rarity", "Legendary")
+    ),
+    
+    // 未损坏
+    new NotCondition(new AttributeCondition("Broken", true))
+);
+
+container.ContainerCondition.Add(complexCondition);
+```
+
+### 自定义条件
+
+#### 方法1：简单条件（不需要序列化）
+
+```csharp
+public class WeightLimitCondition : IItemCondition
+{
+    public float MaxWeight { get; set; }
+    
+    public WeightLimitCondition(float maxWeight)
+    {
+        MaxWeight = maxWeight;
+    }
+    
+    public bool CheckCondition(IItem item)
+    {
+        return item != null && item.Weight <= MaxWeight;
+    }
+}
+
+// 使用
+container.ContainerCondition.Add(new WeightLimitCondition(10f));
+```
+
+#### 方法2：支持序列化的条件
+
+```csharp
+// 1. 实现条件类
+public class WeightLimitCondition : IItemCondition
+{
+    public float MaxWeight { get; set; }
+    
+    public bool CheckCondition(IItem item)
+    {
+        return item != null && item.Weight <= MaxWeight;
+    }
+}
+
+// 2. 实现序列化器
+public class WeightLimitConditionSerializer : IConditionSerializer
+{
+    public string Kind => "WeightLimit";
+    
+    public bool CanHandle(IItemCondition condition)
+    {
+        return condition is WeightLimitCondition;
+    }
+    
+    public SerializedCondition Serialize(IItemCondition condition)
+    {
+        var weightCond = condition as WeightLimitCondition;
+        var dto = new SerializedCondition { Kind = Kind };
+        
+        var entry = new CustomDataEntry { Id = "MaxWeight" };
+        entry.SetValue(weightCond.MaxWeight, CustomDataType.Float);
+        dto.Params.Add(entry);
+        
+        return dto;
+    }
+    
+    public IItemCondition Deserialize(SerializedCondition dto)
+    {
+        float maxWeight = 0f;
+        foreach (var p in dto.Params)
+        {
+            if (p?.Id == "MaxWeight")
+            {
+                maxWeight = p.FloatValue;
+                break;
+            }
+        }
+        return new WeightLimitCondition { MaxWeight = maxWeight };
+    }
+}
+
+// 3. 注册序列化器（游戏启动时）
+void Awake()
+{
+    SerializationRegistry.RegisterConditionSerializer(
+        new WeightLimitConditionSerializer()
+    );
 }
 ```
-序列化：
-- 仅实现 ISerializableCondition 的条件会写入 ConditionDTO
-- 反序列化按 Kind 还原（未识别的 Kind 会跳过并告警）
 
-## 事件系统
-容器事件：
-- OnItemAddResult(IItem item, requested, actual, AddItemResult result, List<int> slots)
-- OnItemRemoveResult(string itemId, requested, actual, RemoveItemResult result, List<int> slots)
-- OnSlotCountChanged(int slotIndex, IItem item, int oldCount, int newCount)
-- OnItemTotalCountChanged(string itemId, IItem itemRef, int oldTotal, int newTotal)
+---
 
-InventoryManager 事件：
-- OnContainerRegistered / OnContainerUnregistered
-- OnContainerPriorityChanged / OnContainerCategoryChanged
-- OnGlobalConditionAdded / OnGlobalConditionRemoved
-- OnItemMoved (MoveItem 成功)
-- OnItemsTransferred (TransferItems 成功)
-- OnBatchMoveCompleted (批量移动结束)
-- OnItemsDistributed (分发结束)
+## 序列化系统
 
-批量模式（BeginBatchUpdate / EndBatchUpdate）会聚合总量变化事件，减少 UI 频繁刷新。
+### 基本序列化
 
-## 序列化
-使用 ContainerSerializer：
-```
-string json = ContainerSerializer.ToJson(container, prettyPrint:true);
+```csharp
+// 序列化容器
+string json = ContainerSerializer.ToJson(container, prettyPrint: true);
+
+// 反序列化容器
 var restored = ContainerSerializer.FromJson(json);
 ```
-保存内容：
-- ContainerKind / ID / Name / Type / Capacity / IsGrid / Grid
-- 槽位：Index / ItemJson / ItemCount
-- 物品 JSON 内含：ID / Name / Type / IsStackable / MaxStackCount / Weight / Attributes / 自定义字段
-- 条件：Kind / 参数（仅 ISerializableCondition）
 
-注意：
-- 反序列化当前默认创建 LinerContainer
-- 不存在的条件 Kind 会跳过
-- 可用于关卡存档 / 快速调试重放
+### 条件序列化
+
+```csharp
+// 序列化条件（包括嵌套的组合条件）
+var condition = new AllCondition(
+    new ItemTypeCondition("Equipment"),
+    new AnyCondition(
+        new AttributeCondition("Rarity", "Epic"),
+        new AttributeCondition("Rarity", "Legendary")
+    )
+);
+
+var dto = ContainerSerializer.SerializeCondition(condition);
+string condJson = JsonUtility.ToJson(dto, true);
+
+// 反序列化条件
+var restoredCond = ContainerSerializer.DeserializeCondition(dto);
+```
+
+### 注册自定义容器类型
+
+```csharp
+// 假设实现了GridContainer
+SerializationRegistry.RegisterContainerFactory("GridContainer", dto =>
+{
+    return new GridContainer(dto.ID, dto.Name, dto.Type, dto.Grid);
+});
+
+// 之后GridContainer会自动支持序列化
+var grid = new GridContainer("storage", "仓库", "Storage", new Vector2(10, 10));
+string json = ContainerSerializer.ToJson(grid);
+var restored = ContainerSerializer.FromJson(json); // 自动识别类型
+```
+
+---
 
 ## API参考
 
-### 容器 IContainer/Container/LinerContainer
-- OrganizeInventory(): Consolidate + Sort
-- ConsolidateItems(): 只合并堆叠
-- SortInventory(): 按 Type->Name 排序
-- MoveItemToContainer(int fromSlot, Container target, int targetSlot=-1)
+### Container（容器）
 
-其余查询/添加/移除参见下文。
-
-### InventoryManager
-- TransferItems(string itemId, int count, string from, string to) 指定数量移动
-- AutoMoveItem(string itemId, string from, string to) 移动所有剩余
-- BatchMoveItems(List<MoveRequest>) 多操作执行（返回结果列表）
-- DistributeItems(IItem itemProto, int totalCount, List<string> targets)
-  - 按注册优先级排序（高→低）依次分发
-  - 遇到满或条件不满足会跳过继续下一个
-- 全局条件：
-  - AddGlobalItemCondition / RemoveGlobalItemCondition
-  - SetGlobalConditionsEnabled(true/false)
-  - 启用后会动态注入至已注册及后续注册的容器
-  - 关闭时自动清除这些全局条件条目
-
-## 查询与统计
-- GetUniqueItemCount(): 当前不同物品 ID 数
-- GetAllItemCountsDict(): 字典形式统计
-- GetAllItems(): 返回 (item, count, slotIndex)
-- GetItemsByName(pattern): 模糊匹配
-- GetItemsWhere(predicate): 自定义过滤
-- GetTotalWeight(): 增量更新避免全表遍历
-
-示例：
+#### 查询方法
+```csharp
+bool HasItem(string itemId)                          // 是否包含物品
+int GetItemTotalCount(string itemId)                 // 物品总数
+List<int> FindSlotIndices(string itemId)             // 查找槽位
+List<(IItem, int, int)> GetAllItems()                // 所有物品
+float GetTotalWeight()                               // 总重量
+int GetUniqueItemCount()                             // 不同物品种类数
+bool IsFull                                          // 是否已满
+int EmptySlotCount                                   // 空槽位数量
 ```
-var uniques = bag.GetUniqueItemCount();
-float weight = bag.GetTotalWeight();
-var byAttr = bag.GetItemsByAttribute("Rarity", "Epic");
-var heavy = bag.GetItemsWhere(i => i.Weight > 5f);
+#### 添加方法
+```csharp
+(AddItemResult result, int addedCount) AddItems(
+    IItem item, 
+    int count = 1, 
+    int slotIndex = -1
+)
+// 返回：结果枚举和实际添加数量
+// slotIndex=-1表示自动分配
+
+// 结果枚举
+enum AddItemResult
+{
+    Success,                    // 成功
+    ItemNull,                   // 物品为空
+    InvalidCount,               // 数量无效
+    ContainerFull,              // 容器已满
+    ItemConditionNotMet,        // 不满足条件
+    SlotOccupied,              // 槽位已占用
+    InvalidSlotIndex,          // 槽位索引无效
+    StackLimitReached          // 堆叠上限
+}
 ```
 
-## 添加与移除
-内部流程简单示例：
-1. 指定槽位（提供 slotIndex 并尝试校验兼容）
-2. 已有堆叠槽位（同ID未满优先）
-3. 空槽位缓存
-4. 容量允许下创建新槽（线性容器）
-5. 事件派发与缓存增量更新
+#### 移除方法
+```csharp
+(RemoveItemResult result, int removedCount) RemoveItem(
+    string itemId, 
+    int count
+)
+
+(RemoveItemResult result, int removedCount) RemoveItemAtSlot(
+    int slotIndex, 
+    int count
+)
+
+void ClearSlot(int slotIndex)                        // 清空槽位
+void ClearAll()                                      // 清空容器
+
+// 结果枚举
+enum RemoveItemResult
+{
+    Success,
+    ItemNotFound,
+    InsufficientQuantity,
+    InvalidSlotIndex,
+    SlotEmpty
+}
+```
+
+#### 整理方法
+```csharp
+void ConsolidateItems()                              // 合并堆叠
+void SortInventory()                                 // 排序物品
+void OrganizeInventory()                             // 整理（合并+排序+压缩）
+```
+
+#### 批量操作
+```csharp
+void BeginBatchUpdate()                              // 开始批量模式
+void EndBatchUpdate()                                // 结束批量模式（触发事件）
+```
+
+#### 跨容器移动
+```csharp
+MoveItemResult MoveItemToContainer(
+    int fromSlotIndex,
+    Container targetContainer,
+    int targetSlotIndex = -1
+)
+```
+
+#### 事件
+```csharp
+// 物品变化事件
+event Action<string, int> OnItemAdded               // (itemId, count)
+event Action<string, int> OnItemRemoved
+event Action<AddItemResult, string, int, int> OnItemAddResult
+event Action<RemoveItemResult, string, int, int> OnItemRemoveResult
+
+// 槽位事件
+event Action<int> OnSlotCleared                     // (slotIndex)
+event Action<int, int> OnSlotChanged                // (slotIndex, newCount)
+
+// 容器状态事件
+event Action OnContainerFullChanged                 // Full状态变化
+event Action OnContainerCleared                     // 容器清空
+
+// 批量操作事件
+event Action OnBatchUpdateCompleted                 // 批量更新完成
+```
+
+---
+
+### InventoryManager（全局管理器）
+
+#### 容器注册
+```csharp
+void RegisterContainer(Container container, int priority = 0, string category = "")
+void UnregisterContainer(string containerId)
+Container GetContainer(string containerId)
+List<Container> GetContainersByCategory(string category)
+List<Container> GetAllContainers()
+```
+
+#### 跨容器操作
+```csharp
+// 转移指定数量
+MoveResult TransferItems(
+    string itemId, 
+    int count, 
+    string sourceContainerId, 
+    string targetContainerId
+)
+
+// 自动移动全部
+MoveResult AutoMoveItem(
+    string itemId, 
+    string sourceContainerId, 
+    string targetContainerId
+)
+
+// 批量移动
+List<MoveResult> BatchMoveItems(List<MoveRequest> requests)
+
+// 分发物品（按优先级分配到多个容器）
+Dictionary<string, int> DistributeItems(
+    IItem itemPrototype, 
+    int totalCount, 
+    List<string> targetContainerIds
+)
+
+// 结果枚举
+enum MoveResult
+{
+    Success,
+    SourceContainerNotFound,
+    TargetContainerNotFound,
+    SourceSlotNotFound,
+    SourceSlotEmpty,
+    ItemNotFound,
+    TargetContainerFull,
+    InsufficientQuantity,
+    InvalidRequest,
+    ItemConditionNotMet
+}
+```
+
+#### 全局条件
+```csharp
+void AddGlobalItemCondition(IItemCondition condition)
+void RemoveGlobalItemCondition(IItemCondition condition)
+void ClearGlobalItemConditions()
+void SetGlobalConditionsEnabled(bool enabled)
+bool ValidateGlobalItemConditions(IItem item)
+```
+
+---
+
+### ContainerSerializer（序列化器）
+
+```csharp
+// 容器序列化
+string ToJson(Container container, bool prettyPrint = false)
+Container FromJson(string json)
+
+// 条件序列化
+SerializedCondition SerializeCondition(IItemCondition condition)
+IItemCondition DeserializeCondition(SerializedCondition dto)
+```
+
+---
+
+### SerializationRegistry（序列化注册器）
+
+```csharp
+// 注册容器工厂
+void RegisterContainerFactory<T>(
+    string kind, 
+    Func<SerializedContainer, T> factory
+) where T : Container
+
+// 注册条件序列化器
+void RegisterConditionSerializer(IConditionSerializer serializer)
+
+// 查询
+IConditionSerializer GetConditionSerializer(string kind)
+bool CanDeserializeContainer(string kind)
+bool CanSerializeCondition(IItemCondition condition)
+```
+
+---
+
+## 高级功能
 
 ### 指定槽位添加规则
-失败情况：
-- 槽位越界
-- 槽位占用且 Item.ID 不同
-- 可堆叠但已满 / 不可堆叠且已占用
-- 条件不满足
-成功追加：
-- 同 ID 且未达 MaxStackCount
 
-### 满 Full 判定细节
-Full = (无可再用空槽位) 且 (所有占用槽位：不可堆叠 或 已达上限)  
-因此：
-- 仍可堆叠时可 AddItems
-- 移除使某槽位未满会立刻使 Full=false（缓存立即更新）
+**成功情况**：
+- 槽位为空
+- 槽位已有相同ID的可堆叠物品且未满
 
-## 整理与排序
-- ConsolidateItems：逐 ID 合并（保持相对顺序不保证紧凑排序）
-- SortInventory：仅排序，不合并
-- OrganizeInventory：先 Consolidate，再 Sort，再压缩空隙（示例案例8）
+**失败情况**：
+- 槽位索引越界
+- 槽位已占用且物品ID不同
+- 可堆叠物品已达上限
+- 不可堆叠物品且槽位已占用
+- 不满足容器条件
 
-### Consolidate / Sort / Organize 差异
-| 操作 | 合并 | 排序 | 去空洞 | 典型用途 |
-|------|------|------|--------|----------|
-| ConsolidateItems | 是 | 否 | 否 | 仅回收零散堆叠 |
-| SortInventory | 否 | 是 | 否 | 分类展示 |
-| OrganizeInventory | 是 | 是 | 是 | 玩家“一键整理” |
+### 容器满判定
 
-## 跨容器与高级操作
-
-### MoveItem / TransferItems / AutoMoveItem
-- MoveItem：基于槽位（一个槽→目标容器可堆叠或空位），失败返回枚举
-- TransferItems：按数量跨容器提取（聚合多个槽）
-- AutoMoveItem：移动全部剩余同 ID 物品
-
-返回枚举 (InventoryManager.MoveResult)：
-- Success / SourceContainerNotFound / TargetContainerNotFound
-- SourceSlotNotFound / SourceSlotEmpty / ItemNotFound
-- TargetContainerFull / InsufficientQuantity / InvalidRequest
-- ItemConditionNotMet
-
-### BatchMoveItems 批量移动
-传入 List<MoveRequest>：
+```csharp
+// 容器满的条件：
+// 1. 无空槽位
+// 2. 所有已占用槽位都是：不可堆叠 OR 已达堆叠上限
 ```
-new MoveRequest(fromId, fromSlot, toId, toSlotIndex=-1, count=-1, expectedItemId=null)
+
+**实时缓存更新**：
+- 添加物品时检测空槽消耗
+- 移除物品时检测是否产生新空槽或可堆叠槽
+- O(1)时间复杂度判定
+
+### 整理与排序差异
+
+| 操作 | 合并堆叠 | 排序 | 压缩空隙 | 使用场景 |
+|------|---------|------|---------|----------|
+| ConsolidateItems | ✅ | ❌ | ❌ | 回收零散堆叠 |
+| SortInventory | ❌ | ✅ | ❌ | 分类展示 |
+| OrganizeInventory | ✅ | ✅ | ✅ | 一键整理 |
+
+### 全局条件系统
+
+**工作原理**：
+1. 添加全局条件时，如果已启用则立即注入到所有已注册容器
+2. 新注册的容器会自动接收已启用的全局条件
+3. 禁用时自动从所有容器移除全局条件
+4. 不影响容器的原生条件
+
+**典型应用**：
+```csharp
+// 活动期间：全服容器只接收史诗级以上物品
+manager.AddGlobalItemCondition(new AnyCondition(
+    new AttributeCondition("Rarity", "Epic"),
+    new AttributeCondition("Rarity", "Legendary")
+));
+manager.SetGlobalConditionsEnabled(true);
+
+// 活动结束
+manager.SetGlobalConditionsEnabled(false);
 ```
-- count=-1 表示整槽
-- expectedItemId 不为空时校验 Item.ID 一致
-- 返回与输入顺序对应的结果列表（不短路）
 
-### DistributeItems 分发逻辑
-流程：
-1. 目标容器按优先级（高→低）排序
-2. 逐容器执行 AddItems
-3. 可堆叠溢出继续下一个容器
-4. 返回字典：containerId → 实际分配数量
-典型：战利品、批量产出、自动填装
+### 批量移动详解
 
-### 全局条件 Global Conditions
-- 添加时若已启用：立即附加到所有已注册容器（去重）
-- 启用：注入
-- 禁用：移除所有曾注入的全局条件（不影响容器原生条件）
-- ValidateGlobalItemConditions(IItem) 可独立预检
-常见用途：活动期间全世界容器只接收指定稀有度物品等
+```csharp
+public class MoveRequest
+{
+    public string SourceContainerId;    // 源容器ID
+    public int SourceSlotIndex;         // 源槽位索引
+    public string TargetContainerId;    // 目标容器ID
+    public int TargetSlotIndex;         // 目标槽位（-1自动）
+    public int Count;                   // 移动数量（-1整槽）
+    public string ExpectedItemId;       // 预期物品ID（可选校验）
+}
 
-## 调试与校验
-- ValidateCaches(): 断言缓存一致性
-- RebuildCaches(): 强制重建缓存
+// 批量移动特性：
+// - 不短路：部分失败不影响后续操作
+// - 返回对应结果列表
+// - 支持ID校验（防止UI滞后导致的误操作）
+```
+
+### 分发算法
+
+```csharp
+// 按优先级排序目标容器
+// 逐容器尝试AddItems
+// 可堆叠物品溢出继续下一容器
+// 返回每个容器实际分配数量
+
+// 示例：战利品分发
+var loot = new Item { ID = "gold", IsStackable = true, MaxStackCount = 999 };
+var distribution = manager.DistributeItems(
+    loot, 
+    5000, 
+    new List<string> { "bag", "storage", "bank" }
+);
+// bag: 999, storage: 999, bank: 999, ...
+```
+
+---
+
+## 性能优化
+
+### 缓存系统
+
+**多级缓存架构**：
+```
+ContainerCacheService
+├── _itemSlotIndexCache       // 物品→槽位索引映射
+├── _emptySlotIndices          // 空槽位索引集合
+├── _itemTypeIndexCache        // 物品类型→槽位映射
+├── _itemCountCache            // 物品→总数量映射
+└── _notFullStackSlotsCount    // 未满堆叠槽位计数
+```
+
+**增量更新机制**：
+- 添加物品：仅更新相关物品的缓存
+- 移除物品：检测是否需要加入空槽缓存
+- 批量模式：延迟事件触发
+
+### 批量模式最佳实践
+
+```csharp
+// 大量操作使用批量模式
+container.BeginBatchUpdate();
+try
+{
+    for (int i = 0; i < 100; i++)
+    {
+        container.AddItems(items[i]);
+    }
+}
+finally
+{
+    container.EndBatchUpdate(); // 确保调用
+}
+
+```
+
+### 查询优化技巧
+
+```csharp
+// ✅ 使用缓存查询
+int count = container.GetItemTotalCount("sword");  // O(1)
+
+// ❌ 避免遍历
+var items = container.GetAllItems();  // O(n)
+int count = items.Where(x => x.Item.ID == "sword").Sum(x => x.Count);
+
+// ✅ 使用服务查询
+var service = container.GetService<ItemQueryService>();
+var byType = service.GetItemsByType("Equipment");  // O(1)
+```
+
+### 容器容量建议
+- 超过500槽位可能影响性能考虑分页或多容器方案
+
+---
+
+## 最佳实践
+
+### 条件设计原则
+
+```csharp
+// ✅ 推荐：组合简单条件
+var condition = new AllCondition(
+    new ItemTypeCondition("Equipment"),
+    new AttributeCondition("Level", 10, AttributeComparisonType.GreaterThanOrEqual)
+);
+
+// ❌ 避免：过度复杂的嵌套（影响序列化性能）
+var badCondition = new AllCondition(
+    new AnyCondition(
+        new AllCondition(...),  // 嵌套层级过深
+        new NotCondition(new AnyCondition(...))
+    )
+);
+```
+
+### 序列化注意事项
+
+```csharp
+// ✅ 游戏启动时注册所有自定义类型
+void Awake()
+{
+    // 注册自定义容器
+    SerializationRegistry.RegisterContainerFactory("GridContainer", dto => 
+        new GridContainer(dto.ID, dto.Name, dto.Type, dto.Grid)
+    );
+    
+    // 注册自定义条件
+    SerializationRegistry.RegisterConditionSerializer(
+        new WeightLimitConditionSerializer()
+    );
+}
+
+// ✅ 存档前验证
+string json = ContainerSerializer.ToJson(container);
+var test = ContainerSerializer.FromJson(json);
+Debug.Assert(test.GetItemTotalCount("sword") == container.GetItemTotalCount("sword"));
+```
+
+### 错误处理
+
+```csharp
+// ✅ 检查操作结果
+var (result, count) = container.AddItems(item);
+if (result == AddItemResult.ContainerFull)
+{
+    ShowMessage("背包已满");
+}
+else if (result == AddItemResult.ItemConditionNotMet)
+{
+    ShowMessage("该物品无法放入此容器");
+}
+
+// ✅ 跨容器操作检查
+var moveResult = manager.TransferItems("sword", 1, "bag", "storage");
+if (moveResult != InventoryManager.MoveResult.Success)
+{
+    Debug.LogWarning($"移动失败: {moveResult}");
+}
+```
+
+### 事件订阅管理
+
+```csharp
+// ✅ 组件生命周期管理
+void OnEnable()
+{
+    container.OnItemAdded += HandleItemAdded;
+    container.OnItemRemoved += HandleItemRemoved;
+}
+
+void OnDisable()
+{
+    container.OnItemAdded -= HandleItemAdded;
+    container.OnItemRemoved -= HandleItemRemoved;
+}
+
+// ✅ 使用批量事件而非单次事件
+container.OnBatchUpdateCompleted += RefreshUI;  // 整理后刷新一次
+// ❌ container.OnSlotChanged += RefreshSlot;     // 每个槽位变化都刷新
+```
+
+---
 
 ## 常见问题
-Q: 指定槽位添加失败原因？  
-A: 槽位越界 / ID 不同 / 已满 / 条件不满足。
 
-Q: 我需要先 Sort 还是 Organize？  
-A: 只排序 → SortInventory；同时合并+排序 → OrganizeInventory。
+### Q: 指定槽位添加失败的原因？
+**A**: 
+- 槽位索引越界
+- 槽位已有不同ID的物品
+- 可堆叠物品已达上限
+- 不满足容器条件
 
-Q: 批量移动有局部失败会回滚吗？  
-A: 不会。BatchMoveItems 是“逐条执行+逐条结果”，需要事务语义可自行封装。
+### Q: 整理背包应该用哪个方法？
+**A**: 
+- 只合并堆叠 → `ConsolidateItems()`
+- 只排序 → `SortInventory()`
+- 完整整理 → `OrganizeInventory()` （推荐）
 
-Q: 序列化后条件丢失？  
-A: 未实现 ISerializableCondition / Kind 未识别会被忽略。
+### Q: 批量移动失败会回滚吗？
+**A**: 不会。`BatchMoveItems`逐条执行并返回对应结果，需要事务语义请自行封装。
 
-Q: 统计不一致？  
-A: 调用 ValidateCaches()；若失败 RebuildCaches() 并检查是否绕过 API 修改槽位。
+### Q: 序列化后条件丢失？
+**A**: 
+- 自定义条件必须实现`ISerializableCondition`
+- 序列化器必须注册到`SerializationRegistry`
+- 检查条件的`Kind`是否正确
 
+### Q: 统计数据不一致？
+**A**: 
+1. 调用`ValidateCaches()`检测
+2. 如果断言失败，调用`RebuildCaches()`
+3. 检查是否直接修改了槽位（应使用容器API）
+
+### Q: 如何实现网格背包（2D布局）？
+**A**: 
+- 马上会实现的！！！
+
+
+---
+
+## 示例参考
+
+完整示例代码请参考：
+- InventoryExample.cs - 基础功能示例
 ---

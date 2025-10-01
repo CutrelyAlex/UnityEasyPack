@@ -7,6 +7,12 @@ namespace EasyPack
 {
     public static class ContainerSerializer
     {
+        // 确保注册器已初始化
+        static ContainerSerializer()
+        {
+            SerializationRegistry.EnsureInitialized();
+        }
+
         // Container -> DTO
         public static SerializedContainer Serialize(Container container, bool prettyPrint = false)
         {
@@ -23,19 +29,22 @@ namespace EasyPack
                 Grid = container.IsGrid ? container.Grid : new Vector2(-1, -1)
             };
 
-            // 容器条件（条件自序列化）
+            // 容器条件（使用注册器序列化）
             if (container.ContainerCondition != null)
             {
                 foreach (var cond in container.ContainerCondition)
                 {
-                    if (cond is ISerializableCondition sc)
+                    if (cond != null)
                     {
-                        var c = sc.ToDto();
-                        if (c != null) dto.ContainerConditions.Add(c);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"条件未实现序列化接口: {cond?.GetType().Name}");
+                        var c = SerializationRegistry.SerializeCondition(cond);
+                        if (c != null)
+                        {
+                            dto.ContainerConditions.Add(c);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"条件序列化失败: {cond?.GetType().Name}");
+                        }
                     }
                 }
             }
@@ -64,44 +73,32 @@ namespace EasyPack
         }
 
         // DTO -> Container
-        // TODO : 支持其他容器
         public static Container Deserialize(SerializedContainer data)
         {
             if (data == null) return null;
 
-            Container container;
-            switch (data.ContainerKind)
+            // 使用注册器创建容器
+            Container container = SerializationRegistry.CreateContainer(data);
+            
+            if (container == null)
             {
-                case "LinerContainer":
-                    container = new LinerContainer(data.ID, data.Name, data.Type, data.Capacity);
-                    break;
-                default:
-                    container = new LinerContainer(data.ID, data.Name, data.Type, data.Capacity);
-                    break;
+                Debug.LogError($"创建容器失败: {data.ContainerKind}");
+                return null;
             }
 
-            // 还原容器条件（自动分发到各条件类型的 FromDto 实例方法）
+            // 还原容器条件（使用注册器反序列化）
             var conds = new List<IItemCondition>();
             if (data.ContainerConditions != null)
             {
                 foreach (var c in data.ContainerConditions)
                 {
                     if (c == null || string.IsNullOrEmpty(c.Kind)) continue;
-                    IItemCondition cond = null;
-                    switch (c.Kind)
+                    
+                    var cond = SerializationRegistry.DeserializeCondition(c);
+                    if (cond != null)
                     {
-                        case "ItemType":
-                            cond = new ItemTypeCondition("").FromDto(c);
-                            break;
-                        case "Attr":
-                            cond = new AttributeCondition("", null).FromDto(c);
-                            break;
-                        // 可扩展其它条件类型
-                        default:
-                            Debug.LogWarning($"未知条件 Kind: {c.Kind}，已跳过。");
-                            break;
+                        conds.Add(cond);
                     }
-                    if (cond != null) conds.Add(cond);
                 }
             }
             container.ContainerCondition = conds;
@@ -137,6 +134,22 @@ namespace EasyPack
             if (string.IsNullOrEmpty(json)) return null;
             var dto = JsonUtility.FromJson<SerializedContainer>(json);
             return Deserialize(dto);
+        }
+
+        /// <summary>
+        /// 序列化条件（暴露给外部使用）
+        /// </summary>
+        public static SerializedCondition SerializeCondition(IItemCondition condition)
+        {
+            return SerializationRegistry.SerializeCondition(condition);
+        }
+
+        /// <summary>
+        /// 反序列化条件（暴露给外部使用）
+        /// </summary>
+        public static IItemCondition DeserializeCondition(SerializedCondition dto)
+        {
+            return SerializationRegistry.DeserializeCondition(dto);
         }
     }
 }
