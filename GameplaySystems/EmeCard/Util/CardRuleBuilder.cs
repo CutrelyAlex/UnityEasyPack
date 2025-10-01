@@ -109,6 +109,68 @@ namespace EasyPack
         }
         #endregion
 
+        #region 条件要求 - When语法糖
+        /// <summary>要求源卡牌的类别为指定类别</summary>
+        public CardRuleBuilder WhenSourceCategory(CardCategory category)
+            => When(ctx => ctx.Source?.Category == category);
+
+        /// <summary>要求源卡牌为对象类别</summary>
+        public CardRuleBuilder WhenSourceIsObject()
+            => When(ctx => ctx.Source?.Category == CardCategory.Object);
+
+        /// <summary>要求源卡牌为动作类别</summary>
+        public CardRuleBuilder WhenSourceIsAction()
+            => When(ctx => ctx.Source?.Category == CardCategory.Action);
+
+        /// <summary>要求源卡牌为属性类别</summary>
+        public CardRuleBuilder WhenSourceIsAttribute()
+            => When(ctx => ctx.Source?.Category == CardCategory.Attribute);
+
+        /// <summary>要求源卡牌有指定标签</summary>
+        public CardRuleBuilder WhenSourceHasTag(string tag)
+            => When(ctx => ctx.Source != null && ctx.Source.HasTag(tag));
+
+        /// <summary>要求源卡牌没有指定标签</summary>
+        public CardRuleBuilder WhenSourceNotHasTag(string tag)
+            => When(ctx => ctx.Source != null && !ctx.Source.HasTag(tag));
+
+        /// <summary>要求源卡牌的ID为指定值</summary>
+        public CardRuleBuilder WhenSourceId(string id)
+            => When(ctx => ctx.Source != null && string.Equals(ctx.Source.Id, id, StringComparison.Ordinal));
+
+        /// <summary>要求容器的类别为指定类别</summary>
+        public CardRuleBuilder WhenContainerCategory(CardCategory category)
+            => When(ctx => ctx.Container?.Category == category);
+
+        /// <summary>要求容器为对象类别</summary>
+        public CardRuleBuilder WhenContainerIsObject()
+            => When(ctx => ctx.Container?.Category == CardCategory.Object);
+
+        /// <summary>要求容器为动作类别</summary>
+        public CardRuleBuilder WhenContainerIsAction()
+            => When(ctx => ctx.Container?.Category == CardCategory.Action);
+
+        /// <summary>要求容器为属性类别</summary>
+        public CardRuleBuilder WhenContainerIsAttribute()
+            => When(ctx => ctx.Container?.Category == CardCategory.Attribute);
+
+        /// <summary>要求容器有指定标签</summary>
+        public CardRuleBuilder WhenContainerHasTag(string tag)
+            => When(ctx => ctx.Container != null && ctx.Container.HasTag(tag));
+
+        /// <summary>要求容器没有指定标签</summary>
+        public CardRuleBuilder WhenContainerNotHasTag(string tag)
+            => When(ctx => ctx.Container != null && !ctx.Container.HasTag(tag));
+
+        /// <summary>要求事件数据为指定类型</summary>
+        public CardRuleBuilder WhenEventDataIs<T>() where T : class
+            => When(ctx => ctx.Event.Data is T);
+
+        /// <summary>要求事件数据不为空</summary>
+        public CardRuleBuilder WhenEventDataNotNull()
+            => When(ctx => ctx.Event.Data != null);
+        #endregion
+
         #region 条件要求 - 便捷语法糖
         /// <summary>需要容器的直接子卡中有指定标签的卡牌</summary>
         public CardRuleBuilder NeedTag(string tag, int minCount = 1)
