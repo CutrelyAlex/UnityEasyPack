@@ -14,7 +14,8 @@ namespace EasyPack
 {
     public class GameProperty : IProperty<float>
     {
-
+        // 比较大小的静态常量
+        private const float EPSILON = 0.0001f;
         #region 基础属性值
 
         /// <summary>
@@ -56,8 +57,8 @@ namespace EasyPack
             if (!needsRecalculation)
                 return _cacheValue;
 
-            // 更新所有依赖项
-            if (_isDirty)
+            // 避免空循环
+            if (_isDirty && _dependencies.Count > 0)
             {
                 foreach (var dep in _dependencies)
                 {
@@ -76,11 +77,15 @@ namespace EasyPack
             if (!(_hasNonClampRangeModifier || _hasRandomDependency))
                 _isDirty = false;
 
-            if (!oldValue.Equals(_cacheValue))
+            if (System.Math.Abs(oldValue - _cacheValue) > EPSILON)
             {
                 OnValueChanged?.Invoke(oldValue, _cacheValue);
 
-                TriggerDependentUpdates();
+                // 检查是否有依赖者再触发更新
+                if (_dependents.Count > 0)
+                {
+                    TriggerDependentUpdates();
+                }
             }
 
             return _cacheValue;
@@ -93,10 +98,11 @@ namespace EasyPack
         /// <param name="value">新的基础值</param>
         public IProperty<float> SetBaseValue(float value)
         {
-            if (!Mathf.Approximately(_baseValue, value))
+            if (System.Math.Abs(_baseValue - value) > EPSILON)
             {
                 _baseValue = value;
                 MakeDirty();
+                // 立即计算以确保事件和依赖更新正确触发
                 GetValue();
             }
             return this;
@@ -108,6 +114,10 @@ namespace EasyPack
         private readonly HashSet<GameProperty> _dependencies = new();
         private readonly HashSet<GameProperty> _dependents = new(); // 依赖于此属性的其他属性
         private readonly Dictionary<GameProperty, Func<GameProperty, float, float>> _dependencyCalculators = new();
+        
+        // 依赖深度
+        private int _dependencyDepth = 0;
+        private const int MAX_DEPENDENCY_DEPTH = 100;
 
         /// <summary>
         /// 属性值改变时的事件
@@ -137,6 +147,9 @@ namespace EasyPack
 
             // 添加反向引用
             dependency._dependents.Add(this);
+
+            // 更新依赖深度
+            UpdateDependencyDepth();
 
             // 如果有计算函数则立即计算
             if (calculator != null)
@@ -173,6 +186,9 @@ namespace EasyPack
             // 移除计算函数
             _dependencyCalculators.Remove(dependency);
 
+            // 更新依赖深度
+            UpdateDependencyDepth();
+
             UpdateRandomDependencyState();
             return this;
         }
@@ -182,6 +198,10 @@ namespace EasyPack
         /// </summary>
         private void TriggerDependentUpdates()
         {
+            // 早返
+            if (_dependents.Count == 0)
+                return;
+
             foreach (var dependent in _dependents)
             {
                 // 如果有特定的计算函数则使用计算函数
@@ -189,20 +209,14 @@ namespace EasyPack
                 {
                     var newValue = calculator(this, _cacheValue);
                     dependent.SetBaseValue(newValue);
+                    // 立即触发依赖项的计算和事件传播
+                    dependent.GetValue();
                 }
                 else
                 {
                     // 否则只是标记为脏状态
-                    // 这意味着依赖项需要在下次访问时重新计算
                     dependent.MakeDirty();
-
-                    var oldValue = dependent._cacheValue;
-                    var newValue = dependent.GetValue(); // 立即重新计算
-
-                    //if (oldValue.Equals(newValue))
-                    //{
-                    //    dependent.OnValueChanged?.Invoke(oldValue, newValue);
-                    //}
+                    dependent.GetValue();
                 }
             }
         }
@@ -216,26 +230,65 @@ namespace EasyPack
 
         private bool WouldCreateCyclicDependency(GameProperty dependency)
         {
+            // 自引用
             if (dependency == this) return true;
 
-            var visited = new HashSet<GameProperty>();
-            var toCheck = new Queue<GameProperty>();
-            toCheck.Enqueue(dependency);
-
-            while (toCheck.Count > 0)
+            // 深度限制检查
+            if (dependency._dependencyDepth >= MAX_DEPENDENCY_DEPTH)
             {
-                var current = toCheck.Dequeue();
+                Debug.LogWarning($"依赖深度超过限制 {MAX_DEPENDENCY_DEPTH}");
+                return true;
+            }
+
+            var visited = new HashSet<GameProperty>();
+            var stack = new Stack<GameProperty>();
+            stack.Push(dependency);
+
+            while (stack.Count > 0)
+            {
+                var current = stack.Pop();
+                
+                // 跳过已访问的节点
                 if (!visited.Add(current)) continue;
 
+                // 检测到循环
                 if (current == this) return true;
 
+                // 将所有依赖项压入栈
                 foreach (var dep in current._dependencies)
                 {
-                    toCheck.Enqueue(dep);
+                    if (!visited.Contains(dep))
+                        stack.Push(dep);
                 }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 更新依赖深度（在添加/移除依赖时调用）
+        /// </summary>
+        private void UpdateDependencyDepth()
+        {
+            if (_dependencies.Count == 0)
+            {
+                _dependencyDepth = 0;
+                return;
+            }
+
+            int maxDepth = 0;
+            foreach (var dep in _dependencies)
+            {
+                if (dep._dependencyDepth > maxDepth)
+                    maxDepth = dep._dependencyDepth;
+            }
+            _dependencyDepth = maxDepth + 1;
+
+            // 传播深度更新到所有依赖此属性的对象
+            foreach (var dependent in _dependents)
+            {
+                dependent.UpdateDependencyDepth();
+            }
         }
         #endregion
 
@@ -250,6 +303,7 @@ namespace EasyPack
         public void MakeDirty()
         {
             if (_isDirty) return;
+            
             _isDirty = true;
             _onDirty?.Invoke();
         }
@@ -286,6 +340,7 @@ namespace EasyPack
         /// </summary>
         public List<IModifier> Modifiers { get; }
         private readonly Dictionary<ModifierType, List<IModifier>> _groupedModifiers = new();
+        private readonly Dictionary<IModifier, int> _modifierIndexMap = new(); // 用于快速查找和删除
         private bool _hasNonClampRangeModifier = false;
 
         /// <summary>
@@ -298,8 +353,10 @@ namespace EasyPack
             if (modifier == null)
                 throw new ArgumentNullException(nameof(modifier));
 
-            // 添加到总列表
+            // 添加到总列表并记录索引
+            int index = Modifiers.Count;
             Modifiers.Add(modifier);
+            _modifierIndexMap[modifier] = index;
 
             // 按类型分组
             if (!_groupedModifiers.TryGetValue(modifier.Type, out var list))
@@ -326,6 +383,7 @@ namespace EasyPack
         {
             Modifiers.Clear();
             _groupedModifiers.Clear(); // 清理分组缓存
+            _modifierIndexMap.Clear(); // 清理索引映射
             _hasNonClampRangeModifier = false; // 重置RangeModifier标记
             MakeDirty();
             return this;
@@ -337,10 +395,36 @@ namespace EasyPack
         /// <param name="modifiers">要添加的修饰符集合</param>
         public IProperty<float> AddModifiers(IEnumerable<IModifier> modifiers)
         {
+            bool needsRangeCheck = false;
+            
             foreach (var modifier in modifiers)
             {
-                AddModifier(modifier);
+                if (modifier == null)
+                    throw new ArgumentNullException(nameof(modifier));
+
+                // 添加到总列表并记录索引
+                int index = Modifiers.Count;
+                Modifiers.Add(modifier);
+                _modifierIndexMap[modifier] = index;
+
+                // 按类型分组
+                if (!_groupedModifiers.TryGetValue(modifier.Type, out var list))
+                {
+                    list = new List<IModifier>();
+                    _groupedModifiers[modifier.Type] = list;
+                }
+                list.Add(modifier);
+
+                // 延迟检查随机性修饰符
+                if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
+                {
+                    needsRangeCheck = true;
+                }
             }
+
+            if (needsRangeCheck)
+                _hasNonClampRangeModifier = true;
+
             MakeDirty();
             return this;
         }
@@ -353,9 +437,30 @@ namespace EasyPack
         {
             foreach (var modifier in modifiers)
             {
-                RemoveModifier(modifier);
+                if (modifier == null) continue;
+
+                // 使用索引映射快速查找
+                if (_modifierIndexMap.TryGetValue(modifier, out var index))
+                {
+                    // 从总列表移除
+                    Modifiers.Remove(modifier);
+                    _modifierIndexMap.Remove(modifier);
+
+                    // 从分组中移除
+                    if (_groupedModifiers.TryGetValue(modifier.Type, out var list))
+                    {
+                        list.Remove(modifier);
+
+                        // 如果分组为空则移除整个分组
+                        if (list.Count == 0)
+                        {
+                            _groupedModifiers.Remove(modifier.Type);
+                        }
+                    }
+                }
             }
 
+            // 批量操作后统一检查一次
             _hasNonClampRangeModifier = HasNonClampRangeModifiers();
             MakeDirty();
             return this;
@@ -367,26 +472,30 @@ namespace EasyPack
         /// <param name="modifier">要移除的修饰符</param>
         public IProperty<float> RemoveModifier(IModifier modifier)
         {
-            var _modifier = Modifiers.Find(m => m.Equals(modifier));
-            if (_modifier != null)
+            // 使用索引映射查找
+            if (_modifierIndexMap.TryGetValue(modifier, out var _))
             {
-                Modifiers.Remove(_modifier);
+                Modifiers.Remove(modifier);
+                _modifierIndexMap.Remove(modifier);
 
                 // 从分组中移除
-                if (_groupedModifiers.TryGetValue(_modifier.Type, out var list))
+                if (_groupedModifiers.TryGetValue(modifier.Type, out var list))
                 {
-                    list.Remove(_modifier);
+                    list.Remove(modifier);
 
                     // 如果分组为空则移除整个分组
                     if (list.Count == 0)
                     {
-                        _groupedModifiers.Remove(_modifier.Type);
+                        _groupedModifiers.Remove(modifier.Type);
                     }
                 }
-            }
 
-            // 重新检查非Clamp类型的RangeModifier标记
-            _hasNonClampRangeModifier = HasNonClampRangeModifiers();
+                // 仅在必要时检查
+                if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
+                {
+                    _hasNonClampRangeModifier = HasNonClampRangeModifiers();
+                }
+            }
 
             MakeDirty();
             return this;
@@ -420,11 +529,9 @@ namespace EasyPack
             if (_groupedModifiers.Count == 0)
                 return;
 
-            // 按照修饰符类型的优先级顺序应用
-            foreach (ModifierType type in Enum.GetValues(typeof(ModifierType)))
+            // 使用预定义的顺序数组
+            foreach (ModifierType type in ModifierStrategyManager.MODIFIER_TYPE_ORDER)
             {
-                if (type == ModifierType.None) continue;
-
                 if (_groupedModifiers.TryGetValue(type, out var modifiers) && modifiers.Count > 0)
                 {
                     var strategy = GetCachedStrategy(type);
