@@ -289,7 +289,7 @@ public class AdvancedBuffModule : BuffModule
 
 ```
 // 在合适的位置触发自定义回调
-// 注意：使用InvokeBuffModules而不是ExecuteBuffModules
+// 注意：使用InvokeBuffModules
 buffManager.InvokeBuffModules(buff, BuffCallBackType.Custom, "OnTargetDamaged", damageAmount);
 ```
 

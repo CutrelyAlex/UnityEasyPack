@@ -28,9 +28,26 @@ namespace EasyPack
         public string PropertyID { get; set; }
 
         /// <summary>
-        /// 存储已应用的所有修饰器，便于移除
+        /// 存储已应用的所有修饰器
         /// </summary>
         private readonly List<IModifier> _appliedModifiers = new List<IModifier>();
+
+        /// <summary>
+        /// 缓存的属性实例
+        /// </summary>
+        private GameProperty _cachedProperty;
+
+        /// <summary>
+        /// 获取目标属性，如果未缓存则查找并缓存
+        /// </summary>
+        private GameProperty GetProperty()
+        {
+            if (_cachedProperty == null && CombineGamePropertyManager != null)
+            {
+                _cachedProperty = CombineGamePropertyManager.GetGamePropertyFromCombine(CombinePropertyID, PropertyID);
+            }
+            return _cachedProperty;
+        }
 
         /// <summary>
         /// 创建一个新的CastModifierToProperty实例，并注册多个生命周期回调
@@ -40,10 +57,10 @@ namespace EasyPack
         /// <param name="propertyID">具体属性ID(可选)</param>
         public CastModifierToProperty(IModifier modifier, string combinePropertyID, CombineGamePropertyManager combineGamePropertyManager, string propertyID = "")
         {
-            Modifier = modifier;
-            CombinePropertyID = combinePropertyID;
+            Modifier = modifier ?? throw new ArgumentNullException(nameof(modifier));
+            CombinePropertyID = combinePropertyID ?? throw new ArgumentNullException(nameof(combinePropertyID));
             PropertyID = propertyID;
-            CombineGamePropertyManager = combineGamePropertyManager;
+            CombineGamePropertyManager = combineGamePropertyManager ?? throw new ArgumentNullException(nameof(combineGamePropertyManager));
 
             // 注册各种生命周期回调
             RegisterCallback(BuffCallBackType.OnCreate, OnCreate);
@@ -89,7 +106,7 @@ namespace EasyPack
         /// </summary>
         private void AddModifier()
         {
-            var property = CombineGamePropertyManager.GetGamePropertyFromCombine(CombinePropertyID, PropertyID);
+            var property = GetProperty();
             if (property == null || Modifier == null)
                 return;
 
@@ -105,7 +122,7 @@ namespace EasyPack
         /// </summary>
         private void RemoveSingleModifier()
         {
-            var property = CombineGamePropertyManager.GetGamePropertyFromCombine(CombinePropertyID, PropertyID);
+            var property = GetProperty();
             if (property == null || _appliedModifiers.Count == 0)
                 return;
 
@@ -120,12 +137,15 @@ namespace EasyPack
         /// </summary>
         private void RemoveAllModifiers()
         {
-            var property = CombineGamePropertyManager.GetGamePropertyFromCombine(CombinePropertyID, PropertyID);
-            if (property == null)
+            var property = GetProperty();
+            if (property == null || _appliedModifiers.Count == 0)
                 return;
 
-            // 移除所有已应用的修饰器
-            property.RemoveModifiers(_appliedModifiers);
+            // 逐个移除所有已应用的修饰器
+            for (int i = _appliedModifiers.Count - 1; i >= 0; i--)
+            {
+                property.RemoveModifier(_appliedModifiers[i]);
+            }
             _appliedModifiers.Clear();
         }
     }

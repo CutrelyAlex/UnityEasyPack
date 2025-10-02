@@ -21,20 +21,5 @@ namespace EasyPack
         {
             return new FloatModifier(Type, Priority, Value);
         }
-
-        public override bool Equals(object obj)
-        {
-            if (obj is FloatModifier other)
-            {
-                return Type == other.Type && Priority == other.Priority && Value.Equals(other.Value);
-            }
-            return false;
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(Type, Priority, Value);
-        }
-
     }
 }

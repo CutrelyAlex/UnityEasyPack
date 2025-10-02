@@ -50,7 +50,15 @@ namespace EasyPack
         public Buff CreateBuff(BuffData buffData, GameObject creator, GameObject target)
         {
             if (buffData == null)
+            {
+                Debug.LogError("BuffData不能为null");
                 return null;
+            }
+            if (target == null)
+            {
+                Debug.LogError("Target不能为null");
+                return null;
+            }
 
             if (!_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
@@ -392,6 +400,13 @@ namespace EasyPack
             {
                 buff.OnRemove?.Invoke(buff);
                 InvokeBuffModules(buff, BuffCallBackType.OnRemove);
+
+                buff.OnCreate = null;
+                buff.OnRemove = null;
+                buff.OnAddStack = null;
+                buff.OnReduceStack = null;
+                buff.OnUpdate = null;
+                buff.OnTrigger = null;
             }
 
             // 批量从各个列表移除
@@ -750,7 +765,7 @@ namespace EasyPack
         /// <summary>
         /// 执行Buff模块，支持优先级排序和条件筛选
         /// </summary>
-        private void InvokeBuffModules(Buff buff, BuffCallBackType callBackType, string customCallbackName = "", params object[] parameters)
+        public void InvokeBuffModules(Buff buff, BuffCallBackType callBackType, string customCallbackName = "", params object[] parameters)
         {
             if (buff.BuffData.BuffModules == null || buff.BuffData.BuffModules.Count == 0)
                 return;
