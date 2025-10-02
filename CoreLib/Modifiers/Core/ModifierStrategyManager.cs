@@ -28,7 +28,7 @@ namespace EasyPack
             if (_strategies.TryGetValue(type, out var strategy))
                 return strategy;
 
-            throw new ArgumentException($"�Ҳ�������Ϊ {type} ������������");
+            throw new ArgumentException($"找不到类型为 {type} 的修改器策略");
         }
     }
 }

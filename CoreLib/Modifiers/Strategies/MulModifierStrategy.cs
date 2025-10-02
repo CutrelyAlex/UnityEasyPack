@@ -5,7 +5,7 @@ using UnityEngine;
 namespace EasyPack
 {
     /// <summary>
-    /// �˷�����������
+    /// 乘法修改器策略
     /// </summary>
     public class MulModifierStrategy : IModifierStrategy
     {

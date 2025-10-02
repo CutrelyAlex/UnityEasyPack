@@ -10,10 +10,10 @@ namespace EasyPack
 
         public void Apply(ref float value, IEnumerable<IModifier> modifiers)
         {
-            // Clamp������ֻ����RangeModifier����
+            // Clamp修改器只对RangeModifier生效
             var rangeMods = modifiers.OfType<RangeModifier>().ToList();
 
-            // �������ȼ���ȡ������ȼ���Clamp������
+            // 按优先级获取最高优先级的Clamp修改器
             var clampMod = rangeMods.OrderByDescending(m => m.Priority).FirstOrDefault();
             if (clampMod != null)
             {
