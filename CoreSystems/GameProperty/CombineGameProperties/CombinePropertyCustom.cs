@@ -33,6 +33,16 @@ namespace EasyPack
         public CombinePropertyCustom(string id, float baseValue = 0)
             : base(id, baseValue)
         {
+            // 默认计算器
+            Calculater = (combine) =>
+            {
+                float sum = _baseCombineValue;
+                foreach (var prop in _gameProperties.Values)
+                {
+                    sum += prop.GetValue();
+                }
+                return sum;
+            };
         }
 
         #endregion
@@ -72,6 +82,7 @@ namespace EasyPack
         /// 注册子属性
         /// </summary>
         /// <param name="gameProperty">要注册的属性</param>
+        /// <param name="handler">可选的自定义事件处理器，接收组合属性的旧值和新值</param>
         /// <returns>注册的属性</returns>
         public GameProperty RegisterProperty(GameProperty gameProperty, Action<float, float> handler = null)
         {
@@ -82,17 +93,20 @@ namespace EasyPack
 
             _gameProperties[gameProperty.ID] = gameProperty;
 
-            Action<float, float> autoSyncHandler = (oldVal, newVal) => {
-                // 重新计算并更新 ResultHolder
-                var newCalculatedValue = GetCalculatedValue();
-                // GetCalculatedValue() 内部已经会更新 ResultHolder 并触发事件
-
-                // 如果用户提供了自定义处理器，也要调用
-                handler?.Invoke(oldVal, newVal);
+            Action<float, float> autoSyncHandler = (oldVal, newVal) =>
+            {
+                var oldCombineValue = ResultHolder.GetValue();
+                
+                var newCombineValue = GetValue();
+                
+                handler?.Invoke(oldCombineValue, newCombineValue);
             };
 
             _eventHandlers[gameProperty] = autoSyncHandler;
             gameProperty.OnValueChanged += autoSyncHandler;
+
+            // 首次注册立即计算
+            GetValue();
 
             return gameProperty;
         }
