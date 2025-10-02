@@ -48,14 +48,13 @@ namespace EasyPack
             if (root == null) return false;
 
             // 以 root 为容器重建局部上下文，统一走 TargetSelector
-            var localCtx = new CardRuleContext
-            {
-                Source = ctx.Source,
-                Container = root,
-                Event = ctx.Event,
-                Factory = ctx.Factory,
-                MaxDepth = MaxDepth ?? ctx.MaxDepth
-            };
+            var localCtx = new CardRuleContext(
+                source: ctx.Source,
+                container: root,
+                evt: ctx.Event,
+                factory: ctx.Factory,
+                maxDepth: MaxDepth ?? ctx.MaxDepth
+            );
 
             var picks = TargetSelector.Select(Scope, FilterMode, localCtx, FilterValue);
             int count = picks?.Count ?? 0;
