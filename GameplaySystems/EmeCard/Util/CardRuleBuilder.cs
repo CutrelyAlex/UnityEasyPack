@@ -389,13 +389,18 @@ namespace EasyPack
             => DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Matched);
 
         /// <summary>批量触发匹配卡牌的自定义事件</summary>
-        public CardRuleBuilder DoBatchCustom(string eventId)
+        public CardRuleBuilder DoBatchCustom(string eventId,bool haveSource=true)
         {
             return DoInvoke((ctx, matched) =>
             {
+                if (haveSource)
+                {
+                    ctx.Source.Custom(eventId, ctx.Event.Data);
+                }
+
                 foreach (var card in matched)
                 {
-                    card.Custom(eventId);
+                    card.Custom(eventId,ctx.Event.Data);
                 }
             });
         }
