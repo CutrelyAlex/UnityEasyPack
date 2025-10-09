@@ -150,7 +150,7 @@ namespace EasyPack
                 .When(ctx => ctx.Source.HasTag("制作"))
                 .NeedTag("玩家")
                 .NeedId("树木")
-                .DoRemoveId("树木", take: 1)
+                .DoRemoveById("树木", take: 1)
                 .DoCreate("木棍")
                 .StopPropagation()
             );
@@ -164,8 +164,8 @@ namespace EasyPack
                 .NeedTag("玩家")
                 .NeedTag("木棍")
                 .NeedTag("火")
-                .DoRemoveTag("木棍", take: 1)
-                .DoRemoveTag("火", take: 1)
+                .DoRemoveByTag("木棍", take: 1)
+                .DoRemoveByTag("火", take: 1)
                 .DoCreate("火把")
                 .StopPropagation()
             );

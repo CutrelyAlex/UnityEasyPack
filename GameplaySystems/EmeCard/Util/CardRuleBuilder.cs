@@ -341,19 +341,19 @@ namespace EasyPack
 
         #region 效果执行 - 便捷语法糖
         /// <summary>移除匹配结果中指定标签的卡牌</summary>
-        public CardRuleBuilder DoRemoveTag(string tag, int? take = null)
+        public CardRuleBuilder DoRemoveByTag(string tag, int? take = null)
             => DoRemove(SelectionRoot.Container, TargetScope.Matched, FilterMode.ByTag, tag, take);
 
         /// <summary>移除匹配结果中指定ID的卡牌</summary>
-        public CardRuleBuilder DoRemoveId(string id, int? take = null)
+        public CardRuleBuilder DoRemoveById(string id, int? take = null)
             => DoRemove(SelectionRoot.Container, TargetScope.Matched, FilterMode.ById, id, take);
 
         /// <summary>移除容器子卡中指定标签的卡牌</summary>
-        public CardRuleBuilder DoRemoveChildTag(string tag, int? take = null)
+        public CardRuleBuilder DoRemoveInChildByTag(string tag, int? take = null)
             => DoRemove(SelectionRoot.Container, TargetScope.Children, FilterMode.ByTag, tag, take);
 
         /// <summary>移除容器子卡中指定ID的卡牌</summary>
-        public CardRuleBuilder DoRemoveChildId(string id, int? take = null)
+        public CardRuleBuilder DoRemoveInChildById(string id, int? take = null)
             => DoRemove(SelectionRoot.Container, TargetScope.Children, FilterMode.ById, id, take);
 
         /// <summary>给匹配结果添加标签</summary>
@@ -363,6 +363,10 @@ namespace EasyPack
         /// <summary>给源卡牌自身添加标签</summary>
         public CardRuleBuilder DoAddTagToSource(string tag)
             => DoInvoke((ctx, matched) => ctx.Source.AddTag(tag));
+        
+        /// <summary>给容器卡牌自身添加标签</summary>
+        public CardRuleBuilder DoAddTagToContainer(string tag)
+            => DoInvoke((ctx, matched) => ctx.Container.AddTag(tag));
 
         /// <summary>给容器子卡中指定标签的卡牌添加新标签</summary>
         public CardRuleBuilder DoAddTagToTag(string targetTag, string newTag, int? take = null)
@@ -371,7 +375,15 @@ namespace EasyPack
         /// <summary>给容器子卡中指定ID的卡牌添加标签</summary>
         public CardRuleBuilder DoAddTagToId(string targetId, string newTag, int? take = null)
             => DoAddTag(newTag, SelectionRoot.Container, TargetScope.Children, FilterMode.ById, targetId, take);
-
+        
+        /// <summary>给源卡牌自身移除标签</summary>
+        public CardRuleBuilder DoRemoveTagToSource(string tag)
+            => DoInvoke((ctx, matched) => ctx.Source.RemoveTag(tag));
+        
+        /// <summary>给容器卡牌自身移除标签</summary>
+        public CardRuleBuilder DoRemoveTagToContainer(string tag)
+            => DoInvoke((ctx, matched) => ctx.Container.RemoveTag(tag));
+        
         /// <summary>修改匹配结果中指定标签的卡牌的属性</summary>
         public CardRuleBuilder DoModifyTag(
             string tag, 
