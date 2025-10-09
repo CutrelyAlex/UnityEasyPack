@@ -241,9 +241,8 @@ namespace EasyPack
             if (removed)
             {
                 _intrinsics.Remove(child);
-                var oldOwner = this;
+                child.RaiseEvent(new CardEvent(CardEventType.RemovedFromOwner, data: this));
                 child.Owner = null;
-                child.RaiseEvent(new CardEvent(CardEventType.RemovedFromOwner, data: oldOwner));
             }
             return removed;
         }

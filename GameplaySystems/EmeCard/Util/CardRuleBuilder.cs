@@ -418,6 +418,30 @@ namespace EasyPack
         }
         #endregion
 
+        #region 规则集成
+        
+        public CardRuleBuilder AutoTagContainerOnChildAdd(string needTag,string addTag)
+        {
+            return On(CardEventType.AddedToOwner)
+                .AtParent()
+                .WhenSourceHasTag("Live")
+                .DoAddTagToContainer("Alive");
+        }
+        
+        public CardRuleBuilder AutoTagContainerOnChildRemove(string needTag,string addTag)
+        {
+            return  On(CardEventType.RemovedFromOwner)
+                .AtParent()
+                .WhenSourceHasTag("Live")
+                .AddRequirement(new NotRequirement()
+                {
+                    Inner = new CardsRequirement() { FilterMode = FilterMode.ByTag, FilterValue = "Live", MinCount = 1 }
+                })
+                .DoRemoveTagToContainer("Alive");
+        }
+
+        #endregion
+
         /// <summary>构建规则</summary>
         public CardRule Build() => _rule;
     }
