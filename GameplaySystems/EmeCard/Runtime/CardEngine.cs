@@ -153,14 +153,13 @@ namespace EasyPack
         {
             var container = SelectContainer(rule.OwnerHops, source);
             if (container == null) return null;
-            return new CardRuleContext
-            {
-                Source = source,
-                Container = container,
-                Event = evt,
-                Factory = CardFactory,
-                MaxDepth = rule.MaxDepth
-            };
+            return new CardRuleContext(
+                source: source,
+                container: container,
+                evt: evt,
+                factory: CardFactory,
+                maxDepth: rule.MaxDepth
+            );
         }
         #endregion
 

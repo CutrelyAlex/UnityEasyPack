@@ -111,14 +111,13 @@ namespace EasyPack
                 return Array.Empty<Card>();
 
             // 构建局部上下文
-            var localCtx = new CardRuleContext
-            {
-                Source = ctx.Source,
-                Container = root,
-                Event = ctx.Event,
-                Factory = ctx.Factory,
-                MaxDepth = selection.MaxDepth ?? ctx.MaxDepth
-            };
+            var localCtx = new CardRuleContext(
+                source: ctx.Source,
+                container: root,
+                evt: ctx.Event,
+                factory: ctx.Factory,
+                maxDepth: selection.MaxDepth ?? ctx.MaxDepth
+            );
 
             // 选择目标
             var targets = Select(
