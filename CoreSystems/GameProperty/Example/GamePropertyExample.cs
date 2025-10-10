@@ -436,7 +436,10 @@ namespace EasyPack
         /// </summary>
         void Example_7_SerializationExample()
         {
-            Debug.Log("=== 示例7：序列化与反序列化 ===");
+            Debug.Log("=== 示例7：序列化与反序列化（使用新统一序列化API） ===");
+
+            // 确保序列化器已初始化
+            GamePropertySerializationInitializer.ManualInitialize();
 
             // 创建一个复杂的属性
             var playerPower = new GameProperty("PlayerPower", 100f);
@@ -446,17 +449,22 @@ namespace EasyPack
 
             Debug.Log($"原始属性值: {playerPower.GetValue()}");
 
-            // 序列化
-            var serializedData = GamePropertySerializer.Serialize(playerPower);
-            Debug.Log($"序列化成功 - ID: {serializedData.ID}, 基础值: {serializedData.BaseValue}, 修饰器数量: {serializedData.ModifierList?.Modifiers?.Count}");
+            // 使用新的统一序列化服务进行序列化
+            string jsonData = SerializationServiceManager.SerializeToJson(playerPower);
+            Debug.Log($"序列化成功 (JSON): {jsonData}");
 
-            // 反序列化
-            var deserializedProp = GamePropertySerializer.FromSerializable(serializedData);
+            // 使用新的统一序列化服务进行反序列化
+            var deserializedProp = SerializationServiceManager.DeserializeFromJson<GameProperty>(jsonData);
             Debug.Log($"反序列化后属性值: {deserializedProp.GetValue()}");
+            Debug.Log($"反序列化后修饰器数量: {deserializedProp.ModifierCount}");
 
             // 验证序列化完整性
             bool isEqual = Mathf.Approximately(playerPower.GetValue(), deserializedProp.GetValue());
             Debug.Log($"序列化完整性验证: {(isEqual ? "成功" : "失败")}");
+
+            // 注意：依赖关系不会被序列化
+            Debug.Log("注意：新的序列化系统只序列化属性数据本身，不序列化依赖关系");
+            Debug.Log("如需序列化依赖关系，请在反序列化后手动重建");
 
             Debug.Log("序列化与反序列化示例完成\n");
         }
