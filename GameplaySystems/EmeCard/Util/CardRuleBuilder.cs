@@ -418,6 +418,30 @@ namespace EasyPack
         }
         #endregion
 
+        #region 规则集成
+        
+        public CardRuleBuilder AutoTagContainerOnChildAdd(string needTag,string addTag)
+        {
+            return On(CardEventType.AddedToOwner)
+                .AtParent()
+                .WhenSourceHasTag(needTag)
+                .DoAddTagToContainer(addTag);
+        }
+        
+        public CardRuleBuilder AutoTagContainerOnChildRemove(string needTag,string removeTag)
+        {
+            return  On(CardEventType.RemovedFromOwner)
+                .AtParent()
+                .WhenSourceHasTag(needTag)
+                .AddRequirement(new NotRequirement()
+                {
+                    Inner = new CardsRequirement() { FilterMode = FilterMode.ByTag, FilterValue = needTag, MinCount = 1 }
+                })
+                .DoRemoveTagToContainer(removeTag);
+        }
+
+        #endregion
+
         /// <summary>构建规则</summary>
         public CardRule Build() => _rule;
     }
