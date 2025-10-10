@@ -122,18 +122,58 @@ namespace EasyPack
             strength.SetBaseValue(15f);
             Debug.Log($"力量提升后 - 力量: {strength.GetValue()}, 负重: {carryWeight.GetValue()}");
 
-            // 3.2 多重依赖关系
+            // 3.2 多重依赖关系 - 错误示例
             var agility = new GameProperty("Agility", 8f);
             var attackSpeed = new GameProperty("AttackSpeed", 1f);
 
-            // 攻击速度依赖于敏捷和力量
-            attackSpeed.AddDependency(agility, (dep, newVal) => 1f + newVal * 0.1f);
-            attackSpeed.AddDependency(strength, (dep, newVal) => attackSpeed.GetBaseValue() + newVal * 0.05f);
+            // 错误的AI，可恶的AI，这样会导致后一个依赖覆盖前一个依赖的结果
+            // attackSpeed.AddDependency(agility, (dep, newVal) => 1f + newVal * 0.1f);
+            // attackSpeed.AddDependency(strength, (dep, newVal) => attackSpeed.GetBaseValue() + newVal * 0.05f);
+
+            // 正确做法1：创建中间属性分别计算贡献，然后汇总
+            var agilityContribution = new GameProperty("AgilityContribution", 0f);
+            var strengthContribution = new GameProperty("StrengthContribution", 0f);
+
+            agilityContribution.AddDependency(agility, (dep, newVal) => newVal * 0.1f);
+            strengthContribution.AddDependency(strength, (dep, newVal) => newVal * 0.05f);
+
+            // attackSpeed 依赖于两个贡献属性
+            attackSpeed.AddDependency(agilityContribution, (dep, newVal) =>
+            {
+                return 1f + agilityContribution.GetValue() + strengthContribution.GetValue();
+            });
 
             Debug.Log($"敏捷: {agility.GetValue()}, 力量: {strength.GetValue()}, 攻击速度: {attackSpeed.GetValue()}");
+            Debug.Log($"  (计算: 1.0 + {agility.GetValue()}*0.1 + {strength.GetValue()}*0.05 = {attackSpeed.GetValue()})");
 
             agility.SetBaseValue(12f);
             Debug.Log($"敏捷提升后 - 攻击速度: {attackSpeed.GetValue()}");
+            Debug.Log($"  (计算: 1.0 + {agility.GetValue()}*0.1 + {strength.GetValue()}*0.05 = {attackSpeed.GetValue()})");
+
+            // 正确做法2：使用 CombinePropertyCustom
+            Debug.Log("\n--- 使用 CombinePropertyCustom 的更佳实现 ---");
+            var agility2 = new GameProperty("Agility2", 8f);
+            var strength2 = new GameProperty("Strength2", 15f);
+            
+            var attackSpeed2 = new CombinePropertyCustom("AttackSpeed2", 1f);
+            attackSpeed2.RegisterProperty(agility2);
+            attackSpeed2.RegisterProperty(strength2);
+            
+            // 自定义计算：基础值 + 敏捷*0.1 + 力量*0.05
+            attackSpeed2.Calculater = (combine) =>
+            {
+                var baseSpeed = combine.GetBaseValue();
+                var agi = combine.GetProperty("Agility2").GetValue();
+                var str = combine.GetProperty("Strength2").GetValue();
+                return baseSpeed + agi * 0.1f + str * 0.05f;
+            };
+
+            Debug.Log($"敏捷: {agility2.GetValue()}, 力量: {strength2.GetValue()}, 攻击速度: {attackSpeed2.GetValue()}");
+            Debug.Log($"  (计算: {attackSpeed2.GetBaseValue()} + {agility2.GetValue()}*0.1 + {strength2.GetValue()}*0.05 = {attackSpeed2.GetValue()})");
+
+            agility2.SetBaseValue(12f);
+            Debug.Log($"敏捷提升后 - 攻击速度: {attackSpeed2.GetValue()}");
+            Debug.Log($"  (计算: {attackSpeed2.GetBaseValue()} + {agility2.GetValue()}*0.1 + {strength2.GetValue()}*0.05 = {attackSpeed2.GetValue()})");
 
             // 3.3 循环依赖检测
             var propA = new GameProperty("PropA", 10f);
