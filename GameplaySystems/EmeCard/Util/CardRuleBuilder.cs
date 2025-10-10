@@ -7,7 +7,7 @@ namespace EasyPack
     /// 规则流式构建器
     /// 提供核心方法和便捷语法糖
     /// </summary>
-    public sealed class CardRuleBuilder
+    public sealed partial class CardRuleBuilder
     {
         private readonly CardRule _rule = new CardRule
         {
@@ -417,31 +417,7 @@ namespace EasyPack
             });
         }
         #endregion
-
-        #region 规则集成
         
-        public CardRuleBuilder AutoTagContainerOnChildAdd(string needTag,string addTag)
-        {
-            return On(CardEventType.AddedToOwner)
-                .AtParent()
-                .WhenSourceHasTag(needTag)
-                .DoAddTagToContainer(addTag);
-        }
-        
-        public CardRuleBuilder AutoTagContainerOnChildRemove(string needTag,string removeTag)
-        {
-            return  On(CardEventType.RemovedFromOwner)
-                .AtParent()
-                .WhenSourceHasTag(needTag)
-                .AddRequirement(new NotRequirement()
-                {
-                    Inner = new CardsRequirement() { FilterMode = FilterMode.ByTag, FilterValue = needTag, MinCount = 1 }
-                })
-                .DoRemoveTagToContainer(removeTag);
-        }
-
-        #endregion
-
         /// <summary>构建规则</summary>
         public CardRule Build() => _rule;
     }
