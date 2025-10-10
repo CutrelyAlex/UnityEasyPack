@@ -444,39 +444,40 @@ namespace EasyPack
         /// <param name="modifiers">要移除的修饰符集合</param>
         public IProperty<float> RemoveModifiers(IEnumerable<IModifier> modifiers)
         {
-            foreach (var modifier in modifiers)
-            {
-                if (modifier == null) continue;
+            var toRemove = new List<IModifier>(modifiers);
 
-                // 使用索引映射快速查找
-                if (_modifierIndexMap.TryGetValue(modifier, out var index))
+            toRemove.Sort((a, b) =>
+            {
+                _modifierIndexMap.TryGetValue(b, out int indexB);
+                _modifierIndexMap.TryGetValue(a, out int indexA);
+                return indexB.CompareTo(indexA);
+            });
+
+            foreach (var modifier in toRemove)
+            {
+                if (_modifierIndexMap.ContainsKey(modifier))
                 {
-                    // 从总列表移除
                     Modifiers.Remove(modifier);
                     _modifierIndexMap.Remove(modifier);
 
-                    // 从分组中移除
+                    // 分组处理
                     if (_groupedModifiers.TryGetValue(modifier.Type, out var list))
                     {
                         list.Remove(modifier);
-
-                        // 如果分组为空则移除整个分组
                         if (list.Count == 0)
-                        {
                             _groupedModifiers.Remove(modifier.Type);
-                        }
-                    }
-
-                    // 检查是否有随机性修饰符
-                    if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
-                    {
-                        _nonClampRangeModifierCount--;
                     }
                 }
             }
 
-            // 批量操作后统一检查一次
-            _hasNonClampRangeModifier = _nonClampRangeModifierCount > 0;
+            // 重建索引映射
+            _modifierIndexMap.Clear();
+            for (int i = 0; i < Modifiers.Count; i++)
+            {
+                _modifierIndexMap[Modifiers[i]] = i;
+            }
+
+            _hasNonClampRangeModifier = HasNonClampRangeModifiers();
             MakeDirty();
             return this;
         }
