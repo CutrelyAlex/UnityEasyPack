@@ -89,9 +89,13 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// 获取内部属性，由子类实现具体逻辑
+        /// 获取内部属性
+        /// <para>对于 CombinePropertySingle：忽略 id 参数，总是返回 ResultHolder</para>
+        /// <para>对于 CombinePropertyCustom：返回指定 ID 的子属性；若 id 为空，返回 ResultHolder</para>
         /// </summary>
-        public abstract GameProperty GetProperty(string id);
+        /// <param name="id">属性ID（可选）</param>
+        /// <returns>GameProperty 实例，如果不存在则返回 null</returns>
+        public abstract GameProperty GetProperty(string id = "");
 
         /// <summary>
         /// 检查对象是否有效
@@ -106,23 +110,25 @@ namespace EasyPack
         #endregion
 
         #region 保护方法
+        
         /// <summary>
         /// 获取计算后的值，由子类重写以实现不同的计算逻辑
         /// </summary>
+        /// <returns>计算后的值</returns>
         protected virtual float GetCalculatedValue()
         {
+            // 执行计算器获取计算值
             var calculatedValue = Calculater?.Invoke(this) ?? _baseCombineValue;
 
-            // 先获取当前的 ResultHolder 值
-            var currentValue = ResultHolder.GetValue();
+            // 更新 ResultHolder 的基础值
+            var currentBaseValue = ResultHolder.GetBaseValue();
+            if (System.Math.Abs(currentBaseValue - calculatedValue) > 0.0001f)
+            {
+                ResultHolder.SetBaseValue(calculatedValue);
+            }
 
-            // 设置新的基础值
-            ResultHolder.SetBaseValue(calculatedValue);
-
-            // 获取应用修饰器后的最终值
-            var finalValue = ResultHolder.GetValue();
-
-            return finalValue;
+            // 返回应用修饰符后的最终值
+            return ResultHolder.GetValue();
         }
 
         /// <summary>
@@ -189,15 +195,23 @@ namespace EasyPack
         /// <summary>
         /// 释放资源
         /// </summary>
-        public virtual void Dispose()
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
         {
             if (_isDisposed) return;
 
-            // 调用子类的清理逻辑
-            DisposeCore();
-
-            // 清理ResultHolder
-            ResultHolder?.ClearModifiers();
+            if (disposing)
+            {
+                // 释放托管资源
+                DisposeCore();
+                ResultHolder?.ClearModifiers();
+                ResultHolder = null;
+            }
 
             _isDisposed = true;
         }
@@ -208,6 +222,11 @@ namespace EasyPack
         protected virtual void DisposeCore()
         {
             // 基类不需要额外的清理逻辑
+        }
+
+        ~CombineGameProperty()
+        {
+            Dispose(false);
         }
 
         #endregion

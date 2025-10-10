@@ -13,7 +13,7 @@ namespace EasyPack
         private BuffManager _buffManager;
         private GameObject _dummyTarget;
         private GameObject _dummyCreator;
-        private CombineGamePropertyManager _combineGamePropertyManager;
+        private GamePropertyManager _combineGamePropertyManager;
 
         void Start()
         {
@@ -21,7 +21,7 @@ namespace EasyPack
             _buffManager = new BuffManager();
             _dummyTarget = new GameObject("DummyTarget");
             _dummyCreator = new GameObject("DummyCreator");
-            _combineGamePropertyManager = new CombineGamePropertyManager();
+            _combineGamePropertyManager = new GamePropertyManager();
 
             Debug.Log("=== Buff 系统示例开始 ===\n");
 

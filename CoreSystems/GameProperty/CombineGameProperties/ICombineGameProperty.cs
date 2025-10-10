@@ -1,4 +1,3 @@
-
 using System;
 /// 这种组合式的Property，是为了应对例如这种需求：
 ///     策划：我想要一张卡牌，这张卡牌让 增益Buff 的 增益效果 翻倍 （套娃）
@@ -9,15 +8,49 @@ using System;
 ///                                                         （特别复杂需求）
 namespace EasyPack
 {
+    /// <summary>
+    /// 组合属性
+    /// </summary>
     public interface ICombineGameProperty
     {
+        /// <summary>
+        /// 属性的唯一标识符
+        /// </summary>
         string ID { get; }
+        
+        /// <summary>
+        /// 结果持有者，存储计算后的最终值
+        /// </summary>
         GameProperty ResultHolder { get; }
+        
+        /// <summary>
+        /// 获取内部属性
+        /// </summary>
         GameProperty GetProperty(string id);
+        
+        /// <summary>
+        /// 计算器函数，定义如何计算组合属性的值
+        /// </summary>
         Func<ICombineGameProperty, float> Calculater { get; }
+        
+        /// <summary>
+        /// 获取计算后的最终值
+        /// </summary>
         float GetValue();
+        
+        /// <summary>
+        /// 获取基础值
+        /// </summary>
         float GetBaseValue();
+        
+        /// <summary>
+        /// 检查对象是否有效
+        /// </summary>
         bool IsValid();
-        public void Dispose();
+        
+        /// <summary>
+        /// 释放资源
+        /// </summary>
+        void Dispose();
     }
 }

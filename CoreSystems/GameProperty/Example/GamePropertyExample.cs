@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace EasyPack
@@ -9,7 +10,7 @@ namespace EasyPack
     /// </summary>
     public class GamePropertyExample : MonoBehaviour
     {
-        public CombineGamePropertyManager CombineGamePropertyManager;
+        public GamePropertyManager CombineGamePropertyManager;
 
         void Start()
         {
@@ -275,6 +276,86 @@ namespace EasyPack
                 Debug.Log($"添加修饰器后生命值: {health.GetValue()}");
             }
 
+            Debug.Log("\n=== 新功能演示：直接管理 GameProperty ===");
+
+            // 5.1 直接包装 GameProperty（带修饰符）
+            var baseDamage = new GameProperty("BaseDamage", 50f);
+            baseDamage.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));      // +20
+            baseDamage.AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.5f));     // *1.5
+            
+            Debug.Log($"包装前 BaseDamage 值: {baseDamage.GetValue()}");              // (50+20)*1.5 = 105
+            
+            var wrappedDamage = CombineGamePropertyManager.Wrap(baseDamage);
+            Debug.Log($"包装后的属性值: {wrappedDamage.GetValue()}");                  // 应该也是 105
+            Debug.Log($"包装后 ResultHolder 的修饰符数量: {wrappedDamage.ResultHolder.ModifierCount}");  // 应该是 2
+
+            // 5.2 使用便利方法进行链式调用
+            var attackPower = new CombinePropertySingle("AttackPower", 100f);
+            attackPower
+                .SetBaseValue(120f)
+                .AddModifier(new FloatModifier(ModifierType.Add, 0, 30f))
+                .AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.2f))
+                .SubscribeValueChanged((oldVal, newVal) => {
+                    Debug.Log($"攻击力变化: {oldVal} -> {newVal}");
+                });
+
+            CombineGamePropertyManager.AddOrUpdate(attackPower);
+            Debug.Log($"攻击力最终值: {attackPower.GetValue()}"); // (120+30)*1.2 = 180
+
+            // 5.3 批量包装 GameProperty（带修饰符）
+            var strength = new GameProperty("Strength", 20f);
+            strength.AddModifier(new FloatModifier(ModifierType.Add, 0, 5f));  // +5
+            
+            var agility = new GameProperty("Agility", 15f);
+            agility.AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.2f)); // *1.2
+            
+            var intelligence = new GameProperty("Intelligence", 18f);
+
+            var baseProperties = new List<GameProperty> { strength, agility, intelligence };
+            
+            Debug.Log("\n--- 批量包装带修饰符的属性 ---");
+            foreach (var prop in baseProperties)
+            {
+                Debug.Log($"包装前 {prop.ID}: 值={prop.GetValue()}, 修饰符数={prop.ModifierCount}");
+            }
+
+            var wrappedProps = CombineGamePropertyManager.WrapRange(baseProperties).ToList();
+            
+            foreach (var wrapped in wrappedProps)
+            {
+                Debug.Log($"包装后 {wrapped.ID}: 值={wrapped.GetValue()}, 修饰符数={wrapped.ResultHolder.ModifierCount}");
+            }
+
+            Debug.Log($"\n批量包装了 {wrappedProps.Count} 个属性");
+
+            // 5.4 使用类型安全的获取方法
+            var singleProp = CombineGamePropertyManager.GetSingle("Strength");
+            if (singleProp != null)
+            {
+                Debug.Log($"力量值: {singleProp.GetValue()}"); // 应该是 25 (20+5)
+            }
+
+            // 5.5 检查属性类型
+            if (CombineGamePropertyManager.IsSingle("Strength"))
+            {
+                Debug.Log("Strength 是 CombinePropertySingle 类型");
+            }
+
+            // 5.6 验证修饰符复制的正确性
+            Debug.Log("\n--- 验证修饰符复制 ---");
+            var wrappedStrength = CombineGamePropertyManager.GetSingle("Strength");
+            if (wrappedStrength != null)
+            {
+                Debug.Log($"Strength 包装后:");
+                Debug.Log($"  - 基础值: {wrappedStrength.ResultHolder.GetBaseValue()}");
+                Debug.Log($"  - 最终值: {wrappedStrength.GetValue()}");
+                Debug.Log($"  - 修饰符数量: {wrappedStrength.ResultHolder.ModifierCount}");
+                
+                // 添加新的修饰符测试
+                wrappedStrength.AddModifier(new FloatModifier(ModifierType.Add, 0, 10f));
+                Debug.Log($"  - 添加修饰符后最终值: {wrappedStrength.GetValue()}"); // 应该是 35 (20+5+10)
+            }
+
             Debug.Log("属性管理器示例完成\n");
         }
 
@@ -532,7 +613,7 @@ namespace EasyPack
 
             // 9.5 管理器错误处理
             Debug.Log("\n9.5 测试管理器错误处理");
-            var testManager = new CombineGamePropertyManager();
+            var testManager = new GamePropertyManager();
 
             // 添加空属性
             testManager.AddOrUpdate(null);

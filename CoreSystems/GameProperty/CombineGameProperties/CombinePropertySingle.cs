@@ -25,27 +25,7 @@ namespace EasyPack
 
         #endregion
 
-        #region 修改/获取
-
-        /// <summary>
-        /// 设置ResultHolder的基础值
-        /// </summary>
-        /// <param name="value">新的基础值</param>
-        public void SetBaseValue(float value)
-        {
-            ThrowIfDisposed();
-            ResultHolder.SetBaseValue(value);
-        }
-
-        /// <summary>
-        /// 获取ResultHolder的引用，用于外部操作
-        /// </summary>
-        /// <returns>ResultHolder的引用</returns>
-        public GameProperty GetResultHolder()
-        {
-            ThrowIfDisposed();
-            return ResultHolder;
-        }
+        #region 获取
 
         /// <summary>
         /// 获取内部属性，Single类型只返回ResultHolder
@@ -62,6 +42,72 @@ namespace EasyPack
         protected override float GetCalculatedValue()
         {
             return ResultHolder.GetValue();
+        }
+
+        #endregion
+
+        #region 修饰符
+
+        /// <summary>
+        /// 设置基础值
+        /// </summary>
+        /// <param name="value">新的基础值</param>
+        /// <returns>返回自身</returns>
+        public CombinePropertySingle SetBaseValue(float value)
+        {
+            ThrowIfDisposed();
+            ResultHolder.SetBaseValue(value);
+            return this;
+        }
+
+        /// <summary>
+        /// 添加修饰符
+        /// </summary>
+        /// <param name="modifier">要添加的修饰符</param>
+        /// <returns>返回自身</returns>
+        public CombinePropertySingle AddModifier(IModifier modifier)
+        {
+            ThrowIfDisposed();
+            ResultHolder.AddModifier(modifier);
+            return this;
+        }
+
+        /// <summary>
+        /// 移除修饰符
+        /// </summary>
+        /// <param name="modifier">要移除的修饰符</param>
+        /// <returns>返回自身</returns>
+        public CombinePropertySingle RemoveModifier(IModifier modifier)
+        {
+            ThrowIfDisposed();
+            ResultHolder.RemoveModifier(modifier);
+            return this;
+        }
+
+        /// <summary>
+        /// 清除所有修饰符
+        /// </summary>
+        /// <returns>返回自身</returns>
+        public CombinePropertySingle ClearModifiers()
+        {
+            ThrowIfDisposed();
+            ResultHolder.ClearModifiers();
+            return this;
+        }
+
+        /// <summary>
+        /// 订阅值变化事件
+        /// </summary>
+        /// <param name="handler">事件处理器</param>
+        /// <returns>返回自身</returns>
+        public CombinePropertySingle SubscribeValueChanged(Action<float, float> handler)
+        {
+            ThrowIfDisposed();
+            if (handler != null)
+            {
+                ResultHolder.OnValueChanged += handler;
+            }
+            return this;
         }
 
         #endregion

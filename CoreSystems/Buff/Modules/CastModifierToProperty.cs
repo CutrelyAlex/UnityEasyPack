@@ -10,7 +10,7 @@ namespace EasyPack
     /// </summary>
     public class CastModifierToProperty : BuffModule
     {
-        public CombineGamePropertyManager CombineGamePropertyManager { get; set; }
+        public GamePropertyManager CombineGamePropertyManager { get; set; }
         /// <summary>
         /// 要应用的修饰器
         /// </summary>
@@ -55,7 +55,7 @@ namespace EasyPack
         /// <param name="modifier">要应用的修饰器</param>
         /// <param name="combinePropertyID">组合属性ID</param>
         /// <param name="propertyID">具体属性ID(可选)</param>
-        public CastModifierToProperty(IModifier modifier, string combinePropertyID, CombineGamePropertyManager combineGamePropertyManager, string propertyID = "")
+        public CastModifierToProperty(IModifier modifier, string combinePropertyID, GamePropertyManager combineGamePropertyManager, string propertyID = "")
         {
             Modifier = modifier ?? throw new ArgumentNullException(nameof(modifier));
             CombinePropertyID = combinePropertyID ?? throw new ArgumentNullException(nameof(combinePropertyID));

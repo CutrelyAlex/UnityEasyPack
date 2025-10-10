@@ -132,6 +132,9 @@ void ClearModifiersFromHolder()                            // 清空ResultHolder
 CombinePropertySingle(string id, float baseValue = 0f)     // 构造函数
 GameProperty ResultHolder { get; }                         // 内部属性持有者
 GameProperty GetProperty()                                  // 获取ResultHolder
+void AddModifier(IModifier modifier)               // 向ResultHolder添加修饰器
+void RemoveModifier(IModifier modifier)          // 从ResultHolder移除修饰器
+void ClearModifiers()                            // 清空ResultHolder的修饰器
 ```
 
 #### CombinePropertyCustom
@@ -147,14 +150,25 @@ Func<ICombineGameProperty, float> Calculater { get; set; } // 计算函数
 #### 实例方法
 ```
 void AddOrUpdate(ICombineGameProperty property)                        // 添加或更新属性
+CombinePropertySingle Wrap(GameProperty property)                       // 包装 GameProperty（自动复制修饰符）
+IEnumerable<CombinePropertySingle> WrapRange(IEnumerable<GameProperty> properties) // 批量包装
 ICombineGameProperty Get(string id)                                   // 获取属性
-GameProperty GetGamePropertyFromCombine(string combinePropertyID, string id = "") // 获取子属性
+CombinePropertySingle GetSingle(string id)                            // 获取 Single 类型
+CombinePropertyCustom GetCustom(string id)                            // 获取 Custom 类型
+GameProperty GetGameProperty(string id, string subId = "")            // 获取 GameProperty
+GameProperty GetGamePropertyFromCombine(string combinePropertyID, string id = "") // 从组合属性提取
 bool Remove(string id)                                                 // 移除属性
 IEnumerable<ICombineGameProperty> GetAll()                            // 获取所有属性
+IEnumerable<CombinePropertySingle> GetAllSingles()                    // 获取所有 Single
+IEnumerable<CombinePropertyCustom> GetAllCustoms()                    // 获取所有 Custom
 void Clear()                                                           // 清空所有属性
 int CleanupInvalidProperties()                                        // 清理无效属性
 int Count { get; }                                                     // 属性总数
-bool Contains(string id)                                               // 检查是否包含指定ID的属性
+bool Contains(string id)                                               // 检查是否包含
+bool IsSingle(string id)                                               // 检查是否为 Single
+bool IsCustom(string id)                                               // 检查是否为 Custom
+void AddOrUpdateRange(IEnumerable<ICombineGameProperty> properties)  // 批量添加
+int RemoveRange(IEnumerable<string> ids)                              // 批量移除
 ```
 
 ### 修饰器 API
@@ -291,7 +305,7 @@ var single = new CombinePropertySingle("SingleProp", 50f);
 single.ResultHolder.AddModifier(new FloatModifier(ModifierType.Add, 0, 10f));
 
 // 或者使用包装方法
-single.AddModifierToHolder(new FloatModifier(ModifierType.Add, 0, 5f));
+single.AddModifier(new FloatModifier(ModifierType.Add, 0, 5f));
 
 // 获取最终值
 float value = single.GetValue(); // 65
@@ -599,9 +613,41 @@ public void PropertyManagementExample()
 
 CombineGamePropertyManager提供了全局管理组合属性的功能，使用线程安全的设计。
 
+### 包装 GameProperty
+
+```
+var manager = new GamePropertyManager();
+
+// Wrap：包装单个 GameProperty（自动复制修饰符）
+var baseDamage = new GameProperty("BaseDamage", 50f);
+baseDamage.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));
+baseDamage.AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.5f));
+
+var wrapped = manager.Wrap(baseDamage);
+Debug.Log($"包装后值: {wrapped.GetValue()}");  // (50+20)*1.5 = 105
+Debug.Log($"修饰符数: {wrapped.ResultHolder.ModifierCount}");  // 2
+
+// WrapRange：批量包装
+var props = new List<GameProperty>();
+for (int i = 0; i < 5; i++)
+{
+    var prop = new GameProperty($"Prop{i}", i * 10f);
+    prop.AddModifier(new FloatModifier(ModifierType.Add, 0, i * 5f));
+    props.Add(prop);
+}
+
+var wrappedList = manager.WrapRange(props);
+foreach (var wp in wrappedList)
+{
+    Debug.Log($"{wp.ID}: {wp.GetValue()}");
+}
+```
+
+### 基础操作
+
 ```
 // 创建管理器实例
-var manager = new CombineGamePropertyManager();
+var manager = new GamePropertyManager();
 
 // 注册组合属性
 var single = new CombinePropertySingle("SingleProp", 100f);
@@ -617,9 +663,13 @@ if (prop != null && prop.IsValid())
     Debug.Log($"单一属性值: {prop.GetValue()}");
 }
 
+// 类型安全的获取
+var singleProp = manager.GetSingle("SingleProp");
+var customProp = manager.GetCustom("CustomProp");
+
 // 获取组合属性中的子属性
-var resultHolder = manager.GetGamePropertyFromCombine("SingleProp"); // 获取ResultHolder
-var subProperty = manager.GetGamePropertyFromCombine("CustomProp", "SomeChildProp"); // 获取子属性
+var resultHolder = manager.GetGamePropertyFromCombine("SingleProp");
+var subProperty = manager.GetGamePropertyFromCombine("CustomProp", "SomeChildProp");
 
 // 遍历所有注册的组合属性
 foreach (var p in manager.GetAll())
@@ -630,10 +680,27 @@ foreach (var p in manager.GetAll())
     }
 }
 
+// 类型过滤遍历
+foreach (var single in manager.GetAllSingles())
+{
+    Debug.Log($"Single: {single.ID}");
+}
+
+foreach (var custom in manager.GetAllCustoms())
+{
+    Debug.Log($"Custom: {custom.ID}");
+}
+
 // 检查属性是否存在
 if (manager.Contains("CustomProp"))
 {
     Debug.Log("CustomProp 存在");
+}
+
+// 检查属性类型
+if (manager.IsSingle("SingleProp"))
+{
+    Debug.Log("SingleProp 是 Single 类型");
 }
 
 // 获取属性总数
@@ -642,6 +709,13 @@ Debug.Log($"管理器中有 {manager.Count} 个属性");
 // 移除组合属性
 bool removed = manager.Remove("SingleProp");
 Debug.Log($"移除操作结果: {removed}");
+
+// 批量操作
+var propsToAdd = new List<ICombineGameProperty> { single, custom };
+manager.AddOrUpdateRange(propsToAdd);
+
+var idsToRemove = new List<string> { "SingleProp", "CustomProp" };
+int removedCount = manager.RemoveRange(idsToRemove);
 
 // 清理无效属性
 int cleanedCount = manager.CleanupInvalidProperties();
@@ -993,7 +1067,7 @@ property.MakeDirty();
 5. **缓存计算结果**: 对于复杂计算，考虑缓存中间结果
 
 ```
-// ✅ 链式调用和批量操作示例
+// 链式调用和批量操作示例
 var strength = new GameProperty("Strength", 10f);
 
 // 链式调用
@@ -1006,7 +1080,7 @@ strength.SetBaseValue(15f)
 var modifiers = new List<IModifier> { mod1, mod2, mod3 };
 strength.AddModifiers(modifiers);
 
-// ✅ 资源清理
+// 资源清理
 void OnDestroy()
 {
     // 移除事件监听
@@ -1026,104 +1100,4 @@ void OnDestroy()
 }
 ```
 
-## 故障排除
-
-### 常见问题
-
-1. **属性值不更新**
-   - 检查是否正确设置了OnValueChanged事件监听
-   - 确认依赖关系是否正确建立（使用带计算器的AddDependency）
-   - 验证修饰器是否正确添加
-   - 检查CombinePropertyCustom的Calculater是否正确设置
-
-2. **内存泄漏**
-   - 确保在适当时机移除事件监听
-   - 对CombineProperty调用Dispose()方法释放资源
-   - 检查依赖关系是否形成循环引用
-   - 确保UnRegisterProperty正确清理事件处理器
-
-3. **性能问题**
-   - 避免过深的依赖链
-   - 使用批量操作（AddModifiers/RemoveModifiers）
-   - 使用脏标记机制监控性能热点
-   - 优化CombinePropertyCustom的Calculater函数
-
-4. **序列化失败**
-   - 确保所有相关类型都可序列化
-   - 检查修饰器类型是否支持序列化
-   - 注意Func<ICombineGameProperty, float>无法直接序列化
-
-5. **API调用错误**
-   - GameProperty没有Dispose方法，只有CombineProperty有
-   - 使用ModifierCount属性而不是GetModifierCount()方法
-   - 没有ClearDependencies()方法
-   - CombineGamePropertyManager需要实例化，不是静态类
-
-### 调试技巧
-
-```
-// 启用详细日志
-var property = new GameProperty("Debug", 100f);
-property.OnValueChanged += (oldVal, newVal) => {
-    Debug.Log($"[DEBUG] {property.ID}: {oldVal} -> {newVal}");
-};
-
-property.OnDirty(() => {
-    Debug.Log($"[DEBUG] {property.ID} marked as dirty");
-});
-
-// 检查修饰器状态
-Debug.Log($"修饰器数量: {property.ModifierCount}");
-Debug.Log($"是否有修饰器: {property.HasModifiers}");
-
-foreach (var modifier in property.Modifiers)
-{
-    Debug.Log($"修饰器: {modifier.Type}, 优先级: {modifier.Priority}");
-}
-
-// 检查特定类型修饰器
-foreach (ModifierType type in Enum.GetValues(typeof(ModifierType)))
-{
-    if (property.ContainModifierOfType(type))
-    {
-        int count = property.GetModifierCountOfType(type);
-        Debug.Log($"{type}类型修饰器数量: {count}");
-    }
-}
-
-// 验证组合属性有效性
-var manager = new CombineGamePropertyManager();
-var combineProperty = manager.Get("SomeProperty");
-if (combineProperty != null)
-{
-    Debug.Log($"组合属性有效性: {combineProperty.IsValid()}");
-    Debug.Log($"当前值: {combineProperty.GetValue()}");
-    Debug.Log($"基础值: {combineProperty.GetBaseValue()}");
-}
-
-// 调试CombinePropertyCustom
-var customProp = combineProperty as CombinePropertyCustom;
-if (customProp != null)
-{
-    Debug.Log($"计算器函数是否为空: {customProp.Calculater == null}");
-    
-    // 测试各个子属性
-    foreach (var id in new[] { "Prop1", "Prop2", "Prop3" })
-    {
-        var subProp = customProp.GetProperty(id);
-        if (subProp != null)
-        {
-            Debug.Log($"子属性 {id}: {subProp.GetValue()}");
-        }
-        else
-        {
-            Debug.Log($"子属性 {id}: 不存在");
-        }
-    }
-}
-```
-
----
-
 通过合理组合GameProperty系统的各种功能，特别是灵活使用CombinePropertyCustom，可以构建出复杂而灵活的游戏属性系统，满足不同类型游戏的需求。系统的模块化设计使不同的属性逻辑可以分离并重复使用，方便扩展和维护。
-```
