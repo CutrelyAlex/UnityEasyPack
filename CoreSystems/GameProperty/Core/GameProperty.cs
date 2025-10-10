@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace EasyPack
 {
-    public class GameProperty : IProperty<float>
+    public class GameProperty : IModifiableProperty<float>, IDrityTackable
     {
         // 比较大小的静态常量
         private const float EPSILON = 0.0001f;
@@ -97,7 +97,7 @@ namespace EasyPack
         /// 这会影响最终的计算结果
         /// </summary>
         /// <param name="value">新的基础值</param>
-        public IProperty<float> SetBaseValue(float value)
+        public IModifiableProperty<float> SetBaseValue(float value)
         {
             if (System.Math.Abs(_baseValue - value) > EPSILON)
             {
@@ -132,7 +132,7 @@ namespace EasyPack
         /// </summary>
         /// <param name="dependency">依赖的属性</param>
         /// <param name="calculator">计算函数(dependency, newDependencyValue) => newThisValue</param>
-        public IProperty<float> AddDependency(GameProperty dependency, Func<GameProperty, float, float> calculator = null)
+        public IModifiableProperty<float> AddDependency(GameProperty dependency, Func<GameProperty, float, float> calculator = null)
         {
             if (dependency == null)
                 throw new ArgumentNullException(nameof(dependency));
@@ -169,7 +169,7 @@ namespace EasyPack
         /// <summary>
         /// 添加简单依赖
         /// </summary>
-        public IProperty<float> AddDependency(GameProperty dependency)
+        public IModifiableProperty<float> AddDependency(GameProperty dependency)
         {
             return AddDependency(dependency, null);
         }
@@ -177,7 +177,7 @@ namespace EasyPack
         /// <summary>
         /// 移除依赖关系
         /// </summary>
-        public IProperty<float> RemoveDependency(GameProperty dependency)
+        public IModifiableProperty<float> RemoveDependency(GameProperty dependency)
         {
             if (!_dependencies.Remove(dependency)) return this;
 
@@ -228,7 +228,26 @@ namespace EasyPack
 
         private void UpdateRandomDependencyState()
         {
-            _hasRandomDependency = _dependencies.Any(dep => dep.HasNonClampRangeModifiers() || dep._hasRandomDependency);
+            bool hasRandom = false;
+            var visited = new HashSet<GameProperty>();
+            var queue = new Queue<GameProperty>(_dependencies);
+
+            while (queue.Count > 0)
+            {
+                var dep = queue.Dequeue();
+                if (!visited.Add(dep)) continue;
+
+                if (dep.HasNonClampRangeModifiers())
+                {
+                    hasRandom = true;
+                    break;
+                }
+
+                foreach (var subDep in dep._dependencies)
+                    queue.Enqueue(subDep);
+            }
+
+            _hasRandomDependency = hasRandom;
         }
 
         private bool WouldCreateCyclicDependency(GameProperty dependency)
@@ -353,7 +372,7 @@ namespace EasyPack
         /// 向属性添加一个修饰符，修饰符会影响最终值
         /// </summary>
         /// <param name="modifier">要添加的修饰符</param>
-        public IProperty<float> AddModifier(IModifier modifier)
+        public IModifiableProperty<float> AddModifier(IModifier modifier)
         {
 
             if (modifier == null)
@@ -386,7 +405,7 @@ namespace EasyPack
         /// <summary>
         /// 清除所有修饰符，属性值将回到基础值
         /// </summary>
-        public IProperty<float> ClearModifiers()
+        public IModifiableProperty<float> ClearModifiers()
         {
             Modifiers.Clear();
             _groupedModifiers.Clear(); // 清理分组缓存
@@ -401,7 +420,7 @@ namespace EasyPack
         /// 批量添加多个修饰符到属性
         /// </summary>
         /// <param name="modifiers">要添加的修饰符集合</param>
-        public IProperty<float> AddModifiers(IEnumerable<IModifier> modifiers)
+        public IModifiableProperty<float> AddModifiers(IEnumerable<IModifier> modifiers)
         {
             bool needsRangeCheck = false;
             
@@ -442,7 +461,7 @@ namespace EasyPack
         /// 批量移除多个修饰符从属性
         /// </summary>
         /// <param name="modifiers">要移除的修饰符集合</param>
-        public IProperty<float> RemoveModifiers(IEnumerable<IModifier> modifiers)
+        public IModifiableProperty<float> RemoveModifiers(IEnumerable<IModifier> modifiers)
         {
             var toRemove = new List<IModifier>(modifiers);
 
@@ -486,7 +505,7 @@ namespace EasyPack
         /// 从属性中移除一个特定的修饰符
         /// </summary>
         /// <param name="modifier">要移除的修饰符</param>
-        public IProperty<float> RemoveModifier(IModifier modifier)
+        public IModifiableProperty<float> RemoveModifier(IModifier modifier)
         {
             if (!_modifierIndexMap.TryGetValue(modifier, out int index))
                 return this;

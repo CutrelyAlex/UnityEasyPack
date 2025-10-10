@@ -128,7 +128,7 @@ namespace EasyPack
 
             // 攻击速度依赖于敏捷和力量
             attackSpeed.AddDependency(agility, (dep, newVal) => 1f + newVal * 0.1f);
-            attackSpeed.AddDependency(strength, (dep, newVal) => attackSpeed.GetBaseValue() + newVal * 0.05f);
+            attackSpeed.AddDependency(strength, (dep, newVal) => 10f + newVal * 0.05f);
 
             Debug.Log($"敏捷: {agility.GetValue()}, 力量: {strength.GetValue()}, 攻击速度: {attackSpeed.GetValue()}");
 
