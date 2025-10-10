@@ -31,7 +31,7 @@ namespace EasyPack
     public class Card
     {
         /// <summary>
-        /// 无参构造函数（临时用于保证卡牌单例正常运行）
+        /// 无参构造函数
         /// </summary>
         public Card(){}
         
@@ -193,8 +193,11 @@ namespace EasyPack
         /// </summary>
         public IReadOnlyList<Card> Children => _children;
 
+        public int ChildrenCount => Children.Count;
+
         // 固有子卡牌（不可被消耗/移除）
         private readonly HashSet<Card> _intrinsics = new HashSet<Card>();
+        
 
         /// <summary>
         /// 将子卡牌加入当前卡牌作为持有者。
