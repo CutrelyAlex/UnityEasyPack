@@ -424,20 +424,20 @@ namespace EasyPack
         {
             return On(CardEventType.AddedToOwner)
                 .AtParent()
-                .WhenSourceHasTag("Live")
-                .DoAddTagToContainer("Alive");
+                .WhenSourceHasTag(needTag)
+                .DoAddTagToContainer(addTag);
         }
         
-        public CardRuleBuilder AutoTagContainerOnChildRemove(string needTag,string addTag)
+        public CardRuleBuilder AutoTagContainerOnChildRemove(string needTag,string removeTag)
         {
             return  On(CardEventType.RemovedFromOwner)
                 .AtParent()
-                .WhenSourceHasTag("Live")
+                .WhenSourceHasTag(needTag)
                 .AddRequirement(new NotRequirement()
                 {
-                    Inner = new CardsRequirement() { FilterMode = FilterMode.ByTag, FilterValue = "Live", MinCount = 1 }
+                    Inner = new CardsRequirement() { FilterMode = FilterMode.ByTag, FilterValue = needTag, MinCount = 1 }
                 })
-                .DoRemoveTagToContainer("Alive");
+                .DoRemoveTagToContainer(removeTag);
         }
 
         #endregion
