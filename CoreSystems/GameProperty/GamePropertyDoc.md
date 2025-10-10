@@ -31,7 +31,7 @@
 
 ## 系统概述
 
-GameProperty系统是一个灵活的游戏属性管理框架，专为RPG、策略等游戏类型设计。它提供了处理数值属性的各种功能，包括修饰器应用、属性依赖关系、事件监听、序列化等。系统基于组件化设计，通过不同的修饰器和属性组合方式，可以实现各种复杂的属性计算逻辑。
+GameProperty系统是一个灵活的游戏属性管理框架，专为RPG、策略等游戏类型设计。它提供了处理数值属性的各种功能，包括修饰器应用、属性依赖关系、事件监听、序列化等。系统基于组件化设计，通过不同的修饰器和属性组合方式，可以实现各种复杂的属性计算逻辑。系统使用 EasyPack 统一序列化服务进行数据持久化。
 你可以查看GameProperty/Example/GamePropertyExample.cs中的示例代码来获得更加直观的案例
 
 ### 系统特性
@@ -40,7 +40,7 @@ GameProperty系统是一个灵活的游戏属性管理框架，专为RPG、策�
 - **修饰器系统**: 支持多种修饰器类型和优先级
 - **属性依赖**: 支持属性间的依赖关系和自动更新
 - **事件驱动**: 提供完整的属性变化事件监听
-- **序列化支持**: 内置序列化和反序列化功能
+- **统一序列化**: 使用 EasyPack 统一序列化服务进行 JSON 序列化/反序列化
 - **性能优化**: 包含脏标记机制和缓存优化
 
 ## 核心组件
@@ -49,7 +49,8 @@ GameProperty系统是一个灵活的游戏属性管理框架，专为RPG、策�
 - **CombineProperty系列**: 组合多个GameProperty的不同实现方式
 - **CombineGamePropertyManager**: 全局属性管理器，处理属性的注册与查询
 - **修饰器(IModifier)**: 定义如何修改属性值的接口，有多种具体实现
-- **GamePropertySerializer**: 处理属性的序列化与反序列化
+- **SerializationServiceManager**: 统一序列化服务管理器（推荐用于序列化）
+- **GamePropertySerializer**: ~~处理属性的序列化与反序列化~~ （已废弃，请使用 SerializationServiceManager）
 
 ## API参考
 
@@ -209,14 +210,49 @@ Clamp            // 范围限制
 
 ### 序列化 API
 
-#### GamePropertySerializer
+#### 统一序列化服务（推荐使用）
+
+GameProperty 系统现在使用 EasyPack 统一序列化服务进行序列化操作：
+
+```csharp
+// 序列化 GameProperty 到 JSON
+string json = SerializationServiceManager.SerializeToJson(gameProperty);
+
+// 从 JSON 反序列化 GameProperty
+var gameProperty = SerializationServiceManager.DeserializeFromJson<GameProperty>(json);
+
+// 序列化 CombinePropertySingle
+string json = SerializationServiceManager.SerializeToJson(combineProperty);
+
+// 反序列化 CombinePropertySingle
+var combineProperty = SerializationServiceManager.DeserializeFromJson<CombinePropertySingle>(json);
+
+// 序列化 CombinePropertyCustom
+string json = SerializationServiceManager.SerializeToJson(customProperty);
+
+// 反序列化 CombinePropertyCustom（注意：Calculator 和 RegisteredProperties 不会被序列化）
+var customProperty = SerializationServiceManager.DeserializeFromJson<CombinePropertyCustom>(json);
 ```
+
+**重要说明**：
+- 序列化器会自动在运行时初始化（通过 `GamePropertySerializationInitializer`）
+- 只序列化属性数据本身，**不序列化依赖关系**
+- `CombinePropertyCustom` 的 `Calculator` 函数和 `RegisteredProperties` 无法序列化，需要在反序列化后手动重新注册
+
+#### GamePropertySerializer（已废弃）
+
+> ⚠️ **废弃警告**：`GamePropertySerializer` 和 `CombineGamePropertySerializer` 已被标记为过时。请使用上面的统一序列化服务。
+
+旧 API（仅供参考，不建议使用）：
+```csharp
 static SerializableGameProperty Serialize(GameProperty property)              // 序列化
 static GameProperty FromSerializable(SerializableGameProperty serializable)  // 反序列化
 ```
 
-#### CombineGamePropertySerializer  
-```
+#### CombineGamePropertySerializer（已废弃）
+
+旧 API（仅供参考，不建议使用）：
+```csharp
 static SerializableCombineGameProperty Serialize(ICombineGameProperty property)     // 序列化
 static ICombineGameProperty FromSerializable(SerializableCombineGameProperty data)  // 反序列化
 ```
@@ -934,32 +970,86 @@ property.RemoveOnDirty(dirtyHandler); // 记得移除
 
 ### 属性序列化
 
-```
+使用统一序列化服务进行属性的序列化和反序列化：
+
+```csharp
 // 序列化单个GameProperty
 var prop = new GameProperty("MP", 80f);
 prop.AddModifier(new FloatModifier(ModifierType.Add, 1, 10f))
     .AddModifier(new FloatModifier(ModifierType.Mul, 2, 2f));
 
-var serialized = GamePropertySerializer.Serialize(prop);
-var json = JsonUtility.ToJson(serialized);
+// 使用统一序列化服务序列化到 JSON
+string json = SerializationServiceManager.SerializeToJson(prop);
+Debug.Log($"Serialized JSON: {json}");
 
-// 反序列化
-var deserialized = JsonUtility.FromJson<SerializableGameProperty>(json);
-var restoredProp = GamePropertySerializer.FromSerializable(deserialized);
+// 从 JSON 反序列化
+var restoredProp = SerializationServiceManager.DeserializeFromJson<GameProperty>(json);
 
 // 验证值是否一致
 float originalValue = prop.GetValue();
 float deserializedValue = restoredProp.GetValue();
 Debug.Assert(Mathf.Approximately(originalValue, deserializedValue));
+Debug.Log($"Serialization test passed! Original: {originalValue}, Deserialized: {deserializedValue}");
 
-// 序列化组合属性
+// 序列化 CombinePropertySingle
 var combineProp = new CombinePropertySingle("TestCombine", 50f);
-var combineSerialized = CombineGamePropertySerializer.Serialize(combineProp);
-var combineJson = JsonUtility.ToJson(combineSerialized);
+combineProp.AddModifier(new FloatModifier(ModifierType.Add, 1, 20f));
 
-// 反序列化组合属性
-var combineDeserialized = JsonUtility.FromJson<SerializableCombineGameProperty>(combineJson);
-var restoredCombine = CombineGamePropertySerializer.FromSerializable(combineDeserialized);
+string combineJson = SerializationServiceManager.SerializeToJson(combineProp);
+
+// 反序列化 CombinePropertySingle
+var restoredCombine = SerializationServiceManager.DeserializeFromJson<CombinePropertySingle>(combineJson);
+Debug.Log($"CombineProperty value after deserialization: {restoredCombine.GetValue()}");
+
+// 序列化 CombinePropertyCustom（有限制）
+var customProp = new CombinePropertyCustom("CustomProp", 100f);
+var subProp1 = new GameProperty("SubProp1", 50f);
+var subProp2 = new GameProperty("SubProp2", 30f);
+
+customProp.RegisterProperty(subProp1);
+customProp.RegisterProperty(subProp2);
+customProp.Calculater = (combine) => {
+    var custom = combine as CombinePropertyCustom;
+    return custom.GetProperty("SubProp1").GetValue() + 
+           custom.GetProperty("SubProp2").GetValue();
+};
+
+string customJson = SerializationServiceManager.SerializeToJson(customProp);
+var restoredCustom = SerializationServiceManager.DeserializeFromJson<CombinePropertyCustom>(customJson);
+
+// 重要：需要手动重新注册属性和计算器
+restoredCustom.RegisterProperty(subProp1);
+restoredCustom.RegisterProperty(subProp2);
+restoredCustom.Calculater = (combine) => {
+    var custom = combine as CombinePropertyCustom;
+    return custom.GetProperty("SubProp1").GetValue() + 
+           custom.GetProperty("SubProp2").GetValue();
+};
+
+Debug.Log($"CustomProperty value after re-registration: {restoredCustom.GetValue()}");
+```
+
+**序列化限制说明**：
+
+1. **依赖关系不被序列化**：属性之间的依赖关系（通过 `DependencyManager`）不会被序列化，需要在反序列化后手动重建。
+
+2. **CombinePropertyCustom 的特殊限制**：
+   - `Calculator` 函数无法序列化（C# 的 `Func<>` 类型不可序列化）
+   - `RegisteredProperties` 不会被序列化
+   - 反序列化后必须手动重新注册属性和设置计算器
+
+3. **迁移指南**（从旧 API 迁移）：
+
+```csharp
+// 旧 API（已废弃）
+var serialized = GamePropertySerializer.Serialize(prop);
+var json = JsonUtility.ToJson(serialized);
+var deserialized = JsonUtility.FromJson<SerializableGameProperty>(json);
+var restored = GamePropertySerializer.FromSerializable(deserialized);
+
+// 新 API（推荐使用）
+var json = SerializationServiceManager.SerializeToJson(prop);
+var restored = SerializationServiceManager.DeserializeFromJson<GameProperty>(json);
 ```
 
 ## 与其他系统集成

@@ -2,6 +2,7 @@ using EasyPack;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System;
+using UnityEngine;
 
 public class GamePropertyManager
 {
@@ -45,9 +46,16 @@ public class GamePropertyManager
         // 检查是否已存在相同 ID 的包装器
         if (_properties.TryGetValue(property.ID, out var existing) && existing is CombinePropertySingle existingSingle)
         {
-            // 如果 ResultHolder 是同一个实例，直接返回
-            if (existingSingle.ResultHolder == property)
+            // 如果 ResultHolder 的 ID 和基础值与原属性匹配，认为是同一个属性的包装
+            if (existingSingle.ResultHolder.ID == property.ID)
             {
+                // 更新 ResultHolder 的基础值（如果有变化）
+                if (!Mathf.Approximately(existingSingle.ResultHolder.GetBaseValue(), property.GetBaseValue()))
+                {
+                    existingSingle.ResultHolder.SetBaseValue(property.GetBaseValue());
+                }
+                
+                // 返回已存在的包装器实例
                 return existingSingle;
             }
         }
