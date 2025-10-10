@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 /// <summary>
 /// 基于float数值的游戏属性类
@@ -204,17 +205,19 @@ namespace EasyPack
 
             foreach (var dependent in _dependents)
             {
-                // 如果有特定的计算函数则使用计算函数
+
                 if (dependent._dependencyCalculators.TryGetValue(this, out var calculator))
                 {
                     var newValue = calculator(this, _cacheValue);
-                    dependent.SetBaseValue(newValue);
-                    // 立即触发依赖项的计算和事件传播
-                    dependent.GetValue();
+                    if (System.Math.Abs(dependent._baseValue - newValue) > EPSILON)
+                    {
+                        dependent._baseValue = newValue;
+                        dependent.MakeDirty();
+                        dependent.GetValue();
+                    }
                 }
                 else
                 {
-                    // 否则只是标记为脏状态
                     dependent.MakeDirty();
                     dependent.GetValue();
                 }
