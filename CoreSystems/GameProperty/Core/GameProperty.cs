@@ -250,19 +250,16 @@ namespace EasyPack
             while (stack.Count > 0)
             {
                 var current = stack.Pop();
-                
-                // 跳过已访问的节点
                 if (!visited.Add(current)) continue;
-
-                // 检测到循环
                 if (current == this) return true;
 
-                // 将所有依赖项压入栈
+                // 检查正向依赖
                 foreach (var dep in current._dependencies)
-                {
-                    if (!visited.Contains(dep))
-                        stack.Push(dep);
-                }
+                    if (!visited.Contains(dep)) stack.Push(dep);
+
+                // 检查反向依赖
+                foreach (var dep in current._dependents)
+                    if (!visited.Contains(dep)) stack.Push(dep);
             }
 
             return false;
@@ -273,24 +270,29 @@ namespace EasyPack
         /// </summary>
         private void UpdateDependencyDepth()
         {
+            int oldDepth = _dependencyDepth;
+
             if (_dependencies.Count == 0)
             {
                 _dependencyDepth = 0;
-                return;
+            }
+            else
+            {
+                int maxDepth = 0;
+                foreach (var dep in _dependencies)
+                {
+                    if (dep._dependencyDepth > maxDepth)
+                        maxDepth = dep._dependencyDepth;
+                }
+                _dependencyDepth = maxDepth + 1;
             }
 
-            int maxDepth = 0;
-            foreach (var dep in _dependencies)
+            if (oldDepth != _dependencyDepth)
             {
-                if (dep._dependencyDepth > maxDepth)
-                    maxDepth = dep._dependencyDepth;
-            }
-            _dependencyDepth = maxDepth + 1;
-
-            // 传播深度更新到所有依赖此属性的对象
-            foreach (var dependent in _dependents)
-            {
-                dependent.UpdateDependencyDepth();
+                foreach (var dependent in _dependents)
+                {
+                    dependent.UpdateDependencyDepth();
+                }
             }
         }
         #endregion
@@ -345,6 +347,7 @@ namespace EasyPack
         private readonly Dictionary<ModifierType, List<IModifier>> _groupedModifiers = new();
         private readonly Dictionary<IModifier, int> _modifierIndexMap = new(); // 用于快速查找和删除
         private bool _hasNonClampRangeModifier = false;
+        private int _nonClampRangeModifierCount = 0;
 
         /// <summary>
         /// 向属性添加一个修饰符，修饰符会影响最终值
@@ -372,6 +375,7 @@ namespace EasyPack
             // 检查是否有随机性修饰符
             if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
             {
+                _nonClampRangeModifierCount++;
                 _hasNonClampRangeModifier = true;
             }
 
@@ -388,6 +392,7 @@ namespace EasyPack
             _groupedModifiers.Clear(); // 清理分组缓存
             _modifierIndexMap.Clear(); // 清理索引映射
             _hasNonClampRangeModifier = false; // 重置RangeModifier标记
+            _nonClampRangeModifierCount = 0; // 重置计数器
             MakeDirty();
             return this;
         }
@@ -422,6 +427,7 @@ namespace EasyPack
                 if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
                 {
                     needsRangeCheck = true;
+                    _nonClampRangeModifierCount++;
                 }
             }
 
@@ -460,11 +466,17 @@ namespace EasyPack
                             _groupedModifiers.Remove(modifier.Type);
                         }
                     }
+
+                    // 检查是否有随机性修饰符
+                    if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
+                    {
+                        _nonClampRangeModifierCount--;
+                    }
                 }
             }
 
             // 批量操作后统一检查一次
-            _hasNonClampRangeModifier = HasNonClampRangeModifiers();
+            _hasNonClampRangeModifier = _nonClampRangeModifierCount > 0;
             MakeDirty();
             return this;
         }
@@ -475,29 +487,33 @@ namespace EasyPack
         /// <param name="modifier">要移除的修饰符</param>
         public IProperty<float> RemoveModifier(IModifier modifier)
         {
-            // 使用索引映射查找
-            if (_modifierIndexMap.TryGetValue(modifier, out var _))
+            if (!_modifierIndexMap.TryGetValue(modifier, out int index))
+                return this;
+
+            int lastIndex = Modifiers.Count - 1;
+            if (index != lastIndex)
             {
-                Modifiers.Remove(modifier);
-                _modifierIndexMap.Remove(modifier);
+                var lastModifier = Modifiers[lastIndex];
+                Modifiers[index] = lastModifier;
+                _modifierIndexMap[lastModifier] = index;
+            }
 
-                // 从分组中移除
-                if (_groupedModifiers.TryGetValue(modifier.Type, out var list))
-                {
-                    list.Remove(modifier);
+            Modifiers.RemoveAt(lastIndex);
+            _modifierIndexMap.Remove(modifier);
 
-                    // 如果分组为空则移除整个分组
-                    if (list.Count == 0)
-                    {
-                        _groupedModifiers.Remove(modifier.Type);
-                    }
-                }
+            // 从分组中移除
+            if (_groupedModifiers.TryGetValue(modifier.Type, out var list))
+            {
+                list.Remove(modifier);
+                if (list.Count == 0)
+                    _groupedModifiers.Remove(modifier.Type);
+            }
 
-                // 仅在必要时检查
-                if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
-                {
-                    _hasNonClampRangeModifier = HasNonClampRangeModifiers();
-                }
+            // 检查是否有随机性修饰符
+            if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
+            {
+                _nonClampRangeModifierCount--;
+                _hasNonClampRangeModifier = _nonClampRangeModifierCount > 0;
             }
 
             MakeDirty();
