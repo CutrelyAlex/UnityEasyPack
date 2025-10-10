@@ -17,6 +17,7 @@ namespace EasyPack
     {
         // 比较大小的静态常量
         private const float EPSILON = 0.0001f;
+        
         #region 基础属性值
 
         /// <summary>
@@ -26,6 +27,11 @@ namespace EasyPack
 
         private float _baseValue;
         private float _cacheValue;
+
+        /// <summary>
+        /// 依赖管理器
+        /// </summary>
+        internal PropertyDependencyManager DependencyManager { get; private set; }
 
         /// <summary>
         /// 创建一个 <see cref="GameProperty"/> 的新实例
@@ -38,6 +44,7 @@ namespace EasyPack
             _cacheValue = initValue;
             ID = id;
             Modifiers = new List<IModifier>();
+            DependencyManager = new PropertyDependencyManager(this);
             MakeDirty();
         }
 
@@ -53,18 +60,15 @@ namespace EasyPack
         /// <returns>最终值的float数值</returns>
         public float GetValue()
         {
-            bool needsRecalculation = _hasNonClampRangeModifier || _hasRandomDependency || _isDirty;
+            bool needsRecalculation = _hasNonClampRangeModifier || DependencyManager.HasRandomDependency || _isDirty;
 
             if (!needsRecalculation)
                 return _cacheValue;
 
             // 避免空循环
-            if (_isDirty && _dependencies.Count > 0)
+            if (_isDirty && DependencyManager.DependencyCount > 0)
             {
-                foreach (var dep in _dependencies)
-                {
-                    dep.GetValue();
-                }
+                DependencyManager.UpdateDependencies();
             }
 
             var oldValue = _cacheValue;
@@ -75,7 +79,7 @@ namespace EasyPack
             _cacheValue = ret;
 
             // 如果没有随机性依赖项则清理脏标记
-            if (!(_hasNonClampRangeModifier || _hasRandomDependency))
+            if (!(_hasNonClampRangeModifier || DependencyManager.HasRandomDependency))
                 _isDirty = false;
 
             if (System.Math.Abs(oldValue - _cacheValue) > EPSILON)
@@ -83,9 +87,9 @@ namespace EasyPack
                 OnValueChanged?.Invoke(oldValue, _cacheValue);
 
                 // 检查是否有依赖者再触发更新
-                if (_dependents.Count > 0)
+                if (DependencyManager.DependentCount > 0)
                 {
-                    TriggerDependentUpdates();
+                    DependencyManager.TriggerDependentUpdates(_cacheValue);
                 }
             }
 
@@ -112,20 +116,10 @@ namespace EasyPack
 
         #region 依赖系统       
 
-        private readonly HashSet<GameProperty> _dependencies = new();
-        private readonly HashSet<GameProperty> _dependents = new(); // 依赖于此属性的其他属性
-        private readonly Dictionary<GameProperty, Func<GameProperty, float, float>> _dependencyCalculators = new();
-        
-        // 依赖深度
-        private int _dependencyDepth = 0;
-        private const int MAX_DEPENDENCY_DEPTH = 100;
-
         /// <summary>
         /// 属性值改变时的事件
         /// </summary>
         public event Action<float, float> OnValueChanged;
-
-        private readonly HashSet<Action> _onDirtyHandlers = new();
 
         /// <summary>
         /// 添加一个依赖项，当dependency的值改变时，会调用calculator来计算新值
@@ -134,35 +128,7 @@ namespace EasyPack
         /// <param name="calculator">计算函数(dependency, newDependencyValue) => newThisValue</param>
         public IModifiableProperty<float> AddDependency(GameProperty dependency, Func<GameProperty, float, float> calculator = null)
         {
-            if (dependency == null)
-                throw new ArgumentNullException(nameof(dependency));
-
-            if (!_dependencies.Add(dependency)) return this;
-
-            if (WouldCreateCyclicDependency(dependency))
-            {
-                _dependencies.Remove(dependency);
-                Debug.LogWarning($"检测到循环依赖，取消添加依赖关系: {ID} -> {dependency.ID}");
-                return this;
-            }
-
-            // 添加反向引用
-            dependency._dependents.Add(this);
-
-            // 更新依赖深度
-            UpdateDependencyDepth();
-
-            // 如果有计算函数则立即计算
-            if (calculator != null)
-            {
-                _dependencyCalculators[dependency] = calculator;
-                // 立即应用计算结果
-                var dependencyValue = dependency.GetValue();
-                var newValue = calculator(dependency, dependencyValue);
-                SetBaseValue(newValue);
-            }
-
-            UpdateRandomDependencyState();
+            DependencyManager.AddDependency(dependency, calculator);
             return this;
         }
 
@@ -179,147 +145,17 @@ namespace EasyPack
         /// </summary>
         public IModifiableProperty<float> RemoveDependency(GameProperty dependency)
         {
-            if (!_dependencies.Remove(dependency)) return this;
-
-            // 移除反向引用
-            dependency._dependents.Remove(this);
-
-            // 移除计算函数
-            _dependencyCalculators.Remove(dependency);
-
-            // 更新依赖深度
-            UpdateDependencyDepth();
-
-            UpdateRandomDependencyState();
+            DependencyManager.RemoveDependency(dependency);
             return this;
         }
 
-        /// <summary>
-        /// 触发所有依赖此属性的其他属性更新
-        /// </summary>
-        private void TriggerDependentUpdates()
-        {
-            // 早返
-            if (_dependents.Count == 0)
-                return;
-
-            foreach (var dependent in _dependents)
-            {
-
-                if (dependent._dependencyCalculators.TryGetValue(this, out var calculator))
-                {
-                    var newValue = calculator(this, _cacheValue);
-                    if (System.Math.Abs(dependent._baseValue - newValue) > EPSILON)
-                    {
-                        dependent._baseValue = newValue;
-                        dependent.MakeDirty();
-                        dependent.GetValue();
-                    }
-                }
-                else
-                {
-                    dependent.MakeDirty();
-                    dependent.GetValue();
-                }
-            }
-        }
-
-        private bool _hasRandomDependency = false;
-
-        private void UpdateRandomDependencyState()
-        {
-            bool hasRandom = false;
-            var visited = new HashSet<GameProperty>();
-            var queue = new Queue<GameProperty>(_dependencies);
-
-            while (queue.Count > 0)
-            {
-                var dep = queue.Dequeue();
-                if (!visited.Add(dep)) continue;
-
-                if (dep.HasNonClampRangeModifiers())
-                {
-                    hasRandom = true;
-                    break;
-                }
-
-                foreach (var subDep in dep._dependencies)
-                    queue.Enqueue(subDep);
-            }
-
-            _hasRandomDependency = hasRandom;
-        }
-
-        private bool WouldCreateCyclicDependency(GameProperty dependency)
-        {
-            // 自引用
-            if (dependency == this) return true;
-
-            // 深度限制检查
-            if (dependency._dependencyDepth >= MAX_DEPENDENCY_DEPTH)
-            {
-                Debug.LogWarning($"依赖深度超过限制 {MAX_DEPENDENCY_DEPTH}");
-                return true;
-            }
-
-            var visited = new HashSet<GameProperty>();
-            var stack = new Stack<GameProperty>();
-            stack.Push(dependency);
-
-            while (stack.Count > 0)
-            {
-                var current = stack.Pop();
-                if (!visited.Add(current)) continue;
-                if (current == this) return true;
-
-                // 检查正向依赖
-                foreach (var dep in current._dependencies)
-                    if (!visited.Contains(dep)) stack.Push(dep);
-
-                // 检查反向依赖
-                foreach (var dep in current._dependents)
-                    if (!visited.Contains(dep)) stack.Push(dep);
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// 更新依赖深度（在添加/移除依赖时调用）
-        /// </summary>
-        private void UpdateDependencyDepth()
-        {
-            int oldDepth = _dependencyDepth;
-
-            if (_dependencies.Count == 0)
-            {
-                _dependencyDepth = 0;
-            }
-            else
-            {
-                int maxDepth = 0;
-                foreach (var dep in _dependencies)
-                {
-                    if (dep._dependencyDepth > maxDepth)
-                        maxDepth = dep._dependencyDepth;
-                }
-                _dependencyDepth = maxDepth + 1;
-            }
-
-            if (oldDepth != _dependencyDepth)
-            {
-                foreach (var dependent in _dependents)
-                {
-                    dependent.UpdateDependencyDepth();
-                }
-            }
-        }
         #endregion
 
         #region 脏标记系统
 
         private bool _isDirty = false;
         private Action _onDirty;
+        private readonly HashSet<Action> _onDirtyHandlers = new();
 
         /// <summary>
         /// 将属性标记为脏状态，表示需要重新计算值
@@ -544,7 +380,7 @@ namespace EasyPack
         /// 检查是否有非Clamp类型的RangeModifier
         /// </summary>
         /// <returns>如果存在返回true，否则返回false</returns>
-        private bool HasNonClampRangeModifiers()
+        internal bool HasNonClampRangeModifiers()
         {
             return Modifiers.OfType<RangeModifier>().Any(m => m.Type != ModifierType.Clamp);
         }
