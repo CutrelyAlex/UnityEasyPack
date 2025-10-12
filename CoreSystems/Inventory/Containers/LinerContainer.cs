@@ -1,11 +1,12 @@
-using EasyPack;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class LinerContainer : Container
+namespace EasyPack
 {
+    public class LinerContainer : Container
+    {
     public override bool IsGrid => false;
     public override Vector2 Grid => new(-1, -1);
 
@@ -59,7 +60,7 @@ public class LinerContainer : Container
 
         ExecuteInventoryOperationSafely(() =>
         {
-            ClearAllSlots();
+            ClearAllSlotsInternal();
             FillSlotsWithSortedItems(occupiedSlots);
         });
     }
@@ -240,7 +241,7 @@ public class LinerContainer : Container
         RebuildCaches();
     }
 
-    private void ClearAllSlots()
+    private void ClearAllSlotsInternal()
     {
         foreach (var slot in _slots)
         {
@@ -346,3 +347,4 @@ public class LinerContainer : Container
     }
     #endregion
 }
+} // namespace EasyPack

@@ -21,8 +21,8 @@ Inventory系统是一个较强大的背包解决方案，提供高性能物品�
 ### 核心特性
 
 - ⚡ **高性能缓存** - O(1)查询，增量更新
-- 🎯 **灵活条件系统** - 支持组合条件和自定义扩展
-- 📦 **注册器模式序列化** - 零硬编码，易于扩展
+- 🎯 **灵活条件系统** - 支持组合条件（All/Any/Not）和自定义扩展
+- 📦 **智能序列化** - 支持继承类型自动查找，零硬编码，易于扩展
 - 🔄 **跨容器操作** - 移动、转移、批量、分发
 - 📊 **事件驱动** - 完整的生命周期事件
 - 🧩 **模块化设计** - 易于集成和定制
@@ -42,10 +42,11 @@ Inventory系统是一个较强大的背包解决方案，提供高性能物品�
 
 ### 接口层
 ```csharp
-IItem           // 物品接口
-ISlot           // 槽位接口
-IItemCondition  // 条件接口
-IConditionSerializer // 序列化器接口
+IItem                   // 物品接口
+ISlot                   // 槽位接口
+IItemCondition          // 条件接口
+ISerializableCondition  // 可序列化条件接口
+IContainer              // 容器接口
 ```
 
 ### 实现层
@@ -58,16 +59,21 @@ InventoryManager // 全局管理器
 
 ### 序列化层
 ```csharp
-SerializationRegistry     // 注册器（核心）
-ContainerSerializer       // 容器序列化器
-ConditionSerializers     // 条件序列化器集合
+InventorySerializationInitializer  // 序列化初始化器
+ContainerJsonSerializer            // 容器JSON序列化器
+ItemJsonSerializer                 // 物品JSON序列化器
+ConditionJsonSerializer            // 条件JSON序列化器（支持所有 IItemCondition 实现）
 ```
+
+**注意**: 
+- 序列化器支持**继承类型自动查找**：为基类注册序列化器后，所有派生类会自动使用基类的序列化器
+  - 例如：`ContainerJsonSerializer` 注册为 `Container` 类型后，`LinerContainer`、`GridContainer` 等派生类自动可用
+  - 例如：`ConditionJsonSerializer` 注册为 `IItemCondition` 接口后，所有条件类型（`AllCondition`、`AnyCondition`、`NotCondition` 等）自动可用
 
 ---
 
 ## 快速开始
 
-### 创建容器
 ### 创建容器
 
 ```csharp
@@ -204,6 +210,8 @@ container.ContainerCondition.Add(complexCondition);
 
 #### 方法1：简单条件（不需要序列化）
 
+如果你的自定义条件不需要序列化支持（例如仅在运行时使用），只需实现 `IItemCondition` 接口：
+
 ```csharp
 public class WeightLimitCondition : IItemCondition
 {
@@ -224,65 +232,115 @@ public class WeightLimitCondition : IItemCondition
 container.ContainerCondition.Add(new WeightLimitCondition(10f));
 ```
 
-#### 方法2：支持序列化的条件
+**注意**：此条件不支持序列化，无法保存/加载。
+
+#### 方法2：支持序列化的条件（推荐）
+
+如果需要序列化支持，实现 `ISerializableCondition` 接口。参考 `AttributeCondition` 的实现模式：
 
 ```csharp
-// 1. 实现条件类
-public class WeightLimitCondition : IItemCondition
+public class WeightLimitCondition : IItemCondition, ISerializableCondition
 {
     public float MaxWeight { get; set; }
+    
+    public WeightLimitCondition() { }  // 反序列化需要无参构造函数
+    
+    public WeightLimitCondition(float maxWeight)
+    {
+        MaxWeight = maxWeight;
+    }
     
     public bool CheckCondition(IItem item)
     {
         return item != null && item.Weight <= MaxWeight;
     }
-}
 
-// 2. 实现序列化器
-public class WeightLimitConditionSerializer : IConditionSerializer
-{
-    public string Kind => "WeightLimit";
-    
-    public bool CanHandle(IItemCondition condition)
+    // ISerializableCondition 实现
+    public string Kind => "WeightLimit";  // 唯一标识符
+
+    public SerializedCondition ToDto()
     {
-        return condition is WeightLimitCondition;
-    }
-    
-    public SerializedCondition Serialize(IItemCondition condition)
-    {
-        var weightCond = condition as WeightLimitCondition;
         var dto = new SerializedCondition { Kind = Kind };
         
-        var entry = new CustomDataEntry { Id = "MaxWeight" };
-        entry.SetValue(weightCond.MaxWeight, CustomDataType.Float);
-        dto.Params.Add(entry);
+        var maxWeightEntry = new CustomDataEntry { Id = "MaxWeight" };
+        maxWeightEntry.SetValue(MaxWeight, CustomDataType.Float);
+        dto.Params.Add(maxWeightEntry);
         
         return dto;
     }
-    
-    public IItemCondition Deserialize(SerializedCondition dto)
+
+    public ISerializableCondition FromDto(SerializedCondition dto)
     {
-        float maxWeight = 0f;
+        if (dto == null || dto.Params == null)
+            return this;
+
         foreach (var p in dto.Params)
         {
             if (p?.Id == "MaxWeight")
             {
-                maxWeight = p.FloatValue;
+                MaxWeight = p.FloatValue;
                 break;
             }
         }
-        return new WeightLimitCondition { MaxWeight = maxWeight };
+        return this;
     }
 }
+```
 
-// 3. 注册序列化器（游戏启动时）
-void Awake()
+**注册到序列化系统**：
+
+在 `ConditionJsonSerializer.cs` 的 `CreateConditionByKind()` 方法中添加你的条件类型：
+
+```csharp
+private static ISerializableCondition CreateConditionByKind(string kind)
 {
-    SerializationRegistry.RegisterConditionSerializer(
-        new WeightLimitConditionSerializer()
-    );
+    switch (kind)
+    {
+        case "ItemType":
+            return new ItemTypeCondition("");
+        case "Attr":
+            return new AttributeCondition("", null);
+        case "All":
+            return new AllCondition();
+        case "Any":
+            return new AnyCondition();
+        case "Not":
+            return new NotCondition();
+        case "WeightLimit":  // 添加你的自定义条件
+            return new WeightLimitCondition();
+        default:
+            Debug.LogWarning($"[ConditionJsonSerializer] 未支持的条件类型: {kind}");
+            return null;
+    }
 }
 ```
+
+**使用示例**：
+
+```csharp
+// 创建条件
+var condition = new WeightLimitCondition(15.5f);
+container.ContainerCondition.Add(condition);
+
+// 序列化容器（条件会自动序列化）
+string json = SerializationServiceManager.SerializeToJson(container);
+
+// 反序列化后条件完整保留
+var restored = SerializationServiceManager.DeserializeFromJson<Container>(json);
+// restored.ContainerCondition 包含 WeightLimitCondition，且 MaxWeight = 15.5f
+
+// 也可以独立序列化条件
+string condJson = SerializationServiceManager.SerializeToJson<IItemCondition>(condition);
+var restoredCond = SerializationServiceManager.DeserializeFromJson<IItemCondition>(condJson);
+```
+
+**关键点**：
+-  实现 `ISerializableCondition` 接口（包含 `Kind`、`ToDto()`、`FromDto()` 三个成员）
+-  提供无参构造函数供反序列化使用
+-  `Kind` 属性必须返回唯一的字符串标识符
+-  在 `ConditionJsonSerializer.CreateConditionByKind()` 中注册你的条件类型
+-  使用 `CustomDataEntry.SetValue()` 序列化数据（支持自动类型推断）
+-  复杂对象可以用 `JsonUtility.ToJson()` 序列化为字符串存储（参考 `AllCondition` 嵌套条件的处理）
 
 ---
 
@@ -291,45 +349,118 @@ void Awake()
 ### 基本序列化
 
 ```csharp
+// 确保序列化器已初始化（运行时自动初始化，测试环境需手动调用）
+InventorySerializationInitializer.ManualInitialize();
+
 // 序列化容器
-string json = ContainerSerializer.ToJson(container, prettyPrint: true);
+string json = SerializationServiceManager.SerializeToJson(container);
 
 // 反序列化容器
-var restored = ContainerSerializer.FromJson(json);
+var restored = SerializationServiceManager.DeserializeFromJson<Container>(json);
+
+// 序列化物品
+string itemJson = SerializationServiceManager.SerializeToJson(item);
+var restoredItem = SerializationServiceManager.DeserializeFromJson<Item>(itemJson);
 ```
 
 ### 条件序列化
 
+**支持的条件类型**：
+- `ItemTypeCondition` - 物品类型条件
+- `AttributeCondition` - 属性条件
+- `AllCondition` - 全部满足条件（AND逻辑）
+- `AnyCondition` - 任一满足条件（OR逻辑）
+- `NotCondition` - 条件取反（NOT逻辑）
+
+所有条件都实现了 `ISerializableCondition` 接口，支持独立序列化或作为容器条件的一部分自动序列化。
+
+#### 容器条件序列化
+
+容器的条件会自动随容器一起序列化：
+
 ```csharp
-// 序列化条件（包括嵌套的组合条件）
+// 创建带条件的容器
+var container = new LinerContainer("treasure_chest", "宝箱", "Chest", 50);
+
+// 添加条件（包括嵌套的组合条件和取反条件）
 var condition = new AllCondition(
     new ItemTypeCondition("Equipment"),
     new AnyCondition(
         new AttributeCondition("Rarity", "Epic"),
         new AttributeCondition("Rarity", "Legendary")
-    )
+    ),
+    new NotCondition(new AttributeCondition("Broken", true))  // 排除已损坏的物品
 );
+container.ContainerCondition.Add(condition);
 
-var dto = ContainerSerializer.SerializeCondition(condition);
-string condJson = JsonUtility.ToJson(dto, true);
+// 序列化（条件会自动包含）
+string json = SerializationServiceManager.SerializeToJson(container);
 
-// 反序列化条件
-var restoredCond = ContainerSerializer.DeserializeCondition(dto);
+// 反序列化后条件完整保留
+var restored = SerializationServiceManager.DeserializeFromJson<Container>(json);
+// restored.ContainerCondition 包含完整的条件树
 ```
 
-### 注册自定义容器类型
+#### 独立条件序列化
+
+条件也可以独立序列化：
 
 ```csharp
-// 假设实现了GridContainer
-SerializationRegistry.RegisterContainerFactory("GridContainer", dto =>
-{
-    return new GridContainer(dto.ID, dto.Name, dto.Type, dto.Grid);
-});
+// 创建条件
+var condition = new AllCondition(
+    new ItemTypeCondition("Weapon"),
+    new AttributeCondition("Level", 10, AttributeComparisonType.GreaterThanOrEqual)
+);
 
-// 之后GridContainer会自动支持序列化
+// 独立序列化条件
+string condJson = SerializationServiceManager.SerializeToJson<IItemCondition>(condition);
+
+// 独立反序列化条件
+var restoredCondition = SerializationServiceManager.DeserializeFromJson<IItemCondition>(condJson);
+
+// 可以将反序列化的条件用于容器
+container.ContainerCondition.Add(restoredCondition);
+```
+
+### 自定义序列化
+
+序列化系统支持**继承类型自动查找**，这意味着：
+- 为基类或接口注册序列化器后，所有派生类/实现类会自动使用该序列化器
+- 无需为每个具体类型单独注册序列化器
+
+如果需要为自定义类型扩展序列化系统：
+
+```csharp
+// 创建自定义序列化器（例如为 GridContainer）
+public class GridContainerJsonSerializer : JsonSerializerBase<GridContainer>
+{
+    public override string SerializeToJson(GridContainer obj)
+    {
+        // 实现序列化逻辑
+        var dto = new GridContainerDTO 
+        { 
+            ID = obj.ID, 
+            Name = obj.Name,
+            // ... 其他字段
+        };
+        return JsonUtility.ToJson(dto);
+    }
+
+    public override GridContainer DeserializeFromJson(string json)
+    {
+        // 实现反序列化逻辑
+        var dto = JsonUtility.FromJson<GridContainerDTO>(json);
+        return new GridContainer(dto.ID, dto.Name, /* ... */);
+    }
+}
+
+// 注册序列化器（可以注册为基类或派生类）
+SerializationServiceManager.RegisterSerializer(new GridContainerJsonSerializer());
+
+// 使用（与其他类型一样）
 var grid = new GridContainer("storage", "仓库", "Storage", new Vector2(10, 10));
-string json = ContainerSerializer.ToJson(grid);
-var restored = ContainerSerializer.FromJson(json); // 自动识别类型
+string json = SerializationServiceManager.SerializeToJson(grid);
+var restored = SerializationServiceManager.DeserializeFromJson<GridContainer>(json);
 ```
 
 ---
@@ -504,40 +635,6 @@ void RemoveGlobalItemCondition(IItemCondition condition)
 void ClearGlobalItemConditions()
 void SetGlobalConditionsEnabled(bool enabled)
 bool ValidateGlobalItemConditions(IItem item)
-```
-
----
-
-### ContainerSerializer（序列化器）
-
-```csharp
-// 容器序列化
-string ToJson(Container container, bool prettyPrint = false)
-Container FromJson(string json)
-
-// 条件序列化
-SerializedCondition SerializeCondition(IItemCondition condition)
-IItemCondition DeserializeCondition(SerializedCondition dto)
-```
-
----
-
-### SerializationRegistry（序列化注册器）
-
-```csharp
-// 注册容器工厂
-void RegisterContainerFactory<T>(
-    string kind, 
-    Func<SerializedContainer, T> factory
-) where T : Container
-
-// 注册条件序列化器
-void RegisterConditionSerializer(IConditionSerializer serializer)
-
-// 查询
-IConditionSerializer GetConditionSerializer(string kind)
-bool CanDeserializeContainer(string kind)
-bool CanSerializeCondition(IItemCondition condition)
 ```
 
 ---
@@ -719,23 +816,9 @@ var badCondition = new AllCondition(
 ### 序列化注意事项
 
 ```csharp
-// ✅ 游戏启动时注册所有自定义类型
-void Awake()
-{
-    // 注册自定义容器
-    SerializationRegistry.RegisterContainerFactory("GridContainer", dto => 
-        new GridContainer(dto.ID, dto.Name, dto.Type, dto.Grid)
-    );
-    
-    // 注册自定义条件
-    SerializationRegistry.RegisterConditionSerializer(
-        new WeightLimitConditionSerializer()
-    );
-}
-
 // ✅ 存档前验证
-string json = ContainerSerializer.ToJson(container);
-var test = ContainerSerializer.FromJson(json);
+string json = SerializationServiceManager.SerializeToJson(container);
+var test = SerializationServiceManager.DeserializeFromJson<Container>(json);
 Debug.Assert(test.GetItemTotalCount("sword") == container.GetItemTotalCount("sword"));
 ```
 
@@ -804,9 +887,11 @@ container.OnBatchUpdateCompleted += RefreshUI;  // 整理后刷新一次
 
 ### Q: 序列化后条件丢失？
 **A**: 
-- 自定义条件必须实现`ISerializableCondition`
-- 序列化器必须注册到`SerializationRegistry`
-- 检查条件的`Kind`是否正确
+- 自定义条件必须实现 `ISerializableCondition` 接口（包含 `Kind`、`ToDto()`、`FromDto()` 方法）
+- 必须在 `ConditionJsonSerializer.CreateConditionByKind()` 中注册你的条件类型
+- 检查 `Kind` 属性是否返回唯一的字符串标识符
+- 确保提供无参构造函数供反序列化使用
+- 参阅文档"自定义条件 > 方法2：支持序列化的条件"了解详细实现步骤
 
 ### Q: 统计数据不一致？
 **A**: 

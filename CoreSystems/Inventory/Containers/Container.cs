@@ -6,13 +6,26 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public abstract class Container
+namespace EasyPack
+{
+    public abstract class Container : IContainer
 {
     #region 基本属性
     public string ID { get; }
     public string Name { get; }
     public string Type { get; set; } = "";
     public int Capacity { get; set; } // -1表示无限容量
+    
+    /// <summary>
+    /// 已使用的槽位数量
+    /// </summary>
+    public int UsedSlots => _slots.Count(s => s.IsOccupied);
+    
+    /// <summary>
+    /// 剩余空闲槽位数量
+    /// </summary>
+    public int FreeSlots => Capacity < 0 ? int.MaxValue : Capacity - UsedSlots;
+    
     public abstract bool IsGrid { get; } // 子类实现，决定是否为网格容器
     public abstract Vector2 Grid { get; } // 网格容器形状
 
@@ -293,9 +306,17 @@ public abstract class Container
     /// <summary>
     /// 清除缓存中的无效条目
     /// </summary>
-    public void ValidateCaches()
+    public bool ValidateCaches()
     {
-        _cacheService.ValidateCaches(_slots.AsReadOnly());
+        try
+        {
+            _cacheService.ValidateCaches(_slots.AsReadOnly());
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void ApplyBatchCacheUpdates(BatchCacheUpdates updates)
@@ -723,7 +744,7 @@ public abstract class Container
     /// <param name="count">要添加的数量</param>
     /// <param name="slotIndex">指定的槽位索引，-1表示自动寻找合适的槽位</param>
     /// <returns>添加结果和成功添加的数量</returns>
-    public virtual (AddItemResult result, int addedCount) AddItems(IItem item, int count = 1, int slotIndex = -1)
+    public virtual (AddItemResult result, int actualCount) AddItems(IItem item, int count = 1, int slotIndex = -1)
     {
         return AddItemsWithCount(item, out _, count, slotIndex);
     }
@@ -1015,4 +1036,123 @@ public abstract class Container
         return (false, 0, remainingCount, -1);
     }
     #endregion
+
+    #region IContainer 接口实现补充
+    
+    /// <summary>
+    /// 移除物品（IContainer 接口实现）
+    /// </summary>
+    public virtual (RemoveItemResult result, int actualCount) RemoveItems(string itemId, int count = 1)
+    {
+        var result = RemoveItem(itemId, count);
+        int actualRemoved = count;
+        
+        // 如果移除失败，计算实际移除的数量
+        if (result != RemoveItemResult.Success)
+        {
+            actualRemoved = 0;
+        }
+        
+        return (result, actualRemoved);
+    }
+
+    /// <summary>
+    /// 获取指定物品的所有槽位
+    /// </summary>
+    public virtual List<ISlot> GetItemSlots(string itemId)
+    {
+        return _slots.Where(s => s.IsOccupied && s.Item?.ID == itemId).ToList();
+    }
+
+    /// <summary>
+    /// 获取指定索引的槽位
+    /// </summary>
+    public virtual ISlot GetSlot(int index)
+    {
+        if (index < 0 || index >= _slots.Count)
+            return null;
+        return _slots[index];
+    }
+
+    /// <summary>
+    /// 获取所有被占用的槽位
+    /// </summary>
+    public virtual List<ISlot> GetOccupiedSlots()
+    {
+        return _slots.Where(s => s.IsOccupied).ToList();
+    }
+
+    /// <summary>
+    /// 获取所有空闲槽位
+    /// </summary>
+    public virtual List<ISlot> GetFreeSlots()
+    {
+        return _slots.Where(s => !s.IsOccupied).ToList();
+    }
+
+    /// <summary>
+    /// 清空指定槽位
+    /// </summary>
+    public virtual bool ClearSlot(int slotIndex)
+    {
+        if (slotIndex < 0 || slotIndex >= _slots.Count)
+            return false;
+
+        var slot = _slots[slotIndex];
+        if (!slot.IsOccupied)
+            return false;
+
+        var item = slot.Item;
+        var oldCount = slot.ItemCount;
+
+        slot.ClearSlot();
+
+        // 更新缓存
+        _cacheService.UpdateItemSlotIndexCache(item.ID, slotIndex, false);
+        _cacheService.UpdateItemTypeCache(item.Type, slotIndex, false);
+
+        // 触发事件
+        OnSlotQuantityChanged(slotIndex, item, oldCount, 0);
+
+        return true;
+    }
+
+    /// <summary>
+    /// 清空所有槽位
+    /// </summary>
+    public virtual void ClearAllSlots()
+    {
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            if (_slots[i].IsOccupied)
+            {
+                ClearSlot(i);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 根据条件获取符合的槽位
+    /// </summary>
+    public virtual List<ISlot> GetSlotsByCondition(IItemCondition condition)
+    {
+        if (condition == null)
+            return new List<ISlot>();
+
+        return _slots.Where(s => s.IsOccupied && condition.CheckCondition(s.Item)).ToList();
+    }
+
+    /// <summary>
+    /// 检查物品是否满足容器条件
+    /// </summary>
+    public virtual bool CheckContainerCondition(IItem item)
+    {
+        if (item == null || ContainerCondition == null || ContainerCondition.Count == 0)
+            return true;
+
+        return ContainerCondition.All(c => c.CheckCondition(item));
+    }
+
+    #endregion
 }
+} // namespace EasyPack

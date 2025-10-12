@@ -275,11 +275,11 @@ public class InventoryExample : MonoBehaviour
         DisplayInventoryContents(bag);
 
         // 2. 序列化
-        string fullJson = ContainerSerializer.ToJson(bag, prettyPrint: true);
+        string fullJson = SerializationServiceManager.SerializeToJson(bag);
         Debug.Log($"[完整 JSON]\n{fullJson}");
 
         // 3. 反序列化为新实例并校验
-        var bagRestored = ContainerSerializer.FromJson(fullJson);
+        var bagRestored = SerializationServiceManager.DeserializeFromJson<Container>(fullJson);
         Debug.Log("反序列化后的背包内容：");
         DisplayInventoryContents(bagRestored);
 
@@ -515,10 +515,10 @@ public class InventoryExample : MonoBehaviour
         gem.Attributes["Quality"] = "Epic";
         chest.AddItems(gem, 12);
 
-        string json = ContainerSerializer.ToJson(chest, true);
+        string json = SerializationServiceManager.SerializeToJson(chest);
         Debug.Log("[序列化 JSON]\n" + json);
 
-        var restored = ContainerSerializer.FromJson(json);
+        var restored = SerializationServiceManager.DeserializeFromJson<Container>(json);
         Debug.Log("反序列化后内容：");
         DisplayInventoryContents(restored);
 

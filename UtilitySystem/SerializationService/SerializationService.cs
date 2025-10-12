@@ -99,9 +99,32 @@ namespace EasyPack
 
             lock (_lock)
             {
+                // 1. 首先尝试精确匹配
                 if (_serializers.TryGetValue(type, out var serializer))
                 {
                     return serializer;
+                }
+
+                // 2. 如果精确匹配失败，尝试查找基类的序列化器
+                Type currentType = type.BaseType;
+                while (currentType != null)
+                {
+                    if (_serializers.TryGetValue(currentType, out serializer))
+                    {
+                        Debug.Log($"[SerializationService] Found serializer for base type {currentType.Name} when looking for {type.Name}");
+                        return serializer;
+                    }
+                    currentType = currentType.BaseType;
+                }
+
+                // 3. 尝试查找接口的序列化器
+                foreach (var interfaceType in type.GetInterfaces())
+                {
+                    if (_serializers.TryGetValue(interfaceType, out serializer))
+                    {
+                        Debug.Log($"[SerializationService] Found serializer for interface {interfaceType.Name} when looking for {type.Name}");
+                        return serializer;
+                    }
                 }
             }
 
