@@ -51,9 +51,11 @@ IContainer              // 容器接口
 
 ### 实现层
 ```csharp
-Item            // 物品实现
-Slot            // 槽位实现
-LinerContainer  // 线性容器
+Item             // 物品实现
+GridItem         // 网格物品（占用多个格子的物品）
+Slot             // 槽位实现
+LinerContainer   // 线性容器
+GridContainer    // 网格容器（支持2D布局和多格子物品）
 InventoryManager // 全局管理器
 ```
 
@@ -61,7 +63,9 @@ InventoryManager // 全局管理器
 ```csharp
 InventorySerializationInitializer        // 序列化初始化器
 ContainerJsonSerializer                  // 容器JSON序列化器
+GridContainerJsonSerializer              // 网格容器JSON序列化器
 ItemJsonSerializer                       // 物品JSON序列化器
+GridItemJsonSerializer                   // 网格物品JSON序列化器
 SerializableConditionJsonSerializer<T>   // 通用条件序列化器（泛型）
 ConditionTypeRegistry                    // 条件类型注册表（Kind->Type映射）
 ```
@@ -83,12 +87,16 @@ ConditionTypeRegistry                    // 条件类型注册表（Kind->Type�
 // 创建线性容器
 var backpack = new LinerContainer("player_bag", "玩家背包", "Backpack", 20);
 
+// 创建网格容器（4x4网格）
+var gridBag = new GridContainer("grid_bag", "网格背包", "Grid", 4, 4);
+
 // 添加条件限制（仅接受装备）
 backpack.ContainerCondition.Add(new ItemTypeCondition("Equipment"));
 ```
 
 ### 物品操作
 
+#### 普通物品
 ```csharp
 // 创建物品
 var sword = new Item 
@@ -109,6 +117,36 @@ int total = backpack.GetItemTotalCount("iron_sword");
 
 // 移除物品
 var removeResult = backpack.RemoveItem("iron_sword", 1);
+```
+
+#### 网格物品（多格子占用）
+```csharp
+// 创建网格物品（占用2x3格子）
+var bigSword = new GridItem
+{
+    ID = "great_sword",
+    Name = "大剑",
+    Type = "Weapon",
+    GridWidth = 2,
+    GridHeight = 3,
+    CanRotate = true,  // 允许旋转（支持0°,90°,180°,270°）
+    Weight = 15.0f
+};
+
+// 自动放置
+var (result1, count1) = gridBag.AddItems(bigSword);
+
+// 指定位置放置（在网格坐标 1,1 处）
+var (result2, count2) = gridBag.AddItemAt(bigSword, 1, 1);
+
+// 旋转物品（按顺序循环：0° → 90° → 180° → 270°）
+bool rotated = gridBag.TryRotateItemAt(1, 1);
+
+// 查询指定位置的物品
+var itemAt = gridBag.GetItemAt(1, 1);
+
+// 可视化网格状态（调试用）
+Debug.Log(gridBag.GetGridVisualization());
 ```
 
 ### 容器管理
@@ -352,16 +390,30 @@ var restoredCond = SerializationServiceManager.DeserializeFromJson<IItemConditio
 // 确保序列化器已初始化（运行时自动初始化，测试环境需手动调用）
 InventorySerializationInitializer.ManualInitialize();
 
-// 序列化容器
-string json = SerializationServiceManager.SerializeToJson(container);
+// 序列化容器（支持 LinerContainer 和 GridContainer）
+string json = SerializationServiceManager.SerializeToJson(container, typeof(Container));
 
 // 反序列化容器
-var restored = SerializationServiceManager.DeserializeFromJson<Container>(json);
+var restored = SerializationServiceManager.DeserializeFromJson(json, typeof(Container)) as Container;
 
-// 序列化物品
-string itemJson = SerializationServiceManager.SerializeToJson(item);
-var restoredItem = SerializationServiceManager.DeserializeFromJson<Item>(itemJson);
+// 序列化网格容器（自动处理 GridItem 和占位符）
+string gridJson = SerializationServiceManager.SerializeToJson(gridContainer, typeof(GridContainer));
+var restoredGrid = SerializationServiceManager.DeserializeFromJson(gridJson, typeof(GridContainer)) as GridContainer;
+
+// 序列化物品（普通物品和网格物品）
+string itemJson = SerializationServiceManager.SerializeToJson(item, typeof(Item));
+var restoredItem = SerializationServiceManager.DeserializeFromJson(itemJson, typeof(Item)) as Item;
+
+// 序列化网格物品
+string gridItemJson = SerializationServiceManager.SerializeToJson(gridItem, typeof(GridItem));
+var restoredGridItem = SerializationServiceManager.DeserializeFromJson(gridItemJson, typeof(GridItem)) as GridItem;
 ```
+
+**注意**：
+- `GridContainer` 序列化会自动跳过占位符（`GridOccupiedMarker`），只保存实际物品
+- 反序列化时会自动重建物品的网格占用关系
+- `GridItem` 的旋转状态会被保存和恢复
+    - 支持的旋转状态：0°, 90°, 180°, 270°（反序列化后恢复相同方向）
 
 ### 条件序列化
 

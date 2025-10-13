@@ -40,6 +40,7 @@ namespace EasyPack
         private static void RegisterItemSerializers()
         {
             SerializationServiceManager.RegisterSerializer(new ItemJsonSerializer());
+            SerializationServiceManager.RegisterSerializer(new GridItemJsonSerializer());
         }
 
         /// <summary>
@@ -47,9 +48,10 @@ namespace EasyPack
         /// </summary>
         private static void RegisterContainerSerializers()
         {
-            // 只需要为基类 Container 注册序列化器
-            // SerializationService 会自动查找继承类型（如 LinerContainer, GridContainer）的基类序列化器
+            // 注册基类容器序列化器
             SerializationServiceManager.RegisterSerializer(new ContainerJsonSerializer());
+            // 注册网格容器专用序列化器
+            SerializationServiceManager.RegisterSerializer(new GridContainerJsonSerializer());
         }
 
         /// <summary>
@@ -77,7 +79,7 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// 手动初始化（用于测试或特殊场景）
+        /// 手动初始化
         /// </summary>
         public static void ManualInitialize()
         {
