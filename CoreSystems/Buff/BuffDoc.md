@@ -114,10 +114,10 @@ buffManager.RemoveBuffByID(target, "Buff_Strength");
 // 移除目标上带有特定标签的Buff
 buffManager.RemoveBuffsByTag(target, "Positive");
 
-// 检查目标是否有特定Buff - 注意：使用ContainsBuff而不是HasBuff
+// 检查目标是否有特定Buff 
 bool hasBuff = buffManager.ContainsBuff(target, "Buff_Strength");
 
-// 获取目标上的所有Buff - 注意：使用GetTargetBuffs而不是GetAllBuffs
+// 获取目标上的所有Buff
 List<Buff> allBuffs = buffManager.GetTargetBuffs(target);
 ```
 
