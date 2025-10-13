@@ -24,6 +24,14 @@ namespace EasyPack
             _constructors[id] = ctor;
         }
 
+        public void Register(IReadOnlyDictionary<string, Func<Card>> productionList)
+        {
+            foreach (var (id,ctor) in productionList)
+            {
+                Register(id, ctor);
+            }
+        }
+
         public Card Create(string id)
         {
             return Create<Card>(id);

@@ -436,5 +436,13 @@ namespace EasyPack
             engine.RegisterRule(rule);
             return rule;
         }
+        /// <summary>注册规则集</summary>
+        public static void RegisterRule(this CardEngine engine, IReadOnlyList<Action<CardRuleBuilder>> configures)
+        {
+            foreach (var configure in configures)
+            {
+                RegisterRule(engine, configure);
+            }
+        }
     }
 }
