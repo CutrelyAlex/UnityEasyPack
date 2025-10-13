@@ -38,13 +38,7 @@ namespace EasyPack
 
             lock (_lock)
             {
-                if (_serializers.ContainsKey(serializer.TargetType))
-                {
-                    Debug.LogWarning($"[SerializationService] Replacing existing serializer for type: {serializer.TargetType.Name}");
-                }
-
                 _serializers[serializer.TargetType] = serializer;
-                Debug.Log($"[SerializationService] Registered serializer for type: {serializer.TargetType.Name} (Strategy: {serializer.SupportedStrategy})");
             }
         }
 

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using EasyPack;
 
@@ -56,8 +57,23 @@ namespace EasyPack
         /// </summary>
         private static void RegisterConditionSerializers()
         {
-            // 注册独立的条件序列化器
-            SerializationServiceManager.RegisterSerializer(new ConditionJsonSerializer());
+            RegisterConditionSerializer<ItemTypeCondition>("ItemType");
+            RegisterConditionSerializer<AttributeCondition>("Attr");
+            RegisterConditionSerializer<AllCondition>("All");
+            RegisterConditionSerializer<AnyCondition>("Any");
+            RegisterConditionSerializer<NotCondition>("Not");
+        }
+
+        /// <summary>
+        /// 注册单个条件序列化器的辅助方法
+        /// </summary>
+        /// <typeparam name="T">条件类型</typeparam>
+        /// <param name="kind">条件的 Kind 标识</param>
+        private static void RegisterConditionSerializer<T>(string kind) 
+            where T : ISerializableCondition, new()
+        {
+            SerializationServiceManager.RegisterSerializer(new SerializableConditionJsonSerializer<T>());
+            ConditionTypeRegistry.RegisterConditionType(kind, typeof(T));
         }
 
         /// <summary>
