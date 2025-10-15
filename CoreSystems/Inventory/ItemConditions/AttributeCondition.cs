@@ -20,6 +20,10 @@ namespace EasyPack
         public object AttributeValue { get; set; }
         public AttributeComparisonType ComparisonType { get; set; }
 
+        public AttributeCondition() : this(string.Empty, null)
+        {
+        }
+
         public AttributeCondition(string attributeName, object requiredValue)
         {
             AttributeName = attributeName;

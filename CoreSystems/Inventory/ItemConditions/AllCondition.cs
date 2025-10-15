@@ -10,6 +10,11 @@ namespace EasyPack
     public sealed class AllCondition : IItemCondition, ISerializableCondition
     {
         public List<IItemCondition> Children { get; } = new List<IItemCondition>();
+
+        public AllCondition()
+        {
+        }
+
         public AllCondition(params IItemCondition[] children)
         {
             if (children != null)

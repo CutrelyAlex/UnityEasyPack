@@ -4,6 +4,10 @@ namespace EasyPack
     {
         public string ItemType { get; set; }
 
+        public ItemTypeCondition() : this(string.Empty)
+        {
+        }
+
         public ItemTypeCondition(string itemType)
         {
             ItemType = itemType;

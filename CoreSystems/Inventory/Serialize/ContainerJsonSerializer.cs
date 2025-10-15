@@ -6,7 +6,6 @@ namespace EasyPack
 {
     /// <summary>
     /// Container类型的JSON序列化器
-    /// 使用SerializationServiceManager统一管理
     /// </summary>
     public class ContainerJsonSerializer : JsonSerializerBase<Container>
     {
@@ -32,8 +31,8 @@ namespace EasyPack
                 {
                     if (cond != null)
                     {
-                        // 使用 SerializationServiceManager 序列化条件
-                        var condJson = SerializationServiceManager.SerializeToJson(cond);
+                        // 使用实际类型序列化条件（而不是接口类型）
+                        var condJson = SerializationServiceManager.SerializeToJson(cond, cond.GetType());
                         if (!string.IsNullOrEmpty(condJson))
                         {
                             var serializedCond = JsonUtility.FromJson<SerializedCondition>(condJson);
@@ -54,7 +53,8 @@ namespace EasyPack
                 string itemJson = null;
                 if (slot.Item is Item concrete)
                 {
-                    itemJson = SerializationServiceManager.SerializeToJson(concrete);
+                    // 使用实际类型序列化物品
+                    itemJson = SerializationServiceManager.SerializeToJson(concrete, concrete.GetType());
                 }
 
                 dto.Slots.Add(new SerializedSlot
@@ -102,9 +102,15 @@ namespace EasyPack
                 {
                     if (c == null || string.IsNullOrEmpty(c.Kind)) continue;
 
-                    // 使用 SerializationServiceManager 反序列化条件
+                    var condType = ConditionTypeRegistry.GetConditionType(c.Kind);
+                    if (condType == null)
+                    {
+                        Debug.LogWarning($"[ContainerJsonSerializer] 未注册的条件类型: {c.Kind}");
+                        continue;
+                    }
+
                     var condJson = JsonUtility.ToJson(c);
-                    var cond = SerializationServiceManager.DeserializeFromJson<IItemCondition>(condJson);
+                    var cond = SerializationServiceManager.DeserializeFromJson(condJson, condType) as IItemCondition;
                     if (cond != null)
                     {
                         conds.Add(cond);

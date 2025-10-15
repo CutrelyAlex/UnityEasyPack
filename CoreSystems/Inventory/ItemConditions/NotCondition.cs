@@ -71,11 +71,14 @@ namespace EasyPack
                     try
                     {
                         var innerDto = JsonUtility.FromJson<SerializedCondition>(p.StringValue);
-                        if (innerDto != null)
+                        if (innerDto != null && !string.IsNullOrEmpty(innerDto.Kind))
                         {
-                            // 使用 SerializationServiceManager 反序列化内部条件
-                            var condJson = JsonUtility.ToJson(innerDto);
-                            Inner = SerializationServiceManager.DeserializeFromJson<IItemCondition>(condJson);
+                            var condType = ConditionTypeRegistry.GetConditionType(innerDto.Kind);
+                            if (condType != null)
+                            {
+                                var condJson = JsonUtility.ToJson(innerDto);
+                                Inner = SerializationServiceManager.DeserializeFromJson(condJson, condType) as IItemCondition;
+                            }
                         }
                     }
                     catch (Exception ex)

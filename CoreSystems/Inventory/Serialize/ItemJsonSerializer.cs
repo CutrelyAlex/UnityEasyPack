@@ -6,7 +6,6 @@ namespace EasyPack
 {
     /// <summary>
     /// Item类型的JSON序列化器
-    /// 使用SerializationServiceManager统一管理
     /// </summary>
     public class ItemJsonSerializer : JsonSerializerBase<Item>
     {

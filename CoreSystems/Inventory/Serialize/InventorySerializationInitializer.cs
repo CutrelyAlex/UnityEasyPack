@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using EasyPack;
 
@@ -39,6 +40,7 @@ namespace EasyPack
         private static void RegisterItemSerializers()
         {
             SerializationServiceManager.RegisterSerializer(new ItemJsonSerializer());
+            SerializationServiceManager.RegisterSerializer(new GridItemJsonSerializer());
         }
 
         /// <summary>
@@ -46,9 +48,10 @@ namespace EasyPack
         /// </summary>
         private static void RegisterContainerSerializers()
         {
-            // 只需要为基类 Container 注册序列化器
-            // SerializationService 会自动查找继承类型（如 LinerContainer, GridContainer）的基类序列化器
+            // 注册基类容器序列化器
             SerializationServiceManager.RegisterSerializer(new ContainerJsonSerializer());
+            // 注册网格容器专用序列化器
+            SerializationServiceManager.RegisterSerializer(new GridContainerJsonSerializer());
         }
 
         /// <summary>
@@ -56,12 +59,27 @@ namespace EasyPack
         /// </summary>
         private static void RegisterConditionSerializers()
         {
-            // 注册独立的条件序列化器
-            SerializationServiceManager.RegisterSerializer(new ConditionJsonSerializer());
+            RegisterConditionSerializer<ItemTypeCondition>("ItemType");
+            RegisterConditionSerializer<AttributeCondition>("Attr");
+            RegisterConditionSerializer<AllCondition>("All");
+            RegisterConditionSerializer<AnyCondition>("Any");
+            RegisterConditionSerializer<NotCondition>("Not");
         }
 
         /// <summary>
-        /// 手动初始化（用于测试或特殊场景）
+        /// 注册单个条件序列化器的辅助方法
+        /// </summary>
+        /// <typeparam name="T">条件类型</typeparam>
+        /// <param name="kind">条件的 Kind 标识</param>
+        private static void RegisterConditionSerializer<T>(string kind) 
+            where T : ISerializableCondition, new()
+        {
+            SerializationServiceManager.RegisterSerializer(new SerializableConditionJsonSerializer<T>());
+            ConditionTypeRegistry.RegisterConditionType(kind, typeof(T));
+        }
+
+        /// <summary>
+        /// 手动初始化
         /// </summary>
         public static void ManualInitialize()
         {
