@@ -95,7 +95,7 @@ namespace EasyPack
         {
             var rules = _rules[evt.Type];
             if (rules == null || rules.Count == 0) return;
-
+            
             var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>();
             for (int i = 0; i < rules.Count; i++)
             {
@@ -106,6 +106,11 @@ namespace EasyPack
                     !string.Equals(rule.CustomId, evt.ID, StringComparison.Ordinal))
                 {
                     continue;
+                }
+                
+                if (evt.ID == "Transform_Compulsion")
+                {
+                    string placeholders = "占位符"; ////修改上方条件以在特定事件触发时进入调试模式
                 }
 
                 var ctx = BuildContext(rule, source, evt);
