@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace EasyPack
 {
@@ -219,7 +220,6 @@ namespace EasyPack
                 _rule.Effects.Add(effect);
             return this;
         }
-
         /// <summary>添加多个自定义效果</summary>
         public CardRuleBuilder Do(params IRuleEffect[] effects)
         {
@@ -401,21 +401,28 @@ namespace EasyPack
             => DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Matched);
 
         /// <summary>批量触发匹配卡牌的自定义事件</summary>
-        public CardRuleBuilder DoBatchCustom(string eventId,bool haveSource=true)
+        public CardRuleBuilder DoBatchCustom(string eventId,Func<CardRuleContext,object> data=null,bool haveSource=true)
         {
             return DoInvoke((ctx, matched) =>
             {
+                object newData = data == null ? ctx : data.Invoke(ctx);
                 if (haveSource)
                 {
-                    ctx.Source.Custom(eventId, ctx.Event.Data);
+                    ctx.Source.Custom(eventId, newData);
                 }
 
                 foreach (var card in matched)
                 {
-                    card.Custom(eventId,ctx.Event.Data);
+                    card.Custom(eventId,newData);
                 }
             });
         }
+        #endregion
+
+        #region Debug
+
+        public CardRuleBuilder PrintContext()=> DoInvoke(((context, list) => Debug.Log(context.ToString())));
+
         #endregion
         
         /// <summary>构建规则</summary>
