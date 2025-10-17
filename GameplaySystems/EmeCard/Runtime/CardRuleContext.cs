@@ -51,7 +51,13 @@ namespace EasyPack
 
         public string EventId => Event.ID;
         public Card DataCard => Event.Data as Card;
+        public T DateCard<T>() where T:CardObject => Event.Data as T;
+        public T GetSource<T>()where T : Card => Source as T;
+        public T GetContainer<T>()where T : Card => Container as T;
         public T DataAs<T>() where T : class => Event.Data as T;
+        public T DataAs<T>(int i) where T:class => DataAs<object[]>()[i] as T;
+        public T DataIs<T>() where T:struct => (T)Event.Data;
+        public T DataIs<T>(int i) where T:struct => (T)DataAs<object[]>()[i];
 
         public bool TryGetData<T>(out T value)
         {
@@ -62,6 +68,28 @@ namespace EasyPack
             }
             value = default;
             return false;
+        }
+
+        public bool TryGetData<T>(int i, out T value)
+        {
+            if (Event.Data is object[] array && array[i] is T v)
+            {
+                value = v;
+                return true;
+            }
+            value = default;
+            return false;
+        }
+
+        public override string ToString()
+        {
+            return "CardRuleContext:\n" +
+                   $"  Source: {Source}\n" +
+                   $"  Container: {Container}\n" +
+                   $"  Event: Type={Event.Type}, ID={Event.ID}, Data={Event.Data}\n" +
+                   $"  Factory: {Factory}\n" +
+                   $"  MaxDepth: {MaxDepth}\n" +
+                   $"  DeltaTime: {DeltaTime}";
         }
     }
 }
