@@ -1,7 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace EasyPack
 {
@@ -68,7 +68,7 @@ namespace EasyPack
         /// 事件主循环，依次处理队列中的所有事件。
         /// </summary>
         /// <param name="maxEvents">最大处理事件数。</param>
-        public void Pump(int maxEvents = int.MaxValue)
+        public void Pump(int maxEvents = 2000)
         {
             if (_isPumping) return;
             _isPumping = true;
@@ -84,6 +84,10 @@ namespace EasyPack
             }
             finally
             {
+                if (processed >= maxEvents)
+                {
+                    Debug.Log($"一个动作就调用了{maxEvents}次处理，这绝对死循环了吧");
+                }
                 _isPumping = false;
             }
         }
@@ -108,11 +112,6 @@ namespace EasyPack
                     continue;
                 }
                 
-                if (evt.ID == "Transform_Compulsion")
-                {
-                    string placeholders = "占位符"; ////修改上方条件以在特定事件触发时进入调试模式
-                }
-
                 var ctx = BuildContext(rule, source, evt);
                 if (ctx == null) continue;
 
@@ -131,7 +130,16 @@ namespace EasyPack
                 Policy.RuleSelection == RuleSelectionMode.Priority
                     ? evals.OrderBy(e => e.rule.Priority).ThenBy(e => e.orderIndex)
                     : evals.OrderBy(e => e.orderIndex);
-
+            //调试用
+           //if (evt.Type==CardEventType.Custom)
+           //{
+           //    Debug.Log(evt.ID);
+           //    if(evt.Data is object[] objects)
+           //    {
+           //        Debug.Log($"碰撞对象是{((Card)objects[0]).Id},对象速度是{(Vector2Int)objects[1]},自身速度是{(Vector2Int)objects[2]}");
+           //    }
+           //}
+            
             if (Policy.FirstMatchOnly)
             {
                 var first = ordered.First();
