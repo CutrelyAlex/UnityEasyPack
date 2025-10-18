@@ -22,10 +22,10 @@ namespace EasyPack
     // 规则策略
     public sealed class RulePolicy
     {
-        // 是否对聚合的 matched 去重（仅影响 TargetKind=Matched 的效果）
+        // 是否对聚合的 matched 去重
         public bool DistinctMatched { get; set; } = true;
 
-        // 该规则命中并执行后，是否中止本次事件的后续规则（可选，用于强短路）
+        // 该规则命中并执行后，是否中止本次事件的后续规则
         public bool StopEventOnSuccess { get; set; } = false;
     }
 }

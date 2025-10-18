@@ -20,13 +20,13 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// 抽象卡牌：
-    /// - 作为“容器”可持有子卡牌（<see cref="Children"/>），并维护所属关系（<see cref="Owner"/>）。
-    /// - 具备标签系统（<see cref="Tags"/>），用于规则匹配与检索。
+    /// 抽象卡牌：<br/>
+    /// - 作为“容器”可持有子卡牌（<see cref="Children"/>），并维护所属关系（<see cref="Owner"/>）。<br/>
+    /// - 具备标签系统（<see cref="Tags"/>），用于规则匹配与检索。<br/>
     /// - 暴露统一事件入口（<see cref="OnEvent"/>），通过 <see cref="RaiseEvent(CardEvent)"/> 分发，包括
     ///   <see cref="CardEventType.Tick"/>、<see cref="CardEventType.Use"/>、<see cref="CardEventType.Custom"/>，
-    ///   以及持有关系变化（<see cref="CardEventType.AddedToOwner"/> / <see cref="CardEventType.RemovedFromOwner"/>）。
-    /// - 可选关联一个 <see cref="GameProperty"/>（实例级数值）。
+    ///   以及持有关系变化（<see cref="CardEventType.AddedToOwner"/> / <see cref="CardEventType.RemovedFromOwner"/>）。<br/>
+    /// - 可选关联多个 <see cref="GameProperty"/>
     /// </summary>
     public class Card
     {

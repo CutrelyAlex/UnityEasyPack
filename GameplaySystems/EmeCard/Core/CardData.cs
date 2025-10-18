@@ -5,7 +5,7 @@ using EasyPack;
 /// 该类型不包含运行时状态
 /// 运行时应由 <see cref="Card"/> 持有一份 <see cref="CardData"/>，并在实例化时基于此进行初始化。
 /// </summary>
-public sealed partial class CardData
+public partial class CardData
 {
     /// <summary>
     /// 卡牌唯一标识
