@@ -198,6 +198,17 @@ namespace EasyPack
         // 固有子卡牌（不可被消耗/移除）
         private readonly HashSet<Card> _intrinsics = new HashSet<Card>();
         
+        /// <summary>
+        /// 判断某子卡是否为固有子卡。
+        /// </summary>
+        /// <param name="child">要检查的子卡。</param>
+        /// <returns>如果是固有子卡返回 true</returns>
+        public bool IsIntrinsic(Card child)
+        {
+            if (child == null) return false;
+            return _intrinsics.Contains(child);
+        }
+
 
         /// <summary>
         /// 将子卡牌加入当前卡牌作为持有者。
