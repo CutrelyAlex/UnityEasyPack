@@ -363,7 +363,7 @@ namespace EasyPack
         /// <summary>给源卡牌自身添加标签</summary>
         public CardRuleBuilder DoAddTagToSource(string tag)
             => DoInvoke((ctx, matched) => ctx.Source.AddTag(tag));
-        
+
         /// <summary>给容器卡牌自身添加标签</summary>
         public CardRuleBuilder DoAddTagToContainer(string tag)
             => DoInvoke((ctx, matched) => ctx.Container.AddTag(tag));
@@ -375,33 +375,33 @@ namespace EasyPack
         /// <summary>给容器子卡中指定ID的卡牌添加标签</summary>
         public CardRuleBuilder DoAddTagToId(string targetId, string newTag, int? take = null)
             => DoAddTag(newTag, SelectionRoot.Container, TargetScope.Children, FilterMode.ById, targetId, take);
-        
+
         /// <summary>给源卡牌自身移除标签</summary>
         public CardRuleBuilder DoRemoveTagToSource(string tag)
             => DoInvoke((ctx, matched) => ctx.Source.RemoveTag(tag));
-        
+
         /// <summary>给容器卡牌自身移除标签</summary>
         public CardRuleBuilder DoRemoveTagToContainer(string tag)
             => DoInvoke((ctx, matched) => ctx.Container.RemoveTag(tag));
-        
+
         /// <summary>修改匹配结果中指定标签的卡牌的属性</summary>
         public CardRuleBuilder DoModifyTag(
-            string tag, 
-            string propertyName, 
-            float value, 
+            string tag,
+            string propertyName,
+            float value,
             ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase,
             int? take = null)
             => DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Children, FilterMode.ByTag, tag, take);
 
         /// <summary>修改匹配结果的属性</summary>
         public CardRuleBuilder DoModifyMatched(
-            string propertyName, 
-            float value, 
+            string propertyName,
+            float value,
             ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase)
             => DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Matched);
 
         /// <summary>批量触发匹配卡牌的自定义事件</summary>
-        public CardRuleBuilder DoBatchCustom(string eventId,Func<CardRuleContext,object> data=null,bool haveSource=true)
+        public CardRuleBuilder DoBatchCustom(string eventId, Func<CardRuleContext, object> data = null, bool haveSource = true)
         {
             return DoInvoke((ctx, matched) =>
             {
@@ -413,7 +413,7 @@ namespace EasyPack
 
                 foreach (var card in matched)
                 {
-                    card.Custom(eventId,newData);
+                    card.Custom(eventId, newData);
                 }
             });
         }
@@ -421,10 +421,10 @@ namespace EasyPack
 
         #region Debug
 
-        public CardRuleBuilder PrintContext()=> DoInvoke(((context, list) => Debug.Log(context.ToString())));
+        public CardRuleBuilder PrintContext() => DoInvoke(((context, list) => Debug.Log(context.ToString())));
 
         #endregion
-        
+
         /// <summary>构建规则</summary>
         public CardRule Build() => _rule;
     }
