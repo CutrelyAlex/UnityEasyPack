@@ -45,8 +45,12 @@ namespace EasyPack
         #region Buff创建与添加
 
         /// <summary>
-        /// 创建并添加新的Buff，处理重复ID的叠加策略
+        /// 创建并添加新的 Buff，处理重复 ID 的叠加策略
         /// </summary>
+        /// <param name="buffData">Buff 配置数据</param>
+        /// <param name="creator">创建 Buff 的游戏对象</param>
+        /// <param name="target">Buff 应用的目标对象</param>
+        /// <returns>创建或更新的 Buff 实例，失败返回 null</returns>
         public Buff CreateBuff(BuffData buffData, GameObject creator, GameObject target)
         {
             if (buffData == null)
@@ -203,11 +207,14 @@ namespace EasyPack
         #region 堆叠管理
 
         /// <summary>
-        /// 增加Buff堆叠数，不超过最大值
+        /// 增加 Buff 堆叠层数，不超过最大值
         /// </summary>
+        /// <param name="buff">要增加堆叠的 Buff 实例（已验证非 null）</param>
+        /// <param name="stack">要增加的堆叠层数</param>
+        /// <returns>返回管理器自身以支持链式调用</returns>
         private BuffManager IncreaseBuffStacks(Buff buff, int stack = 1)
         {
-            if (buff == null || buff.CurrentStacks >= buff.BuffData.MaxStacks)
+            if (buff.CurrentStacks >= buff.BuffData.MaxStacks)
                 return this;
 
             buff.CurrentStacks += stack;
@@ -220,8 +227,11 @@ namespace EasyPack
         }
 
         /// <summary>
-        /// 减少Buff堆叠数，为0时移除Buff
+        /// 减少 Buff 堆叠层数，为 0 时移除 Buff
         /// </summary>
+        /// <param name="buff">要减少堆叠的 Buff 实例（已验证非 null）</param>
+        /// <param name="stack">要减少的堆叠层数</param>
+        /// <returns>返回管理器自身以支持链式调用</returns>
         private BuffManager DecreaseBuffStacks(Buff buff, int stack = 1)
         {
             if (buff == null || buff.CurrentStacks <= 1)
@@ -266,11 +276,13 @@ namespace EasyPack
             return this;
         }
 
+        /// <summary>
+        /// 将 Buff 加入移除队列并立即处理
+        /// </summary>
+        /// <param name="buff">要移除的 Buff 实例（已验证非 null）</param>
+        /// <returns>返回管理器自身以支持链式调用</returns>
         private BuffManager QueueBuffForRemoval(Buff buff)
         {
-            if (buff == null)
-                return this;
-
             _buffsToRemove.Add(buff);
             ProcessBuffRemovals();
 
@@ -281,6 +293,11 @@ namespace EasyPack
 
         #region 目标相关移除操作
 
+        /// <summary>
+        /// 移除目标对象上的所有 Buff
+        /// </summary>
+        /// <param name="target">目标对象</param>
+        /// <returns>返回管理器自身以支持链式调用</returns>
         public BuffManager RemoveAllBuffs(object target)
         {
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
@@ -294,6 +311,12 @@ namespace EasyPack
             return this;
         }
 
+        /// <summary>
+        /// 根据 ID 移除目标对象上的 Buff
+        /// </summary>
+        /// <param name="target">目标对象</param>
+        /// <param name="buffID">Buff 的 ID</param>
+        /// <returns>返回管理器自身以支持链式调用</returns>
         public BuffManager RemoveBuffByID(object target, string buffID)
         {
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))

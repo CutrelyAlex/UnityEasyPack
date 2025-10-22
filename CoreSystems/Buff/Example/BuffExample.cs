@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -272,8 +272,10 @@ namespace EasyPack
 
             // 5.3 添加属性修改模块
             var strengthModifier = new FloatModifier(ModifierType.Add, 0, 5f);  // 增加5点力量
-            var strengthModule = new CastModifierToProperty(strengthModifier, "Strength", _combineGamePropertyManager);
-            strengthModule.CombineGamePropertyManager = _combineGamePropertyManager;
+            var strengthModule = new CastModifierToProperty(strengthModifier, "Strength", _combineGamePropertyManager)
+            {
+                CombineGamePropertyManager = _combineGamePropertyManager
+            };
             strengthBuff.BuffModules.Add(strengthModule);
 
             // 5.4 应用Buff并观察效果
@@ -294,8 +296,10 @@ namespace EasyPack
             };
 
             var healthModifier = new FloatModifier(ModifierType.Mul, 0, 1.5f);  // 增加50%生命值
-            var healthModule = new CastModifierToProperty(healthModifier, "Health", _combineGamePropertyManager);
-            healthModule.CombineGamePropertyManager = _combineGamePropertyManager;
+            var healthModule = new CastModifierToProperty(healthModifier, "Health", _combineGamePropertyManager)
+            {
+                CombineGamePropertyManager = _combineGamePropertyManager
+            };
             healthBuff.BuffModules.Add(healthModule);
 
             _buffManager.CreateBuff(healthBuff, _dummyCreator, _dummyTarget);
@@ -514,11 +518,15 @@ namespace EasyPack
             };
 
             // 添加多个效果模块
-            var strBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 3f), "Strength", _combineGamePropertyManager);
-            strBoost.CombineGamePropertyManager = _combineGamePropertyManager;
+            var strBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 3f), "Strength", _combineGamePropertyManager)
+            {
+                CombineGamePropertyManager = _combineGamePropertyManager
+            };
 
-            var agiBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 2f), "Agility", _combineGamePropertyManager);
-            agiBoost.CombineGamePropertyManager = _combineGamePropertyManager;
+            var agiBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 2f), "Agility", _combineGamePropertyManager)
+            {
+                CombineGamePropertyManager = _combineGamePropertyManager
+            };
 
             var rageModule = new RageEffectModule();
 

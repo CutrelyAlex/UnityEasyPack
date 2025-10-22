@@ -4,6 +4,10 @@ using System.Collections.Concurrent;
 using System;
 using UnityEngine;
 
+/// <summary>
+/// 游戏属性管理器，负责集中管理所有组合属性（ICombineGameProperty）的生命周期
+/// 提供属性的添加、查询、更新、删除等功能，支持线程安全的并发访问
+/// </summary>
 public class GamePropertyManager
 {
 
@@ -12,8 +16,9 @@ public class GamePropertyManager
     #region 增删改查
     
     /// <summary>
-    /// 添加或更新一个 ICombineGameProperty
+    /// 添加或更新一个 ICombineGameProperty，如果已存在则替换并释放旧实例
     /// </summary>
+    /// <param name="property">要添加或更新的组合属性</param>
     public void AddOrUpdate(ICombineGameProperty property)
     {
         if (property == null)
@@ -97,6 +102,8 @@ public class GamePropertyManager
     /// <summary>
     /// 根据ID获取 ICombineGameProperty
     /// </summary>
+    /// <param name="id">属性的唯一标识符</param>
+    /// <returns>对应的组合属性实例，如果不存在或无效返回 null</returns>
     public ICombineGameProperty Get(string id)
     {
         if (string.IsNullOrEmpty(id)) return null;
@@ -136,6 +143,12 @@ public class GamePropertyManager
         return GetGamePropertyFromCombine(id, subId);
     }
 
+    /// <summary>
+    /// 从组合属性中获取内部的 GameProperty
+    /// </summary>
+    /// <param name="combinePropertyID">组合属性的ID</param>
+    /// <param name="id">子属性ID（对于 CombinePropertyCustom），为空则返回 ResultHolder</param>
+    /// <returns>内部的 GameProperty 实例</returns>
     public GameProperty GetGamePropertyFromCombine(string combinePropertyID, string id = "")
     {
         if (string.IsNullOrEmpty(combinePropertyID)) return null;
@@ -145,8 +158,10 @@ public class GamePropertyManager
     }
 
     /// <summary>
-    /// 删除指定ID的 ICombineGameProperty
+    /// 删除指定ID的 ICombineGameProperty 并释放其资源
     /// </summary>
+    /// <param name="id">要删除的属性ID</param>
+    /// <returns>删除成功返回 true，否则返回 false</returns>
     public bool Remove(string id)
     {
         if (string.IsNullOrEmpty(id)) return false;

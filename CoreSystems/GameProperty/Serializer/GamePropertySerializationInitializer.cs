@@ -4,8 +4,9 @@ using EasyPack;
 namespace EasyPack
 {
     /// <summary>
-    /// GameProperty序列化系统初始化器
-    /// 在Unity运行时自动注册所有GameProperty相关的序列化器
+    /// GameProperty 序列化系统初始化器
+    /// 在 Unity 运行时自动注册所有 GameProperty 相关的序列化器到 SerializationService
+    /// 使用 RuntimeInitializeOnLoadMethod 确保在场景加载前完成注册
     /// </summary>
     public static class GamePropertySerializationInitializer
     {
@@ -14,6 +15,7 @@ namespace EasyPack
 
         /// <summary>
         /// 在场景加载前自动注册所有序列化器
+        /// Unity 自动调用此方法，无需手动调用
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Initialize()
@@ -34,6 +36,9 @@ namespace EasyPack
             }
         }
 
+        /// <summary>
+        /// 注册所有修饰符（Modifier）相关的序列化器
+        /// </summary>
         private static void RegisterModifierSerializers()
         {
             // 注册IModifier序列化器
@@ -49,12 +54,18 @@ namespace EasyPack
             SerializationServiceManager.RegisterSerializer(new ModifierListSerializer());
         }
 
+        /// <summary>
+        /// 注册 GameProperty 序列化器
+        /// </summary>
         private static void RegisterGamePropertySerializers()
         {
             // 注册GameProperty JSON序列化器
             SerializationServiceManager.RegisterSerializer(new GamePropertyJsonSerializer());
         }
 
+        /// <summary>
+        /// 注册 CombineProperty 序列化器（CombinePropertySingle 和 CombinePropertyCustom）
+        /// </summary>
         private static void RegisterCombinePropertySerializers()
         {
             // 注册CombinePropertySingle JSON序列化器
@@ -64,7 +75,10 @@ namespace EasyPack
             SerializationServiceManager.RegisterSerializer(new CombinePropertyCustomJsonSerializer());
         }
 
-
+        /// <summary>
+        /// 手动初始化序列化系统（用于测试或特殊场景）
+        /// 通常无需手动调用，Unity 会自动调用 Initialize()
+        /// </summary>
         public static void ManualInitialize()
         {
             Initialize();

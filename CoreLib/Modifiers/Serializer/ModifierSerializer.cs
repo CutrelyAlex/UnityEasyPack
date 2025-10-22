@@ -13,10 +13,11 @@ namespace EasyPack
         {
             if (obj == null) return null;
 
-            var serializable = new SerializableModifier();
-
-            serializable.Type = obj.Type;
-            serializable.Priority = obj.Priority;
+            var serializable = new SerializableModifier
+            {
+                Type = obj.Type,
+                Priority = obj.Priority
+            };
 
             if (obj is FloatModifier floatModifier)
             {
