@@ -51,7 +51,7 @@ namespace EasyPack
         public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
             IReadOnlyList<Card> targets;
-            
+
             if (Scope == TargetScope.Matched)
             {
                 // 使用匹配结果
@@ -59,15 +59,15 @@ namespace EasyPack
                 {
                     return;
                 }
-                
+
                 targets = matched;
-                
+
                 // 应用过滤条件（FilterMode）
                 if (Filter != FilterMode.None && !string.IsNullOrEmpty(FilterValue))
                 {
                     targets = TargetSelector.ApplyFilter(targets, Filter, FilterValue);
                 }
-                
+
                 // 应用 Take 限制
                 if (Take.HasValue && Take.Value > 0 && targets.Count > Take.Value)
                 {
@@ -82,9 +82,9 @@ namespace EasyPack
                 // 使用 TargetSelector 选择
                 targets = TargetSelector.SelectForEffect(this, ctx);
             }
-            
+
             if (targets == null) return;
-            
+
             // 添加标签
             for (int i = 0; i < targets.Count; i++)
             {

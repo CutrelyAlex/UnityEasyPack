@@ -17,7 +17,7 @@ namespace EasyPack
     {
         // 比较大小的静态常量
         private const float EPSILON = 0.0001f;
-        
+
         #region 基础属性值
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace EasyPack
         public void MakeDirty()
         {
             if (_isDirty) return;
-            
+
             _isDirty = true;
             _onDirty?.Invoke();
         }
@@ -255,7 +255,7 @@ namespace EasyPack
         public IModifiableProperty<float> AddModifiers(IEnumerable<IModifier> modifiers)
         {
             bool needsRangeCheck = false;
-            
+
             foreach (var modifier in modifiers)
             {
                 if (modifier == null)

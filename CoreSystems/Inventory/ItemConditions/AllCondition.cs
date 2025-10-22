@@ -153,7 +153,7 @@ namespace EasyPack
                 case "All":
                     condition = new AllCondition();
                     break;
-                // 后续添加 Any 和 Not
+                    // 后续添加 Any 和 Not
             }
 
             return condition?.FromDto(dto) as IItemCondition;

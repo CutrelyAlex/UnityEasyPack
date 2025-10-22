@@ -24,8 +24,8 @@ namespace EasyPack
         }
 
         public bool CheckCondition(IItem item)
-        { 
-            if(Condition == null)
+        {
+            if (Condition == null)
             {
                 return false;
             }

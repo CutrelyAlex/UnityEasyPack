@@ -91,7 +91,7 @@ namespace EasyPack
         public bool Rotate()
         {
             if (!CanRotate) return false;
-            
+
             Rotation = Rotation switch
             {
                 RotationAngle.Rotate0 => RotationAngle.Rotate90,
@@ -100,7 +100,7 @@ namespace EasyPack
                 RotationAngle.Rotate270 => RotationAngle.Rotate0,
                 _ => RotationAngle.Rotate0
             };
-            
+
             return true;
         }
 

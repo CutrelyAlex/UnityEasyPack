@@ -79,7 +79,7 @@ namespace EasyPack
         public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
             IReadOnlyList<Card> targets;
-            
+
             if (Scope == TargetScope.Matched)
             {
                 // 使用匹配结果
@@ -87,15 +87,15 @@ namespace EasyPack
                 {
                     return;
                 }
-                
+
                 targets = matched;
-                
+
                 // 应用过滤条件（FilterMode）
                 if (Filter != FilterMode.None && !string.IsNullOrEmpty(FilterValue))
                 {
                     targets = TargetSelector.ApplyFilter(targets, Filter, FilterValue);
                 }
-                
+
                 // 应用 Take 限制
                 if (Take.HasValue && Take.Value > 0 && targets.Count > Take.Value)
                 {
@@ -115,7 +115,7 @@ namespace EasyPack
                 var properties = t.Properties;
                 if (properties == null || properties.Count == 0) continue;
 
-                IEnumerable<GameProperty> propsToModify 
+                IEnumerable<GameProperty> propsToModify
                     = string.IsNullOrEmpty(PropertyName)
                     ? properties
                     : properties.Where(p => p.ID == PropertyName);

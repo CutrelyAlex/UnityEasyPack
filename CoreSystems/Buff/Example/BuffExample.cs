@@ -666,7 +666,8 @@ namespace EasyPack
             var resourceBuffInstance = _buffManager.CreateBuff(resourceBuff, _dummyCreator, _dummyTarget);
 
             // 设置事件监听（记得在适当时候清理）
-            System.Action<Buff> onRemoveHandler = (buff) => {
+            System.Action<Buff> onRemoveHandler = (buff) =>
+            {
                 Debug.Log("资源Buff被移除，进行清理工作");
                 // 在这里进行必要的清理工作
             };

@@ -44,11 +44,11 @@ namespace EasyPack
                     break;
 
                 case TargetScope.Descendants:
-                {
-                    int depth = maxDepth ?? ctx.MaxDepth;
-                    if (depth <= 0) depth = int.MaxValue;
-                    candidates = TraversalUtil.EnumerateDescendants(ctx.Container, depth);
-                }
+                    {
+                        int depth = maxDepth ?? ctx.MaxDepth;
+                        if (depth <= 0) depth = int.MaxValue;
+                        candidates = TraversalUtil.EnumerateDescendants(ctx.Container, depth);
+                    }
                     break;
 
                 default:

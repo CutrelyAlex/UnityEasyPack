@@ -33,8 +33,8 @@ namespace EasyPack
         /// <summary>
         /// 无参构造函数
         /// </summary>
-        public Card(){}
-        
+        public Card() { }
+
         /// <summary>
         /// 构造函数：创建卡牌，可选单个属性
         /// </summary>
@@ -44,7 +44,7 @@ namespace EasyPack
         public Card(CardData data, GameProperty gameProperty = null, params string[] extraTags)
         {
             Data = data;
-            if(gameProperty != null)
+            if (gameProperty != null)
             {
                 Properties.Add(gameProperty);
             }
@@ -197,7 +197,7 @@ namespace EasyPack
 
         // 固有子卡牌（不可被消耗/移除）
         private readonly HashSet<Card> _intrinsics = new();
-        
+
         /// <summary>
         /// 判断某子卡是否为固有子卡。
         /// </summary>
@@ -225,7 +225,7 @@ namespace EasyPack
             if (child.Owner != null) throw new InvalidOperationException("子卡牌已被其他卡牌持有。");
             if (child == this) throw new Exception("卡牌不能添加自身为子卡牌。");
 
-            
+
             _children.Add(child);
             child.Owner = this;
             if (intrinsic) _intrinsics.Add(child);

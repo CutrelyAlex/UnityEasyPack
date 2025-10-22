@@ -74,11 +74,11 @@ namespace EasyPack
             // 从Grid向量中提取宽度和高度
             int gridWidth = (int)dto.Grid.x;
             int gridHeight = (int)dto.Grid.y;
-            
+
             // 如果Grid向量无效，使用默认值
             if (gridWidth <= 0) gridWidth = 10;
             if (gridHeight <= 0) gridHeight = 10;
-            
+
             var container = new GridContainer(dto.ID, dto.Name, dto.Type, gridWidth, gridHeight);
 
             // 反序列化槽位

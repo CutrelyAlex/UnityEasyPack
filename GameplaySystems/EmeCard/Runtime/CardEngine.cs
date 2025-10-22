@@ -99,7 +99,7 @@ namespace EasyPack
         {
             var rules = _rules[evt.Type];
             if (rules == null || rules.Count == 0) return;
-            
+
             var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>();
             for (int i = 0; i < rules.Count; i++)
             {
@@ -111,7 +111,7 @@ namespace EasyPack
                 {
                     continue;
                 }
-                
+
                 var ctx = BuildContext(rule, source, evt);
                 if (ctx == null) continue;
 
@@ -131,15 +131,15 @@ namespace EasyPack
                     ? evals.OrderBy(e => e.rule.Priority).ThenBy(e => e.orderIndex)
                     : evals.OrderBy(e => e.orderIndex);
             //调试用
-           //if (evt.Type==CardEventType.Custom)
-           //{
-           //    Debug.Log(evt.ID);
-           //    if(evt.Data is object[] objects)
-           //    {
-           //        Debug.Log($"碰撞对象是{((Card)objects[0]).Id},对象速度是{(Vector2Int)objects[1]},自身速度是{(Vector2Int)objects[2]}");
-           //    }
-           //}
-            
+            //if (evt.Type==CardEventType.Custom)
+            //{
+            //    Debug.Log(evt.ID);
+            //    if(evt.Data is object[] objects)
+            //    {
+            //        Debug.Log($"碰撞对象是{((Card)objects[0]).Id},对象速度是{(Vector2Int)objects[1]},自身速度是{(Vector2Int)objects[2]}");
+            //    }
+            //}
+
             if (Policy.FirstMatchOnly)
             {
                 var first = ordered.First();

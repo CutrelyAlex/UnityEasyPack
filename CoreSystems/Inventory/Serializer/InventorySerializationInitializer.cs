@@ -28,7 +28,7 @@ namespace EasyPack
                 RegisterItemSerializers();
                 RegisterContainerSerializers();
                 RegisterConditionSerializers();
-                
+
                 _isInitialized = true;
                 Debug.Log("[Inventory] 序列化系统初始化完成");
             }
@@ -71,7 +71,7 @@ namespace EasyPack
         /// </summary>
         /// <typeparam name="T">条件类型</typeparam>
         /// <param name="kind">条件的 Kind 标识</param>
-        private static void RegisterConditionSerializer<T>(string kind) 
+        private static void RegisterConditionSerializer<T>(string kind)
             where T : ISerializableCondition, new()
         {
             SerializationServiceManager.RegisterSerializer(new SerializableConditionJsonSerializer<T>());

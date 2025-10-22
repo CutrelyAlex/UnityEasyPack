@@ -96,9 +96,9 @@ namespace EasyPack
             Action<float, float> autoSyncHandler = (oldVal, newVal) =>
             {
                 var oldCombineValue = ResultHolder.GetValue();
-                
+
                 var newCombineValue = GetValue();
-                
+
                 handler?.Invoke(oldCombineValue, newCombineValue);
             };
 

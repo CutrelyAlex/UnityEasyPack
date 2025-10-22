@@ -16,7 +16,7 @@ public class InventoryExample : MonoBehaviour
         // 测试
         // Test();
         // 启动实际使用案例展示
-         ShowInventoryUseCases();
+        ShowInventoryUseCases();
     }
 
 

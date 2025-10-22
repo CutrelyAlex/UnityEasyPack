@@ -14,7 +14,7 @@ public class GamePropertyManager
     private readonly ConcurrentDictionary<string, ICombineGameProperty> _properties = new ConcurrentDictionary<string, ICombineGameProperty>();
 
     #region 增删改查
-    
+
     /// <summary>
     /// 添加或更新一个 ICombineGameProperty，如果已存在则替换并释放旧实例
     /// </summary>
@@ -59,7 +59,7 @@ public class GamePropertyManager
                 {
                     existingSingle.ResultHolder.SetBaseValue(property.GetBaseValue());
                 }
-                
+
                 // 返回已存在的包装器实例
                 return existingSingle;
             }
@@ -67,7 +67,7 @@ public class GamePropertyManager
 
         // 创建新的 CombinePropertySingle 包装器
         var wrapper = new CombinePropertySingle(property.ID, property.GetBaseValue());
-        
+
         // 复制所有修饰符到 ResultHolder
         if (property.Modifiers != null && property.Modifiers.Count > 0)
         {
@@ -77,7 +77,7 @@ public class GamePropertyManager
                 wrapper.ResultHolder.AddModifier(clonedModifier);
             }
         }
-        
+
         AddOrUpdate(wrapper);
         return wrapper;
     }

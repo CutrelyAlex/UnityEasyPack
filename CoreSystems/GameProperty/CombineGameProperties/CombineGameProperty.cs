@@ -110,7 +110,7 @@ namespace EasyPack
         #endregion
 
         #region 保护方法
-        
+
         /// <summary>
         /// 获取计算后的值，由子类重写以实现不同的计算逻辑
         /// </summary>

@@ -30,7 +30,7 @@ namespace EasyPack
                 RegisterModifierSerializers();
                 RegisterGamePropertySerializers();
                 RegisterCombinePropertySerializers();
-                
+
                 _isInitialized = true;
                 Debug.Log("[GameProperty] 序列化系统初始化完成");
             }
@@ -43,13 +43,13 @@ namespace EasyPack
         {
             // 注册IModifier序列化器
             SerializationServiceManager.RegisterSerializer(new ModifierSerializer());
-            
+
             // 注册FloatModifier序列化器
             SerializationServiceManager.RegisterSerializer(new FloatModifierSerializer());
-            
+
             // 注册RangeModifier序列化器
             SerializationServiceManager.RegisterSerializer(new RangeModifierSerializer());
-            
+
             // 注册Modifier列表序列化器
             SerializationServiceManager.RegisterSerializer(new ModifierListSerializer());
         }
@@ -70,7 +70,7 @@ namespace EasyPack
         {
             // 注册CombinePropertySingle JSON序列化器
             SerializationServiceManager.RegisterSerializer(new CombinePropertySingleJsonSerializer());
-            
+
             // 注册CombinePropertyCustom JSON序列化器
             SerializationServiceManager.RegisterSerializer(new CombinePropertyCustomJsonSerializer());
         }

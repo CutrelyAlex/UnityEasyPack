@@ -12,12 +12,12 @@ namespace EasyPack
         /// JSON 序列化
         /// </summary>
         Json,
-        
+
         /// <summary>
         /// CustomDataEntry 列表序列化
         /// </summary>
         CustomDataEntry,
-        
+
         /// <summary>
         /// 二进制序列化
         /// </summary>
@@ -77,10 +77,10 @@ namespace EasyPack
     {
         string SerializeToJson(T obj);
         T DeserializeFromJson(string json);
-        
+
         List<CustomDataEntry> SerializeToCustomData(T obj);
         T DeserializeFromCustomData(List<CustomDataEntry> entries);
-        
+
         byte[] SerializeToBinary(T obj);
         T DeserializeFromBinary(byte[] data);
     }

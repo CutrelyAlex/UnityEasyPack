@@ -16,7 +16,7 @@ namespace EasyPack
         {
             Condition = condition ?? throw new ArgumentNullException(nameof(condition));
         }
-        
+
         public bool TryMatch(CardRuleContext ctx, out List<Card> matched)
         {
             matched = new List<Card>();

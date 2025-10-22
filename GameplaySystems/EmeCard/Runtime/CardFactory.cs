@@ -7,7 +7,7 @@ namespace EasyPack
     public interface ICardFactory
     {
         Card Create(string id);
-        T Create<T>(string id) where T:Card;
+        T Create<T>(string id) where T : Card;
 
         CardEngine Owner { get; set; }
     }
@@ -25,7 +25,7 @@ namespace EasyPack
 
         public void Register(IReadOnlyDictionary<string, Func<Card>> productionList)
         {
-            foreach (var (id,ctor) in productionList)
+            foreach (var (id, ctor) in productionList)
             {
                 Register(id, ctor);
             }
@@ -35,7 +35,7 @@ namespace EasyPack
         {
             return Create<Card>(id);
         }
-        public T Create<T>(string id) where T:Card
+        public T Create<T>(string id) where T : Card
         {
             if (string.IsNullOrEmpty(id)) return null;
             Func<Card> ctor;

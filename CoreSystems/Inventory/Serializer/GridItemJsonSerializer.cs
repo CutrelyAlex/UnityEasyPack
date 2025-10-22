@@ -20,7 +20,7 @@ namespace EasyPack
         public bool isContanierItem;
         public List<CustomDataEntry> Attributes;
         public List<string> ContainerIds;
-        
+
         // GridItem 特有属性
         public int GridWidth;
         public int GridHeight;
@@ -76,7 +76,7 @@ namespace EasyPack
             }
 
             if (dto == null) return null;
-            
+
             var item = new GridItem
             {
                 ID = dto.ID,

@@ -57,33 +57,33 @@ namespace EasyPack
             _engine = new CardEngine(_factory);
 
             // 注册卡牌模板 - 使用简化构造函数（无属性）
-            _factory.Register("世界", () => 
+            _factory.Register("世界", () =>
                 new Card(new CardData("世界", "世界", "", CardCategory.Object), "世界"));
-            
-            _factory.Register("草地格", () => 
+
+            _factory.Register("草地格", () =>
                 new Card(new CardData("草地格", "草地格", "", CardCategory.Object), "草地"));
-            
-            _factory.Register("玩家", () => 
+
+            _factory.Register("玩家", () =>
                 new Card(new CardData("玩家", "玩家", "", CardCategory.Object), "玩家"));
-            
-            _factory.Register("树木", () => 
+
+            _factory.Register("树木", () =>
                 new Card(new CardData("树木", "树木", "", CardCategory.Object), "树木", "可燃烧"));
-            
-            _factory.Register("木棍", () => 
+
+            _factory.Register("木棍", () =>
                 new Card(new CardData("木棍", "木棍", "", CardCategory.Object), "木棍"));
-            
-            _factory.Register("火", () => 
+
+            _factory.Register("火", () =>
                 new Card(new CardData("火", "火", "", CardCategory.Object), "火"));
-            
+
             // 火把使用完整构造函数（带属性）
-            _factory.Register("火把", () => 
-                new Card(new CardData("火把", "火把", "", CardCategory.Object), 
+            _factory.Register("火把", () =>
+                new Card(new CardData("火把", "火把", "", CardCategory.Object),
                     new List<GameProperty> { new("Ticks", 0f) }, "火把"));
-            
-            _factory.Register("灰烬", () => 
+
+            _factory.Register("灰烬", () =>
                 new Card(new CardData("灰烬", "灰烬", "", CardCategory.Object), "灰烬"));
-            
-            _factory.Register("制作", () => 
+
+            _factory.Register("制作", () =>
                 new Card(new CardData("制作", "制作", "", CardCategory.Action), "制作"));
 
             Debug.Log("工厂和引擎初始化完成，可用于创建和管理卡牌\n");
@@ -294,7 +294,7 @@ namespace EasyPack
                 .DoInvoke((ctx, matched) =>
                 {
                     var torches = ctx.Container.Children
-                        .Where(c => c.HasTag("火把") && 
+                        .Where(c => c.HasTag("火把") &&
                                c.Properties?.FirstOrDefault()?.GetBaseValue() >= 5f)
                         .ToList();
 
@@ -375,7 +375,7 @@ namespace EasyPack
         {
             string indent = new(' ', depth * 2);
             string tags = card.Tags.Count > 0 ? $" [{string.Join(", ", card.Tags)}]" : "";
-            string props = card.Properties.Count > 0 ? 
+            string props = card.Properties.Count > 0 ?
                 $" (属性: {string.Join(", ", card.Properties.Select(p => $"{p.ID}={p.GetValue()}"))})" : "";
             Debug.Log($"{indent}{card.Id}{tags}{props}");
 

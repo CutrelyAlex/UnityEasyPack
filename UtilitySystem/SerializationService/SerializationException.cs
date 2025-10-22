@@ -11,27 +11,27 @@ namespace EasyPack
         /// 未找到序列化器
         /// </summary>
         NoSerializerFound,
-        
+
         /// <summary>
         /// 序列化失败
         /// </summary>
         SerializationFailed,
-        
+
         /// <summary>
         /// 反序列化失败
         /// </summary>
         DeserializationFailed,
-        
+
         /// <summary>
         /// 版本不匹配
         /// </summary>
         VersionMismatch,
-        
+
         /// <summary>
         /// 不支持的策略
         /// </summary>
         UnsupportedStrategy,
-        
+
         /// <summary>
         /// 无效的数据格式
         /// </summary>

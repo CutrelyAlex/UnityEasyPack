@@ -16,7 +16,7 @@ namespace EasyPack
         private readonly HashSet<GameProperty> _dependencies = new();
         private readonly HashSet<GameProperty> _dependents = new();
         private readonly Dictionary<GameProperty, Func<GameProperty, float, float>> _dependencyCalculators = new();
-        
+
         private int _dependencyDepth = 0;
         private bool _hasRandomDependency = false;
 

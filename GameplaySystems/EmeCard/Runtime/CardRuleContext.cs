@@ -93,14 +93,14 @@ namespace EasyPack
         /// <typeparam name="T">目标引用类型。</typeparam>
         /// <param name="i">数组索引。</param>
         /// <returns>转换后的对象，失败返回 null。</returns>
-        public T DataAs<T>(int i) where T:class => DataAs<object[]>()[i] as T;
+        public T DataAs<T>(int i) where T : class => DataAs<object[]>()[i] as T;
 
         /// <summary>
         /// 将事件数据作为指定值类型返回。
         /// </summary>
         /// <typeparam name="T">目标值类型。</typeparam>
         /// <returns>转换后的值。</returns>
-        public T DataIs<T>() where T:struct => (T)Event.Data;
+        public T DataIs<T>() where T : struct => (T)Event.Data;
 
         /// <summary>
         /// 从事件数据数组中获取指定索引的元素（值类型）。
@@ -108,7 +108,7 @@ namespace EasyPack
         /// <typeparam name="T">目标值类型。</typeparam>
         /// <param name="i">数组索引。</param>
         /// <returns>转换后的值。</returns>
-        public T DataIs<T>(int i) where T:struct => (T)DataAs<object[]>()[i];
+        public T DataIs<T>(int i) where T : struct => (T)DataAs<object[]>()[i];
 
         /// <summary>
         /// 尝试安全地获取事件数据为指定类型。
