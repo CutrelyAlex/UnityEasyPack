@@ -165,7 +165,6 @@ namespace EasyPack
                 // 如果处理完成（深度回到0），将延迟队列的事件批量移入主队列
                 if (_processingDepth == 0 && _deferredQueue.Count > 0)
                 {
-                    Debug.Log($"[CardEngine] 批量处理{_deferredQueue.Count}个延迟事件");
                     while (_deferredQueue.Count > 0)
                     {
                         _queue.Enqueue(_deferredQueue.Dequeue());
