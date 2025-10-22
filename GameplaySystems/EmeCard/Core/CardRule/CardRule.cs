@@ -25,10 +25,10 @@ namespace EasyPack
         public int Priority = 0;
 
         /// <summary>匹配条件集合（与关系）。</summary>
-        public List<IRuleRequirement> Requirements = new List<IRuleRequirement>();
+        public List<IRuleRequirement> Requirements = new();
 
         /// <summary>命中后执行的效果管线。</summary>
-        public List<IRuleEffect> Effects = new List<IRuleEffect>();
+        public List<IRuleEffect> Effects = new();
 
         /// <summary>规则执行策略。</summary>
         public RulePolicy Policy { get; set; } = new RulePolicy();

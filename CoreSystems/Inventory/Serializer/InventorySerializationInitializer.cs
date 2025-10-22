@@ -10,7 +10,7 @@ namespace EasyPack
     public static class InventorySerializationInitializer
     {
         private static bool _isInitialized = false;
-        private static readonly object _lock = new object();
+        private static readonly object _lock = new();
 
         /// <summary>
         /// 在场景加载前自动注册所有序列化器

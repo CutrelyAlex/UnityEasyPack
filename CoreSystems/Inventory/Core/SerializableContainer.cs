@@ -16,7 +16,7 @@ namespace EasyPack
         public bool IsGrid;
         public Vector2 Grid; // 若为网格容器可使用
 
-        public List<SerializedSlot> Slots = new List<SerializedSlot>();
-        public List<SerializedCondition> ContainerConditions = new List<SerializedCondition>();
+        public List<SerializedSlot> Slots = new();
+        public List<SerializedCondition> ContainerConditions = new();
     }
 }

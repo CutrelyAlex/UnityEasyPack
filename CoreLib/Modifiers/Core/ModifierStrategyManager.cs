@@ -5,7 +5,7 @@ namespace EasyPack
 {
     public static class ModifierStrategyManager
     {
-        private static readonly Dictionary<ModifierType, IModifierStrategy> _strategies = new Dictionary<ModifierType, IModifierStrategy>();
+        private static readonly Dictionary<ModifierType, IModifierStrategy> _strategies = new();
         public static readonly ModifierType[] MODIFIER_TYPE_ORDER = new ModifierType[]
         {
             ModifierType.Add,

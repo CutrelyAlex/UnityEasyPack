@@ -8,7 +8,7 @@ namespace EasyPack
     public static class CardSerializationInitializer
     {
         private static bool _isInitialized = false;
-        private static readonly object _lock = new object();
+        private static readonly object _lock = new();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Initialize()

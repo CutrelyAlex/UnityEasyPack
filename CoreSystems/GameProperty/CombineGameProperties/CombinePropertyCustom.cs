@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace EasyPack
@@ -14,7 +14,7 @@ namespace EasyPack
         /// <summary>
         /// 子属性字典
         /// </summary>
-        private readonly Dictionary<string, GameProperty> _gameProperties = new Dictionary<string, GameProperty>();
+        private readonly Dictionary<string, GameProperty> _gameProperties = new();
 
         /// <summary>
         /// 事件处理器字典

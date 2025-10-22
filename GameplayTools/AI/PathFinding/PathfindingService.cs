@@ -12,10 +12,10 @@ namespace EasyPack
         public static PathfindingService Instance { get; private set; }
 
         [Tooltip("（可选）在场景中直接指定全局 Tilemap 列表；未指定时由各 Mover 首次注册提供")]
-        public List<Tilemap> globalTilemaps = new List<Tilemap>();
+        public List<Tilemap> globalTilemaps = new();
 
         [Tooltip("（可选）Grid 列表，用于自动收集其下所有 Tilemap")]
-        public List<Grid> globalGrids = new List<Grid>();
+        public List<Grid> globalGrids = new();
 
         private UnifiedMap _unifiedMap;
         private bool _built;

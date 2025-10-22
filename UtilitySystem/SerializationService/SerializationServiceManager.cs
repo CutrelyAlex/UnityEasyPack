@@ -11,7 +11,7 @@ namespace EasyPack
     public static class SerializationServiceManager
     {
         private static ISerializationService _instance;
-        private static readonly object _lock = new object();
+        private static readonly object _lock = new();
 
         /// <summary>
         /// 全局序列化服务实例

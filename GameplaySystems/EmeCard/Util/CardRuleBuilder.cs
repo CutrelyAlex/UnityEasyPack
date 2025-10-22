@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -10,7 +10,7 @@ namespace EasyPack
     /// </summary>
     public sealed partial class CardRuleBuilder
     {
-        private readonly CardRule _rule = new CardRule
+        private readonly CardRule _rule = new()
         {
             Requirements = new List<IRuleRequirement>(),
             Effects = new List<IRuleEffect>(),

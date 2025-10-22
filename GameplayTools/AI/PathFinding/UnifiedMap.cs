@@ -9,7 +9,7 @@ namespace EasyPack
     /// </summary>
     public class UnifiedMap
     {
-        public Dictionary<Vector3Int, TileInfo> walkableTiles = new Dictionary<Vector3Int, TileInfo>();
+        public Dictionary<Vector3Int, TileInfo> walkableTiles = new();
         public BoundsInt bounds;
 
         public void AddWalkableTile(Vector3Int position, Tilemap tilemap, float cost = 1f)

@@ -8,7 +8,7 @@ namespace EasyPack
     public class SerializedCondition
     {
         public string Kind;
-        public List<CustomDataEntry> Params = new List<CustomDataEntry>();
+        public List<CustomDataEntry> Params = new();
     }
 
     // 条件序列化器接口（将 IItemCondition <-> SerializedCondition）

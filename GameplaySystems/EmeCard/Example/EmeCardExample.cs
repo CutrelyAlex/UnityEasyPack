@@ -78,7 +78,7 @@ namespace EasyPack
             // 火把使用完整构造函数（带属性）
             _factory.Register("火把", () => 
                 new Card(new CardData("火把", "火把", "", CardCategory.Object), 
-                    new List<GameProperty> { new GameProperty("Ticks", 0f) }, "火把"));
+                    new List<GameProperty> { new("Ticks", 0f) }, "火把"));
             
             _factory.Register("灰烬", () => 
                 new Card(new CardData("灰烬", "灰烬", "", CardCategory.Object), "灰烬"));
@@ -105,7 +105,7 @@ namespace EasyPack
 
             var propertyCard = new Card(
                 new CardData("property", "带属性卡牌", "", CardCategory.Object),
-                new List<GameProperty> { new GameProperty("Health", 100f), new GameProperty("Attack", 50f) }
+                new List<GameProperty> { new("Health", 100f), new("Attack", 50f) }
             );
             Debug.Log($"创建了带属性卡牌: {propertyCard.Name}，属性数量: {propertyCard.Properties.Count}");
 
@@ -373,7 +373,7 @@ namespace EasyPack
 
         private void DisplayCardRecursive(Card card, int depth)
         {
-            string indent = new string(' ', depth * 2);
+            string indent = new(' ', depth * 2);
             string tags = card.Tags.Count > 0 ? $" [{string.Join(", ", card.Tags)}]" : "";
             string props = card.Properties.Count > 0 ? 
                 $" (属性: {string.Join(", ", card.Properties.Select(p => $"{p.ID}={p.GetValue()}"))})" : "";

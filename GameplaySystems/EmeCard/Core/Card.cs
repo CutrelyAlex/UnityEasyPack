@@ -152,7 +152,7 @@ namespace EasyPack
 
         #region 标签和持有关系
 
-        private readonly HashSet<string> _tags = new HashSet<string>(StringComparer.Ordinal);
+        private readonly HashSet<string> _tags = new(StringComparer.Ordinal);
 
         /// <summary>
         /// 标签集合。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal"/>）。
@@ -185,7 +185,7 @@ namespace EasyPack
         /// </summary>
         public Card Owner { get; private set; }
 
-        private readonly List<Card> _children = new List<Card>();
+        private readonly List<Card> _children = new();
 
         /// <summary>
         /// 子卡牌列表（只读视图）。
@@ -196,7 +196,7 @@ namespace EasyPack
         public int ChildrenCount => Children.Count;
 
         // 固有子卡牌（不可被消耗/移除）
-        private readonly HashSet<Card> _intrinsics = new HashSet<Card>();
+        private readonly HashSet<Card> _intrinsics = new();
         
         /// <summary>
         /// 判断某子卡是否为固有子卡。

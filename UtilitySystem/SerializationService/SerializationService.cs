@@ -9,8 +9,8 @@ namespace EasyPack
     /// </summary>
     public class SerializationService : ISerializationService
     {
-        private readonly Dictionary<Type, ITypeSerializer> _serializers = new Dictionary<Type, ITypeSerializer>();
-        private readonly object _lock = new object();
+        private readonly Dictionary<Type, ITypeSerializer> _serializers = new();
+        private readonly object _lock = new();
 
         #region 注册管理
 

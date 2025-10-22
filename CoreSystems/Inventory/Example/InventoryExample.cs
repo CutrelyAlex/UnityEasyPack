@@ -1,4 +1,4 @@
-﻿using EasyPack;
+using EasyPack;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,7 +9,7 @@ using UnityEngine;
 public class InventoryExample : MonoBehaviour
 {
     // 新增：全局容器管理器
-    private InventoryManager _invMgr = new InventoryManager();
+    private InventoryManager _invMgr = new();
 
     private void Start()
     {
@@ -452,8 +452,8 @@ public class InventoryExample : MonoBehaviour
         // BatchMove （构造一个移动列表 - 这里移动 dst 的第0槽到 extra）
         var batch = new List<InventoryManager.MoveRequest>
         {
-            new InventoryManager.MoveRequest("dst_bag", 0, "extra_bag"),
-            new InventoryManager.MoveRequest("dst_bag", 1, "extra_bag")
+            new("dst_bag", 0, "extra_bag"),
+            new("dst_bag", 1, "extra_bag")
         };
         var batchResults = mgr.BatchMoveItems(batch);
         Debug.Log($"BatchMove 条目数={batchResults.Count}");

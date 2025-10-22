@@ -20,8 +20,7 @@ namespace EasyPack
         public void Register(string id, Func<Card> ctor)
         {
             if (string.IsNullOrEmpty(id)) throw new ArgumentNullException(nameof(id));
-            if (ctor == null) throw new ArgumentNullException(nameof(ctor));
-            _constructors[id] = ctor;
+            _constructors[id] = ctor ?? throw new ArgumentNullException(nameof(ctor));
         }
 
         public void Register(IReadOnlyDictionary<string, Func<Card>> productionList)

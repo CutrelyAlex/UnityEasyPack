@@ -22,10 +22,10 @@ namespace EasyPack
 
         [Header("Tilemap 设置（若使用共享服务则无需设置）")]
         [Tooltip("包含所有可用于寻路的Tilemap组件，系统将扫描这些Tilemap中的瓦片作为可行走区域")]
-        public List<Tilemap> allTilemaps = new List<Tilemap>();
+        public List<Tilemap> allTilemaps = new();
 
         [Tooltip("Grid GameObject，如果设置了Grid，将自动获取其下所有Tilemap组件")]
-        public List<Grid> gridObjects = new List<Grid>();
+        public List<Grid> gridObjects = new();
 
         [Header("寻路设置")]
         [Tooltip("执行寻路的物品对象如果为null，那么是否默认设置为自身")]
@@ -41,7 +41,7 @@ namespace EasyPack
         public bool useTileCenterOffset = true;
 
         [Tooltip("瓦片偏移量，(0.5, 0.5)表示瓦片中心，范围0-1")]
-        public Vector3 tileOffset = new Vector3(0.5f, 0.5f);
+        public Vector3 tileOffset = new(0.5f, 0.5f);
 
         [Header("移动设置")]
         [Tooltip("角色移动速度，单位为Unity单位/秒")]
@@ -95,7 +95,7 @@ namespace EasyPack
         public float diagonalMoveCost = 1.414f;
 
         [Tooltip("瓦片类型与移动代价的映射表，不同瓦片可以有不同的通过代价")]
-        public Dictionary<TileBase, float> tileCostMap = new Dictionary<TileBase, float>();
+        public Dictionary<TileBase, float> tileCostMap = new();
 
         [Tooltip("是否启用地形代价系统，考虑不同瓦片的移动成本")]
         public bool useTerrainCosts = false;
@@ -108,7 +108,7 @@ namespace EasyPack
         public float obstacleCheckRadius = 0.3f;
 
         [Tooltip("动态障碍物列表，这些Transform位置周围将被视为障碍")]
-        public List<Transform> dynamicObstacles = new List<Transform>();
+        public List<Transform> dynamicObstacles = new();
 
         [Header("抖动设置")]
         [Tooltip("是否启用移动抖动效果，让移动看起来更自然(或许)")]
@@ -145,22 +145,22 @@ namespace EasyPack
 
         [Header("事件")]
         [Tooltip("找到路径时触发的事件，参数为路径点列表")]
-        public PathfindingEvent OnPathFound = new PathfindingEvent();
+        public PathfindingEvent OnPathFound = new();
 
         [Tooltip("未找到路径时触发的事件")]
-        public UnityEvent OnPathNotFound = new UnityEvent();
+        public UnityEvent OnPathNotFound = new();
 
         [Tooltip("开始移动时触发的事件，参数为起始位置")]
-        public MovementEvent OnMovementStart = new MovementEvent();
+        public MovementEvent OnMovementStart = new();
 
         [Tooltip("移动过程中每帧触发的事件，参数为当前位置")]
-        public MovementEvent OnMovementUpdate = new MovementEvent();
+        public MovementEvent OnMovementUpdate = new();
 
         [Tooltip("移动完成时触发的事件，参数为最终位置")]
-        public MovementEvent OnMovementComplete = new MovementEvent();
+        public MovementEvent OnMovementComplete = new();
 
         [Tooltip("移动被停止时触发的事件")]
-        public UnityEvent OnMovementStopped = new UnityEvent();
+        public UnityEvent OnMovementStopped = new();
 
         [Header("调试设置")]
         [Tooltip("是否在Scene视图中显示寻路路径")]
@@ -206,20 +206,20 @@ namespace EasyPack
         private bool usingSharedMap = false;     // 标记是否使用共享地图
         public bool localBuilt = false;         // 若未能获取服务则本地构建
 
-        private List<Vector3Int> currentPath = new List<Vector3Int>();
+        private List<Vector3Int> currentPath = new();
         private Coroutine moveCoroutine;
         private int currentPathIndex = 0;
         private Vector3 currentTarget = Vector3.zero;
         public bool isMovingToTarget = false;
         private Vector3 currentJitterOffset = Vector3.zero;
         private float jitterTimer = 0f;
-        private List<Vector3> jitterHistory = new List<Vector3>();
-        private PathfindingStats lastStats = new PathfindingStats();
+        private List<Vector3> jitterHistory = new();
+        private PathfindingStats lastStats = new();
 
         private readonly Vector3Int[] directions8 = {
             Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right,
-            new Vector3Int(1,1,0), new Vector3Int(-1,1,0),
-            new Vector3Int(1,-1,0), new Vector3Int(-1,-1,0)
+            new(1,1,0), new(-1,1,0),
+            new(1,-1,0), new(-1,-1,0)
         };
         private readonly Vector3Int[] directions4 = {
             Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right
@@ -628,8 +628,8 @@ namespace EasyPack
 
                     if (d.x != 0 && d.y != 0)
                     {
-                        Vector3Int orth1 = new Vector3Int(currentNode.position.x + d.x, currentNode.position.y, 0);
-                        Vector3Int orth2 = new Vector3Int(currentNode.position.x, currentNode.position.y + d.y, 0);
+                        Vector3Int orth1 = new(currentNode.position.x + d.x, currentNode.position.y, 0);
+                        Vector3Int orth2 = new(currentNode.position.x, currentNode.position.y + d.y, 0);
                         if (!IsPositionValid(orth1) || !IsPositionValid(orth2) ||
                             HasDynamicObstacle(orth1) || HasDynamicObstacle(orth2))
                             continue;
@@ -1056,7 +1056,7 @@ namespace EasyPack
         #region 辅助结构
         internal class PathNodeMinHeap
         {
-            private readonly List<PathNode> _list = new List<PathNode>();
+            private readonly List<PathNode> _list = new();
             public int Count => _list.Count;
             public void Add(PathNode node)
             {

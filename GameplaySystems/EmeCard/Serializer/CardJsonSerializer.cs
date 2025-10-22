@@ -11,7 +11,7 @@ namespace EasyPack
     /// </summary>
     public class CardJsonSerializer : JsonSerializerBase<Card>
     {
-        private readonly GamePropertyJsonSerializer _propertySerializer = new GamePropertyJsonSerializer();
+        private readonly GamePropertyJsonSerializer _propertySerializer = new();
 
         public override string SerializeToJson(Card obj)
         {
