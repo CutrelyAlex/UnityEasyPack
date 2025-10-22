@@ -23,6 +23,9 @@ namespace EasyPack
         public EnginePolicy Policy { get; } = new EnginePolicy();
 
         private bool _isPumping = false;
+        // 延迟事件队列
+        private readonly Queue<EventEntry> _deferredQueue = new();
+        private int _processingDepth = 0; // 处理深度
         #endregion
 
         #region 事件和缓存
@@ -61,8 +64,16 @@ namespace EasyPack
         /// </summary>
         private void OnCardEvent(Card source, CardEvent evt)
         {
-            _queue.Enqueue(new EventEntry(source, evt));
-            if (!_isPumping) Pump();
+            // 如果正在处理事件，新事件进入延迟队列
+            if (_processingDepth > 0)
+            {
+                _deferredQueue.Enqueue(new EventEntry(source, evt));
+            }
+            else
+            {
+                _queue.Enqueue(new EventEntry(source, evt));
+                if (!_isPumping) Pump();
+            }
         }
         /// <summary>
         /// 事件主循环，依次处理队列中的所有事件。
@@ -97,59 +108,68 @@ namespace EasyPack
         /// </summary>
         private void Process(Card source, CardEvent evt)
         {
-            var rules = _rules[evt.Type];
-            if (rules == null || rules.Count == 0) return;
-
-            var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>();
-            for (int i = 0; i < rules.Count; i++)
+            _processingDepth++; // 进入处理，期间触发的事件会进入延迟队列
+            try
             {
-                var rule = rules[i];
+                var rules = _rules[evt.Type];
+                if (rules == null || rules.Count == 0) return;
 
-                if (evt.Type == CardEventType.Custom &&
-                    !string.IsNullOrEmpty(rule.CustomId) &&
-                    !string.Equals(rule.CustomId, evt.ID, StringComparison.Ordinal))
+                var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>();
+                for (int i = 0; i < rules.Count; i++)
                 {
-                    continue;
+                    var rule = rules[i];
+
+                    if (evt.Type == CardEventType.Custom &&
+                        !string.IsNullOrEmpty(rule.CustomId) &&
+                        !string.Equals(rule.CustomId, evt.ID, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    var ctx = BuildContext(rule, source, evt);
+                    if (ctx == null) continue;
+
+                    if (EvaluateRequirements(ctx, rule.Requirements, out var matched))
+                    {
+                        if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
+                            matched = matched.Distinct().ToList();
+
+                        evals.Add((rule, matched, ctx, i));
+                    }
                 }
 
-                var ctx = BuildContext(rule, source, evt);
-                if (ctx == null) continue;
+                if (evals.Count == 0) return;
 
-                if (EvaluateRequirements(ctx, rule.Requirements, out var matched))
+                IEnumerable<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> ordered =
+                    Policy.RuleSelection == RuleSelectionMode.Priority
+                        ? evals.OrderBy(e => e.rule.Priority).ThenBy(e => e.orderIndex)
+                        : evals.OrderBy(e => e.orderIndex);
+
+                if (Policy.FirstMatchOnly)
                 {
-                    if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
-                        matched = matched.Distinct().ToList();
-
-                    evals.Add((rule, matched, ctx, i));
+                    var first = ordered.First();
+                    ExecuteOne(first);
+                }
+                else
+                {
+                    foreach (var e in ordered)
+                    {
+                        if (ExecuteOne(e)) break;
+                    }
                 }
             }
-
-            if (evals.Count == 0) return;
-
-            IEnumerable<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> ordered =
-                Policy.RuleSelection == RuleSelectionMode.Priority
-                    ? evals.OrderBy(e => e.rule.Priority).ThenBy(e => e.orderIndex)
-                    : evals.OrderBy(e => e.orderIndex);
-            //调试用
-            //if (evt.Type==CardEventType.Custom)
-            //{
-            //    Debug.Log(evt.ID);
-            //    if(evt.Data is object[] objects)
-            //    {
-            //        Debug.Log($"碰撞对象是{((Card)objects[0]).Id},对象速度是{(Vector2Int)objects[1]},自身速度是{(Vector2Int)objects[2]}");
-            //    }
-            //}
-
-            if (Policy.FirstMatchOnly)
+            finally
             {
-                var first = ordered.First();
-                ExecuteOne(first);
-            }
-            else
-            {
-                foreach (var e in ordered)
+                _processingDepth--;
+                
+                // 如果处理完成（深度回到0），将延迟队列的事件批量移入主队列
+                if (_processingDepth == 0 && _deferredQueue.Count > 0)
                 {
-                    if (ExecuteOne(e)) break;
+                    Debug.Log($"[CardEngine] 批量处理{_deferredQueue.Count}个延迟事件");
+                    while (_deferredQueue.Count > 0)
+                    {
+                        _queue.Enqueue(_deferredQueue.Dequeue());
+                    }
                 }
             }
         }
