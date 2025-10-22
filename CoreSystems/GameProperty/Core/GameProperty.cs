@@ -210,10 +210,6 @@ namespace EasyPack
         /// <param name="modifier">要添加的修饰符</param>
         public IModifiableProperty<float> AddModifier(IModifier modifier)
         {
-
-            if (modifier == null)
-                throw new ArgumentNullException(nameof(modifier));
-
             // 添加到总列表并记录索引
             int index = Modifiers.Count;
             Modifiers.Add(modifier);
