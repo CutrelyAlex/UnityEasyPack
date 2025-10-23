@@ -79,7 +79,7 @@ namespace EasyPack
         /// 事件主循环，依次处理队列中的所有事件。
         /// </summary>
         /// <param name="maxEvents">最大处理事件数。</param>
-        public void Pump(int maxEvents = 2000)
+        public void Pump(int maxEvents = 64)
         {
             if (_isPumping) return;
             _isPumping = true;
@@ -128,7 +128,11 @@ namespace EasyPack
 
                     var ctx = BuildContext(rule, source, evt);
                     if (ctx == null) continue;
-
+                    if (evt.Type == CardEventType.RemovedFromOwner&&source.Id=="CanPick")
+                    {
+                        int x = 1;
+                    }
+                    
                     if (EvaluateRequirements(ctx, rule.Requirements, out var matched))
                     {
                         if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)

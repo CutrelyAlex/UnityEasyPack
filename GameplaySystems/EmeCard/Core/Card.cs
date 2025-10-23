@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace EasyPack
 {
@@ -250,7 +251,6 @@ namespace EasyPack
         {
             if (child == null) return false;
             if (!force && _intrinsics.Contains(child)) return false; // 固有不可移除
-
             var removed = _children.Remove(child);
             if (removed)
             {
