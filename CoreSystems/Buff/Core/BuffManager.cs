@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -136,10 +135,12 @@ namespace EasyPack
                 // 根据持续时间分类存储
                 if (buff.DurationTimer > 0)
                 {
+                    _timedBuffPositions[buff] = _timedBuffs.Count;
                     _timedBuffs.Add(buff);
                 }
                 else
                 {
+                    _permanentBuffPositions[buff] = _permanentBuffs.Count;
                     _permanentBuffs.Add(buff);
                 }
 
