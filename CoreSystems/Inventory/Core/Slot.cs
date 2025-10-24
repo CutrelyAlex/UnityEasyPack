@@ -1,5 +1,3 @@
-using UnityEngine;
-
 namespace EasyPack
 {
     public interface ISlot

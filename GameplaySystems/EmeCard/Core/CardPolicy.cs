@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace EasyPack
+﻿namespace EasyPack
 {
     // 规则选择模式
     public enum RuleSelectionMode
