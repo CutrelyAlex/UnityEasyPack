@@ -128,11 +128,7 @@ namespace EasyPack
 
                     var ctx = BuildContext(rule, source, evt);
                     if (ctx == null) continue;
-                    if (evt.Type == CardEventType.RemovedFromOwner&&source.Id=="CanPick")
-                    {
-                        int x = 1;
-                    }
-                    
+                   
                     if (EvaluateRequirements(ctx, rule.Requirements, out var matched))
                     {
                         if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
