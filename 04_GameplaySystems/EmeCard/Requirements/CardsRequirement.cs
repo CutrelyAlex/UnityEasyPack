@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
 {
@@ -23,7 +22,7 @@ namespace EasyPack.EmeCardSystem
         public TargetScope Scope = TargetScope.Children;
 
         /// <summary>过滤模式（默认 None）。</summary>
-        public FilterMode FilterMode = FilterMode.None;
+        public CardFilterMode FilterMode = CardFilterMode.None;
 
         /// <summary>过滤值（当 FilterMode 为 ByTag/ById/ByCategory 时填写）。</summary>
         public string FilterValue;

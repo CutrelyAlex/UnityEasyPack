@@ -20,7 +20,7 @@ namespace EasyPack.EmeCardSystem
         /// <returns>符合条件的卡牌列表</returns>
         public static IReadOnlyList<Card> Select(
             TargetScope scope,
-            FilterMode filter,
+            CardFilterMode filter,
             CardRuleContext ctx,
             string filterValue = null,
             int? maxDepth = null)
@@ -58,14 +58,14 @@ namespace EasyPack.EmeCardSystem
             // 第二步：根据 FilterMode 过滤
             switch (filter)
             {
-                case FilterMode.ByTag:
+                case CardFilterMode.ByTag:
                     if (!string.IsNullOrEmpty(filterValue))
                         candidates = candidates.Where(c => c.HasTag(filterValue));
                     else
                         return Array.Empty<Card>();
                     break;
 
-                case FilterMode.ById:
+                case CardFilterMode.ById:
                     if (!string.IsNullOrEmpty(filterValue))
                         candidates = candidates.Where(c =>
                             string.Equals(c.Id, filterValue, StringComparison.Ordinal));
@@ -73,14 +73,14 @@ namespace EasyPack.EmeCardSystem
                         return Array.Empty<Card>();
                     break;
 
-                case FilterMode.ByCategory:
+                case CardFilterMode.ByCategory:
                     if (TryParseCategory(filterValue, out var cat))
                         candidates = candidates.Where(c => c.Category == cat);
                     else
                         return Array.Empty<Card>();
                     break;
 
-                case FilterMode.None:
+                case CardFilterMode.None:
                     break;
 
                 default:
@@ -151,7 +151,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="filter">过滤模式</param>
         /// <param name="filterValue">过滤值</param>
         /// <returns>过滤后的卡牌列表</returns>
-        public static IReadOnlyList<Card> ApplyFilter(IReadOnlyList<Card> cards, FilterMode filter, string filterValue)
+        public static IReadOnlyList<Card> ApplyFilter(IReadOnlyList<Card> cards, CardFilterMode filter, string filterValue)
         {
             if (cards == null || cards.Count == 0)
                 return Array.Empty<Card>();
@@ -160,14 +160,14 @@ namespace EasyPack.EmeCardSystem
 
             switch (filter)
             {
-                case FilterMode.ByTag:
+                case CardFilterMode.ByTag:
                     if (!string.IsNullOrEmpty(filterValue))
                         filtered = filtered.Where(c => c.HasTag(filterValue));
                     else
                         return Array.Empty<Card>();
                     break;
 
-                case FilterMode.ById:
+                case CardFilterMode.ById:
                     if (!string.IsNullOrEmpty(filterValue))
                         filtered = filtered.Where(c =>
                             string.Equals(c.Id, filterValue, StringComparison.Ordinal));
@@ -175,14 +175,14 @@ namespace EasyPack.EmeCardSystem
                         return Array.Empty<Card>();
                     break;
 
-                case FilterMode.ByCategory:
+                case CardFilterMode.ByCategory:
                     if (TryParseCategory(filterValue, out var cat))
                         filtered = filtered.Where(c => c.Category == cat);
                     else
                         return Array.Empty<Card>();
                     break;
 
-                case FilterMode.None:
+                case CardFilterMode.None:
                     return cards;
 
                 default:

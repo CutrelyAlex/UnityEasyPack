@@ -32,7 +32,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         /// 过滤模式：如何筛选目标卡牌。
         /// </summary>
-        public FilterMode Filter { get; set; } = FilterMode.None;
+        public CardFilterMode Filter { get; set; } = CardFilterMode.None;
 
         /// <summary>
         /// 过滤值：根据 <see cref="Filter"/> 模式提供对应的值。
@@ -69,7 +69,7 @@ namespace EasyPack.EmeCardSystem
                 targets = matched;
 
                 // 应用过滤条件（FilterMode）
-                if (Filter != FilterMode.None && !string.IsNullOrEmpty(FilterValue))
+                if (Filter != CardFilterMode.None && !string.IsNullOrEmpty(FilterValue))
                 {
                     targets = TargetSelector.ApplyFilter(targets, Filter, FilterValue);
                 }

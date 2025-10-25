@@ -28,7 +28,7 @@ namespace EasyPack.EmeCardSystem
     /// <summary>
     /// 过滤模式：决定如何过滤目标。
     /// </summary>
-    public enum FilterMode
+    public enum CardFilterMode
     {
         /// <summary>不过滤（返回所有目标）。</summary>
         None,
@@ -53,7 +53,7 @@ namespace EasyPack.EmeCardSystem
         TargetScope Scope { get; set; }
 
         /// <summary>过滤模式（默认 None）。</summary>
-        FilterMode Filter { get; set; }
+        CardFilterMode Filter { get; set; }
 
         /// <summary>目标过滤值（ByTag/ById/ByCategory 时生效）。</summary>
         string FilterValue { get; set; }

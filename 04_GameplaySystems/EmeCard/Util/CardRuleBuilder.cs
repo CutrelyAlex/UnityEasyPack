@@ -84,7 +84,7 @@ namespace EasyPack.EmeCardSystem
         public CardRuleBuilder Need(
             SelectionRoot root,
             TargetScope scope,
-            FilterMode filter = FilterMode.None,
+            CardFilterMode filter = CardFilterMode.None,
             string filterValue = null,
             int minCount = 1,
             int maxMatched = -1,
@@ -177,39 +177,39 @@ namespace EasyPack.EmeCardSystem
         #region 条件要求 - 便捷语法糖
         /// <summary>需要容器的直接子卡中有指定标签的卡牌</summary>
         public CardRuleBuilder NeedTag(string tag, int minCount = 1, int maxMatched = -1)
-            => Need(SelectionRoot.Container, TargetScope.Children, FilterMode.ByTag, tag, minCount, maxMatched);
+            => Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByTag, tag, minCount, maxMatched);
 
         /// <summary>需要容器的直接子卡中有指定ID的卡牌</summary>
         public CardRuleBuilder NeedId(string id, int minCount = 1, int maxMatched = -1)
-            => Need(SelectionRoot.Container, TargetScope.Children, FilterMode.ById, id, minCount, maxMatched);
+            => Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ById, id, minCount, maxMatched);
 
         /// <summary>需要容器的直接子卡中有指定类别的卡牌</summary>
         public CardRuleBuilder NeedCategory(CardCategory category, int minCount = 1, int maxMatched = -1)
-            => Need(SelectionRoot.Container, TargetScope.Children, FilterMode.ByCategory, category.ToString(), minCount, maxMatched);
+            => Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByCategory, category.ToString(), minCount, maxMatched);
 
         /// <summary>需要容器的所有后代中有指定标签的卡牌</summary>
         public CardRuleBuilder NeedTagRecursive(string tag, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
-            => Need(SelectionRoot.Container, TargetScope.Descendants, FilterMode.ByTag, tag, minCount, maxMatched, maxDepth);
+            => Need(SelectionRoot.Container, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount, maxMatched, maxDepth);
 
         /// <summary>需要容器的所有后代中有指定ID的卡牌</summary>
         public CardRuleBuilder NeedIdRecursive(string id, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
-            => Need(SelectionRoot.Container, TargetScope.Descendants, FilterMode.ById, id, minCount, maxMatched, maxDepth);
+            => Need(SelectionRoot.Container, TargetScope.Descendants, CardFilterMode.ById, id, minCount, maxMatched, maxDepth);
 
         /// <summary>需要容器的所有后代中有指定类别的卡牌</summary>
         public CardRuleBuilder NeedCategoryRecursive(CardCategory category, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
-            => Need(SelectionRoot.Container, TargetScope.Descendants, FilterMode.ByCategory, category.ToString(), minCount, maxMatched, maxDepth);
+            => Need(SelectionRoot.Container, TargetScope.Descendants, CardFilterMode.ByCategory, category.ToString(), minCount, maxMatched, maxDepth);
 
         /// <summary>需要源卡的直接子卡中有指定标签的卡牌</summary>
         public CardRuleBuilder NeedSourceTag(string tag, int minCount = 1, int maxMatched = -1)
-            => Need(SelectionRoot.Source, TargetScope.Children, FilterMode.ByTag, tag, minCount, maxMatched);
+            => Need(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ByTag, tag, minCount, maxMatched);
 
         /// <summary>需要源卡的直接子卡中有指定ID的卡牌</summary>
         public CardRuleBuilder NeedSourceId(string id, int minCount = 1, int maxMatched = -1)
-            => Need(SelectionRoot.Source, TargetScope.Children, FilterMode.ById, id, minCount, maxMatched);
+            => Need(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ById, id, minCount, maxMatched);
 
         /// <summary>需要源卡的所有后代中有指定标签的卡牌</summary>
         public CardRuleBuilder NeedSourceTagRecursive(string tag, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
-            => Need(SelectionRoot.Source, TargetScope.Descendants, FilterMode.ByTag, tag, minCount, maxMatched, maxDepth);
+            => Need(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount, maxMatched, maxDepth);
         #endregion
 
         #region 效果执行 - 核心
@@ -252,7 +252,7 @@ namespace EasyPack.EmeCardSystem
         public CardRuleBuilder DoRemove(
             SelectionRoot root = SelectionRoot.Container,
             TargetScope scope = TargetScope.Matched,
-            FilterMode filter = FilterMode.None,
+            CardFilterMode filter = CardFilterMode.None,
             string filterValue = null,
             int? take = null,
             int? maxDepth = null)
@@ -276,7 +276,7 @@ namespace EasyPack.EmeCardSystem
             ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase,
             SelectionRoot root = SelectionRoot.Container,
             TargetScope scope = TargetScope.Matched,
-            FilterMode filter = FilterMode.None,
+            CardFilterMode filter = CardFilterMode.None,
             string filterValue = null,
             int? take = null,
             int? maxDepth = null)
@@ -301,7 +301,7 @@ namespace EasyPack.EmeCardSystem
             string tag,
             SelectionRoot root = SelectionRoot.Container,
             TargetScope scope = TargetScope.Matched,
-            FilterMode filter = FilterMode.None,
+            CardFilterMode filter = CardFilterMode.None,
             string filterValue = null,
             int? take = null,
             int? maxDepth = null)
@@ -342,19 +342,19 @@ namespace EasyPack.EmeCardSystem
         #region 效果执行 - 便捷语法糖
         /// <summary>移除匹配结果中指定标签的卡牌</summary>
         public CardRuleBuilder DoRemoveByTag(string tag, int? take = null)
-            => DoRemove(SelectionRoot.Container, TargetScope.Matched, FilterMode.ByTag, tag, take);
+            => DoRemove(SelectionRoot.Container, TargetScope.Matched, CardFilterMode.ByTag, tag, take);
 
         /// <summary>移除匹配结果中指定ID的卡牌</summary>
         public CardRuleBuilder DoRemoveById(string id, int? take = null)
-            => DoRemove(SelectionRoot.Container, TargetScope.Matched, FilterMode.ById, id, take);
+            => DoRemove(SelectionRoot.Container, TargetScope.Matched, CardFilterMode.ById, id, take);
 
         /// <summary>移除容器子卡中指定标签的卡牌</summary>
         public CardRuleBuilder DoRemoveInChildByTag(string tag, int? take = null)
-            => DoRemove(SelectionRoot.Container, TargetScope.Children, FilterMode.ByTag, tag, take);
+            => DoRemove(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByTag, tag, take);
 
         /// <summary>移除容器子卡中指定ID的卡牌</summary>
         public CardRuleBuilder DoRemoveInChildById(string id, int? take = null)
-            => DoRemove(SelectionRoot.Container, TargetScope.Children, FilterMode.ById, id, take);
+            => DoRemove(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ById, id, take);
 
         /// <summary>给匹配结果添加标签</summary>
         public CardRuleBuilder DoAddTagToMatched(string tag)
@@ -370,11 +370,11 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>给容器子卡中指定标签的卡牌添加新标签</summary>
         public CardRuleBuilder DoAddTagToTag(string targetTag, string newTag, int? take = null)
-            => DoAddTag(newTag, SelectionRoot.Container, TargetScope.Children, FilterMode.ByTag, targetTag, take);
+            => DoAddTag(newTag, SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByTag, targetTag, take);
 
         /// <summary>给容器子卡中指定ID的卡牌添加标签</summary>
         public CardRuleBuilder DoAddTagToId(string targetId, string newTag, int? take = null)
-            => DoAddTag(newTag, SelectionRoot.Container, TargetScope.Children, FilterMode.ById, targetId, take);
+            => DoAddTag(newTag, SelectionRoot.Container, TargetScope.Children, CardFilterMode.ById, targetId, take);
 
         /// <summary>给源卡牌自身移除标签</summary>
         public CardRuleBuilder DoRemoveTagToSource(string tag)
@@ -391,7 +391,7 @@ namespace EasyPack.EmeCardSystem
             float value,
             ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase,
             int? take = null)
-            => DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Children, FilterMode.ByTag, tag, take);
+            => DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByTag, tag, take);
 
         /// <summary>修改匹配结果的属性</summary>
         public CardRuleBuilder DoModifyMatched(
