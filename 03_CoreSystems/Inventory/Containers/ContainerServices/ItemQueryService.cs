@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// 物品查询服务接口

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// 条件类型，必须实现 ISerializableCondition 并有无参构造函数
@@ -49,3 +49,4 @@ namespace EasyPack
         }
     }
 }
+

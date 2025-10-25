@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// 游戏属性管理器，负责集中管理所有组合属性（ICombineGameProperty）的生命周期

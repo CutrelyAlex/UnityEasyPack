@@ -1,4 +1,4 @@
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     public interface IItemCondition
     {

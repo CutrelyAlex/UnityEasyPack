@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// 所有子条件全部命中才为真；匹配结果为所有子条件的匹配集合并（去重）。

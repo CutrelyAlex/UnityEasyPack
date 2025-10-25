@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     // 按 ID 创建卡牌实例
     public interface ICardFactory

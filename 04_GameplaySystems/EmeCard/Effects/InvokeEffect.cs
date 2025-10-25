@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// 委托调用效果：在效果阶段执行一段自定义委托逻辑

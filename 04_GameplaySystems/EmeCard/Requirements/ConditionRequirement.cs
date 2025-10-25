@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// 自定义条件要求（不基于子卡筛选）：

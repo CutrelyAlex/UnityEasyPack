@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// 选择器式要求项：
@@ -89,3 +89,4 @@ namespace EasyPack
         }
     }
 }
+

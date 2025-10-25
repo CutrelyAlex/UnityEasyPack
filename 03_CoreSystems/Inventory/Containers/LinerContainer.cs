@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     public class LinerContainer : Container
     {
@@ -347,4 +347,4 @@ namespace EasyPack
         }
         #endregion
     }
-} // namespace EasyPack
+} // namespace EasyPack.InventorySystem

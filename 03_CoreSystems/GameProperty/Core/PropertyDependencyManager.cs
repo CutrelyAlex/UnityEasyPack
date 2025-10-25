@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// 依赖管理器
@@ -263,3 +263,4 @@ namespace EasyPack
         }
     }
 }
+

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     [System.Serializable]
     public class SerializedItem

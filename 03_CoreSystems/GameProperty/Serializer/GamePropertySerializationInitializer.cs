@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// GameProperty 序列化系统初始化器
@@ -84,3 +84,4 @@ namespace EasyPack
         }
     }
 }
+

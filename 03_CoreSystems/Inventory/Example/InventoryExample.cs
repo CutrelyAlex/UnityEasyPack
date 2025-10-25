@@ -1,4 +1,5 @@
 using EasyPack;
+using EasyPack.InventorySystem;
 using System.Collections.Generic;
 using UnityEngine;
 

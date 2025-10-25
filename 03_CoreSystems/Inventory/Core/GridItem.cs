@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// 旋转角度枚举
@@ -144,3 +144,4 @@ namespace EasyPack
         IItem IItem.Clone() => Clone();
     }
 }
+

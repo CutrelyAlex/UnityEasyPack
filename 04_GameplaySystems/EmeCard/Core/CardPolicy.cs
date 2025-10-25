@@ -1,4 +1,4 @@
-﻿namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     // 规则选择模式
     public enum RuleSelectionMode

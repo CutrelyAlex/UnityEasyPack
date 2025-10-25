@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// 容器接口，定义标准化的容器操作
@@ -175,3 +175,4 @@ namespace EasyPack
         #endregion
     }
 }
+

@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// 任意一个子条件成立则返回 true；空子集视为假。

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+
 /// <summary>
 /// 基于float数值的游戏属性类
 /// 支持修饰符系统，依赖系统，脏标记系统
@@ -9,7 +11,7 @@ using System.Linq;
 /// 通常与CombineProperty配合使用，也可以单独使用GameProperty
 /// </summary>
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     public class GameProperty : IModifiableProperty<float>, IDrityTackable
     {

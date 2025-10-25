@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// GridItem 的序列化数据传输对象
@@ -114,3 +114,4 @@ namespace EasyPack
         }
     }
 }
+

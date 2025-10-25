@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// 可序列化的 GameProperty 数据结构，用于 JSON 序列化
@@ -108,3 +108,4 @@ namespace EasyPack
         }
     }
 }
+

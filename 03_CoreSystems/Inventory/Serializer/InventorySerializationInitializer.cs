@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// Inventory序列化系统初始化器
@@ -90,3 +90,4 @@ namespace EasyPack
         public static bool IsInitialized => _isInitialized;
     }
 }
+

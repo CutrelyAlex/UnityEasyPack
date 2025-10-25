@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// 单个子条件取反：子条件不命中时为真；不返回匹配集合（始终为空）。

@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     public abstract class Container : IContainer
     {
@@ -1154,4 +1154,4 @@ namespace EasyPack
 
         #endregion
     }
-} // namespace EasyPack
+} // namespace EasyPack.InventorySystem

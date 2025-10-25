@@ -1,6 +1,6 @@
 using System;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// 组合属性的基类

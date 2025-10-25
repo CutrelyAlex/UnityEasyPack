@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// 网格容器 - 支持二维网格布局和网格物品放置
@@ -484,3 +484,4 @@ namespace EasyPack
         #endregion
     }
 }
+

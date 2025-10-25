@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.BuffSystem
 {
     /// <summary>
     /// Buff生命周期管理器，负责Buff的创建、更新、移除和查询

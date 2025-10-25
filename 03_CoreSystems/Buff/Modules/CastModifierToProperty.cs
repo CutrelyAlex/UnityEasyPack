@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using EasyPack.GamePropertySystem;
 
-namespace EasyPack
+namespace EasyPack.BuffSystem
 {
     /// <summary>
     /// Buff 模块实现，用于将修饰符应用到 GameProperty 上

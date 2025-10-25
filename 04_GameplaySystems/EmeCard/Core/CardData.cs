@@ -1,7 +1,7 @@
 
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// 卡牌的静态数据

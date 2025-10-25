@@ -1,4 +1,4 @@
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// 统一的选择根锚点：决定以谁为根进行选择。

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.BuffSystem
 {
     /// <summary>
     /// Buff 回调类型，定义 Buff 生命周期中的各个事件点

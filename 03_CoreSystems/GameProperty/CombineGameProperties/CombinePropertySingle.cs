@@ -1,6 +1,5 @@
-﻿using System;
-
-namespace EasyPack
+using System;
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// 单一属性组合实现

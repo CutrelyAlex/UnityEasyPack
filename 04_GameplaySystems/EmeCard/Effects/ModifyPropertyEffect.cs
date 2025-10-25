@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using EasyPack.GamePropertySystem;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// 修改属性效果：对目标卡的 <see cref="GameProperty"/> 进行数值或修饰符层面的调整。

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// CombinePropertySingle 的可序列化数据结构
@@ -309,3 +309,4 @@ namespace EasyPack
         }
     }
 }
+

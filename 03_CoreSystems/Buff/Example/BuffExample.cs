@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
+using EasyPack.GamePropertySystem;
 
-namespace EasyPack
+namespace EasyPack.BuffSystem
 {
     /// <summary>
     /// Buff 系统完整示例

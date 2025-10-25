@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
 
     /// <summary>

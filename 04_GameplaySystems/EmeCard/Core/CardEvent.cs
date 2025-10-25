@@ -1,4 +1,4 @@
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     public enum CardEventType
     {

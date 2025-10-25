@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// 产卡效果：在上下文容器（<see cref="CardRuleContext.Container"/>）中创建指定 ID 的新卡。

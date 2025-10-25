@@ -1,6 +1,6 @@
 using System;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// 组合属性接口，支持复杂的属性计算和组合

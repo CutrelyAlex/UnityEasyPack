@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.BuffSystem
 {
     /// <summary>
     /// Buff 配置数据，定义 Buff 的属性、行为和叠加策略

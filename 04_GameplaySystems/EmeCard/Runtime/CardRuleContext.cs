@@ -1,4 +1,4 @@
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// 规则执行上下文：为效果提供触发源、容器与原始事件等信息。

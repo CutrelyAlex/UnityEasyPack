@@ -1,4 +1,4 @@
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     public class ItemTypeCondition : IItemCondition, ISerializableCondition
     {

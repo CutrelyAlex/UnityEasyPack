@@ -1,6 +1,6 @@
 using System;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     public enum AttributeComparisonType
     {

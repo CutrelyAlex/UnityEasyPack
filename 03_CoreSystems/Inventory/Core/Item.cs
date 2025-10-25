@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     public interface IItem
     {
@@ -72,3 +72,4 @@ namespace EasyPack
         #endregion
     }
 }
+

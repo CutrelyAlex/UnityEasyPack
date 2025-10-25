@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// GridContainer 序列化器
@@ -123,3 +123,4 @@ namespace EasyPack
         }
     }
 }
+

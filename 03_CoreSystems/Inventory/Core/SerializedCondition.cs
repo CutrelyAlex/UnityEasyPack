@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     // 条件数据化表示
     [Serializable]

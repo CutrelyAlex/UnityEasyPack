@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.BuffSystem
 {
     /// <summary>
     /// Buff 实例，表示一个应用到目标对象的增益或减益效果

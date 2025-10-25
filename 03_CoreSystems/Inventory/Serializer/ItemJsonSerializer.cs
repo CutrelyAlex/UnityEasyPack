@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// Item类型的JSON序列化器
@@ -82,3 +82,4 @@ namespace EasyPack
         }
     }
 }
+

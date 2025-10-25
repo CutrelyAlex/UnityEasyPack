@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// EmeCard 序列化系统初始化器
@@ -45,3 +45,4 @@ namespace EasyPack
         }
     }
 }
+

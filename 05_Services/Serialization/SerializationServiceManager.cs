@@ -6,7 +6,7 @@ namespace EasyPack
 {
     /// <summary>
     /// 序列化服务全局访问管理器
-    /// 提供单例访问和便捷的静态方法
+    /// 提供单例访问和便捷的静态方法 
     /// </summary>
     public static class SerializationServiceManager
     {

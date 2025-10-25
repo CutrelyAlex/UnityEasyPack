@@ -1,5 +1,5 @@
 using System;
-namespace EasyPack
+namespace EasyPack.InventorySystem
 {
     [Serializable]
     public class SerializedSlot
@@ -10,3 +10,4 @@ namespace EasyPack
         public SerializedCondition SlotCondition;
     }
 }
+

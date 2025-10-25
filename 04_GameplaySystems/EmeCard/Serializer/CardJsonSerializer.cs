@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using EasyPack.GamePropertySystem;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// EmeCard 的 JSON 序列化器
@@ -223,3 +224,4 @@ namespace EasyPack
         public int GetHashCode(T obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
 }
+

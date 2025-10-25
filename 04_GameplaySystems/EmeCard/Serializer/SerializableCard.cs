@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using EasyPack.GamePropertySystem;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// Card 的可序列化中间数据结构
@@ -24,3 +25,4 @@ namespace EasyPack
         public bool IsIntrinsic;
     }
 }
+
