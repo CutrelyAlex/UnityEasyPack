@@ -14,7 +14,7 @@ namespace EasyPack.ENekoFramework
     {
         private static T _instance;
         private static readonly object _lock = new object();
-        
+    
         /// <summary>
         /// 架构的单例实例。
         /// 首次访问时创建并初始化架构。

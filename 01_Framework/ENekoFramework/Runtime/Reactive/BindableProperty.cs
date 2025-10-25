@@ -13,19 +13,19 @@ namespace EasyPack.ENekoFramework
         /// 属性的当前值。
         /// </summary>
         T Value { get; set; }
-        
+    
         /// <summary>
         /// 属性值变更时触发的事件。
         /// </summary>
         event Action<T> OnValueChanged;
-        
+    
         /// <summary>
         /// 注册值变更监听器。
         /// </summary>
         /// <param name="listener">监听器对象（用于 WeakReference）</param>
         /// <param name="onChanged">值变更时要调用的回调</param>
         void Register(object listener, Action<T> onChanged);
-        
+    
         /// <summary>
         /// 注销监听器。
         /// </summary>

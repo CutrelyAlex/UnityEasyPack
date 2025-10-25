@@ -13,13 +13,13 @@ namespace EasyPack.ENekoFramework
     {
         private readonly Dictionary<Type, ServiceDescriptor> _services = new Dictionary<Type, ServiceDescriptor>();
         private readonly object _lock = new object();
-        
+    
         /// <summary>
         /// 可以注册的最大服务数量。
         /// 默认：500
         /// </summary>
         public int MaxServiceCapacity { get; set; } = 500;
-        
+    
         /// <summary>
         /// 当前已注册的服务数量。
         /// </summary>
@@ -38,17 +38,17 @@ namespace EasyPack.ENekoFramework
             lock (_lock)
             {
                 var serviceType = typeof(TService);
-                
+            
                 if (_services.ContainsKey(serviceType))
                 {
                     throw new InvalidOperationException($"服务 {serviceType.Name} 已经被注册。");
                 }
-                
+            
                 if (_services.Count >= MaxServiceCapacity)
                 {
                     throw new InvalidOperationException($"服务容量已超限。最大容量：{MaxServiceCapacity}");
                 }
-                
+            
                 var descriptor = new ServiceDescriptor(serviceType, typeof(TImplementation));
                 _services[serviceType] = descriptor;
             }
@@ -63,19 +63,19 @@ namespace EasyPack.ENekoFramework
         public async Task<TService> ResolveAsync<TService>() where TService : class, IService
         {
             ServiceDescriptor descriptor;
-            
+        
             lock (_lock)
             {
                 var serviceType = typeof(TService);
-                
+            
                 if (!_services.TryGetValue(serviceType, out descriptor))
                 {
                     throw new InvalidOperationException($"服务 {serviceType.Name} 未注册。");
                 }
-                
+            
                 descriptor.LastAccessedAt = DateTime.UtcNow;
             }
-            
+        
             // 如果实例不存在则创建（在锁外进行异步初始化）
             if (descriptor.Instance == null)
             {
@@ -87,11 +87,11 @@ namespace EasyPack.ENekoFramework
                         descriptor.Instance = (IService)Activator.CreateInstance(descriptor.ImplementationType);
                     }
                 }
-                
+            
                 // 异步初始化
                 await descriptor.Instance.InitializeAsync();
             }
-            
+        
             return descriptor.Instance as TService;
         }
 
@@ -118,12 +118,12 @@ namespace EasyPack.ENekoFramework
             {
                 var descriptors = new List<ServiceDescriptor>(_services.Values);
                 descriptors.Reverse(); // 按逆序释放
-                
+            
                 foreach (var descriptor in descriptors)
                 {
                     descriptor.Instance?.Dispose();
                 }
-                
+            
                 _services.Clear();
             }
         }
