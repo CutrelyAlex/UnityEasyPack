@@ -18,6 +18,13 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private double _lastRefreshTime;
         private const double RefreshInterval = 1.0; // 每秒刷新一次
         
+        // 筛选器
+        private List<string> _architectureNames = new List<string>();
+        private List<bool> _architectureFilters = new List<bool>();
+        private ServiceLifecycleState _selectedStateFilter = ServiceLifecycleState.Ready;
+        private bool _useStateFilter = false;
+        private Vector2 _filterScrollPosition;
+        
         // 状态颜色
         private readonly Color _uninitializedColor = new Color(0.7f, 0.7f, 0.7f);
         private readonly Color _initializingColor = new Color(1f, 0.8f, 0.3f);
@@ -38,6 +45,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private void OnEnable()
         {
             RefreshServices();
+            RefreshArchitectureList();
         }
 
         private void Update()
@@ -52,6 +60,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private void OnGUI()
         {
             DrawToolbar();
+            DrawFilters();
             
             EditorGUILayout.BeginHorizontal();
             
@@ -62,6 +71,39 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             DrawServiceDetails();
             
             EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawFilters()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Height(100));
+            
+            EditorGUILayout.LabelField("筛选器", EditorStyles.boldLabel);
+            
+            EditorGUILayout.BeginHorizontal();
+            
+            // 架构筛选
+            EditorGUILayout.LabelField("架构:", GUILayout.Width(50));
+            _filterScrollPosition = EditorGUILayout.BeginScrollView(_filterScrollPosition, GUILayout.Height(40));
+            for (int i = 0; i < _architectureNames.Count; i++)
+            {
+                _architectureFilters[i] = EditorGUILayout.ToggleLeft(_architectureNames[i], _architectureFilters[i]);
+            }
+            EditorGUILayout.EndScrollView();
+            
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.BeginHorizontal();
+            
+            // 状态筛选
+            _useStateFilter = EditorGUILayout.ToggleLeft("按状态筛选", _useStateFilter, GUILayout.Width(80));
+            if (_useStateFilter)
+            {
+                _selectedStateFilter = (ServiceLifecycleState)EditorGUILayout.EnumPopup(_selectedStateFilter, GUILayout.Width(150));
+            }
+            
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.EndVertical();
         }
 
         private void DrawToolbar()
@@ -93,20 +135,73 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
             
-            if (_services != null && _services.Count > 0)
+            var filteredServices = GetFilteredServices();
+            
+            if (filteredServices.Count > 0)
             {
-                foreach (var service in _services)
+                foreach (var service in filteredServices)
                 {
                     DrawServiceItem(service);
                 }
             }
             else
             {
-                EditorGUILayout.HelpBox("未发现已注册的服务", MessageType.Info);
+                EditorGUILayout.HelpBox("未发现匹配的服务", MessageType.Info);
             }
             
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
+        }
+        
+        private List<ServiceDescriptor> GetFilteredServices()
+        {
+            if (_services == null || _services.Count == 0)
+                return new List<ServiceDescriptor>();
+            
+            var filtered = _services.ToList();
+            
+            // 架构筛选
+            var selectedArchitectures = new List<string>();
+            for (int i = 0; i < _architectureNames.Count; i++)
+            {
+                if (_architectureFilters[i])
+                    selectedArchitectures.Add(_architectureNames[i]);
+            }
+            
+            if (selectedArchitectures.Count > 0)
+            {
+                filtered = filtered.Where(s => 
+                    selectedArchitectures.Any(arch => s.ServiceType.FullName?.Contains(arch) ?? false)
+                ).ToList();
+            }
+            
+            // 状态筛选
+            if (_useStateFilter)
+            {
+                filtered = filtered.Where(s => s.State == _selectedStateFilter).ToList();
+            }
+            
+            return filtered;
+        }
+        
+        private void RefreshArchitectureList()
+        {
+            _architectureNames.Clear();
+            _architectureFilters.Clear();
+            
+            if (_services == null || _services.Count == 0)
+                return;
+            
+            var architectures = _services
+                .Select(s => s.ServiceType.FullName?.Split('.').FirstOrDefault() ?? "Unknown")
+                .Distinct()
+                .ToList();
+            
+            foreach (var arch in architectures)
+            {
+                _architectureNames.Add(arch);
+                _architectureFilters.Add(true);
+            }
         }
 
         private void DrawServiceItem(ServiceDescriptor service)
@@ -223,6 +318,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private void RefreshServices()
         {
             _services = ServiceInspector.GetAllServices();
+            RefreshArchitectureList();
             _lastRefreshTime = EditorApplication.timeSinceStartup;
         }
 

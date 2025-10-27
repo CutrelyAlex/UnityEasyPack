@@ -18,6 +18,13 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private bool _autoScroll = true;
         private const int MaxLogEntries = 1000;
         
+        // 筛选器
+        private List<string> _architectureNames = new List<string>();
+        private List<bool> _architectureFilters = new List<bool>();
+        private string _selectedEventTypeFilter = "";
+        private bool _useEventTypeFilter = false;
+        private Vector2 _filterScrollPosition;
+        
         // 用于在编辑器中捕获运行时事件
         private static EventMonitorWindow _activeWindow;
 
@@ -59,8 +66,42 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private void OnGUI()
         {
             DrawToolbar();
+            DrawFilters();
             DrawEventLog();
             DrawFooter();
+        }
+        
+        private void DrawFilters()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Height(100));
+            
+            EditorGUILayout.LabelField("筛选器", EditorStyles.boldLabel);
+            
+            EditorGUILayout.BeginHorizontal();
+            
+            // 架构筛选
+            EditorGUILayout.LabelField("架构:", GUILayout.Width(50));
+            _filterScrollPosition = EditorGUILayout.BeginScrollView(_filterScrollPosition, GUILayout.Height(40));
+            for (int i = 0; i < _architectureNames.Count; i++)
+            {
+                _architectureFilters[i] = EditorGUILayout.ToggleLeft(_architectureNames[i], _architectureFilters[i]);
+            }
+            EditorGUILayout.EndScrollView();
+            
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.BeginHorizontal();
+            
+            // 事件类型筛选
+            _useEventTypeFilter = EditorGUILayout.ToggleLeft("按事件类型筛选", _useEventTypeFilter, GUILayout.Width(120));
+            if (_useEventTypeFilter)
+            {
+                _selectedEventTypeFilter = EditorGUILayout.TextField(_selectedEventTypeFilter, GUILayout.Width(150));
+            }
+            
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.EndVertical();
         }
 
         private void DrawToolbar()
@@ -105,7 +146,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                 }
                 else
                 {
-                    EditorGUILayout.HelpBox($"筛选 '{_filterText}' 无匹配结果", MessageType.Info);
+                    EditorGUILayout.HelpBox("筛选无匹配结果", MessageType.Info);
                 }
             }
             else
@@ -184,15 +225,67 @@ namespace EasyPack.ENekoFramework.Editor.Windows
 
         private List<EventLogEntry> GetFilteredLogs()
         {
-            if (string.IsNullOrWhiteSpace(_filterText))
+            var filtered = _eventLog.ToList();
+            
+            // 架构筛选
+            var selectedArchitectures = new List<string>();
+            for (int i = 0; i < _architectureNames.Count; i++)
             {
-                return _eventLog;
+                if (_architectureFilters[i])
+                    selectedArchitectures.Add(_architectureNames[i]);
             }
             
-            return _eventLog.Where(log => 
-                log.EventType.Name.IndexOf(_filterText, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                log.EventType.FullName.IndexOf(_filterText, StringComparison.OrdinalIgnoreCase) >= 0
-            ).ToList();
+            if (selectedArchitectures.Count > 0)
+            {
+                filtered = filtered.Where(e =>
+                    selectedArchitectures.Any(arch => e.EventType.FullName?.Contains(arch) ?? false)
+                ).ToList();
+            }
+            
+            // 事件类型筛选
+            if (_useEventTypeFilter && !string.IsNullOrEmpty(_selectedEventTypeFilter))
+            {
+                filtered = filtered.Where(e =>
+                    e.EventType.Name.IndexOf(_selectedEventTypeFilter, StringComparison.OrdinalIgnoreCase) >= 0
+                ).ToList();
+            }
+            
+            // 文本筛选
+            if (!string.IsNullOrEmpty(_filterText))
+            {
+                filtered = filtered.Where(e =>
+                    e.EventType.Name.IndexOf(_filterText, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    e.EventType.FullName.IndexOf(_filterText, StringComparison.OrdinalIgnoreCase) >= 0
+                ).ToList();
+            }
+            
+            // 刷新架构列表
+            if (filtered.Count != _eventLog.Count || _architectureNames.Count == 0)
+            {
+                RefreshArchitectureList();
+            }
+            
+            return filtered;
+        }
+        
+        private void RefreshArchitectureList()
+        {
+            _architectureNames.Clear();
+            _architectureFilters.Clear();
+            
+            if (_eventLog == null || _eventLog.Count == 0)
+                return;
+            
+            var architectures = _eventLog
+                .Select(e => e.EventType.FullName?.Split('.').FirstOrDefault() ?? "Unknown")
+                .Distinct()
+                .ToList();
+            
+            foreach (var arch in architectures)
+            {
+                _architectureNames.Add(arch);
+                _architectureFilters.Add(true);
+            }
         }
 
         private void AddEventLog(Type eventType, object eventData, int subscriberCount)

@@ -19,6 +19,13 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private double _lastRefreshTime;
         private const double RefreshInterval = 0.5; // 每0.5秒刷新一次
         
+        // 筛选器
+        private List<string> _architectureNames = new List<string>();
+        private List<bool> _architectureFilters = new List<bool>();
+        private CommandStatus _selectedStatusFilter = CommandStatus.Succeeded;
+        private bool _useStatusFilter = false;
+        private Vector2 _filterScrollPosition;
+        
         // 状态颜色
         private readonly Color _runningColor = new Color(0.3f, 0.8f, 1f);
         private readonly Color _succeededColor = new Color(0.3f, 1f, 0.3f);
@@ -39,6 +46,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private void OnEnable()
         {
             RefreshHistory();
+            RefreshArchitectureList();
         }
 
         private void Update()
@@ -53,6 +61,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private void OnGUI()
         {
             DrawToolbar();
+            DrawFilters();
             
             EditorGUILayout.BeginHorizontal();
             
@@ -63,6 +72,39 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             DrawCommandDetails();
             
             EditorGUILayout.EndHorizontal();
+        }
+        
+        private void DrawFilters()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Height(100));
+            
+            EditorGUILayout.LabelField("筛选器", EditorStyles.boldLabel);
+            
+            EditorGUILayout.BeginHorizontal();
+            
+            // 架构筛选
+            EditorGUILayout.LabelField("架构:", GUILayout.Width(50));
+            _filterScrollPosition = EditorGUILayout.BeginScrollView(_filterScrollPosition, GUILayout.Height(40));
+            for (int i = 0; i < _architectureNames.Count; i++)
+            {
+                _architectureFilters[i] = EditorGUILayout.ToggleLeft(_architectureNames[i], _architectureFilters[i]);
+            }
+            EditorGUILayout.EndScrollView();
+            
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.BeginHorizontal();
+            
+            // 状态筛选
+            _useStatusFilter = EditorGUILayout.ToggleLeft("按状态筛选", _useStatusFilter, GUILayout.Width(80));
+            if (_useStatusFilter)
+            {
+                _selectedStatusFilter = (CommandStatus)EditorGUILayout.EnumPopup(_selectedStatusFilter, GUILayout.Width(150));
+            }
+            
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.EndVertical();
         }
 
         private void DrawToolbar()
@@ -104,21 +146,74 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
             
-            if (_commandHistory != null && _commandHistory.Count > 0)
+            var filteredHistory = GetFilteredCommandHistory();
+            
+            if (filteredHistory != null && filteredHistory.Count > 0)
             {
                 // 倒序显示（最新的在上面）
-                for (int i = _commandHistory.Count - 1; i >= 0; i--)
+                for (int i = filteredHistory.Count - 1; i >= 0; i--)
                 {
-                    DrawCommandItem(_commandHistory[i]);
+                    DrawCommandItem(filteredHistory[i]);
                 }
             }
             else
             {
-                EditorGUILayout.HelpBox("暂无命令执行记录", MessageType.Info);
+                EditorGUILayout.HelpBox("暂无匹配的命令记录", MessageType.Info);
             }
             
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
+        }
+        
+        private List<CommandDescriptor> GetFilteredCommandHistory()
+        {
+            if (_commandHistory == null || _commandHistory.Count == 0)
+                return new List<CommandDescriptor>();
+            
+            var filtered = _commandHistory.ToList();
+            
+            // 架构筛选
+            var selectedArchitectures = new List<string>();
+            for (int i = 0; i < _architectureNames.Count; i++)
+            {
+                if (_architectureFilters[i])
+                    selectedArchitectures.Add(_architectureNames[i]);
+            }
+            
+            if (selectedArchitectures.Count > 0)
+            {
+                filtered = filtered.Where(c => 
+                    selectedArchitectures.Any(arch => c.CommandType.FullName?.Contains(arch) ?? false)
+                ).ToList();
+            }
+            
+            // 状态筛选
+            if (_useStatusFilter)
+            {
+                filtered = filtered.Where(c => c.Status == _selectedStatusFilter).ToList();
+            }
+            
+            return filtered;
+        }
+        
+        private void RefreshArchitectureList()
+        {
+            _architectureNames.Clear();
+            _architectureFilters.Clear();
+            
+            if (_commandHistory == null || _commandHistory.Count == 0)
+                return;
+            
+            var architectures = _commandHistory
+                .Select(c => c.CommandType.FullName?.Split('.').FirstOrDefault() ?? "Unknown")
+                .Distinct()
+                .ToList();
+            
+            foreach (var arch in architectures)
+            {
+                _architectureNames.Add(arch);
+                _architectureFilters.Add(true);
+            }
         }
 
         private void DrawCommandItem(CommandDescriptor command)
@@ -336,12 +431,14 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                 }
                 
                 _commandHistory = allHistories.OrderBy(c => c.StartedAt).ToList();
-                _lastRefreshTime = EditorApplication.timeSinceStartup;
+                RefreshArchitectureList();
             }
             catch (Exception ex)
             {
                 Debug.LogWarning($"CommandHistoryWindow: 刷新失败 - {ex.Message}");
             }
+            
+            _lastRefreshTime = EditorApplication.timeSinceStartup;
         }
 
         private void ClearHistory()

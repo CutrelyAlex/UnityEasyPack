@@ -22,12 +22,14 @@ namespace EasyPack.ENekoFramework.Editor
             {
                 var architectureTypes = AppDomain.CurrentDomain.GetAssemblies()
                     .SelectMany(a => a.GetTypes())
-                    .Where(t => t.IsClass && !t.IsAbstract && IsArchitectureType(t));
+                    .Where(t => t.IsClass && !t.IsAbstract && IsArchitectureType(t))
+                    .ToList();
 
                 foreach (var archType in architectureTypes)
                 {
+                    // Instance属性是在派生类中定义的，返回类型是派生类本身
                     var instanceProp = archType.GetProperty("Instance",
-                        BindingFlags.Public | BindingFlags.Static);
+                        BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
 
                     if (instanceProp != null)
                     {
