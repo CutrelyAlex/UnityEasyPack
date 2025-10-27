@@ -117,6 +117,14 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             
             _autoRefresh = GUILayout.Toggle(_autoRefresh, "自动刷新", EditorStyles.toolbarButton, GUILayout.Width(80));
             
+            // 监控开关
+            var monitoringEnabled = EditorMonitoringConfig.EnableServiceMonitoring;
+            var newMonitoringState = GUILayout.Toggle(monitoringEnabled, "启用监控", EditorStyles.toolbarButton, GUILayout.Width(80));
+            if (newMonitoringState != monitoringEnabled)
+            {
+                EditorMonitoringConfig.EnableServiceMonitoring = newMonitoringState;
+            }
+            
             GUILayout.FlexibleSpace();
             
             if (_services != null)
@@ -160,7 +168,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             
             var filtered = _services.ToList();
             
-            // 架构筛选
+            // 架构筛选 - 基于架构名称而不是命名空间
             var selectedArchitectures = new List<string>();
             for (int i = 0; i < _architectureNames.Count; i++)
             {
@@ -170,9 +178,28 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             
             if (selectedArchitectures.Count > 0)
             {
-                filtered = filtered.Where(s => 
-                    selectedArchitectures.Any(arch => s.ServiceType.FullName?.Contains(arch) ?? false)
-                ).ToList();
+                var allArchitectures = ServiceInspector.GetAllArchitectureInstances();
+                var archToNamespace = new Dictionary<string, string>();
+                
+                // 建立架构名称到其所在命名空间的映射
+                foreach (var arch in allArchitectures)
+                {
+                    var archName = arch.GetType().Name;
+                    var archNamespace = arch.GetType().Namespace;
+                    if (!archToNamespace.ContainsKey(archName))
+                    {
+                        archToNamespace[archName] = archNamespace;
+                    }
+                }
+                
+                filtered = filtered.Where(s =>
+                {
+                    var serviceNamespace = s.ServiceType.Namespace;
+                    return selectedArchitectures.Any(arch => 
+                        archToNamespace.ContainsKey(arch) && 
+                        serviceNamespace?.StartsWith(archToNamespace[arch]) == true
+                    );
+                }).ToList();
             }
             
             // 状态筛选
@@ -189,15 +216,8 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             _architectureNames.Clear();
             _architectureFilters.Clear();
             
-            if (_services == null || _services.Count == 0)
-                return;
-            
-            var architectures = _services
-                .Select(s => s.ServiceType.FullName?.Split('.').FirstOrDefault() ?? "Unknown")
-                .Distinct()
-                .ToList();
-            
-            foreach (var arch in architectures)
+            var architectureNames = ServiceInspector.GetAllArchitectureNames();
+            foreach (var arch in architectureNames)
             {
                 _architectureNames.Add(arch);
                 _architectureFilters.Add(true);

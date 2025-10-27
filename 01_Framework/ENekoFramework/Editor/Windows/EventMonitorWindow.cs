@@ -53,6 +53,12 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private void OnEnable()
         {
             _activeWindow = this;
+            RefreshArchitectureList();
+            
+            // 连接EventBus监控回调
+            #if UNITY_EDITOR
+            EventBus.OnEventPublished += LogEventFromBus;
+            #endif
         }
 
         private void OnDisable()
@@ -61,6 +67,15 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             {
                 _activeWindow = null;
             }
+            
+            #if UNITY_EDITOR
+            EventBus.OnEventPublished -= LogEventFromBus;
+            #endif
+        }
+        
+        private void LogEventFromBus(Type eventType, object eventData, int subscriberCount)
+        {
+            AddEventLog(eventType, eventData, subscriberCount);
         }
 
         private void OnGUI()
@@ -114,6 +129,14 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             }
             
             _autoScroll = GUILayout.Toggle(_autoScroll, "自动滚动", EditorStyles.toolbarButton, GUILayout.Width(80));
+            
+            // 监控开关
+            var monitoringEnabled = EditorMonitoringConfig.EnableEventMonitoring;
+            var newMonitoringState = GUILayout.Toggle(monitoringEnabled, "启用监控", EditorStyles.toolbarButton, GUILayout.Width(80));
+            if (newMonitoringState != monitoringEnabled)
+            {
+                EditorMonitoringConfig.EnableEventMonitoring = newMonitoringState;
+            }
             
             GUILayout.Space(10);
             GUILayout.Label("筛选:", EditorStyles.toolbarButton, GUILayout.Width(40));
@@ -227,7 +250,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         {
             var filtered = _eventLog.ToList();
             
-            // 架构筛选
+            // 架构筛选 - 基于架构名称而不是命名空间
             var selectedArchitectures = new List<string>();
             for (int i = 0; i < _architectureNames.Count; i++)
             {
@@ -237,9 +260,28 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             
             if (selectedArchitectures.Count > 0)
             {
+                var allArchitectures = ServiceInspector.GetAllArchitectureInstances();
+                var archToNamespace = new Dictionary<string, string>();
+                
+                // 建立架构名称到其所在命名空间的映射
+                foreach (var arch in allArchitectures)
+                {
+                    var archName = arch.GetType().Name;
+                    var archNamespace = arch.GetType().Namespace;
+                    if (!archToNamespace.ContainsKey(archName))
+                    {
+                        archToNamespace[archName] = archNamespace;
+                    }
+                }
+                
                 filtered = filtered.Where(e =>
-                    selectedArchitectures.Any(arch => e.EventType.FullName?.Contains(arch) ?? false)
-                ).ToList();
+                {
+                    var eventNamespace = e.EventType.Namespace;
+                    return selectedArchitectures.Any(arch => 
+                        archToNamespace.ContainsKey(arch) && 
+                        eventNamespace?.StartsWith(archToNamespace[arch]) == true
+                    );
+                }).ToList();
             }
             
             // 事件类型筛选
@@ -259,12 +301,6 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                 ).ToList();
             }
             
-            // 刷新架构列表
-            if (filtered.Count != _eventLog.Count || _architectureNames.Count == 0)
-            {
-                RefreshArchitectureList();
-            }
-            
             return filtered;
         }
         
@@ -273,15 +309,8 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             _architectureNames.Clear();
             _architectureFilters.Clear();
             
-            if (_eventLog == null || _eventLog.Count == 0)
-                return;
-            
-            var architectures = _eventLog
-                .Select(e => e.EventType.FullName?.Split('.').FirstOrDefault() ?? "Unknown")
-                .Distinct()
-                .ToList();
-            
-            foreach (var arch in architectures)
+            var architectureNames = ServiceInspector.GetAllArchitectureNames();
+            foreach (var arch in architectureNames)
             {
                 _architectureNames.Add(arch);
                 _architectureFilters.Add(true);

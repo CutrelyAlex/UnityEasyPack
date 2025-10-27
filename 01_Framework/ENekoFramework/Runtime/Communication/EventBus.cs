@@ -4,12 +4,22 @@ using System.Collections.Generic;
 namespace EasyPack.ENekoFramework
 {
     /// <summary>
+    /// 事件监控回调委托
+    /// </summary>
+    public delegate void EventMonitoringCallback(Type eventType, object eventData, int subscriberCount);
+
+    /// <summary>
     /// 事件总线
     /// 负责事件发布/订阅，支持 At-most-once 语义和 WeakReference
     /// </summary>
     public class EventBus
     {
         private readonly Dictionary<Type, List<WeakReference>> _subscriptions;
+        
+        /// <summary>
+        /// 事件发布时的监控回调（用于编辑器监控）
+        /// </summary>
+        public static EventMonitoringCallback OnEventPublished { get; set; }
 
         /// <summary>
         /// 构造函数
@@ -47,6 +57,16 @@ namespace EasyPack.ENekoFramework
         public void Publish<TEvent>(TEvent eventData) where TEvent : IEvent
         {
             var eventType = typeof(TEvent);
+            
+            // 调用事件监控回调
+            #if UNITY_EDITOR
+            if (OnEventPublished != null && ShouldInvokeEventMonitoring())
+            {
+                int subscriberCount = GetSubscriberCount<TEvent>();
+                OnEventPublished.Invoke(eventType, eventData, subscriberCount);
+            }
+            #endif
+            
             if (!_subscriptions.ContainsKey(eventType))
                 return;
 
@@ -85,6 +105,18 @@ namespace EasyPack.ENekoFramework
             {
                 handlers.Remove(deadRef);
             }
+        }
+        
+        /// <summary>
+        /// 检查是否应该调用事件监控回调
+        /// </summary>
+        private static bool ShouldInvokeEventMonitoring()
+        {
+            #if UNITY_EDITOR
+            return UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode;
+            #else
+            return false;
+            #endif
         }
 
         /// <summary>

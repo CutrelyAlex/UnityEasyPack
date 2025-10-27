@@ -1,4 +1,6 @@
 using UnityEditor;
+using EasyPack.ENekoFramework.Editor.Windows;
+
 
 namespace EasyPack.ENekoFramework.Editor
 {
@@ -10,6 +12,7 @@ namespace EasyPack.ENekoFramework.Editor
         private const string MenuRoot = "ENekoFramework/";
         private const string VisualizationMenu = MenuRoot + "Visualization/";
         private const string CodeGenMenu = MenuRoot + "Code Generation/";
+        private const string SettingsMenu = MenuRoot + "Settings/";
         
         #region Visualization Windows
         
@@ -19,7 +22,7 @@ namespace EasyPack.ENekoFramework.Editor
         [MenuItem(VisualizationMenu + "Architecture Overview")]
         public static void OpenArchitectureOverview()
         {
-            Windows.ArchitectureOverviewWindow.ShowWindow();
+            ArchitectureOverviewWindow.ShowWindow();
         }
         
         /// <summary>
@@ -28,7 +31,7 @@ namespace EasyPack.ENekoFramework.Editor
         [MenuItem(VisualizationMenu + "Service Overview")]
         public static void OpenServiceOverview()
         {
-            Windows.ServiceOverviewWindow.ShowWindow();
+            ServiceOverviewWindow.ShowWindow();
         }
         
         /// <summary>
@@ -37,7 +40,7 @@ namespace EasyPack.ENekoFramework.Editor
         [MenuItem(VisualizationMenu + "Event Monitor")]
         public static void OpenEventMonitor()
         {
-            Windows.EventMonitorWindow.ShowWindow();
+            EventMonitorWindow.ShowWindow();
         }
         
         /// <summary>
@@ -46,7 +49,7 @@ namespace EasyPack.ENekoFramework.Editor
         [MenuItem(VisualizationMenu + "Command History")]
         public static void OpenCommandHistory()
         {
-            Windows.CommandHistoryWindow.ShowWindow();
+            CommandHistoryWindow.ShowWindow();
         }
         
         /// <summary>
@@ -55,7 +58,7 @@ namespace EasyPack.ENekoFramework.Editor
         [MenuItem(VisualizationMenu + "Dependency Graph")]
         public static void OpenDependencyGraph()
         {
-            Windows.DependencyGraphWindow.ShowWindow();
+            DependencyGraphWindow.ShowWindow();
         }
         
         #endregion
@@ -96,6 +99,19 @@ namespace EasyPack.ENekoFramework.Editor
         public static void GenerateEvent()
         {
             ServiceScaffold.ShowWizard("Event");
+        }
+        
+        #endregion
+        
+        #region Settings
+        
+        /// <summary>
+        /// 打开编辑器监控偏好设置
+        /// </summary>
+        [MenuItem(SettingsMenu + "Monitoring Preferences")]
+        public static void OpenMonitoringPreferences()
+        {
+            EditorMonitoringPreferences.ShowWindow();
         }
         
         #endregion

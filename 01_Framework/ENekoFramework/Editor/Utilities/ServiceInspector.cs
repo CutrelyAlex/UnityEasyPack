@@ -48,6 +48,38 @@ namespace EasyPack.ENekoFramework.Editor
 
             return instances;
         }
+        
+        /// <summary>
+        /// 获取所有架构名称
+        /// </summary>
+        public static List<string> GetAllArchitectureNames()
+        {
+            var architectures = GetAllArchitectureInstances();
+            return architectures.Select(a => a.GetType().Name).Distinct().ToList();
+        }
+        
+        /// <summary>
+        /// 获取指定架构的EventBus
+        /// </summary>
+        public static EventBus GetEventBusFromArchitecture(object architecture)
+        {
+            try
+            {
+                var eventBusProp = architecture.GetType().GetProperty("EventBus",
+                    BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+
+                if (eventBusProp != null)
+                {
+                    return eventBusProp.GetValue(architecture) as EventBus;
+                }
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogWarning($"ServiceInspector: 无法获取EventBus - {ex.Message}");
+            }
+
+            return null;
+        }
 
         /// <summary>
         /// 从架构实例获取服务容器
