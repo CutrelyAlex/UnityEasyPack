@@ -1,0 +1,25 @@
+using EasyPack.ENekoFramework;
+using System.Threading.Tasks;
+using System.Threading;
+
+namespace #NAMESPACE#
+{
+    /// <summary>
+    /// #COMMAND_NAME# 命令
+    /// </summary>
+    public class #COMMAND_NAME# : ICommand<#RESULT_TYPE#>
+    {
+        // TODO: 添加命令参数
+
+        /// <summary>
+        /// 执行命令
+        /// </summary>
+        public async Task<#RESULT_TYPE#> ExecuteAsync()
+        {
+            // TODO: 在此处添加命令逻辑
+            
+            await Task.CompletedTask;
+            return default(#RESULT_TYPE#);
+        }
+    }
+}

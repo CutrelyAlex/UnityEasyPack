@@ -5,8 +5,6 @@ namespace EasyPack.ENekoFramework
 {
     /// <summary>
     /// 异步命令的基础接口。
-    /// 命令修改状态并支持超时/取消。
-    /// 默认超时时间：3-5 秒。
     /// </summary>
     public interface ICommand
     {

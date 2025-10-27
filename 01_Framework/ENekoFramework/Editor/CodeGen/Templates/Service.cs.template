@@ -1,0 +1,52 @@
+using EasyPack.ENekoFramework;
+using System.Threading.Tasks;
+
+namespace #NAMESPACE#
+{
+    /// <summary>
+    /// #SERVICE_NAME# 服务接口
+    /// </summary>
+    public interface I#SERVICE_NAME# : IService
+    {
+        // TODO: 在此处添加服务方法
+    }
+
+    /// <summary>
+    /// #SERVICE_NAME# 服务实现
+    /// </summary>
+    public class #SERVICE_NAME# : BaseService, I#SERVICE_NAME#
+    {
+        /// <summary>
+        /// 初始化服务
+        /// </summary>
+        protected override async Task OnInitialize()
+        {
+            // TODO: 在此处添加初始化逻辑
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// 暂停服务
+        /// </summary>
+        protected override void OnPause()
+        {
+            // TODO: 在此处添加暂停逻辑
+        }
+
+        /// <summary>
+        /// 恢复服务
+        /// </summary>
+        protected override void OnResume()
+        {
+            // TODO: 在此处添加恢复逻辑
+        }
+
+        /// <summary>
+        /// 释放服务资源
+        /// </summary>
+        protected override void OnDispose()
+        {
+            // TODO: 在此处添加清理逻辑
+        }
+    }
+}

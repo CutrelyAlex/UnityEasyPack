@@ -1,0 +1,22 @@
+using EasyPack.ENekoFramework;
+
+namespace #NAMESPACE#
+{
+    /// <summary>
+    /// #QUERY_NAME# 查询
+    /// </summary>
+    public class #QUERY_NAME# : IQuery<#RESULT_TYPE#>
+    {
+        // TODO: 添加查询参数
+
+        /// <summary>
+        /// 执行查询
+        /// </summary>
+        public #RESULT_TYPE# Execute()
+        {
+            // TODO: 在此处添加查询逻辑
+            
+            return default(#RESULT_TYPE#);
+        }
+    }
+}

@@ -1,0 +1,20 @@
+using EasyPack.ENekoFramework;
+using System;
+
+namespace #NAMESPACE#
+{
+    /// <summary>
+    /// #EVENT_NAME# 事件
+    /// </summary>
+    public struct #EVENT_NAME# : IEvent
+    {
+        /// <summary>
+        /// 事件时间戳
+        /// </summary>
+        public DateTime Timestamp { get; set; }
+
+        // TODO: 在此处添加事件数据属性
+        // Add event data properties here
+        // public int ExampleProperty { get; set; }
+    }
+}

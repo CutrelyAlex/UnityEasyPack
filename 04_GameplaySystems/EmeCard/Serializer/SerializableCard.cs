@@ -19,9 +19,9 @@ namespace EasyPack.EmeCardSystem
 
         // 运行时实例字段
         public int Index;
-        public List<SerializableGameProperty> Properties;
+        public SerializableGameProperty[] Properties;
         public string[] Tags;
-        public List<SerializableCard> Children;
+        public SerializableCard[] Children;
         public bool IsIntrinsic;
     }
 }

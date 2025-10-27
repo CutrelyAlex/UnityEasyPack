@@ -17,7 +17,7 @@ namespace EasyPack.ENekoFramework
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="defaultTimeoutSeconds">默认超时秒数（默认 4 秒，符合 3-5 秒范围）</param>
+        /// <param name="defaultTimeoutSeconds">默认超时秒数（默认 4 秒）</param>
         public CommandDispatcher(int defaultTimeoutSeconds = 4)
         {
             _commandHistory = new List<CommandDescriptor>();

@@ -133,12 +133,7 @@ namespace EasyPack.GamePropertySystem
         {
             if (property == null) return null;
 
-            var data = new SerializableGameProperty
-            {
-                ID = property.ID,
-                BaseValue = property.GetBaseValue(),
-                ModifierList = new SerializableModifierList()
-            };
+            var modifiersList = new List<SerializableModifier>();
 
             // 使用 ModifierSerializer 序列化所有修饰器
             foreach (var modifier in property.Modifiers)
@@ -147,34 +142,21 @@ namespace EasyPack.GamePropertySystem
                 if (!string.IsNullOrEmpty(modifierJson))
                 {
                     var serMod = JsonUtility.FromJson<SerializableModifier>(modifierJson);
-                    data.ModifierList.Modifiers.Add(serMod);
+                    modifiersList.Add(serMod);
                 }
             }
+
+            var data = new SerializableGameProperty
+            {
+                ID = property.ID,
+                BaseValue = property.GetBaseValue(),
+                ModifierList = new SerializableModifierList
+                {
+                    Modifiers = modifiersList.ToArray()
+                }
+            };
 
             return data;
-        }
-
-        private GameProperty DeserializeGameProperty(SerializableGameProperty data)
-        {
-            if (data == null) return null;
-
-            var property = new GameProperty(data.ID, data.BaseValue);
-
-            // 使用 ModifierSerializer 还原所有修饰器
-            if (data.ModifierList != null && data.ModifierList.Modifiers != null)
-            {
-                foreach (var serMod in data.ModifierList.Modifiers)
-                {
-                    string modifierJson = JsonUtility.ToJson(serMod);
-                    IModifier modifier = _modifierSerializer.DeserializeFromJson(modifierJson);
-                    if (modifier != null)
-                    {
-                        property.AddModifier(modifier);
-                    }
-                }
-            }
-
-            return property;
         }
     }
 
@@ -259,12 +241,7 @@ namespace EasyPack.GamePropertySystem
         {
             if (property == null) return null;
 
-            var data = new SerializableGameProperty
-            {
-                ID = property.ID,
-                BaseValue = property.GetBaseValue(),
-                ModifierList = new SerializableModifierList()
-            };
+            var modifiersList = new List<SerializableModifier>();
 
             // 使用 ModifierSerializer 序列化所有修饰器
             foreach (var modifier in property.Modifiers)
@@ -273,39 +250,21 @@ namespace EasyPack.GamePropertySystem
                 if (!string.IsNullOrEmpty(modifierJson))
                 {
                     var serMod = JsonUtility.FromJson<SerializableModifier>(modifierJson);
-                    data.ModifierList.Modifiers.Add(serMod);
+                    modifiersList.Add(serMod);
                 }
             }
+
+            var data = new SerializableGameProperty
+            {
+                ID = property.ID,
+                BaseValue = property.GetBaseValue(),
+                ModifierList = new SerializableModifierList
+                {
+                    Modifiers = modifiersList.ToArray()
+                }
+            };
 
             return data;
-        }
-
-        /// <summary>
-        /// 从可序列化数据结构反序列化为 GameProperty
-        /// </summary>
-        /// <param name="data">可序列化数据结构</param>
-        /// <returns>反序列化的 GameProperty</returns>
-        private GameProperty DeserializeGameProperty(SerializableGameProperty data)
-        {
-            if (data == null) return null;
-
-            var property = new GameProperty(data.ID, data.BaseValue);
-
-            // 使用 ModifierSerializer 还原所有修饰器
-            if (data.ModifierList != null && data.ModifierList.Modifiers != null)
-            {
-                foreach (var serMod in data.ModifierList.Modifiers)
-                {
-                    string modifierJson = JsonUtility.ToJson(serMod);
-                    IModifier modifier = _modifierSerializer.DeserializeFromJson(modifierJson);
-                    if (modifier != null)
-                    {
-                        property.AddModifier(modifier);
-                    }
-                }
-            }
-
-            return property;
         }
     }
 }

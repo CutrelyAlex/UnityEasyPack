@@ -77,6 +77,9 @@ namespace EasyPack.EmeCardSystem
             path.Add(card);
             try
             {
+                var propertiesList = new List<SerializableGameProperty>();
+                var childrenList = new List<SerializableCard>();
+
                 var dto = new SerializableCard
                 {
                     ID = card.Data.ID,
@@ -85,9 +88,9 @@ namespace EasyPack.EmeCardSystem
                     Category = card.Data.Category,
                     DefaultTags = card.Data.DefaultTags,
                     Index = card.Index,
-                    Properties = new List<SerializableGameProperty>(),
+                    Properties = Array.Empty<SerializableGameProperty>(),
                     Tags = (card.Tags != null && card.Tags.Count > 0) ? new List<string>(card.Tags).ToArray() : Array.Empty<string>(),
-                    Children = new List<SerializableCard>(),
+                    Children = Array.Empty<SerializableCard>(),
                     IsIntrinsic = false
                 };
 
@@ -103,7 +106,7 @@ namespace EasyPack.EmeCardSystem
                             {
                                 var sProp = JsonUtility.FromJson<SerializableGameProperty>(propJson);
                                 if (sProp != null)
-                                    dto.Properties.Add(sProp);
+                                    propertiesList.Add(sProp);
                             }
                         }
                         catch (Exception ex)
@@ -121,9 +124,13 @@ namespace EasyPack.EmeCardSystem
                         var childDto = SerializeCardRecursive(child, visited, path);
                         // 标记固有子卡：使用公开的只读访问器
                         childDto.IsIntrinsic = card.IsIntrinsic(child);
-                        dto.Children.Add(childDto);
+                        childrenList.Add(childDto);
                     }
                 }
+
+                // 转换为数组
+                dto.Properties = propertiesList.ToArray();
+                dto.Children = childrenList.ToArray();
 
                 return dto;
             }

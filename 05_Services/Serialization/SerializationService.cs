@@ -171,7 +171,6 @@ namespace EasyPack
             try
             {
                 var json = serializer.SerializeToJson(obj);
-                Debug.Log($"[SerializationService] Serialized {type.Name} to JSON ({json?.Length ?? 0} chars)");
                 return json;
             }
             catch (SerializationException)
@@ -228,7 +227,6 @@ namespace EasyPack
             try
             {
                 var result = serializer.DeserializeFromJson(json, type);
-                Debug.Log($"[SerializationService] Deserialized {type.Name} from JSON");
                 return result;
             }
             catch (SerializationException)

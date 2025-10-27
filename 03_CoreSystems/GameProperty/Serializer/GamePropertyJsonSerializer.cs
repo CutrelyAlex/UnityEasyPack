@@ -35,7 +35,7 @@ namespace EasyPack.GamePropertySystem
         /// <summary>
         /// 修饰符集合
         /// </summary>
-        public List<SerializableModifier> Modifiers = new List<SerializableModifier>();
+        public SerializableModifier[] Modifiers = Array.Empty<SerializableModifier>();
     }
 
     /// <summary>
@@ -55,12 +55,7 @@ namespace EasyPack.GamePropertySystem
         {
             if (obj == null) return null;
 
-            var data = new SerializableGameProperty
-            {
-                ID = obj.ID,
-                BaseValue = obj.GetBaseValue(),
-                ModifierList = new SerializableModifierList()
-            };
+            var modifiersList = new List<SerializableModifier>();
 
             // 使用 ModifierSerializer 序列化所有修饰器
             foreach (var modifier in obj.Modifiers)
@@ -69,9 +64,19 @@ namespace EasyPack.GamePropertySystem
                 if (!string.IsNullOrEmpty(modifierJson))
                 {
                     var serMod = JsonUtility.FromJson<SerializableModifier>(modifierJson);
-                    data.ModifierList.Modifiers.Add(serMod);
+                    modifiersList.Add(serMod);
                 }
             }
+
+            var data = new SerializableGameProperty
+            {
+                ID = obj.ID,
+                BaseValue = obj.GetBaseValue(),
+                ModifierList = new SerializableModifierList
+                {
+                    Modifiers = modifiersList.ToArray()
+                }
+            };
 
             return JsonUtility.ToJson(data);
         }
