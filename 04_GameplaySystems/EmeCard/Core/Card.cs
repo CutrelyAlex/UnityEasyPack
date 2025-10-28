@@ -149,6 +149,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public List<GameProperty> Properties { get; set; } = new List<GameProperty>();
         public GameProperty GetProperty(string id) => Properties?.FirstOrDefault(p => p.ID == id);
+        public GameProperty GetProperty(int index=0) => Properties[index];
         #endregion
 
         #region 标签和持有关系
@@ -193,6 +194,8 @@ namespace EasyPack.EmeCardSystem
         /// 规则匹配通常只扫描该层级，不会递归扫描更深层级。
         /// </summary>
         public IReadOnlyList<Card> Children => _children;
+
+        public IReadOnlyList<Card> Intrinsics => _intrinsics.ToList();
 
         public int ChildrenCount => Children.Count;
 
