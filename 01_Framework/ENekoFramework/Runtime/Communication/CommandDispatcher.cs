@@ -13,15 +13,18 @@ namespace EasyPack.ENekoFramework
     {
         private readonly List<CommandDescriptor> _commandHistory;
         private readonly int _defaultTimeoutSeconds;
+        private readonly bool _enableHistory;
 
         /// <summary>
         /// 构造函数
         /// </summary>
         /// <param name="defaultTimeoutSeconds">默认超时秒数（默认 4 秒）</param>
-        public CommandDispatcher(int defaultTimeoutSeconds = 4)
+        /// <param name="enableHistory">是否启用命令历史记录（默认 true，禁用可提升性能）</param>
+        public CommandDispatcher(int defaultTimeoutSeconds = 4, bool enableHistory = true)
         {
-            _commandHistory = new List<CommandDescriptor>();
+            _commandHistory = enableHistory ? new List<CommandDescriptor>() : null;
             _defaultTimeoutSeconds = defaultTimeoutSeconds;
+            _enableHistory = enableHistory;
         }
 
         /// <summary>
@@ -41,16 +44,21 @@ namespace EasyPack.ENekoFramework
                 throw new ArgumentNullException(nameof(command));
 
             var timeout = timeoutSeconds ?? _defaultTimeoutSeconds;
-            var descriptor = new CommandDescriptor
+            
+            // 只在启用历史记录时创建描述符
+            CommandDescriptor descriptor = null;
+            if (_enableHistory)
             {
-                CommandType = command.GetType(),
-                ExecutionId = Guid.NewGuid(),
-                StartedAt = DateTime.UtcNow,
-                TimeoutSeconds = timeout,
-                Status = CommandStatus.Running
-            };
-
-            _commandHistory.Add(descriptor);
+                descriptor = new CommandDescriptor
+                {
+                    CommandType = command.GetType(),
+                    ExecutionId = Guid.NewGuid(),
+                    StartedAt = DateTime.UtcNow,
+                    TimeoutSeconds = timeout,
+                    Status = CommandStatus.Running
+                };
+                _commandHistory.Add(descriptor);
+            }
 
             try
             {
@@ -61,9 +69,12 @@ namespace EasyPack.ENekoFramework
                     var task = command.ExecuteAsync(cts.Token);
                     var result = await task;
 
-                    descriptor.CompletedAt = DateTime.UtcNow;
-                    descriptor.Status = CommandStatus.Succeeded;
-                    descriptor.Result = result;
+                    if (descriptor != null)
+                    {
+                        descriptor.CompletedAt = DateTime.UtcNow;
+                        descriptor.Status = CommandStatus.Succeeded;
+                        descriptor.Result = result;
+                    }
 
                     return result;
                 }
@@ -71,15 +82,21 @@ namespace EasyPack.ENekoFramework
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 // Timeout occurred
-                descriptor.CompletedAt = DateTime.UtcNow;
-                descriptor.Status = CommandStatus.TimedOut;
+                if (descriptor != null)
+                {
+                    descriptor.CompletedAt = DateTime.UtcNow;
+                    descriptor.Status = CommandStatus.TimedOut;
+                }
                 throw new TimeoutException($"Command {command.GetType().Name} exceeded timeout of {timeout} seconds");
             }
             catch (Exception ex)
             {
-                descriptor.CompletedAt = DateTime.UtcNow;
-                descriptor.Status = CommandStatus.Failed;
-                descriptor.Exception = ex;
+                if (descriptor != null)
+                {
+                    descriptor.CompletedAt = DateTime.UtcNow;
+                    descriptor.Status = CommandStatus.Failed;
+                    descriptor.Exception = ex;
+                }
                 throw;
             }
         }
@@ -90,6 +107,8 @@ namespace EasyPack.ENekoFramework
         /// <returns>命令描述符列表（只读）</returns>
         public IReadOnlyList<CommandDescriptor> GetCommandHistory()
         {
+            if (!_enableHistory || _commandHistory == null)
+                return new List<CommandDescriptor>().AsReadOnly();
             return _commandHistory.AsReadOnly();
         }
 
@@ -98,7 +117,10 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         public void ClearHistory()
         {
-            _commandHistory.Clear();
+            if (_enableHistory && _commandHistory != null)
+            {
+                _commandHistory.Clear();
+            }
         }
     }
 

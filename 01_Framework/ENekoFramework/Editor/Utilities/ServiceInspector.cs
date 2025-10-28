@@ -27,13 +27,14 @@ namespace EasyPack.ENekoFramework.Editor
 
                 foreach (var archType in architectureTypes)
                 {
-                    // Instance属性是在派生类中定义的，返回类型是派生类本身
-                    var instanceProp = archType.GetProperty("Instance",
-                        BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+                    // 通过反射访问私有静态字段 _instance，而不是访问 Instance 属性
+                    // 这样可以避免触发懒加载单例的初始化逻辑
+                    var instanceField = archType.BaseType?.GetField("_instance",
+                        BindingFlags.NonPublic | BindingFlags.Static);
 
-                    if (instanceProp != null)
+                    if (instanceField != null)
                     {
-                        var instance = instanceProp.GetValue(null);
+                        var instance = instanceField.GetValue(null);
                         if (instance != null)
                         {
                             instances.Add(instance);
