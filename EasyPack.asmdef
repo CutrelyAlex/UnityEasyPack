@@ -2,6 +2,7 @@
     "name": "EasyPack",
     "rootNamespace": "",
     "references": [
+        "UnityEditor",
         "UnityEngine",
         "UnityEngine.CoreModule"
     ],
