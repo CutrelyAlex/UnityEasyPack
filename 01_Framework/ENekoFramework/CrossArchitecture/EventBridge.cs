@@ -24,7 +24,7 @@ namespace EasyPack.ENekoFramework
         {
             if (_disposed)
             {
-                Debug.LogWarning("[EventBridge] Attempted to register listener after dispose");
+                Debug.LogWarning("[EventBridge] 尝试在释放后注册监听器");
                 return;
             }
             
@@ -81,7 +81,7 @@ namespace EasyPack.ENekoFramework
             
             if (string.IsNullOrEmpty(eventName))
             {
-                Debug.LogWarning("[EventBridge] Attempted to forward event with null/empty name");
+                Debug.LogWarning("[EventBridge] 尝试转发空事件名称");
                 return;
             }
             
@@ -108,14 +108,14 @@ namespace EasyPack.ENekoFramework
                     }
                     else
                     {
-                        Debug.LogWarning($"[EventBridge] Listener for '{eventName}' has type mismatch. " +
-                                       $"Expected: Action<string, {typeof(TEventData).Name}>, " +
-                                       $"Actual: {listener.GetType().Name}");
+                        Debug.LogWarning($"[EventBridge] 事件 '{eventName}' 的监听器类型不匹配。" +
+                                       $"期望: Action<string, {typeof(TEventData).Name}>，" +
+                                       $"实际: {listener.GetType()}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[EventBridge] Exception in event listener for '{eventName}': {ex}");
+                    Debug.LogError($"[EventBridge] 事件 '{eventName}' 的监听器执行异常: {ex}");
                 }
             }
         }

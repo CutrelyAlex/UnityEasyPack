@@ -12,8 +12,9 @@ namespace EasyPack
         protected override void OnInit()
         {
             // 注册核心服务
-            
-            Debug.Log("[EasyPack] Architecture initialized (no systems registered yet)");
+
+            Container.Register<ISerializationService, SerializationService>();
+        
         }
     }
 }

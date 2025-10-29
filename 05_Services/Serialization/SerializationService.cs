@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using EasyPack.ENekoFramework;
 using UnityEngine;
 
 namespace EasyPack
@@ -7,35 +9,53 @@ namespace EasyPack
     /// <summary>
     /// 统一序列化服务实现
     /// </summary>
-    public class SerializationService : ISerializationService
+    public class SerializationService : BaseService, ISerializationService
     {
         private readonly Dictionary<Type, ITypeSerializer> _serializers = new();
         private readonly object _lock = new();
+
+        #region 生命周期管理
+
+        /// <summary>
+        /// 服务初始化时的钩子方法
+        /// 在此处注册所有系统的序列化器
+        /// </summary>
+        protected override async Task OnInitializeAsync()
+        {
+            await base.OnInitializeAsync();
+            
+            // TODO: 在此处调用各系统的 RegisterSerializers() 方法
+
+            Debug.Log("[SerializationService] 序列化服务初始化完成");
+        }
+
+        /// <summary>
+        /// 服务释放时的钩子方法
+        /// 清理所有已注册的序列化器
+        /// </summary>
+        protected override async Task OnDisposeAsync()
+        {     
+            lock (_lock)
+            {
+                _serializers.Clear();
+            }
+            
+            await base.OnDisposeAsync();
+
+            Debug.Log("[SerializationService] 序列化服务已释放");
+        }
+
+        #endregion
 
         #region 注册管理
 
         public void RegisterSerializer<T>(ITypeSerializer<T> serializer)
         {
-            if (serializer == null)
-            {
-                throw new ArgumentNullException(nameof(serializer));
-            }
-
             RegisterSerializer((ITypeSerializer)serializer);
         }
 
         public void RegisterSerializer(ITypeSerializer serializer)
         {
-            if (serializer == null)
-            {
-                throw new ArgumentNullException(nameof(serializer));
-            }
-
-            if (serializer.TargetType == null)
-            {
-                throw new ArgumentException("Serializer TargetType cannot be null", nameof(serializer));
-            }
-
             lock (_lock)
             {
                 _serializers[serializer.TargetType] = serializer;
@@ -44,8 +64,6 @@ namespace EasyPack
 
         public bool HasSerializer(Type type)
         {
-            if (type == null) return false;
-
             lock (_lock)
             {
                 return _serializers.ContainsKey(type);
@@ -57,13 +75,19 @@ namespace EasyPack
             return HasSerializer(typeof(T));
         }
 
+        /// <summary>
+        /// 获取所有已注册的序列化器
+        /// </summary>
+        public IReadOnlyDictionary<Type, ITypeSerializer> GetRegisteredSerializers()
+        {
+            lock (_lock)
+            {
+                return new Dictionary<Type, ITypeSerializer>(_serializers);
+            }
+        }
+
         public SerializationStrategy GetSupportedStrategy(Type type)
         {
-            if (type == null)
-            {
-                throw new ArgumentNullException(nameof(type));
-            }
-
             lock (_lock)
             {
                 if (_serializers.TryGetValue(type, out var serializer))
@@ -73,7 +97,7 @@ namespace EasyPack
             }
 
             throw new SerializationException(
-                $"No serializer found for type: {type.Name}",
+                $"未找到类型的序列化器: {type.Name}",
                 type,
                 SerializationErrorCode.NoSerializerFound
             );
@@ -86,11 +110,6 @@ namespace EasyPack
 
         private ITypeSerializer GetSerializer(Type type)
         {
-            if (type == null)
-            {
-                throw new ArgumentNullException(nameof(type));
-            }
-
             lock (_lock)
             {
                 // 1. 首先尝试精确匹配
@@ -105,7 +124,6 @@ namespace EasyPack
                 {
                     if (_serializers.TryGetValue(currentType, out serializer))
                     {
-                        Debug.Log($"[SerializationService] Found serializer for base type {currentType.Name} when looking for {type.Name}");
                         return serializer;
                     }
                     currentType = currentType.BaseType;
@@ -116,14 +134,13 @@ namespace EasyPack
                 {
                     if (_serializers.TryGetValue(interfaceType, out serializer))
                     {
-                        Debug.Log($"[SerializationService] Found serializer for interface {interfaceType.Name} when looking for {type.Name}");
                         return serializer;
                     }
                 }
             }
 
             throw new SerializationException(
-                $"No serializer registered for type: {type.Name}. Please register a serializer first.",
+                $"未注册类型的序列化器: {type.Name}. 请先注册序列化器。",
                 type,
                 SerializationErrorCode.NoSerializerFound
             );
@@ -135,23 +152,11 @@ namespace EasyPack
 
         public string SerializeToJson<T>(T obj)
         {
-            if (obj == null)
-            {
-                Debug.LogWarning("[SerializationService] Attempting to serialize null object");
-                return null;
-            }
-
             return SerializeToJson(obj, typeof(T));
         }
 
         public string SerializeToJson(object obj, Type type)
         {
-            if (obj == null)
-            {
-                Debug.LogWarning("[SerializationService] Attempting to serialize null object");
-                return null;
-            }
-
             if (type == null)
             {
                 type = obj.GetType();
@@ -162,7 +167,7 @@ namespace EasyPack
             if (serializer.SupportedStrategy != SerializationStrategy.Json)
             {
                 throw new SerializationException(
-                    $"Serializer for type {type.Name} does not support JSON strategy",
+                    $"类型 {type.Name} 的序列化器不支持 JSON 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
@@ -180,7 +185,7 @@ namespace EasyPack
             catch (Exception ex)
             {
                 throw new SerializationException(
-                    $"Failed to serialize type {type.Name} to JSON: {ex.Message}",
+                    $"序列化类型 {type.Name} 到 JSON 失败: {ex.Message}",
                     type,
                     SerializationErrorCode.SerializationFailed,
                     ex
@@ -190,24 +195,12 @@ namespace EasyPack
 
         public T DeserializeFromJson<T>(string json)
         {
-            if (string.IsNullOrEmpty(json))
-            {
-                Debug.LogWarning("[SerializationService] Attempting to deserialize null or empty JSON");
-                return default(T);
-            }
-
             var result = DeserializeFromJson(json, typeof(T));
             return result != null ? (T)result : default(T);
         }
 
         public object DeserializeFromJson(string json, Type type)
         {
-            if (string.IsNullOrEmpty(json))
-            {
-                Debug.LogWarning("[SerializationService] Attempting to deserialize null or empty JSON");
-                return null;
-            }
-
             if (type == null)
             {
                 throw new ArgumentNullException(nameof(type));
@@ -218,7 +211,7 @@ namespace EasyPack
             if (serializer.SupportedStrategy != SerializationStrategy.Json)
             {
                 throw new SerializationException(
-                    $"Serializer for type {type.Name} does not support JSON strategy",
+                    $"类型 {type.Name} 的序列化器不支持 JSON 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
@@ -236,7 +229,7 @@ namespace EasyPack
             catch (Exception ex)
             {
                 throw new SerializationException(
-                    $"Failed to deserialize type {type.Name} from JSON: {ex.Message}",
+                    $"从 JSON 反序列化类型 {type.Name} 失败: {ex.Message}",
                     type,
                     SerializationErrorCode.DeserializationFailed,
                     ex
@@ -250,23 +243,11 @@ namespace EasyPack
 
         public List<CustomDataEntry> SerializeToCustomData<T>(T obj)
         {
-            if (obj == null)
-            {
-                Debug.LogWarning("[SerializationService] Attempting to serialize null object");
-                return new List<CustomDataEntry>();
-            }
-
             return SerializeToCustomData(obj, typeof(T));
         }
 
         public List<CustomDataEntry> SerializeToCustomData(object obj, Type type)
         {
-            if (obj == null)
-            {
-                Debug.LogWarning("[SerializationService] Attempting to serialize null object");
-                return new List<CustomDataEntry>();
-            }
-
             if (type == null)
             {
                 type = obj.GetType();
@@ -277,7 +258,7 @@ namespace EasyPack
             if (serializer.SupportedStrategy != SerializationStrategy.CustomDataEntry)
             {
                 throw new SerializationException(
-                    $"Serializer for type {type.Name} does not support CustomDataEntry strategy",
+                    $"类型 {type.Name} 的序列化器不支持 CustomDataEntry 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
@@ -286,7 +267,7 @@ namespace EasyPack
             try
             {
                 var entries = serializer.SerializeToCustomData(obj);
-                Debug.Log($"[SerializationService] Serialized {type.Name} to CustomData ({entries?.Count ?? 0} entries)");
+                Debug.Log($"[SerializationService] 已将 {type.Name} 序列化为 CustomData（{entries?.Count ?? 0} 条目）");
                 return entries ?? new List<CustomDataEntry>();
             }
             catch (SerializationException)
@@ -296,7 +277,7 @@ namespace EasyPack
             catch (Exception ex)
             {
                 throw new SerializationException(
-                    $"Failed to serialize type {type.Name} to CustomData: {ex.Message}",
+                    $"序列化类型 {type.Name} 到 CustomData 失败: {ex.Message}",
                     type,
                     SerializationErrorCode.SerializationFailed,
                     ex
@@ -306,24 +287,12 @@ namespace EasyPack
 
         public T DeserializeFromCustomData<T>(List<CustomDataEntry> entries)
         {
-            if (entries == null || entries.Count == 0)
-            {
-                Debug.LogWarning("[SerializationService] Attempting to deserialize null or empty CustomData entries");
-                return default(T);
-            }
-
             var result = DeserializeFromCustomData(entries, typeof(T));
             return result != null ? (T)result : default(T);
         }
 
         public object DeserializeFromCustomData(List<CustomDataEntry> entries, Type type)
         {
-            if (entries == null || entries.Count == 0)
-            {
-                Debug.LogWarning("[SerializationService] Attempting to deserialize null or empty CustomData entries");
-                return null;
-            }
-
             if (type == null)
             {
                 throw new ArgumentNullException(nameof(type));
@@ -334,7 +303,7 @@ namespace EasyPack
             if (serializer.SupportedStrategy != SerializationStrategy.CustomDataEntry)
             {
                 throw new SerializationException(
-                    $"Serializer for type {type.Name} does not support CustomDataEntry strategy",
+                    $"类型 {type.Name} 的序列化器不支持 CustomDataEntry 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
@@ -343,7 +312,7 @@ namespace EasyPack
             try
             {
                 var result = serializer.DeserializeFromCustomData(entries, type);
-                Debug.Log($"[SerializationService] Deserialized {type.Name} from CustomData");
+                Debug.Log($"[SerializationService] 已从 CustomData 反序列化 {type.Name}");
                 return result;
             }
             catch (SerializationException)
@@ -353,7 +322,7 @@ namespace EasyPack
             catch (Exception ex)
             {
                 throw new SerializationException(
-                    $"Failed to deserialize type {type.Name} from CustomData: {ex.Message}",
+                    $"从 CustomData 反序列化类型 {type.Name} 失败: {ex.Message}",
                     type,
                     SerializationErrorCode.DeserializationFailed,
                     ex
@@ -367,23 +336,11 @@ namespace EasyPack
 
         public byte[] SerializeToBinary<T>(T obj)
         {
-            if (obj == null)
-            {
-                Debug.LogWarning("[SerializationService] Attempting to serialize null object");
-                return null;
-            }
-
             return SerializeToBinary(obj, typeof(T));
         }
 
         public byte[] SerializeToBinary(object obj, Type type)
         {
-            if (obj == null)
-            {
-                Debug.LogWarning("[SerializationService] Attempting to serialize null object");
-                return null;
-            }
-
             if (type == null)
             {
                 type = obj.GetType();
@@ -394,7 +351,7 @@ namespace EasyPack
             if (serializer.SupportedStrategy != SerializationStrategy.Binary)
             {
                 throw new SerializationException(
-                    $"Serializer for type {type.Name} does not support Binary strategy",
+                    $"类型 {type.Name} 的序列化器不支持 Binary 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
@@ -403,7 +360,7 @@ namespace EasyPack
             try
             {
                 var data = serializer.SerializeToBinary(obj);
-                Debug.Log($"[SerializationService] Serialized {type.Name} to Binary ({data?.Length ?? 0} bytes)");
+                Debug.Log($"[SerializationService] 已将 {type.Name} 序列化为二进制（{data?.Length ?? 0} 字节）");
                 return data;
             }
             catch (SerializationException)
@@ -413,7 +370,7 @@ namespace EasyPack
             catch (Exception ex)
             {
                 throw new SerializationException(
-                    $"Failed to serialize type {type.Name} to Binary: {ex.Message}",
+                    $"序列化类型 {type.Name} 到 Binary 失败: {ex.Message}",
                     type,
                     SerializationErrorCode.SerializationFailed,
                     ex
@@ -423,24 +380,12 @@ namespace EasyPack
 
         public T DeserializeFromBinary<T>(byte[] data)
         {
-            if (data == null || data.Length == 0)
-            {
-                Debug.LogWarning("[SerializationService] Attempting to deserialize null or empty binary data");
-                return default(T);
-            }
-
             var result = DeserializeFromBinary(data, typeof(T));
             return result != null ? (T)result : default(T);
         }
 
         public object DeserializeFromBinary(byte[] data, Type type)
         {
-            if (data == null || data.Length == 0)
-            {
-                Debug.LogWarning("[SerializationService] Attempting to deserialize null or empty binary data");
-                return null;
-            }
-
             if (type == null)
             {
                 throw new ArgumentNullException(nameof(type));
@@ -451,7 +396,7 @@ namespace EasyPack
             if (serializer.SupportedStrategy != SerializationStrategy.Binary)
             {
                 throw new SerializationException(
-                    $"Serializer for type {type.Name} does not support Binary strategy",
+                    $"类型 {type.Name} 的序列化器不支持 Binary 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
@@ -460,7 +405,7 @@ namespace EasyPack
             try
             {
                 var result = serializer.DeserializeFromBinary(data, type);
-                Debug.Log($"[SerializationService] Deserialized {type.Name} from Binary");
+                Debug.Log($"[SerializationService] 已从二进制数据反序列化 {type.Name}");
                 return result;
             }
             catch (SerializationException)
@@ -470,7 +415,7 @@ namespace EasyPack
             catch (Exception ex)
             {
                 throw new SerializationException(
-                    $"Failed to deserialize type {type.Name} from Binary: {ex.Message}",
+                    $"从 Binary 反序列化类型 {type.Name} 失败: {ex.Message}",
                     type,
                     SerializationErrorCode.DeserializationFailed,
                     ex
@@ -500,7 +445,6 @@ namespace EasyPack
             lock (_lock)
             {
                 _serializers.Clear();
-                Debug.Log("[SerializationService] Cleared all serializers");
             }
         }
 
