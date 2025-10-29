@@ -9,7 +9,12 @@ namespace EasyPack
     /// </summary>
     public class ModifierSerializer : JsonSerializerBase<IModifier>
     {
-        public override string SerializeToJson(IModifier obj)
+        /// <summary>
+        /// 将 IModifier 转换为可序列化的 DTO 对象
+        /// </summary>
+        /// <param name="obj">要转换的 IModifier 对象</param>
+        /// <returns>SerializableModifier 对象，如果输入为 null 则返回 null</returns>
+        public SerializableModifier ToSerializable(IModifier obj)
         {
             if (obj == null) return null;
 
@@ -34,7 +39,13 @@ namespace EasyPack
                 throw new NotSupportedException($"Unsupported modifier type: {obj.GetType().Name}");
             }
 
-            return JsonUtility.ToJson(serializable);
+            return serializable;
+        }
+
+        public override string SerializeToJson(IModifier obj)
+        {
+            var serializable = ToSerializable(obj);
+            return serializable == null ? null : JsonUtility.ToJson(serializable);
         }
 
         public override IModifier DeserializeFromJson(string json)

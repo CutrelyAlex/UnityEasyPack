@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using EasyPack.GamePropertySystem;
+using EasyPack.EmeCardSystem;
 
-namespace EasyPack.EmeCardSystem
+namespace EasyPack
 {
     /// <summary>
     /// EmeCard 系统使用案例展示
