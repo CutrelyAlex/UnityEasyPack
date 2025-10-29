@@ -90,7 +90,7 @@ namespace EasyPack.EmeCardSystem
                     Index = card.Index,
                     Properties = Array.Empty<SerializableGameProperty>(),
                     Tags = (card.Tags != null && card.Tags.Count > 0) ? new List<string>(card.Tags).ToArray() : Array.Empty<string>(),
-                    Children = Array.Empty<SerializableCard>(),
+                    ChildrenJson = null,  // 默认为空，有子卡时才序列化
                     IsIntrinsic = false
                 };
 
@@ -117,7 +117,7 @@ namespace EasyPack.EmeCardSystem
                 }
 
                 // 递归序列化子卡
-                if (card.Children != null)
+                if (card.Children != null && card.Children.Count > 0)
                 {
                     foreach (var child in card.Children)
                     {
@@ -126,11 +126,17 @@ namespace EasyPack.EmeCardSystem
                         childDto.IsIntrinsic = card.IsIntrinsic(child);
                         childrenList.Add(childDto);
                     }
+
+                    // 子卡数组序列化
+                    if (childrenList.Count > 0)
+                    {
+                        var childrenArray = childrenList.ToArray();
+                        dto.ChildrenJson = JsonUtility.ToJson(new SerializableCardArray { Cards = childrenArray });
+                    }
                 }
 
                 // 转换为数组
                 dto.Properties = propertiesList.ToArray();
-                dto.Children = childrenList.ToArray();
 
                 return dto;
             }
@@ -196,13 +202,24 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 恢复子卡
-            if (data.Children != null)
+            if (!string.IsNullOrEmpty(data.ChildrenJson))
             {
-                foreach (var childData in data.Children)
+                try
                 {
-                    var child = DeserializeCardRecursive(childData);
-                    bool intrinsic = childData != null && childData.IsIntrinsic;
-                    card.AddChild(child, intrinsic: intrinsic);
+                    var childrenArray = JsonUtility.FromJson<SerializableCardArray>(data.ChildrenJson);
+                    if (childrenArray != null && childrenArray.Cards != null)
+                    {
+                        foreach (var childData in childrenArray.Cards)
+                        {
+                            var child = DeserializeCardRecursive(childData);
+                            bool intrinsic = childData != null && childData.IsIntrinsic;
+                            card.AddChild(child, intrinsic: intrinsic);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[CardJsonSerializer] 跳过反序列化失败的 Children: {ex.Message}");
                 }
             }
 

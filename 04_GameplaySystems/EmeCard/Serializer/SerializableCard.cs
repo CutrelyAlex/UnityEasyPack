@@ -21,8 +21,17 @@ namespace EasyPack.EmeCardSystem
         public int Index;
         public SerializableGameProperty[] Properties;
         public string[] Tags;
-        public SerializableCard[] Children;
+        public string ChildrenJson;  
         public bool IsIntrinsic;
+    }
+
+    /// <summary>
+    /// 子卡数组的包装器，用于 JSON 序列化
+    /// </summary>
+    [Serializable]
+    internal class SerializableCardArray
+    {
+        public SerializableCard[] Cards;
     }
 }
 
