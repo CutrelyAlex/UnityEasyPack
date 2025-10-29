@@ -8,7 +8,7 @@ namespace EasyPack.EmeCardSystem
     /// Card 的可序列化中间数据结构
     /// </summary>
     [Serializable]
-    public class SerializableCard
+    public class SerializableCard : ISerializable
     {
         // 来自 CardData 的静态字段
         public string ID;
@@ -29,7 +29,7 @@ namespace EasyPack.EmeCardSystem
     /// 子卡数组的包装器，用于 JSON 序列化
     /// </summary>
     [Serializable]
-    internal class SerializableCardArray
+    internal class SerializableCardArray : ISerializable
     {
         public SerializableCard[] Cards;
     }

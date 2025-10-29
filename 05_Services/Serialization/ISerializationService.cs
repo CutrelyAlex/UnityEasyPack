@@ -26,15 +26,6 @@ namespace EasyPack
     }
 
     /// <summary>
-    /// 可序列化 DTO 的标记接口
-    /// 所有可序列化的数据传输对象（DTO）必须实现此接口
-    /// 用于泛型约束，确保只有标记为可序列化的类型才能用于序列化器
-    /// </summary>
-    public interface ISerializable
-    {
-    }
-
-    /// <summary>
     /// 双泛型类型序列化器接口
     /// 定义将原始对象 TOriginal 转换为可序列化 DTO TSerializable 的完整流程
     /// 分离对象转换和序列化逻辑，提供更清晰的序列化架构

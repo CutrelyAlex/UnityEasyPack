@@ -102,7 +102,7 @@ namespace EasyPack
         {
             await base.OnInitializeAsync();
             
-            // TODO: 在此处调用各系统的 RegisterSerializers() 方法
+            // TODO: 可以在此处调用未迁移系统的 RegisterSerializers() 方法
 
             Debug.Log("[SerializationService] 序列化服务初始化完成");
         }

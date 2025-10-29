@@ -5,7 +5,7 @@ using UnityEngine;
 namespace EasyPack.InventorySystem
 {
     [Serializable]
-    public class SerializedContainer
+    public class SerializedContainer : ISerializable
     {
         public string ContainerKind;
         public string ID;

@@ -5,7 +5,7 @@ namespace EasyPack.InventorySystem
 {
     // 条件数据化表示
     [Serializable]
-    public class SerializedCondition
+    public class SerializedCondition : ISerializable
     {
         public string Kind;
         public List<CustomDataEntry> Params = new();

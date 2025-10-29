@@ -8,7 +8,7 @@ namespace EasyPack.GamePropertySystem
     /// 可序列化的 GameProperty 数据结构，用于 JSON 序列化
     /// </summary>
     [Serializable]
-    public class SerializableGameProperty
+    public class SerializableGameProperty : ISerializable
     {
         /// <summary>
         /// 属性的唯一标识符

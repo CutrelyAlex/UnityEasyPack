@@ -2,7 +2,7 @@ using System;
 namespace EasyPack.InventorySystem
 {
     [Serializable]
-    public class SerializedSlot
+    public class SerializedSlot : ISerializable
     {
         public int Index;
         public string ItemJson;

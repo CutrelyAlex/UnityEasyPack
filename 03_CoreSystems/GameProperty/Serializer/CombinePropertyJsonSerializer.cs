@@ -8,7 +8,7 @@ namespace EasyPack.GamePropertySystem
     /// CombinePropertySingle 的可序列化数据结构
     /// </summary>
     [Serializable]
-    public class SerializableCombinePropertySingle
+    public class SerializableCombinePropertySingle : ISerializable
     {
         /// <summary>
         /// 组合属性的唯一标识符
@@ -30,7 +30,7 @@ namespace EasyPack.GamePropertySystem
     /// CombinePropertyCustom 的可序列化数据结构
     /// </summary>
     [Serializable]
-    public class SerializableCombinePropertyCustom
+    public class SerializableCombinePropertyCustom : ISerializable
     {
         /// <summary>
         /// 组合属性的唯一标识符
