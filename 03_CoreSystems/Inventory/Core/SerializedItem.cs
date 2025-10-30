@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace EasyPack.InventorySystem
 {
     [System.Serializable]
-    public class SerializedItem
+    public class SerializedItem : ISerializable
     {
         public string ID;
         public string Name;

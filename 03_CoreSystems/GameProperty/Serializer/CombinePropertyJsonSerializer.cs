@@ -8,7 +8,7 @@ namespace EasyPack.GamePropertySystem
     /// CombinePropertySingle 的可序列化数据结构
     /// </summary>
     [Serializable]
-    public class SerializableCombinePropertySingle
+    public class SerializableCombinePropertySingle : ISerializable
     {
         /// <summary>
         /// 组合属性的唯一标识符
@@ -30,7 +30,7 @@ namespace EasyPack.GamePropertySystem
     /// CombinePropertyCustom 的可序列化数据结构
     /// </summary>
     [Serializable]
-    public class SerializableCombinePropertyCustom
+    public class SerializableCombinePropertyCustom : ISerializable
     {
         /// <summary>
         /// 组合属性的唯一标识符
@@ -100,24 +100,20 @@ namespace EasyPack.GamePropertySystem
             var single = new CombinePropertySingle(data.ID, data.BaseValue);
 
             // 反序列化 ResultHolder 的修饰器并应用到 single 的 ResultHolder
-            if (data.ResultHolder != null && data.ResultHolder.ModifierList != null)
+            if (data.ResultHolder != null && data.ResultHolder.Modifiers != null)
             {
-                var modifierListData = data.ResultHolder.ModifierList;
-                if (modifierListData.Modifiers != null)
+                foreach (var serMod in data.ResultHolder.Modifiers)
                 {
-                    foreach (var serMod in modifierListData.Modifiers)
+                    IModifier modifier;
+                    if (serMod.IsRangeModifier)
                     {
-                        IModifier modifier;
-                        if (serMod.IsRangeModifier)
-                        {
-                            modifier = new RangeModifier(serMod.Type, serMod.Priority, serMod.RangeValue);
-                        }
-                        else
-                        {
-                            modifier = new FloatModifier(serMod.Type, serMod.Priority, serMod.FloatValue);
-                        }
-                        single.AddModifier(modifier);
+                        modifier = new RangeModifier(serMod.Type, serMod.Priority, serMod.RangeValue);
                     }
+                    else
+                    {
+                        modifier = new FloatModifier(serMod.Type, serMod.Priority, serMod.FloatValue);
+                    }
+                    single.AddModifier(modifier);
                 }
             }
 
@@ -135,13 +131,12 @@ namespace EasyPack.GamePropertySystem
 
             var modifiersList = new List<SerializableModifier>();
 
-            // 使用 ModifierSerializer 序列化所有修饰器
+            // 直接转换为可序列化对象，避免不必要的 JSON 字符串中转
             foreach (var modifier in property.Modifiers)
             {
-                string modifierJson = _modifierSerializer.SerializeToJson(modifier);
-                if (!string.IsNullOrEmpty(modifierJson))
+                var serMod = _modifierSerializer.ToSerializable(modifier);
+                if (serMod != null)
                 {
-                    var serMod = JsonUtility.FromJson<SerializableModifier>(modifierJson);
                     modifiersList.Add(serMod);
                 }
             }
@@ -150,10 +145,7 @@ namespace EasyPack.GamePropertySystem
             {
                 ID = property.ID,
                 BaseValue = property.GetBaseValue(),
-                ModifierList = new SerializableModifierList
-                {
-                    Modifiers = modifiersList.ToArray()
-                }
+                Modifiers = modifiersList.ToArray()
             };
 
             return data;
@@ -208,24 +200,20 @@ namespace EasyPack.GamePropertySystem
             var custom = new CombinePropertyCustom(data.ID, data.BaseValue);
 
             // 反序列化 ResultHolder 的修饰器并应用到 custom 的 ResultHolder
-            if (data.ResultHolder != null && data.ResultHolder.ModifierList != null)
+            if (data.ResultHolder != null && data.ResultHolder.Modifiers != null)
             {
-                var modifierListData = data.ResultHolder.ModifierList;
-                if (modifierListData.Modifiers != null)
+                foreach (var serMod in data.ResultHolder.Modifiers)
                 {
-                    foreach (var serMod in modifierListData.Modifiers)
+                    IModifier modifier;
+                    if (serMod.IsRangeModifier)
                     {
-                        IModifier modifier;
-                        if (serMod.IsRangeModifier)
-                        {
-                            modifier = new RangeModifier(serMod.Type, serMod.Priority, serMod.RangeValue);
-                        }
-                        else
-                        {
-                            modifier = new FloatModifier(serMod.Type, serMod.Priority, serMod.FloatValue);
-                        }
-                        custom.ResultHolder.AddModifier(modifier);
+                        modifier = new RangeModifier(serMod.Type, serMod.Priority, serMod.RangeValue);
                     }
+                    else
+                    {
+                        modifier = new FloatModifier(serMod.Type, serMod.Priority, serMod.FloatValue);
+                    }
+                    custom.ResultHolder.AddModifier(modifier);
                 }
             }
 
@@ -243,13 +231,12 @@ namespace EasyPack.GamePropertySystem
 
             var modifiersList = new List<SerializableModifier>();
 
-            // 使用 ModifierSerializer 序列化所有修饰器
+            // 直接转换为可序列化对象，避免不必要的 JSON 字符串中转
             foreach (var modifier in property.Modifiers)
             {
-                string modifierJson = _modifierSerializer.SerializeToJson(modifier);
-                if (!string.IsNullOrEmpty(modifierJson))
+                var serMod = _modifierSerializer.ToSerializable(modifier);
+                if (serMod != null)
                 {
-                    var serMod = JsonUtility.FromJson<SerializableModifier>(modifierJson);
                     modifiersList.Add(serMod);
                 }
             }
@@ -258,10 +245,7 @@ namespace EasyPack.GamePropertySystem
             {
                 ID = property.ID,
                 BaseValue = property.GetBaseValue(),
-                ModifierList = new SerializableModifierList
-                {
-                    Modifiers = modifiersList.ToArray()
-                }
+                Modifiers = modifiersList.ToArray()
             };
 
             return data;

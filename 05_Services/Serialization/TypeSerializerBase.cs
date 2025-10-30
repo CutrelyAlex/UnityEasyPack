@@ -16,22 +16,21 @@ namespace EasyPack
 
         public virtual string SerializeToJson(T obj)
         {
-            throw new NotSupportedException($"Type {typeof(T).Name} does not support JSON serialization");
+            throw new NotSupportedException($"类型 {typeof(T).Name} 不支持 JSON 序列化");
         }
 
         public virtual T DeserializeFromJson(string json)
         {
-            throw new NotSupportedException($"Type {typeof(T).Name} does not support JSON deserialization");
+            throw new NotSupportedException($"类型 {typeof(T).Name} 不支持 JSON 反序列化");
         }
 
         public string SerializeToJson(object obj)
         {
-            if (obj == null) return null;
             if (obj is T typedObj)
             {
                 return SerializeToJson(typedObj);
             }
-            throw new ArgumentException($"Object is not of type {typeof(T).Name}");
+            throw new ArgumentException($"对象不是类型 {typeof(T).Name}");
         }
 
         public object DeserializeFromJson(string json, Type targetType)
@@ -41,22 +40,21 @@ namespace EasyPack
 
         public virtual List<CustomDataEntry> SerializeToCustomData(T obj)
         {
-            throw new NotSupportedException($"Type {typeof(T).Name} does not support CustomDataEntry serialization");
+            throw new NotSupportedException($"类型 {typeof(T).Name} 不支持 CustomDataEntry 序列化");
         }
 
         public virtual T DeserializeFromCustomData(List<CustomDataEntry> entries)
         {
-            throw new NotSupportedException($"Type {typeof(T).Name} does not support CustomDataEntry deserialization");
+            throw new NotSupportedException($"类型 {typeof(T).Name} 不支持 CustomDataEntry 反序列化");
         }
 
         public List<CustomDataEntry> SerializeToCustomData(object obj)
         {
-            if (obj == null) return new List<CustomDataEntry>();
             if (obj is T typedObj)
             {
                 return SerializeToCustomData(typedObj);
             }
-            throw new ArgumentException($"Object is not of type {typeof(T).Name}");
+            throw new ArgumentException($"对象不是类型 {typeof(T).Name}");
         }
 
         public object DeserializeFromCustomData(List<CustomDataEntry> entries, Type targetType)
@@ -66,22 +64,21 @@ namespace EasyPack
 
         public virtual byte[] SerializeToBinary(T obj)
         {
-            throw new NotSupportedException($"Type {typeof(T).Name} does not support Binary serialization");
+            throw new NotSupportedException($"类型 {typeof(T).Name} 不支持二进制序列化");
         }
 
         public virtual T DeserializeFromBinary(byte[] data)
         {
-            throw new NotSupportedException($"Type {typeof(T).Name} does not support Binary deserialization");
+            throw new NotSupportedException($"类型 {typeof(T).Name} 不支持二进制反序列化");
         }
 
         public byte[] SerializeToBinary(object obj)
         {
-            if (obj == null) return null;
             if (obj is T typedObj)
             {
                 return SerializeToBinary(typedObj);
             }
-            throw new ArgumentException($"Object is not of type {typeof(T).Name}");
+            throw new ArgumentException($"对象不是类型 {typeof(T).Name}");
         }
 
         public object DeserializeFromBinary(byte[] data, Type targetType)
@@ -130,13 +127,11 @@ namespace EasyPack
     {
         public override string SerializeToJson(T obj)
         {
-            if (obj == null) return null;
             return JsonUtility.ToJson(obj);
         }
 
         public override T DeserializeFromJson(string json)
         {
-            if (string.IsNullOrEmpty(json)) return default(T);
             return JsonUtility.FromJson<T>(json);
         }
     }
@@ -148,8 +143,6 @@ namespace EasyPack
     {
         public override byte[] SerializeToBinary(T obj)
         {
-            if (obj == null) return null;
-
             using (var stream = new MemoryStream())
             {
                 var formatter = new BinaryFormatter();
@@ -160,8 +153,6 @@ namespace EasyPack
 
         public override T DeserializeFromBinary(byte[] data)
         {
-            if (data == null || data.Length == 0) return default(T);
-
             using (var stream = new MemoryStream(data))
             {
                 var formatter = new BinaryFormatter();

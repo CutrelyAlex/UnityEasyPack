@@ -8,7 +8,7 @@ namespace EasyPack.InventorySystem
     /// GridItem 的序列化数据传输对象
     /// </summary>
     [Serializable]
-    public class SerializedGridItem
+    public class SerializedGridItem : ISerializable
     {
         public string ID;
         public string Name;

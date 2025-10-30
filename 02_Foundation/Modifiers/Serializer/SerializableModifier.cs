@@ -7,7 +7,7 @@ namespace EasyPack
     /// 修饰器的可序列化表示形式
     /// </summary>
     [Serializable]
-    public class SerializableModifier
+    public class SerializableModifier : ISerializable
     {
         public ModifierType Type;
         public int Priority;

@@ -46,8 +46,6 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             // 服务监控
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("服务监控", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("启用服务监控会在编辑器窗口中实时显示服务状态。", MessageType.Info);
-            
             var serviceEnabled = EditorMonitoringConfig.EnableServiceMonitoring;
             var newServiceState = EditorGUILayout.Toggle("启用服务监控", serviceEnabled);
             if (newServiceState != serviceEnabled)
@@ -61,8 +59,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             // 命令监控
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("命令监控", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("启用命令监控会记录所有命令的执行历史。", MessageType.Info);
-            
+
             var commandEnabled = EditorMonitoringConfig.EnableCommandMonitoring;
             var newCommandState = EditorGUILayout.Toggle("启用命令监控", commandEnabled);
             if (newCommandState != commandEnabled)
