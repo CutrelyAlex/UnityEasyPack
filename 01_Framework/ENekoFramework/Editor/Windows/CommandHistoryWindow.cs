@@ -141,14 +141,16 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                 RefreshHistory();
             }
 
+            EditorGUILayout.BeginHorizontal(GUILayout.Width(80));
             if (_isRefreshing)
             {
-                GUILayout.Label("Refreshing...", EditorStyles.toolbarButton, GUILayout.Width(80));
+                GUILayout.Label("刷新中...", EditorStyles.toolbarButton, GUILayout.ExpandWidth(true));
             }
             else
             {
-                GUILayout.Space(80);
+                GUILayout.Label("", EditorStyles.toolbarButton, GUILayout.ExpandWidth(true));
             }
+            EditorGUILayout.EndHorizontal();
             
             if (GUILayout.Button("清空", EditorStyles.toolbarButton, GUILayout.Width(60)))
             {
@@ -236,7 +238,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             {
                 var filtered = _commandHistory.ToList();
                 
-                // 架构筛选，基于架构名称而不是命名空间
+                // 架构筛选：仅当有架构被勾选时才进行筛选，否则显示空列表
                 if (currentSelectedArchitectures.Count > 0)
                 {
                     // 使用缓存的架构映射，避免每次都进行反射
@@ -267,6 +269,11 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                             commandNamespace?.StartsWith(_cachedArchToNamespace[arch]) == true
                         );
                     }).ToList();
+                }
+                else
+                {
+                    // 当没有勾选任何架构时，显示空列表
+                    filtered = new List<CommandDescriptor>();
                 }
                 
                 // 状态筛选
