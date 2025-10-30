@@ -18,6 +18,18 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private bool _autoScroll = true;
         private const int MaxLogEntries = 1000;
         
+        // 筛选缓存
+        private List<EventLogEntry> _cachedFilteredLogs;
+        private List<string> _lastSelectedArchitectures = new List<string>();
+        private string _lastSelectedEventTypeFilter = "";
+        private bool _lastUseEventTypeFilter = false;
+        private string _lastFilterText = "";
+        private bool _filterCacheValid = false;
+        
+        // 架构缓存
+        private Dictionary<string, string> _cachedArchToNamespace;
+        private bool _archCacheValid = false;
+        
         // 筛选器
         private List<string> _architectureNames = new List<string>();
         private List<bool> _architectureFilters = new List<bool>();
@@ -248,40 +260,64 @@ namespace EasyPack.ENekoFramework.Editor.Windows
 
         private List<EventLogEntry> GetFilteredLogs()
         {
-            var filtered = _eventLog.ToList();
-            
-            // 架构筛选 - 基于架构名称而不是命名空间
-            var selectedArchitectures = new List<string>();
+            // 检查筛选条件是否改变
+            var currentSelectedArchitectures = new List<string>();
             for (int i = 0; i < _architectureNames.Count; i++)
             {
                 if (_architectureFilters[i])
-                    selectedArchitectures.Add(_architectureNames[i]);
+                    currentSelectedArchitectures.Add(_architectureNames[i]);
             }
             
-            if (selectedArchitectures.Count > 0)
+            bool filterChanged = !_filterCacheValid ||
+                !_lastSelectedArchitectures.SequenceEqual(currentSelectedArchitectures) ||
+                _lastUseEventTypeFilter != _useEventTypeFilter ||
+                (_useEventTypeFilter && _lastSelectedEventTypeFilter != _selectedEventTypeFilter) ||
+                _lastFilterText != _filterText;
+            
+            if (!filterChanged && _cachedFilteredLogs != null)
             {
-                var allArchitectures = ServiceInspector.GetAllArchitectureInstances();
-                var archToNamespace = new Dictionary<string, string>();
-                
-                // 建立架构名称到其所在命名空间的映射
-                foreach (var arch in allArchitectures)
+                return _cachedFilteredLogs;
+            }
+            
+            // 重新计算过滤结果
+            var filtered = _eventLog.ToList();
+            
+            // 架构筛选：仅当有架构被勾选时才进行筛选，否则显示空列表
+            if (currentSelectedArchitectures.Count > 0)
+            {
+                // 使用缓存的架构映射，避免每次都进行反射
+                if (!_archCacheValid || _cachedArchToNamespace == null)
                 {
-                    var archName = arch.GetType().Name;
-                    var archNamespace = arch.GetType().Namespace;
-                    if (!archToNamespace.ContainsKey(archName))
+                    var allArchitectures = ServiceInspector.GetAllArchitectureInstances();
+                    _cachedArchToNamespace = new Dictionary<string, string>();
+                    
+                    // 建立架构名称到其所在命名空间的映射
+                    foreach (var arch in allArchitectures)
                     {
-                        archToNamespace[archName] = archNamespace;
+                        var archName = arch.GetType().Name;
+                        var archNamespace = arch.GetType().Namespace;
+                        if (!_cachedArchToNamespace.ContainsKey(archName))
+                        {
+                            _cachedArchToNamespace[archName] = archNamespace;
+                        }
                     }
+                    
+                    _archCacheValid = true;
                 }
                 
                 filtered = filtered.Where(e =>
                 {
                     var eventNamespace = e.EventType.Namespace;
-                    return selectedArchitectures.Any(arch => 
-                        archToNamespace.ContainsKey(arch) && 
-                        eventNamespace?.StartsWith(archToNamespace[arch]) == true
+                    return currentSelectedArchitectures.Any(arch => 
+                        _cachedArchToNamespace.ContainsKey(arch) && 
+                        eventNamespace?.StartsWith(_cachedArchToNamespace[arch]) == true
                     );
                 }).ToList();
+            }
+            else
+            {
+                // 当没有勾选任何架构时，显示空列表
+                filtered = new List<EventLogEntry>();
             }
             
             // 事件类型筛选
@@ -301,11 +337,27 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                 ).ToList();
             }
             
-            return filtered;
+            _cachedFilteredLogs = filtered;
+            
+            // 更新缓存状态
+            _lastSelectedArchitectures = currentSelectedArchitectures.ToList();
+            _lastUseEventTypeFilter = _useEventTypeFilter;
+            _lastSelectedEventTypeFilter = _selectedEventTypeFilter;
+            _lastFilterText = _filterText;
+            _filterCacheValid = true;
+            
+            return _cachedFilteredLogs;
         }
         
         private void RefreshArchitectureList()
         {
+            // 保存当前的筛选状态
+            var previousFilters = new Dictionary<string, bool>();
+            for (int i = 0; i < _architectureNames.Count; i++)
+            {
+                previousFilters[_architectureNames[i]] = _architectureFilters[i];
+            }
+            
             _architectureNames.Clear();
             _architectureFilters.Clear();
             
@@ -313,7 +365,8 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             foreach (var arch in architectureNames)
             {
                 _architectureNames.Add(arch);
-                _architectureFilters.Add(true);
+                // 恢复之前的筛选状态，如果架构不存在则默认为true（全选）
+                _architectureFilters.Add(previousFilters.ContainsKey(arch) ? previousFilters[arch] : true);
             }
         }
 
@@ -335,6 +388,10 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             {
                 _eventLog.RemoveAt(0);
             }
+            
+            // 清除筛选缓存，因为数据已更新
+            _filterCacheValid = false;
+            _cachedFilteredLogs = null;
             
             Repaint();
         }
@@ -373,7 +430,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         /// <summary>
         /// 事件日志条目
         /// </summary>
-        private class EventLogEntry
+        public class EventLogEntry
         {
             public DateTime Timestamp { get; set; }
             public Type EventType { get; set; }
