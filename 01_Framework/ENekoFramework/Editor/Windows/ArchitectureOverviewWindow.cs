@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using EasyPack.ENekoFramework.Editor;
@@ -17,7 +18,9 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private ArchitectureInfo _selectedArchitecture;
         private bool _autoRefresh = true;
         private double _lastRefreshTime;
-        private const double RefreshInterval = 2.0; // 每2秒刷新一次
+        private bool _isRefreshing = false;
+        private double _refreshStartTime;
+        private const double RefreshInterval = 1.0;
 
         // UI样式
         private GUIStyle _headerStyle;
@@ -58,10 +61,24 @@ namespace EasyPack.ENekoFramework.Editor.Windows
 
         private void Update()
         {
-            if (_autoRefresh && EditorApplication.timeSinceStartup - _lastRefreshTime > RefreshInterval)
+            // 检查刷新超时（10秒）
+            if (_isRefreshing && EditorApplication.timeSinceStartup - _refreshStartTime > 10.0)
             {
-                RefreshArchitectures();
+                Debug.LogWarning("ArchitectureOverviewWindow: 刷新操作超时，强制重置状态");
+                _isRefreshing = false;
+                _architectures = new List<ArchitectureInfo>();
+                _selectedArchitecture = null;
                 Repaint();
+            }
+
+            if (_autoRefresh && !_isRefreshing && EditorApplication.timeSinceStartup - _lastRefreshTime > RefreshInterval)
+            {
+                // 延迟调用避免阻塞
+                EditorApplication.delayCall += () =>
+                {
+                    RefreshArchitecturesAsync();
+                };
+                _lastRefreshTime = EditorApplication.timeSinceStartup;
             }
         }
 
@@ -107,6 +124,15 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             if (GUILayout.Button("Refresh", EditorStyles.toolbarButton, GUILayout.Width(60)))
             {
                 RefreshArchitectures();
+            }
+
+            if (_isRefreshing)
+            {
+                GUILayout.Label("Refreshing...", EditorStyles.toolbarButton, GUILayout.Width(80));
+            }
+            else
+            {
+                GUILayout.Space(80);
             }
 
             GUILayout.Space(10);
@@ -306,8 +332,62 @@ namespace EasyPack.ENekoFramework.Editor.Windows
 
         private void RefreshArchitectures()
         {
+            RefreshArchitecturesAsync();
+        }
+
+        private void RefreshArchitecturesAsync()
+        {
+            if (_isRefreshing) return; 
+            
+            _isRefreshing = true;
+            _refreshStartTime = EditorApplication.timeSinceStartup;
             _lastRefreshTime = EditorApplication.timeSinceStartup;
-            _architectures = new List<ArchitectureInfo>();
+            
+            // 异步执行刷新操作
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    var newArchitectures = RefreshArchitecturesInternal();
+                    
+                    // 在主线程更新UI
+                    EditorApplication.delayCall += () =>
+                    {
+                        // 检查是否已经超时（10秒超时）
+                        if (_isRefreshing && EditorApplication.timeSinceStartup - _refreshStartTime < 10.0)
+                        {
+                            _architectures = newArchitectures;
+                            
+                            // 如果当前选择的架构不在新列表中，清除选择
+                            if (_selectedArchitecture != null && 
+                                !_architectures.Any(a => a.TypeName == _selectedArchitecture.TypeName))
+                            {
+                                _selectedArchitecture = null;
+                            }
+                        }
+                        
+                        _isRefreshing = false;
+                        Repaint();
+                    };
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"ArchitectureOverviewWindow: 刷新架构信息时发生异常 - {ex.Message}\n{ex.StackTrace}");
+                    
+                    EditorApplication.delayCall += () =>
+                    {
+                        _architectures = new List<ArchitectureInfo>();
+                        _selectedArchitecture = null;
+                        _isRefreshing = false;
+                        Repaint();
+                    };
+                }
+            });
+        }
+
+        private List<ArchitectureInfo> RefreshArchitecturesInternal()
+        {
+            var architectures = new List<ArchitectureInfo>();
 
             var instances = ServiceInspector.GetAllArchitectureInstances();
             
@@ -360,15 +440,10 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                     }
                 }
 
-                _architectures.Add(info);
+                architectures.Add(info);
             }
 
-            // 如果当前选择的架构不在新列表中，清除选择
-            if (_selectedArchitecture != null && 
-                !_architectures.Any(a => a.TypeName == _selectedArchitecture.TypeName))
-            {
-                _selectedArchitecture = null;
-            }
+            return architectures;
         }
 
         private bool HasProperty(object instance, string propertyName)

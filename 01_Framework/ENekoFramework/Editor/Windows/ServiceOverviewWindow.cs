@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -16,7 +17,20 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private ServiceDescriptor _selectedService;
         private bool _autoRefresh = true;
         private double _lastRefreshTime;
-        private const double RefreshInterval = 1.0; // 每秒刷新一次
+        private bool _isRefreshing = false;
+        private double _refreshStartTime;
+        private const double RefreshInterval = 1.0;
+        
+        // 筛选缓存
+        private List<ServiceDescriptor> _cachedFilteredServices;
+        private List<string> _lastSelectedArchitectures = new List<string>();
+        private ServiceLifecycleState _lastSelectedStateFilter = ServiceLifecycleState.Ready;
+        private bool _lastUseStateFilter = false;
+        private bool _filterCacheValid = false;
+        
+        // 架构缓存
+        private Dictionary<string, string> _cachedArchToNamespace;
+        private bool _archCacheValid = false;
         
         // 筛选器
         private List<string> _architectureNames = new List<string>();
@@ -50,10 +64,22 @@ namespace EasyPack.ENekoFramework.Editor.Windows
 
         private void Update()
         {
-            if (_autoRefresh && EditorApplication.timeSinceStartup - _lastRefreshTime > RefreshInterval)
+            if (_isRefreshing && EditorApplication.timeSinceStartup - _refreshStartTime > 10.0)
             {
-                RefreshServices();
+                Debug.LogWarning("ServiceOverviewWindow: 刷新操作超时，强制重置状态");
+                _isRefreshing = false;
+                _services = new List<ServiceDescriptor>();
+                _selectedService = null;
                 Repaint();
+            }
+
+            if (_autoRefresh && !_isRefreshing && EditorApplication.timeSinceStartup - _lastRefreshTime > RefreshInterval)
+            {
+                EditorApplication.delayCall += () =>
+                {
+                    RefreshServicesAsync();
+                };
+                _lastRefreshTime = EditorApplication.timeSinceStartup;
             }
         }
 
@@ -114,8 +140,15 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             {
                 RefreshServices();
             }
-            
-            _autoRefresh = GUILayout.Toggle(_autoRefresh, "自动刷新", EditorStyles.toolbarButton, GUILayout.Width(80));
+
+            if (_isRefreshing)
+            {
+                GUILayout.Label("Refreshing...", EditorStyles.toolbarButton, GUILayout.Width(80));
+            }
+            else
+            {
+                _autoRefresh = GUILayout.Toggle(_autoRefresh, "自动刷新", EditorStyles.toolbarButton, GUILayout.Width(80));
+            }
             
             // 监控开关
             var monitoringEnabled = EditorMonitoringConfig.EnableServiceMonitoring;
@@ -163,56 +196,93 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         
         private List<ServiceDescriptor> GetFilteredServices()
         {
-            if (_services == null || _services.Count == 0)
-                return new List<ServiceDescriptor>();
-            
-            var filtered = _services.ToList();
-            
-            // 架构筛选 - 基于架构名称而不是命名空间
-            var selectedArchitectures = new List<string>();
+            // 检查筛选条件是否改变
+            var currentSelectedArchitectures = new List<string>();
             for (int i = 0; i < _architectureNames.Count; i++)
             {
                 if (_architectureFilters[i])
-                    selectedArchitectures.Add(_architectureNames[i]);
+                    currentSelectedArchitectures.Add(_architectureNames[i]);
             }
             
-            if (selectedArchitectures.Count > 0)
+            bool filterChanged = !_filterCacheValid ||
+                !_lastSelectedArchitectures.SequenceEqual(currentSelectedArchitectures) ||
+                _lastUseStateFilter != _useStateFilter ||
+                (_useStateFilter && _lastSelectedStateFilter != _selectedStateFilter);
+            
+            if (!filterChanged && _cachedFilteredServices != null)
             {
-                var allArchitectures = ServiceInspector.GetAllArchitectureInstances();
-                var archToNamespace = new Dictionary<string, string>();
+                return _cachedFilteredServices;
+            }
+            
+            // 重新计算过滤结果
+            if (_services == null || _services.Count == 0)
+            {
+                _cachedFilteredServices = new List<ServiceDescriptor>();
+            }
+            else
+            {
+                var filtered = _services.ToList();
                 
-                // 建立架构名称到其所在命名空间的映射
-                foreach (var arch in allArchitectures)
+                // 架构筛选，基于架构名称而不是命名空间
+                if (currentSelectedArchitectures.Count > 0)
                 {
-                    var archName = arch.GetType().Name;
-                    var archNamespace = arch.GetType().Namespace;
-                    if (!archToNamespace.ContainsKey(archName))
+                    // 使用缓存的架构映射，避免每次都进行反射
+                    if (!_archCacheValid || _cachedArchToNamespace == null)
                     {
-                        archToNamespace[archName] = archNamespace;
+                        var allArchitectures = ServiceInspector.GetAllArchitectureInstances();
+                        _cachedArchToNamespace = new Dictionary<string, string>();
+                        
+                        // 建立架构名称到其所在命名空间的映射
+                        foreach (var arch in allArchitectures)
+                        {
+                            var archName = arch.GetType().Name;
+                            var archNamespace = arch.GetType().Namespace;
+                            if (!_cachedArchToNamespace.ContainsKey(archName))
+                            {
+                                _cachedArchToNamespace[archName] = archNamespace;
+                            }
+                        }
+                        
+                        _archCacheValid = true;
                     }
+                    
+                    filtered = filtered.Where(s =>
+                    {
+                        var serviceNamespace = s.ServiceType.Namespace;
+                        return currentSelectedArchitectures.Any(arch => 
+                            _cachedArchToNamespace.ContainsKey(arch) && 
+                            serviceNamespace?.StartsWith(_cachedArchToNamespace[arch]) == true
+                        );
+                    }).ToList();
                 }
                 
-                filtered = filtered.Where(s =>
+                // 状态筛选
+                if (_useStateFilter)
                 {
-                    var serviceNamespace = s.ServiceType.Namespace;
-                    return selectedArchitectures.Any(arch => 
-                        archToNamespace.ContainsKey(arch) && 
-                        serviceNamespace?.StartsWith(archToNamespace[arch]) == true
-                    );
-                }).ToList();
+                    filtered = filtered.Where(s => s.State == _selectedStateFilter).ToList();
+                }
+                
+                _cachedFilteredServices = filtered;
             }
             
-            // 状态筛选
-            if (_useStateFilter)
-            {
-                filtered = filtered.Where(s => s.State == _selectedStateFilter).ToList();
-            }
+            // 更新缓存状态
+            _lastSelectedArchitectures = currentSelectedArchitectures.ToList();
+            _lastUseStateFilter = _useStateFilter;
+            _lastSelectedStateFilter = _selectedStateFilter;
+            _filterCacheValid = true;
             
-            return filtered;
+            return _cachedFilteredServices;
         }
         
         private void RefreshArchitectureList()
         {
+            // 保存当前的筛选状态
+            var previousFilters = new Dictionary<string, bool>();
+            for (int i = 0; i < _architectureNames.Count; i++)
+            {
+                previousFilters[_architectureNames[i]] = _architectureFilters[i];
+            }
+            
             _architectureNames.Clear();
             _architectureFilters.Clear();
             
@@ -220,7 +290,8 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             foreach (var arch in architectureNames)
             {
                 _architectureNames.Add(arch);
-                _architectureFilters.Add(true);
+                // 恢复之前的筛选状态，如果架构不存在则默认为true（全选）
+                _architectureFilters.Add(previousFilters.ContainsKey(arch) ? previousFilters[arch] : true);
             }
         }
 
@@ -337,9 +408,74 @@ namespace EasyPack.ENekoFramework.Editor.Windows
 
         private void RefreshServices()
         {
-            _services = ServiceInspector.GetAllServices();
-            RefreshArchitectureList();
+            RefreshServicesAsync();
+        }
+
+        private void RefreshServicesAsync()
+        {
+            if (_isRefreshing) return; // 防止并发刷新
+            
+            _isRefreshing = true;
+            _refreshStartTime = EditorApplication.timeSinceStartup;
             _lastRefreshTime = EditorApplication.timeSinceStartup;
+            
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    var newServices = RefreshServicesInternal();
+                    
+                    EditorApplication.delayCall += () =>
+                    {
+                        if (_isRefreshing && EditorApplication.timeSinceStartup - _refreshStartTime < 10.0)
+                        {
+                            _services = newServices;
+                            RefreshArchitectureList();
+                            
+                            // 清除所有缓存
+                            _filterCacheValid = false;
+                            _cachedFilteredServices = null;
+                            _archCacheValid = false;
+                            _cachedArchToNamespace = null;
+                            
+                            // 如果当前选择的服务不在新列表中，清除选择
+                            if (_selectedService != null && 
+                                !_services.Any(s => s.ServiceType == _selectedService.ServiceType))
+                            {
+                                _selectedService = null;
+                            }
+                        }
+                        
+                        _isRefreshing = false;
+                        Repaint();
+                    };
+                }
+                catch (Exception ex)
+                {
+                    // 异常处理：确保UI状态正确重置
+                    UnityEngine.Debug.LogError($"ServiceOverviewWindow: 刷新服务列表时发生异常 - {ex.Message}\n{ex.StackTrace}");
+                    
+                    EditorApplication.delayCall += () =>
+                    {
+                        _services = new List<ServiceDescriptor>(); // 清空数据
+                        _selectedService = null;
+                        
+                        // 清除所有缓存
+                        _filterCacheValid = false;
+                        _cachedFilteredServices = null;
+                        _archCacheValid = false;
+                        _cachedArchToNamespace = null;
+                        
+                        _isRefreshing = false;
+                        Repaint();
+                    };
+                }
+            });
+        }
+
+        private List<ServiceDescriptor> RefreshServicesInternal()
+        {
+            return ServiceInspector.GetAllServices();
         }
 
         private Color GetStateColor(ServiceLifecycleState state)

@@ -17,7 +17,20 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         private CommandDescriptor _selectedCommand;
         private bool _autoRefresh = true;
         private double _lastRefreshTime;
-        private const double RefreshInterval = 0.5; // 每0.5秒刷新一次
+        private bool _isRefreshing = false;
+        private double _refreshStartTime;
+        private const double RefreshInterval = 0.5;
+        
+        // 筛选缓存
+        private List<CommandDescriptor> _cachedFilteredHistory;
+        private List<string> _lastSelectedArchitectures = new List<string>();
+        private CommandStatus _lastSelectedStatusFilter = CommandStatus.Succeeded;
+        private bool _lastUseStatusFilter = false;
+        private bool _filterCacheValid = false;
+        
+        // 架构缓存
+        private Dictionary<string, string> _cachedArchToNamespace;
+        private bool _archCacheValid = false; 
         
         // 筛选器
         private List<string> _architectureNames = new List<string>();
@@ -51,10 +64,22 @@ namespace EasyPack.ENekoFramework.Editor.Windows
 
         private void Update()
         {
-            if (_autoRefresh && EditorApplication.timeSinceStartup - _lastRefreshTime > RefreshInterval)
+            if (_isRefreshing && EditorApplication.timeSinceStartup - _refreshStartTime > 10.0)
             {
-                RefreshHistory();
+                Debug.LogWarning("CommandHistoryWindow: 刷新操作超时，强制重置状态");
+                _isRefreshing = false;
+                _commandHistory = new List<CommandDescriptor>();
+                _selectedCommand = null;
                 Repaint();
+            }
+
+            if (_autoRefresh && !_isRefreshing && EditorApplication.timeSinceStartup - _lastRefreshTime > RefreshInterval)
+            {
+                EditorApplication.delayCall += () =>
+                {
+                    RefreshHistoryAsync();
+                };
+                _lastRefreshTime = EditorApplication.timeSinceStartup;
             }
         }
 
@@ -115,6 +140,15 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             {
                 RefreshHistory();
             }
+
+            if (_isRefreshing)
+            {
+                GUILayout.Label("Refreshing...", EditorStyles.toolbarButton, GUILayout.Width(80));
+            }
+            else
+            {
+                GUILayout.Space(80);
+            }
             
             if (GUILayout.Button("清空", EditorStyles.toolbarButton, GUILayout.Width(60)))
             {
@@ -158,7 +192,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             
             if (filteredHistory != null && filteredHistory.Count > 0)
             {
-                // 倒序显示（最新的在上面）
+                // 倒序显示
                 for (int i = filteredHistory.Count - 1; i >= 0; i--)
                 {
                     DrawCommandItem(filteredHistory[i]);
@@ -175,56 +209,93 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         
         private List<CommandDescriptor> GetFilteredCommandHistory()
         {
-            if (_commandHistory == null || _commandHistory.Count == 0)
-                return new List<CommandDescriptor>();
-            
-            var filtered = _commandHistory.ToList();
-            
-            // 架构筛选 - 基于架构名称而不是命名空间
-            var selectedArchitectures = new List<string>();
+            // 检查筛选条件是否改变
+            var currentSelectedArchitectures = new List<string>();
             for (int i = 0; i < _architectureNames.Count; i++)
             {
                 if (_architectureFilters[i])
-                    selectedArchitectures.Add(_architectureNames[i]);
+                    currentSelectedArchitectures.Add(_architectureNames[i]);
             }
             
-            if (selectedArchitectures.Count > 0)
+            bool filterChanged = !_filterCacheValid ||
+                !_lastSelectedArchitectures.SequenceEqual(currentSelectedArchitectures) ||
+                _lastUseStatusFilter != _useStatusFilter ||
+                (_useStatusFilter && _lastSelectedStatusFilter != _selectedStatusFilter);
+            
+            if (!filterChanged && _cachedFilteredHistory != null)
             {
-                var allArchitectures = ServiceInspector.GetAllArchitectureInstances();
-                var archToNamespace = new Dictionary<string, string>();
+                return _cachedFilteredHistory;
+            }
+            
+            // 重新计算过滤结果
+            if (_commandHistory == null || _commandHistory.Count == 0)
+            {
+                _cachedFilteredHistory = new List<CommandDescriptor>();
+            }
+            else
+            {
+                var filtered = _commandHistory.ToList();
                 
-                // 建立架构名称到其所在命名空间的映射
-                foreach (var arch in allArchitectures)
+                // 架构筛选，基于架构名称而不是命名空间
+                if (currentSelectedArchitectures.Count > 0)
                 {
-                    var archName = arch.GetType().Name;
-                    var archNamespace = arch.GetType().Namespace;
-                    if (!archToNamespace.ContainsKey(archName))
+                    // 使用缓存的架构映射，避免每次都进行反射
+                    if (!_archCacheValid || _cachedArchToNamespace == null)
                     {
-                        archToNamespace[archName] = archNamespace;
+                        var allArchitectures = ServiceInspector.GetAllArchitectureInstances();
+                        _cachedArchToNamespace = new Dictionary<string, string>();
+                        
+                        // 建立架构名称到其所在命名空间的映射
+                        foreach (var arch in allArchitectures)
+                        {
+                            var archName = arch.GetType().Name;
+                            var archNamespace = arch.GetType().Namespace;
+                            if (!_cachedArchToNamespace.ContainsKey(archName))
+                            {
+                                _cachedArchToNamespace[archName] = archNamespace;
+                            }
+                        }
+                        
+                        _archCacheValid = true;
                     }
+                    
+                    filtered = filtered.Where(c =>
+                    {
+                        var commandNamespace = c.CommandType.Namespace;
+                        return currentSelectedArchitectures.Any(arch => 
+                            _cachedArchToNamespace.ContainsKey(arch) && 
+                            commandNamespace?.StartsWith(_cachedArchToNamespace[arch]) == true
+                        );
+                    }).ToList();
                 }
                 
-                filtered = filtered.Where(c =>
+                // 状态筛选
+                if (_useStatusFilter)
                 {
-                    var commandNamespace = c.CommandType.Namespace;
-                    return selectedArchitectures.Any(arch => 
-                        archToNamespace.ContainsKey(arch) && 
-                        commandNamespace?.StartsWith(archToNamespace[arch]) == true
-                    );
-                }).ToList();
+                    filtered = filtered.Where(c => c.Status == _selectedStatusFilter).ToList();
+                }
+                
+                _cachedFilteredHistory = filtered;
             }
             
-            // 状态筛选
-            if (_useStatusFilter)
-            {
-                filtered = filtered.Where(c => c.Status == _selectedStatusFilter).ToList();
-            }
+            // 更新缓存状态
+            _lastSelectedArchitectures = currentSelectedArchitectures.ToList();
+            _lastUseStatusFilter = _useStatusFilter;
+            _lastSelectedStatusFilter = _selectedStatusFilter;
+            _filterCacheValid = true;
             
-            return filtered;
+            return _cachedFilteredHistory;
         }
         
         private void RefreshArchitectureList()
         {
+            // 保存当前的筛选状态
+            var previousFilters = new Dictionary<string, bool>();
+            for (int i = 0; i < _architectureNames.Count; i++)
+            {
+                previousFilters[_architectureNames[i]] = _architectureFilters[i];
+            }
+            
             _architectureNames.Clear();
             _architectureFilters.Clear();
             
@@ -232,7 +303,8 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             foreach (var arch in architectureNames)
             {
                 _architectureNames.Add(arch);
-                _architectureFilters.Add(true);
+                // 恢复之前的筛选状态，如果架构不存在则默认为true（全选）
+                _architectureFilters.Add(previousFilters.ContainsKey(arch) ? previousFilters[arch] : true);
             }
         }
 
@@ -425,40 +497,97 @@ namespace EasyPack.ENekoFramework.Editor.Windows
 
         private void RefreshHistory()
         {
-            try
+            RefreshHistoryAsync();
+        }
+
+        private void RefreshHistoryAsync()
+        {
+            if (_isRefreshing) return; // 防止并发刷新
+            
+            _isRefreshing = true;
+            _refreshStartTime = EditorApplication.timeSinceStartup;
+            _lastRefreshTime = EditorApplication.timeSinceStartup;
+            
+            System.Threading.Tasks.Task.Run(() =>
             {
-                // 获取所有架构实例的命令历史
-                var allHistories = new List<CommandDescriptor>();
-                
-                var architectures = ServiceInspector.GetAllArchitectureInstances();
-                foreach (var arch in architectures)
+                try
                 {
-                    var dispatcherProp = arch.GetType().GetProperty("CommandDispatcher",
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+                    var newHistory = RefreshHistoryInternal();
                     
-                    if (dispatcherProp != null)
+                    EditorApplication.delayCall += () =>
                     {
-                        var dispatcher = dispatcherProp.GetValue(arch) as CommandDispatcher;
-                        if (dispatcher != null)
+                        if (_isRefreshing && EditorApplication.timeSinceStartup - _refreshStartTime < 10.0)
                         {
-                            var history = dispatcher.GetCommandHistory();
-                            if (history != null)
+                            _commandHistory = newHistory;
+                            RefreshArchitectureList();
+                            
+                            // 清除所有缓存
+                            _filterCacheValid = false;
+                            _cachedFilteredHistory = null;
+                            _archCacheValid = false;
+                            _cachedArchToNamespace = null;
+                            
+                            // 如果当前选择的命令不在新列表中，清除选择
+                            if (_selectedCommand != null && 
+                                !_commandHistory.Any(c => c.ExecutionId == _selectedCommand.ExecutionId))
                             {
-                                allHistories.AddRange(history);
+                                _selectedCommand = null;
                             }
+                        }
+                        
+                        _isRefreshing = false;
+                        Repaint();
+                    };
+                }
+                catch (Exception ex)
+                {
+                    // 异常处理：确保UI状态正确重置
+                    UnityEngine.Debug.LogError($"CommandHistoryWindow: 刷新命令历史时发生异常 - {ex.Message}\n{ex.StackTrace}");
+                    
+                    EditorApplication.delayCall += () =>
+                    {
+                        _commandHistory = new List<CommandDescriptor>(); // 清空数据
+                        _selectedCommand = null;
+                        
+                        // 清除所有缓存
+                        _filterCacheValid = false;
+                        _cachedFilteredHistory = null;
+                        _archCacheValid = false;
+                        _cachedArchToNamespace = null;
+                        
+                        _isRefreshing = false;
+                        Repaint();
+                    };
+                }
+            });
+        }
+
+        private List<CommandDescriptor> RefreshHistoryInternal()
+        {
+            // 获取所有架构实例的命令历史
+            var allHistories = new List<CommandDescriptor>();
+            
+            var architectures = ServiceInspector.GetAllArchitectureInstances();
+            foreach (var arch in architectures)
+            {
+                var dispatcherProp = arch.GetType().GetProperty("CommandDispatcher",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+                
+                if (dispatcherProp != null)
+                {
+                    var dispatcher = dispatcherProp.GetValue(arch) as CommandDispatcher;
+                    if (dispatcher != null)
+                    {
+                        var history = dispatcher.GetCommandHistory();
+                        if (history != null)
+                        {
+                            allHistories.AddRange(history);
                         }
                     }
                 }
-                
-                _commandHistory = allHistories.OrderBy(c => c.StartedAt).ToList();
-                RefreshArchitectureList();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"CommandHistoryWindow: 刷新失败 - {ex.Message}");
             }
             
-            _lastRefreshTime = EditorApplication.timeSinceStartup;
+            return allHistories.OrderBy(c => c.StartedAt).ToList();
         }
 
         private void ClearHistory()

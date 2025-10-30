@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEngine;
 using EasyPack.ENekoFramework.Editor.Windows;
 using System.Linq;
 
@@ -126,9 +127,9 @@ namespace EasyPack.ENekoFramework.Editor
         [MenuItem(DebugMenu + "初始化 EasyPackArchitecture")]
         public static void InitializeEasyPackArchitecture()
         {
-            var instance = EasyPack.EasyPackArchitecture.Instance;
-            UnityEngine.Debug.Log($"[Debug] EasyPackArchitecture 已初始化: {instance.GetType().Name}");
-            UnityEngine.Debug.Log($"[Debug] 初始化状态: {instance.IsInitialized}");
+            var instance = EasyPackArchitecture.Instance;
+            Debug.Log($"[Debug] EasyPackArchitecture 已初始化: {instance.GetType().Name}，状态：{instance.IsInitialized}");
+
             
             var containerProp = instance.GetType().GetProperty("Container",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -138,7 +139,7 @@ namespace EasyPack.ENekoFramework.Editor
                 if (container != null)
                 {
                     var services = container.GetAllServices();
-                    UnityEngine.Debug.Log($"[Debug] 已注册服务数量: {services.Count()}");
+                    Debug.Log($"[Debug] EasyPackArchitecture 已注册服务数量: {services.Count()}");
                 }
             }
         }
@@ -158,22 +159,22 @@ namespace EasyPack.ENekoFramework.Editor
                 var instance = instanceField.GetValue(null);
                 if (instance != null)
                 {
-                    UnityEngine.Debug.Log($"[Debug] EasyPackArchitecture 已存在实例");
+                    Debug.Log($"[Debug] EasyPackArchitecture 已存在实例");
                     var isInitProp = instance.GetType().GetProperty("IsInitialized");
                     if (isInitProp != null)
                     {
                         var isInit = (bool)isInitProp.GetValue(instance);
-                        UnityEngine.Debug.Log($"[Debug] 初始化状态: {isInit}");
+                        Debug.Log($"[Debug] EasyPackArchitecture 初始化状态: {isInit}");
                     }
                 }
                 else
                 {
-                    UnityEngine.Debug.Log($"[Debug] EasyPackArchitecture 尚未创建实例");
+                    Debug.Log($"[Debug] EasyPackArchitecture 尚未创建实例");
                 }
             }
             else
             {
-                UnityEngine.Debug.LogWarning($"[Debug] 无法访问 _instance 字段");
+                Debug.LogWarning($"[Debug] 无法访问 _instance 字段");
             }
         }
         
@@ -183,7 +184,7 @@ namespace EasyPack.ENekoFramework.Editor
         [MenuItem(DebugMenu + "清除所有架构实例")]
         public static void ClearAllArchitectureInstances()
         {
-            if (UnityEditor.EditorUtility.DisplayDialog(
+            if (EditorUtility.DisplayDialog(
                 "警告", 
                 "此操作将清除所有架构实例，可能导致运行时错误。是否继续？", 
                 "确定", 
@@ -203,8 +204,8 @@ namespace EasyPack.ENekoFramework.Editor
                         instanceField.SetValue(null, null);
                     }
                 }
-                
-                UnityEngine.Debug.Log($"[Debug] 已清除 {count} 个架构实例");
+
+                Debug.Log($"[Debug] 已清除 {count} 个架构实例");
             }
         }
         
