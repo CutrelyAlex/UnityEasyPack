@@ -79,12 +79,6 @@ namespace EasyPack.ENekoFramework
                 return;
             }
             
-            if (string.IsNullOrEmpty(eventName))
-            {
-                Debug.LogWarning("[EventBridge] 尝试转发空事件名称");
-                return;
-            }
-            
             List<Delegate> listeners;
             
             lock (_lock)

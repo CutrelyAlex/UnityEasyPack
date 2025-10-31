@@ -149,7 +149,12 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public List<GameProperty> Properties { get; set; } = new List<GameProperty>();
         public GameProperty GetProperty(string id) => Properties?.FirstOrDefault(p => p.ID == id);
-        public GameProperty GetProperty(int index=0) => Properties[index];
+        public GameProperty GetProperty(int index=0)
+        {
+            if(index<0 || index >= Properties.Count) return null;
+            return Properties[index];
+        }
+
         #endregion
 
         #region 标签和持有关系
