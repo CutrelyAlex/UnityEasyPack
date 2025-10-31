@@ -1,7 +1,7 @@
 # GameProperty System - API Reference
 
-**适用EasyPack版本：** EasyPack v1.5.30
-**最后更新：** 2025-10-26
+**适用EasyPack版本：** EasyPack v1.6.0 
+**最后更新：** 2025-10-31
 
 ---
 
@@ -524,9 +524,11 @@ prop.MakeDirty(); // 不会输出任何内容
 
 #### 事件
 
+GameProperty 提供三种事件用于不同场景的监听需求。
+
 ##### `OnValueChanged`
 
-当属性值发生变化时触发。
+当属性最终值发生变化时触发（应用修饰符后的值）。仅在 `GetValue()` 计算后值实际变化时触发。
 
 ```csharp
 public event Action<float, float> OnValueChanged;
@@ -535,6 +537,11 @@ public event Action<float, float> OnValueChanged;
 **参数说明：**
 - 第一个参数：`float` - 旧值
 - 第二个参数：`float` - 新值
+
+**触发时机：**
+- `SetBaseValue()` 修改基础值后会立即调用 `GetValue()` 触发
+- `AddModifier()` / `RemoveModifier()` 后需要手动调用 `GetValue()` 或使用 `NotifyIfChanged()` 触发
+- 值未实际变化时不会触发（通过 EPSILON 阈值比较）
 
 **使用示例：**
 
@@ -547,7 +554,161 @@ health.OnValueChanged += (oldVal, newVal) =>
 
 health.SetBaseValue(150f);
 // 输出：生命值变化: 100 -> 150
+
+health.AddModifier(new FloatModifier(ModifierType.Add, 0, 50f));
+// 不会立即触发事件
+
+health.GetValue(); // 或使用 health.NotifyIfChanged();
+// 输出：生命值变化: 150 -> 200
 ```
+
+---
+
+##### `OnBaseValueChanged`
+
+当属性基础值发生变化时触发（仅 `SetBaseValue` 触发）。用于需要区分基础值变化和修饰符导致的值变化的场景。
+
+```csharp
+public event Action<float, float> OnBaseValueChanged;
+```
+
+**参数说明：**
+- 第一个参数：`float` - 旧基础值
+- 第二个参数：`float` - 新基础值
+
+**触发时机：**
+- 仅在 `SetBaseValue()` 调用时触发
+- `AddModifier()` / `RemoveModifier()` 不会触发此事件
+
+**适用场景：**
+- 存档系统（只保存基础值）
+- 角色升级系统
+- 需要区分"永久属性"和"临时加成"的场景
+
+**使用示例：**
+
+```csharp
+var attack = new GameProperty("attack", 50f);
+
+// 监听基础值变化（用于存档）
+attack.OnBaseValueChanged += (oldVal, newVal) =>
+{
+    Debug.Log($"[存档] 基础攻击力: {oldVal} -> {newVal}");
+    SaveToFile(newVal);
+};
+
+// 监听最终值变化（用于战斗显示）
+attack.OnValueChanged += (oldVal, newVal) =>
+{
+    Debug.Log($"[战斗] 最终攻击力: {oldVal} -> {newVal}");
+};
+
+attack.SetBaseValue(70f);
+// 输出：
+// [存档] 基础攻击力: 50 -> 70
+// [战斗] 最终攻击力: 50 -> 70
+
+attack.AddModifier(new FloatModifier(ModifierType.Add, 0, 30f));
+// OnBaseValueChanged 不会触发
+// OnValueChanged 需要调用 GetValue() 才会触发
+```
+
+---
+
+##### `OnDirtyAndValueChanged()`
+
+注册一个回调，在属性被标记为脏时立即计算并检查值是否变化。这是 `OnDirty` 和 `OnValueChanged` 的组合语法糖。
+
+```csharp
+public void OnDirtyAndValueChanged(Action<float, float> callback)
+```
+
+**参数说明：**
+- `callback`：回调函数，参数为 `(旧值, 新值)`
+
+**触发时机：**
+- 任何导致脏标记的操作（`SetBaseValue`, `AddModifier`, `RemoveModifier` 等）
+- 自动调用 `GetValue()` 计算新值
+- 仅在值实际变化时调用回调
+
+**适用场景：**
+- UI 实时更新（修饰符变化时立即响应）
+- 需要在任何属性变化时立即执行逻辑的场景
+
+**性能说明：**
+- 会在每次脏标记时自动调用 `GetValue()`，适合需要立即响应的场景
+- 如果不需要立即响应，建议使用 `OnValueChanged` 并手动控制计算时机
+
+**使用示例：**
+
+```csharp
+var health = new GameProperty("health", 100f);
+
+// UI监听：任何变化都立即更新UI
+health.OnDirtyAndValueChanged((oldVal, newVal) =>
+{
+    Debug.Log($"[UI更新] 生命值: {oldVal} -> {newVal}");
+    UpdateHealthBar(newVal);
+});
+
+health.SetBaseValue(120f);
+// 立即输出：[UI更新] 生命值: 100 -> 120
+
+health.AddModifier(new FloatModifier(ModifierType.Add, 0, 30f));
+// 立即输出：[UI更新] 生命值: 120 -> 150
+// 无需手动调用 GetValue()
+```
+
+---
+
+##### `NotifyIfChanged()`
+
+手动触发值计算和通知。用于批量操作修饰符后，手动触发一次计算和通知，避免多次重复计算。
+
+```csharp
+public IModifiableProperty<float> NotifyIfChanged()
+```
+
+**返回值：**
+- `IModifiableProperty<float>` - 返回当前实例，支持链式调用
+
+**触发行为：**
+- 调用 `GetValue()` 计算新值
+- 如果值发生变化，触发 `OnValueChanged` 事件
+
+**适用场景：**
+- 批量添加/移除修饰符后手动触发一次通知
+- 优化性能，避免每次 `AddModifier` 都计算
+
+**使用示例：**
+
+```csharp
+var attack = new GameProperty("attack", 100f);
+
+attack.OnValueChanged += (oldVal, newVal) =>
+{
+    Debug.Log($"攻击力变化: {oldVal} -> {newVal}");
+};
+
+// 批量操作：添加多个修饰符但不立即计算
+attack.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));
+attack.AddModifier(new FloatModifier(ModifierType.Add, 0, 30f));
+attack.AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.5f));
+
+// 手动触发一次计算和通知
+attack.NotifyIfChanged();
+// 输出：攻击力变化: 100 -> 225
+// 性能优势：3次 AddModifier 只计算1次
+```
+
+**事件对比总结：**
+
+| 事件/方法 | 触发时机 | 自动计算 | 适用场景 |
+|----------|---------|---------|---------|
+| `OnBaseValueChanged` | `SetBaseValue` 调用时 | ❌ | 存档系统、基础属性升级 |
+| `OnValueChanged` | `GetValue` 计算后值变化时 | ❌ | 战斗计算、延迟更新 |
+| `OnDirtyAndValueChanged` | 属性脏标记时 | ✅ | UI实时更新、立即响应 |
+| `NotifyIfChanged` | 手动调用 | ✅ | 批量操作优化 |
 
 ---
 

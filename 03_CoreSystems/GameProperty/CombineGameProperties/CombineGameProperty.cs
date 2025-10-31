@@ -120,7 +120,7 @@ namespace EasyPack.GamePropertySystem
 
             // 更新 ResultHolder 的基础值
             var currentBaseValue = ResultHolder.GetBaseValue();
-            if (System.Math.Abs(currentBaseValue - calculatedValue) > 0.0001f)
+            if (Math.Abs(currentBaseValue - calculatedValue) > 0.0001f)
             {
                 ResultHolder.SetBaseValue(calculatedValue);
             }

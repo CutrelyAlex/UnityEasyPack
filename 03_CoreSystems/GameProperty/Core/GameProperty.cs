@@ -82,7 +82,7 @@ namespace EasyPack.GamePropertySystem
             if (!(_hasNonClampRangeModifier || DependencyManager.HasRandomDependency))
                 _isDirty = false;
 
-            if (System.Math.Abs(oldValue - _cacheValue) > EPSILON)
+            if (Math.Abs(oldValue - _cacheValue) > EPSILON)
             {
                 OnValueChanged?.Invoke(oldValue, _cacheValue);
 
@@ -103,10 +103,15 @@ namespace EasyPack.GamePropertySystem
         /// <param name="value">新的基础值</param>
         public IModifiableProperty<float> SetBaseValue(float value)
         {
-            if (System.Math.Abs(_baseValue - value) > EPSILON)
+            if (Math.Abs(_baseValue - value) > EPSILON)
             {
+                var oldBaseValue = _baseValue;
                 _baseValue = value;
                 MakeDirty();
+                
+                // 触发基础值变化事件
+                OnBaseValueChanged?.Invoke(oldBaseValue, _baseValue);
+                
                 // 立即计算以确保事件和依赖更新正确触发
                 GetValue();
             }
@@ -117,9 +122,16 @@ namespace EasyPack.GamePropertySystem
         #region 依赖系统       
 
         /// <summary>
-        /// 属性值改变时的事件
+        /// 属性最终值改变时的事件（应用修饰符后的值变化）
+        /// 仅在GetValue()计算后值实际变化时触发
         /// </summary>
         public event Action<float, float> OnValueChanged;
+
+        /// <summary>
+        /// 属性基础值改变时的事件（仅SetBaseValue触发）
+        /// 用于需要区分基础值变化和修饰符导致的值变化的场景
+        /// </summary>
+        public event Action<float, float> OnBaseValueChanged;
 
         /// <summary>
         /// 添加一个依赖项，当dependency的值改变时，会调用calculator来计算新值
@@ -146,6 +158,35 @@ namespace EasyPack.GamePropertySystem
         public IModifiableProperty<float> RemoveDependency(GameProperty dependency)
         {
             DependencyManager.RemoveDependency(dependency);
+            return this;
+        }
+
+        /// <summary>
+        /// 注册一个回调，在属性被标记为脏时立即计算并检查值是否变化
+        /// 这是OnDirty和OnValueChanged的组合，适用于需要在修饰符变化时立即响应的场景（如UI更新）
+        /// </summary>
+        /// <param name="callback">回调函数，参数为(旧值, 新值)</param>
+        public void OnDirtyAndValueChanged(Action<float, float> callback)
+        {
+            OnDirty(() =>
+            {
+                var oldValue = _cacheValue;
+                var newValue = GetValue();
+                if (Math.Abs(oldValue - newValue) > EPSILON)
+                {
+                    callback(oldValue, newValue);
+                }
+            });
+        }
+
+        /// <summary>
+        /// 手动触发值计算和通知
+        /// 用于批量操作修饰符后，手动触发一次计算和通知，避免多次重复计算
+        /// </summary>
+        /// <returns>返回当前实例以支持链式调用</returns>
+        public IModifiableProperty<float> NotifyIfChanged()
+        {
+            GetValue();
             return this;
         }
 

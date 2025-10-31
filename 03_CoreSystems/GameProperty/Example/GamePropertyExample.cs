@@ -52,10 +52,22 @@ namespace EasyPack.GamePropertySystem
             // 1.3 监听属性变化
             health.OnValueChanged += (oldValue, newValue) =>
             {
-                Debug.Log($"生命值变化: {oldValue} -> {newValue}");
+                Debug.Log($"最终值变化: {oldValue} -> {newValue}");
+            };
+
+            // 1.4 监听基础值变化（仅SetBaseValue触发）
+            health.OnBaseValueChanged += (oldValue, newValue) =>
+            {
+                Debug.Log($"基础值变化: {oldValue} -> {newValue}");
             };
 
             health.SetBaseValue(200f);
+            
+            // 1.5 添加修饰符不会触发OnBaseValueChanged，只会触发OnValueChanged
+            Debug.Log("添加修饰符（注意：只触发最终值变化，不触发基础值变化）");
+            health.AddModifier(new FloatModifier(ModifierType.Add, 0, 50f));
+            health.GetValue(); // 触发计算
+            
             Debug.Log("基础 GameProperty 示例完成\n");
         }
 
@@ -100,6 +112,35 @@ namespace EasyPack.GamePropertySystem
 
             attack.RemoveModifiers(tempBuffs);
             Debug.Log($"Buff结束后: {attack.GetValue()}");
+
+            // 2.6 使用OnDirtyAndValueChanged实现UI自动更新
+            Debug.Log("\n=== 演示：OnDirtyAndValueChanged用于UI自动更新 ===");
+            var playerAttack = new GameProperty("PlayerAttack", 50f);
+            
+            // 模拟UI监听：当属性脏时立即获取新值并更新UI
+            playerAttack.OnDirtyAndValueChanged((oldVal, newVal) =>
+            {
+                Debug.Log($"[UI更新] 攻击力从 {oldVal} 更新到 {newVal}");
+            });
+            
+            // 添加修饰符会立即触发UI更新
+            playerAttack.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));
+            playerAttack.AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.5f));
+
+            // 2.7 使用NotifyIfChanged批量操作后手动通知
+            Debug.Log("\n=== 演示：NotifyIfChanged用于批量操作优化 ===");
+            var batchAttack = new GameProperty("BatchAttack", 100f);
+            
+            batchAttack.OnValueChanged += (old, newVal) =>
+            {
+                Debug.Log($"[批量操作完成] 攻击力最终值: {newVal}");
+            };
+            
+            // 批量添加修饰符（不立即触发通知）
+            batchAttack.AddModifier(new FloatModifier(ModifierType.Add, 0, 30f));
+            batchAttack.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));
+            batchAttack.AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.2f));
+            batchAttack.NotifyIfChanged(); // 仅计算一次并触发通知
 
             Debug.Log("修饰器系统示例完成\n");
         }

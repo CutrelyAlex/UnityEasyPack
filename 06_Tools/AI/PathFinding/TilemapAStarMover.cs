@@ -927,9 +927,9 @@ namespace EasyPack
         {
             if (!enableMovementJitter || jitterStrength <= 0f) return Vector3.zero;
             Vector3 randomOffset = new Vector3(
-                UnityEngine.Random.Range(-1f, 1f),
-                UnityEngine.Random.Range(-1f, 1f),
-                0f).normalized * (jitterStrength * UnityEngine.Random.Range(0.5f, 1f));
+                Random.Range(-1f, 1f),
+                Random.Range(-1f, 1f),
+                0f).normalized * (jitterStrength * Random.Range(0.5f, 1f));
 
             if (preventJitterIntoNull && allTilemaps.Count > 0)
             {

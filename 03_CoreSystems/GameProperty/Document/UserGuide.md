@@ -1,7 +1,7 @@
 # GameProperty System - User Guide
 
-**适用EasyPack版本：** EasyPack v1.5.30
-**最后更新：** 2025-10-26
+**适用EasyPack版本：** EasyPack v1.6.0
+**最后更新：** 2025-10-31
 
 ---
 
@@ -33,6 +33,12 @@
 - [概述](#概述)
 - [快速开始](#快速开始)
 - [常见场景](#常见场景)
+  - [场景 1：基础属性计算](#场景-1基础属性计算)
+  - [场景 2：属性依赖关系](#场景-2属性依赖关系)
+  - [场景 3：期望伤害计算](#场景-3期望伤害计算)
+  - [场景 4：使用属性管理器统一管理](#场景-4使用属性管理器统一管理)
+  - [场景 5：序列化与存档](#场景-5序列化与存档)
+  - [场景 6：事件系统与UI自动更新](#场景-6事件系统与ui自动更新)
 - [进阶用法](#进阶用法)
 - [故障排查](#故障排查)
 - [术语表](#术语表)
@@ -393,6 +399,97 @@ public class SerializationExample : MonoBehaviour
 - 序列化仅保存属性数据和修饰符，不保存依赖关系
 - 如需保存依赖关系，需在反序列化后手动重建
 - 确保在序列化前调用 `GamePropertySerializationInitializer.ManualInitialize()`
+
+---
+
+### 场景 6：事件系统与UI自动更新
+
+GameProperty 提供三种事件用于不同场景的监听需求：
+
+```csharp
+using EasyPack.GamePropertySystem;
+using EasyPack;
+using UnityEngine;
+
+public class EventSystemExample : MonoBehaviour
+{
+    void Start()
+    {
+        // 创建角色攻击力属性
+        var attack = new GameProperty("attack", 50f);
+
+        // 1. OnBaseValueChanged：仅监听基础值变化（SetBaseValue触发）
+        //    适用场景：存档系统、升级系统
+        attack.OnBaseValueChanged += (oldVal, newVal) =>
+        {
+            Debug.Log($"[存档系统] 基础攻击力变化: {oldVal} -> {newVal}");
+            // SaveToFile(newVal); // 保存基础值
+        };
+
+        // 2. OnValueChanged：监听最终值变化（GetValue计算后值实际变化时触发）
+        //    适用场景：伤害计算、战斗显示
+        attack.OnValueChanged += (oldVal, newVal) =>
+        {
+            Debug.Log($"[战斗系统] 最终攻击力变化: {oldVal} -> {newVal}");
+        };
+
+        // 3. OnDirtyAndValueChanged：监听脏标记并立即获取新值
+        //    适用场景：UI实时更新（修饰符变化时立即响应）
+        attack.OnDirtyAndValueChanged((oldVal, newVal) =>
+        {
+            Debug.Log($"[UI系统] 攻击力UI更新: {oldVal} -> {newVal}");
+            // UpdateAttackUI(newVal); // 更新UI显示
+        });
+
+        // 测试1：修改基础值（触发所有三种事件）
+        Debug.Log("\n=== 测试：升级角色（SetBaseValue） ===");
+        attack.SetBaseValue(70f);
+        // 输出：
+        // [存档系统] 基础攻击力变化: 50 -> 70
+        // [UI系统] 攻击力UI更新: 50 -> 70
+        // [战斗系统] 最终攻击力变化: 50 -> 70
+
+        // 测试2：添加修饰符（仅触发OnDirtyAndValueChanged和OnValueChanged）
+        Debug.Log("\n=== 测试：装备武器（AddModifier） ===");
+        attack.AddModifier(new FloatModifier(ModifierType.Add, 0, 30f));
+        // 输出：
+        // [UI系统] 攻击力UI更新: 70 -> 100
+        // （注意：OnBaseValueChanged不会触发，因为基础值未变）
+
+        // 测试3：批量操作时使用NotifyIfChanged优化
+        Debug.Log("\n=== 测试：批量添加Buff（NotifyIfChanged） ===");
+        var batchAttack = new GameProperty("batchAttack", 100f);
+        
+        batchAttack.OnValueChanged += (old, newVal) =>
+        {
+            Debug.Log($"[批量操作完成] 最终攻击力: {newVal}");
+        };
+        
+        // 添加多个修饰符但不立即触发
+        batchAttack.AddModifier(new FloatModifier(ModifierType.Add, 0, 20f));
+        batchAttack.AddModifier(new FloatModifier(ModifierType.Add, 0, 30f));
+        batchAttack.AddModifier(new FloatModifier(ModifierType.Mul, 0, 1.5f));
+        
+        // 手动触发一次计算和通知
+        batchAttack.NotifyIfChanged();
+        // 输出：[批量操作完成] 最终攻击力: 225
+        // 性能优势：3次AddModifier只计算1次，而非3次
+    }
+}
+```
+
+**事件对比表：**
+
+| 事件 | 触发时机 | 适用场景 | 是否包含修饰符变化 |
+|------|---------|---------|------------------|
+| `OnBaseValueChanged` | SetBaseValue调用时 | 存档系统、基础属性升级 | ❌ 否 |
+| `OnValueChanged` | GetValue计算后值变化时 | 战斗计算、数值显示 | ✅ 是（需手动调用GetValue） |
+| `OnDirtyAndValueChanged` | 属性被标记为脏时自动计算并检查 | UI实时更新、修饰符变化响应 | ✅ 是（自动触发） |
+
+**性能提示：**
+- **OnDirtyAndValueChanged** 会在每次脏标记时自动调用 GetValue()，适合需要立即响应的场景（如UI）
+- **OnValueChanged** 仅在手动调用 GetValue() 时触发，适合延迟计算的场景
+- 批量操作时使用 **NotifyIfChanged()** 在最后手动触发一次，避免重复计算
 
 ---
 

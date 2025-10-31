@@ -23,7 +23,7 @@ namespace EasyPack.GamePropertySystem
         {
             if (property == null)
             {
-                UnityEngine.Debug.LogWarning("不能添加空的属性到管理器");
+                Debug.LogWarning("不能添加空的属性到管理器");
                 return;
             }
 
@@ -44,7 +44,7 @@ namespace EasyPack.GamePropertySystem
         {
             if (property == null)
             {
-                UnityEngine.Debug.LogWarning("不能添加空的属性到管理器");
+                Debug.LogWarning("不能添加空的属性到管理器");
                 return null;
             }
 

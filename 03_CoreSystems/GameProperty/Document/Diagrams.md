@@ -1,8 +1,8 @@
 # GameProperty System - Diagram Collection
 
 
-**适用EasyPack版本：** EasyPack v1.5.30
-**最后更新：** 2025-10-26
+**适用EasyPack版本：** EasyPack v1.6.0
+**最后更新：** 2025-10-31
 
 ---
 
@@ -16,9 +16,19 @@
 
 - [概述](#概述)
 - [核心类图](#核心类图)
+  - [GameProperty 核心类图](#gameproperty-核心类图)
+  - [组合属性类图](#组合属性类图)
+  - [管理器类图](#管理器类图)
 - [数据流程图](#数据流程图)
+  - [属性值计算流程](#属性值计算流程)
+  - [依赖关系建立与更新流程](#依赖关系建立与更新流程)
 - [序列图](#序列图)
+  - [创建并修改属性的完整流程](#创建并修改属性的完整流程)
+  - [事件系统交互流程](#事件系统交互流程)
+  - [依赖关系建立与传播流程](#依赖关系建立与传播流程)
 - [状态图](#状态图)
+  - [GameProperty 状态转换](#gameproperty-状态转换)
+  - [CombineGameProperty 生命周期状态](#combinegameproperty-生命周期状态)
 - [性能优化相关](#性能优化相关)
 - [相关资源](#相关资源)
 
@@ -71,6 +81,9 @@ classDiagram
         +MakeDirty() void
         +OnDirty(Action) void
         +event Action~float, float~ OnValueChanged
+        +event Action~float, float~ OnBaseValueChanged
+        +OnDirtyAndValueChanged(Action~float, float~) void
+        +NotifyIfChanged() IModifiableProperty~float~
     }
 
     class PropertyDependencyManager {
@@ -485,6 +498,118 @@ sequenceDiagram
 - 添加修饰符会立即标记为脏，但不立即计算
 - `GetValue()` 检查脏标记，仅在必要时重新计算
 - `SetBaseValue()` 会立即触发计算并传播到依赖者
+
+---
+
+### 事件系统交互流程
+
+展示三种事件（OnBaseValueChanged、OnValueChanged、OnDirtyAndValueChanged）的触发时机和交互过程。
+
+```mermaid
+sequenceDiagram
+    participant User as 用户代码
+    participant GP as GameProperty
+    participant UI as UI监听器
+    participant Save as 存档监听器
+    participant Battle as 战斗监听器
+
+    Note over User,Battle: 场景1：SetBaseValue触发所有相关事件
+
+    User->>GP: 注册事件监听
+    User->>GP: OnBaseValueChanged += SaveHandler
+    User->>GP: OnValueChanged += BattleHandler
+    User->>GP: OnDirtyAndValueChanged(UIHandler)
+
+    User->>GP: SetBaseValue(150)
+    activate GP
+    GP->>GP: 检查值变化
+    GP->>Save: 触发 OnBaseValueChanged(100, 150)
+    activate Save
+    Save-->>GP: 保存基础值到文件
+    deactivate Save
+    
+    GP->>GP: MakeDirty()
+    GP->>UI: 触发 OnDirty 回调
+    activate UI
+    UI->>GP: GetValue() (自动调用)
+    GP-->>UI: 返回 150
+    UI->>UI: 检查值变化 (100 vs 150)
+    UI-->>UI: UpdateUI(150)
+    deactivate UI
+    
+    GP->>GP: GetValue() (SetBaseValue内部调用)
+    GP->>GP: 计算最终值
+    GP->>Battle: 触发 OnValueChanged(100, 150)
+    activate Battle
+    Battle-->>GP: 更新战斗显示
+    deactivate Battle
+    deactivate GP
+
+    Note over User,Battle: 场景2：AddModifier仅触发UI和战斗事件
+
+    User->>GP: AddModifier(FloatModifier(Add, 0, 50))
+    activate GP
+    GP->>GP: MakeDirty()
+    GP->>UI: 触发 OnDirty 回调
+    activate UI
+    UI->>GP: GetValue() (自动调用)
+    GP->>GP: 计算最终值 = 200
+    GP-->>UI: 返回 200
+    UI->>UI: 检查值变化 (150 vs 200)
+    UI-->>UI: UpdateUI(200)
+    UI->>Battle: 触发 OnValueChanged(150, 200)
+    activate Battle
+    Battle-->>Battle: 更新战斗显示
+    deactivate Battle
+    deactivate UI
+    
+    Note right of Save: OnBaseValueChanged 不会触发<br/>因为基础值未变
+    deactivate GP
+
+    Note over User,Battle: 场景3：批量操作 + NotifyIfChanged优化
+
+    User->>GP: AddModifier(mod1)
+    activate GP
+    GP->>GP: MakeDirty()
+    Note right of GP: 不立即计算
+    deactivate GP
+
+    User->>GP: AddModifier(mod2)
+    activate GP
+    GP->>GP: MakeDirty()
+    Note right of GP: 不立即计算
+    deactivate GP
+
+    User->>GP: NotifyIfChanged()
+    activate GP
+    GP->>GP: GetValue() (手动触发)
+    GP->>GP: 计算最终值
+    GP->>Battle: 触发 OnValueChanged (仅一次)
+    activate Battle
+    Battle-->>GP: 更新战斗显示
+    deactivate Battle
+    deactivate GP
+    
+    Note over User,Battle: 性能优势：2次AddModifier只计算1次
+```
+
+**说明：**
+
+**事件触发规则：**
+1. **OnBaseValueChanged**：仅 `SetBaseValue()` 触发
+2. **OnValueChanged**：`GetValue()` 计算后值变化时触发
+3. **OnDirtyAndValueChanged**：脏标记时自动调用 `GetValue()` 并在值变化时触发回调
+
+**性能对比：**
+- **场景1**（SetBaseValue）：3个事件触发，1次计算
+- **场景2**（AddModifier + OnDirtyAndValueChanged）：2个事件触发，1次计算
+- **场景3**（批量 + NotifyIfChanged）：1个事件触发，1次计算（最优）
+
+**使用建议：**
+- 存档系统：监听 `OnBaseValueChanged`
+- 战斗/计算：监听 `OnValueChanged`（延迟计算）
+- UI 更新：使用 `OnDirtyAndValueChanged`（立即响应）
+- 批量操作：使用 `NotifyIfChanged()` 手动触发
 
 ---
 
