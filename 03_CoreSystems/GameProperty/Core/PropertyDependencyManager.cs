@@ -20,6 +20,10 @@ namespace EasyPack.GamePropertySystem
         private int _dependencyDepth = 0;
         private bool _hasRandomDependency = false;
 
+        // HasDirtyDependencies缓存
+        private bool _hasDirtyDepsCache = false;
+        private bool _hasDirtyDepsCacheValid = false;
+
         /// <summary>
         /// 依赖深度
         /// </summary>
@@ -125,6 +129,61 @@ namespace EasyPack.GamePropertySystem
                     ((IDrityTackable)dependent).MakeDirty();
                     dependent.GetValue();
                 }
+            }
+        }
+
+        /// <summary>
+        /// 传播脏标记到所有依赖者
+        /// </summary>
+        public void PropagateDirtyTowardsDependents()
+        {
+            foreach (var dependent in _dependents)
+            {
+                dependent.MakeDirty();
+            }
+        }
+
+        /// <summary>
+        /// 检查是否有依赖项处于脏状态
+        /// </summary>
+        public bool HasDirtyDependencies()
+        {
+            // 缓存有效，直接返回
+            if (_hasDirtyDepsCacheValid)
+                return _hasDirtyDepsCache;
+
+            // 计算并缓存结果
+            bool result = false;
+            foreach (var dep in _dependencies)
+            {
+                // 检查依赖项是否脏，或者依赖项的依赖项是否脏（递归检查）
+                if (dep.IsDirty || dep.DependencyManager.HasDirtyDependencies())
+                {
+                    result = true;
+                    break; // 早期退出
+                }
+            }
+
+            _hasDirtyDepsCache = result;
+            _hasDirtyDepsCacheValid = true;
+            return result;
+        }
+
+        /// <summary>
+        /// 失效HasDirtyDependencies缓存
+        /// 当属性变脏时调用，向所有依赖者传播缓存失效
+        /// </summary>
+        public void InvalidateDirtyCache()
+        {
+            // 已经失效，避免重复传播
+            if (!_hasDirtyDepsCacheValid) return;
+
+            _hasDirtyDepsCacheValid = false;
+
+            // 向所有依赖者传播缓存失效
+            foreach (var dependent in _dependents)
+            {
+                dependent.DependencyManager.InvalidateDirtyCache();
             }
         }
 

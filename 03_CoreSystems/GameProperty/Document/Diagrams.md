@@ -68,6 +68,7 @@ classDiagram
         -float _baseValue
         -float _cacheValue
         -bool _isDirty
+        +bool IsDirty
         +PropertyDependencyManager DependencyManager
         +GameProperty(string id, float initValue)
         +float GetValue()
@@ -93,10 +94,13 @@ classDiagram
         -Dictionary~GameProperty, Func~ _dependencyCalculators
         +int DependencyDepth
         +bool HasRandomDependency
+        +int DependencyCount
+        +int DependentCount
         +AddDependency(GameProperty, Func) bool
         +RemoveDependency(GameProperty) bool
         +TriggerDependentUpdates(float) void
         +UpdateDependencies() void
+        +HasDirtyDependencies() bool
     }
 
     class IModifier {
@@ -282,11 +286,22 @@ classDiagram
 
 ```mermaid
 flowchart TD
-    Start([调用 GetValue]) --> CheckDirty{是否脏数据?}
-    CheckDirty -->|否| ReturnCache[返回缓存值]
-    CheckDirty -->|是| UpdateDependencies[更新所有依赖属性]
-    UpdateDependencies --> GetBaseValue[获取基础值]
+    Start([调用 GetValue]) --> CheckRecalc{需要重新计算?}
+    
+    Note1[检查条件:<br/>1. 有非Clamp的RangeModifier<br/>2. 有随机依赖<br/>3. _isDirty为true<br/>4. 依赖项中有脏数据]
+    
+    CheckRecalc -->|否| ReturnCache[返回缓存值]
+    CheckRecalc -->|是| HasDependencies{有依赖项?}
+    HasDependencies -->|是| UpdateDependencies[更新所有依赖属性<br/>调用 UpdateDependencies]
+    HasDependencies -->|否| GetBaseValue[获取基础值]
+    UpdateDependencies --> GetBaseValue
     GetBaseValue --> ApplyModifiers[按顺序应用修饰符]
+    
+    ApplyModifiers --> Override{有 Override 修饰符?}
+    Override -->|是| ApplyOverride[应用覆盖值]
+    Override -->|否| PriorityAdd{有 PriorityAdd?}
+    
+    ApplyOverride --> PriorityAdd
     
     ApplyModifiers --> Override{有 Override 修饰符?}
     Override -->|是| ApplyOverride[应用覆盖值]
@@ -317,32 +332,36 @@ flowchart TD
     Clamp -->|否| CacheResult[缓存计算结果]
     
     ApplyClamp --> CacheResult
-    CacheResult --> CheckChange{值是否变化?}
+    CacheResult --> ClearDirtyFlag{无随机性?}
+    ClearDirtyFlag -->|是| ClearDirty[清除脏标记]
+    ClearDirtyFlag -->|否| KeepDirty[保持脏标记]
+    
+    ClearDirty --> CheckChange{值是否变化?}
+    KeepDirty --> CheckChange
     CheckChange -->|是| TriggerEvent[触发 OnValueChanged 事件]
-    CheckChange -->|否| ClearDirty[清除脏标记]
+    CheckChange -->|否| ReturnResult[返回最终值]
     
     TriggerEvent --> UpdateDependents[触发依赖者更新]
-    UpdateDependents --> ClearDirty
-    ClearDirty --> ReturnResult[返回最终值]
+    UpdateDependents --> ReturnResult
     
     ReturnCache --> End([结束])
     ReturnResult --> End
 
     style Start fill:#e1f5ff
     style End fill:#e1f5ff
-    style CheckDirty fill:#fff4e1
+    style CheckRecalc fill:#fff4e1
     style CheckChange fill:#fff4e1
     style ReturnCache fill:#e8f5e9
     style ReturnResult fill:#e8f5e9
+    style Note1 fill:#fffacd
 ```
 
 **说明：**
-- 脏标记机制：仅在属性被修改时才重新计算，提升性能
-- 修饰符执行顺序：Override → PriorityAdd → Add → PriorityMul → Mul → AfterAdd → Clamp
-- 事件触发：仅在值实际变化时触发 `OnValueChanged` 事件
-- 依赖传播：值变化后自动触发所有依赖者更新
-
----
+- **脏标记机制**：检查三个条件（非Clamp随机修饰符、随机依赖、自身脏）
+- **主动传播**：属性变脏时主动传播脏标记到所有依赖者
+- **修饰符执行顺序**：Override → PriorityAdd → Add → PriorityMul → Mul → AfterAdd → Clamp
+- **事件触发**：仅在值实际变化时触发 `OnValueChanged` 事件
+- **依赖传播**：值变化后自动触发所有依赖者更新
 
 ### 依赖关系建立与更新流程
 
@@ -814,29 +833,33 @@ stateDiagram-v2
 
 ```mermaid
 flowchart LR
-    A[修改属性] --> B{是否已脏?}
-    B -->|是| C[跳过标记]
-    B -->|否| D[标记为脏]
-    D --> E[触发 OnDirty 回调]
+    A[修改属性] --> D[标记为脏<br/>_isDirty = true]
+    D --> E[主动传播脏标记<br/>到所有依赖者]
+    E --> F[触发 OnDirty 回调]
     
-    F[读取属性] --> G{是否脏?}
-    G -->|否| H[返回缓存值<br/>O1性能]
-    G -->|是| I[重新计算<br/>应用修饰符]
-    I --> J{有随机修饰符?}
-    J -->|否| K[缓存结果<br/>清除脏标记]
-    J -->|是| L[缓存结果<br/>保持脏标记]
-    K --> M[返回值]
-    L --> M
+    G[读取属性] --> H{需要重新计算?}
+    H -->|否| I[返回缓存值]
+    H -->|是| J[重新计算<br/>应用修饰符]
+    J --> K{有随机修饰符?}
+    K -->|否| L[缓存结果<br/>清除脏标记]
+    K -->|是| M[缓存结果<br/>保持脏标记]
+    L --> N[返回值]
+    M --> N
+    
+    Note1[重新计算条件:<br/>1. 有非Clamp随机修饰符<br/>2. 有随机依赖<br/>3. _isDirty为true]
 
-    style H fill:#e8f5e9
-    style M fill:#e8f5e9
+    style I fill:#e8f5e9
+    style N fill:#e8f5e9
+    style Note1 fill:#fffacd
 ```
 
-**性能建议：**
-- **避免频繁添加/移除修饰符**：每次操作都会标记为脏，批量操作使用 `AddModifiers()` 和 `RemoveModifiers()`
-- **避免使用随机性修饰符**：非 Clamp 的 `RangeModifier` 会导致每次都重新计算
-- **减少依赖链深度**：深层依赖链会导致级联更新，影响性能
-- **使用管理器统一管理**：`GamePropertyManager` 使用 `ConcurrentDictionary`，支持线程安全访问
+**性能特性：**
+- **主动传播**：MakeDirty时主动传播脏标记到依赖者，避免GetValue时递归检查
+- **缓存失效**：脏标记传播时同时失效HasDirtyDependencies缓存
+- **早期返回**：已脏属性调用MakeDirty立即返回，避免重复传播
+- **批量操作**：批量添加修饰符使用AddModifiers而非多次AddModifier
+- **随机修饰符**：非Clamp的RangeModifier会导致每次重新计算
+- **线程安全**：GamePropertyManager使用ConcurrentDictionary支持并发访问
 
 ---
 

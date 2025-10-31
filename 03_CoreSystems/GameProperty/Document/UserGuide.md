@@ -661,10 +661,11 @@ public class DirtyTrackingExample : MonoBehaviour
 }
 ```
 
-**优化建议：**
-- 频繁读取的属性使用缓存值（脏标记自动管理）
-- 避免在依赖链中使用 `RangeModifier`（非 Clamp 类型），会导致每次都重新计算
-- 批量添加修饰符使用 `AddModifiers()` 而非多次 `AddModifier()`
+**性能特性：**
+- 脏标记主动传播到依赖者，避免GetValue时递归检查
+- 频繁读取的属性使用缓存值，脏标记自动管理
+- 批量添加修饰符使用AddModifiers而非多次AddModifier
+- 避免使用非Clamp的RangeModifier，会导致每次重新计算
 
 ---
 

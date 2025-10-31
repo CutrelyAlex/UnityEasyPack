@@ -445,9 +445,45 @@ Debug.Log(dodge.GetValue()); // 输出：5 (不再更新)
 
 #### 脏标记方法
 
+##### `IsDirty`
+
+检查属性是否处于脏状态（需要重新计算）。
+
+```csharp
+public bool IsDirty { get; }
+```
+
+**说明：** 只读属性，返回当前属性是否被标记为脏状态。
+
+**类型：** `bool`
+
+**返回值：**
+- `true`：属性处于脏状态，下次 `GetValue()` 将重新计算
+- `false`：属性干净，`GetValue()` 可直接返回缓存值
+
+**使用示例：**
+
+```csharp
+var prop = new GameProperty("test", 100f);
+Debug.Log($"初始脏状态: {prop.IsDirty}"); // 输出：True（构造时标记为脏）
+
+prop.GetValue(); // 计算并清除脏标记
+Debug.Log($"计算后脏状态: {prop.IsDirty}"); // 输出：False
+
+prop.AddModifier(new FloatModifier(ModifierType.Add, 0, 50f));
+Debug.Log($"添加修饰符后脏状态: {prop.IsDirty}"); // 输出：True
+```
+
+**应用场景：**
+- 依赖系统内部使用，检查依赖链是否有脏属性
+- 性能优化：批量操作前检查是否需要重新计算
+- 调试和监控属性状态变化
+
+---
+
 ##### `MakeDirty()`
 
-将属性标记为脏状态，表示需要重新计算值。
+将属性标记为脏状态，表示需要重新计算值。同时主动传播脏标记到所有依赖者。
 
 ```csharp
 public void MakeDirty()
@@ -456,6 +492,13 @@ public void MakeDirty()
 **参数说明：** 无
 
 **返回值：** 无（`void`）
+
+**行为说明：**
+- 标记自身为脏
+- 失效HasDirtyDependencies缓存
+- 触发OnDirty回调
+- 主动传播脏标记到所有依赖者
+- 已脏属性调用时立即返回
 
 **使用示例：**
 

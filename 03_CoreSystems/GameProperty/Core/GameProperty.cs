@@ -60,13 +60,19 @@ namespace EasyPack.GamePropertySystem
         /// <returns>最终值的float数值</returns>
         public float GetValue()
         {
-            bool needsRecalculation = _hasNonClampRangeModifier || DependencyManager.HasRandomDependency || _isDirty;
+            // 检查是否需要重新计算：
+            // 1. 有非Clamp的RangeModifier（随机性）
+            // 2. 有随机依赖
+            // 3. 自身脏了（包含依赖项传播过来的脏标记）
+            bool needsRecalculation = _hasNonClampRangeModifier 
+                || DependencyManager.HasRandomDependency 
+                || _isDirty;
 
             if (!needsRecalculation)
                 return _cacheValue;
 
-            // 避免空循环
-            if (_isDirty && DependencyManager.DependencyCount > 0)
+            // 更新依赖项（如果有依赖项）
+            if (DependencyManager.DependencyCount > 0)
             {
                 DependencyManager.UpdateDependencies();
             }
@@ -199,14 +205,27 @@ namespace EasyPack.GamePropertySystem
         private readonly HashSet<Action> _onDirtyHandlers = new();
 
         /// <summary>
+        /// 检查属性是否处于脏状态
+        /// </summary>
+        public bool IsDirty => _isDirty;
+
+        /// <summary>
         /// 将属性标记为脏状态，表示需要重新计算值
         /// </summary>
         public void MakeDirty()
         {
-            if (_isDirty) return;
-
+            bool wasAlreadyDirty = _isDirty;
             _isDirty = true;
+            
+            DependencyManager.InvalidateDirtyCache();
+            
             _onDirty?.Invoke();
+            
+            // 只有在第一次变脏时才传播到依赖者
+            if (!wasAlreadyDirty && DependencyManager.DependentCount > 0)
+            {
+                DependencyManager.PropagateDirtyTowardsDependents();
+            }
         }
 
         /// <summary>
