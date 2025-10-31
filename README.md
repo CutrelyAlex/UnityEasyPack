@@ -9,7 +9,14 @@
 **猫猫D菌**  
 *UnityEasyPack 项目维护者*
 
-**QQ：2470819243**
+<p align="center">
+  <a href="https://qm.qq.com/q/Y9qMERwx4Q">
+    <img src="https://img.shields.io/badge/QQ-EB1923?style=for-the-badge&logo=QQ&logoColor=white" alt="QQ" />
+  </a>
+  <a href="https://space.bilibili.com/104644407">
+    <img src="https://img.shields.io/badge/Bilibili-00A1D6?style=for-the-badge&logo=bilibili&logoColor=white" alt="Bilibili" />
+  </a>
+</p>
 
 ---
 
