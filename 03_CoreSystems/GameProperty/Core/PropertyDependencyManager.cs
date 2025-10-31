@@ -254,12 +254,7 @@ namespace EasyPack.GamePropertySystem
                 if (!visited.Add(current)) continue;
                 if (current == _owner) return true;
 
-                // 检查正向依赖
                 foreach (var dep in current.DependencyManager._dependencies)
-                    if (!visited.Contains(dep)) stack.Push(dep);
-
-                // 检查反向依赖
-                foreach (var dep in current.DependencyManager._dependents)
                     if (!visited.Contains(dep)) stack.Push(dep);
             }
 
