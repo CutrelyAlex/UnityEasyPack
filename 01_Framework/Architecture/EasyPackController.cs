@@ -12,15 +12,20 @@ namespace EasyPack
     public abstract class EasyPackController : MonoBehaviour
     {
         /// <summary>
+        /// EasyPack 架构实例
+        /// </summary>
+        protected EasyPackArchitecture Architecture => EasyPackArchitecture.Instance;
+
+        /// <summary>
         /// 获取 EasyPack 架构实例
         /// </summary>
         public EasyPackArchitecture GetArchitecture()
         {
             return EasyPackArchitecture.Instance;
-        }
-        
+        }        
+
         /// <summary>
-        /// 快速获取 EasyPack 服务
+        /// 异步获取 EasyPack 服务
         /// </summary>
         /// <typeparam name="T">服务类型</typeparam>
         /// <returns>服务实例（异步）</returns>
