@@ -22,12 +22,15 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         public GameProperty HealthCapacity { get; private set; }         // 生命值承受能力
         public GameProperty SanityCapacity { get; private set; }         // SAN承受能力
 
+        // 奇怪评分 - 演示CombineProperty的复杂组合
+        public CombinePropertyCustom StrangeScore { get; private set; }
+
         // 修饰符管理器
-        public ModifierManager ModifierManager { get; private set; }
+        public ModifierManager modifierManager { get; private set; }
 
         public PlayerAttributes()
         {
-            ModifierManager = new ModifierManager();
+            modifierManager = new ModifierManager();
             InitializeProperties();
             SetupDependencies();
         }
@@ -46,6 +49,10 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             SatietyCapacity = new GameProperty("SatietyCapacity", 100f);
             HealthCapacity = new GameProperty("HealthCapacity", 100f);
             SanityCapacity = new GameProperty("SanityCapacity", 100f);
+
+            // 初始化奇怪评分 - 复杂的组合属性
+            StrangeScore = new CombinePropertyCustom("StrangeScore", 0f);
+            SetupStrangeScoreCalculation();
         }
 
         private void SetupDependencies()
@@ -84,12 +91,61 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         }
 
         /// <summary>
+        /// 设置奇怪评分的复杂计算逻辑
+        /// </summary>
+        private void SetupStrangeScoreCalculation()
+        {
+            // 注册所有相关属性到组合属性中
+            StrangeScore.RegisterProperty(Satiety);
+            StrangeScore.RegisterProperty(Health);
+            StrangeScore.RegisterProperty(Sanity);
+            StrangeScore.RegisterProperty(SatietyChangePerDay);
+            StrangeScore.RegisterProperty(HealthChangePerDay);
+            StrangeScore.RegisterProperty(SanityChangePerDay);
+            StrangeScore.RegisterProperty(SatietyCapacity);
+            StrangeScore.RegisterProperty(HealthCapacity);
+            StrangeScore.RegisterProperty(SanityCapacity);
+
+            // 设置复杂的评分计算公式
+            StrangeScore.Calculater = (combine) =>
+            {
+                float satietyRatio = Satiety.GetValue() / Mathf.Max(SatietyCapacity.GetValue(), 1f);
+                float healthRatio = Health.GetValue() / Mathf.Max(HealthCapacity.GetValue(), 1f);
+                float sanityRatio = Sanity.GetValue() / Mathf.Max(SanityCapacity.GetValue(), 1f);
+
+                // 基础评分：各属性占比的加权和
+                float baseScore = (satietyRatio * 25f) + (healthRatio * 35f) + (sanityRatio * 25f);
+
+                // 每日变化影响：积极变化加分，消极变化减分
+                float dailyChangeBonus = (SatietyChangePerDay.GetValue() * 5f) +
+                                        (HealthChangePerDay.GetValue() * 7f) +
+                                        (SanityChangePerDay.GetValue() * 3f);
+
+                // 平衡惩罚：如果某个属性过高或过低，给予惩罚
+                float balancePenalty = 0f;
+                if (satietyRatio > 0.8f) balancePenalty -= 10f;  // 饱食度过高惩罚
+                if (satietyRatio < 0.2f) balancePenalty -= 15f;  // 饱食度过低惩罚
+                if (healthRatio < 0.3f) balancePenalty -= 20f;   // 生命值过低惩罚
+                if (sanityRatio > 0.9f) balancePenalty -= 8f;    // SAN值过高惩罚
+                if (sanityRatio < 0.2f) balancePenalty -= 12f;   // SAN值过低惩罚
+
+                // 综合评分：基础评分 + 每日变化影响 + 平衡惩罚 + 随机因子
+                float totalScore = baseScore + dailyChangeBonus + balancePenalty;
+
+                // 添加一些随机波动，让评分更有趣
+                float randomFactor = Mathf.Sin(Time.time * 0.1f) * 2f;  // 缓慢变化的随机因子
+
+                return Mathf.Clamp(totalScore + randomFactor, 0f, 100f);
+            };
+        }
+
+        /// <summary>
         /// 执行每日属性结算
         /// </summary>
         public void ProcessDailyChanges()
         {
             Debug.Log("处理修饰符持续时间...");
-            ModifierManager.ProcessDailyModifiers();
+            modifierManager.ProcessDailyModifiers();
 
             Debug.Log($"应用每日变化 - 饱食度: {Satiety.GetValue():F1} + ({SatietyChangePerDay.GetValue():+0.0;-0.0;0}) = {Mathf.Clamp(Satiety.GetValue() + SatietyChangePerDay.GetValue(), 0, SatietyCapacity.GetValue()):F1}");
             Debug.Log($"应用每日变化 - 生命值: {Health.GetValue():F1} + ({HealthChangePerDay.GetValue():+0.0;-0.0;0}) = {Mathf.Clamp(Health.GetValue() + HealthChangePerDay.GetValue(), 0, HealthCapacity.GetValue()):F1}");

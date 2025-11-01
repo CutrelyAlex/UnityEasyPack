@@ -12,6 +12,8 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
     {
         [Header("UI References")]
         [SerializeField] private Text statusText;
+        [SerializeField] private Text strangeScoreText;
+        [SerializeField] private Text strangeScoreRuleText;
         [SerializeField] private Text dayText;
         [SerializeField] private Button[] foodButtons;
         [SerializeField] private Text[] foodTexts;
@@ -46,6 +48,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             playerAttributes.Satiety.OnValueChanged += OnAttributeChanged;
             playerAttributes.Health.OnValueChanged += OnAttributeChanged;
             playerAttributes.Sanity.OnValueChanged += OnAttributeChanged;
+            playerAttributes.StrangeScore.OnValueChanged += OnAttributeChanged;
 
             // 注册按钮点击事件
             for (int i = 0; i < foodButtons.Length; i++)
@@ -211,7 +214,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             Debug.Log($"结算前每日变化: 饱食度{playerAttributes.SatietyChangePerDay.GetValue():+0.0;-0.0;0}, 生命值{playerAttributes.HealthChangePerDay.GetValue():+0.0;-0.0;0}, SAN{playerAttributes.SanityChangePerDay.GetValue():+0.0;-0.0;0}");
 
             // 显示活跃修饰符详情
-            Debug.Log($"当前活跃修饰符数量: {playerAttributes.ModifierManager.GetActiveModifierCount()}");
+            Debug.Log($"当前活跃修饰符数量: {playerAttributes.modifierManager.GetActiveModifierCount()}");
 
             playerAttributes.ProcessDailyChanges();
 
@@ -254,6 +257,11 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             if (statusText != null)
             {
                 statusText.text = playerAttributes.GetStatusDescription();
+            }
+
+            if (strangeScoreText != null)
+            {
+                strangeScoreText.text = $"奇怪评分: {playerAttributes.StrangeScore.GetValue():F1}/100";
             }
         }
 

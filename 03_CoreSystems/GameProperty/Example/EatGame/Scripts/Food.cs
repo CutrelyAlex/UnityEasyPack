@@ -69,15 +69,15 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
                 {
                     case "SatietyChangePerDay":
                         Debug.Log($"[Food] 添加到SatietyChangePerDay: 基础值={player.SatietyChangePerDay.GetBaseValue()}, 添加modifier后值={player.SatietyChangePerDay.GetValue() + (effect.Value.type == ModifierType.Add ? effect.Value.value : 0)}");
-                        player.ModifierManager.AddTimedModifier(player.SatietyChangePerDay, modifier, duration);
+                        player.modifierManager.AddTimedModifier(player.SatietyChangePerDay, modifier, duration);
                         break;
                     case "HealthChangePerDay":
                         Debug.Log($"[Food] 添加到HealthChangePerDay: 基础值={player.HealthChangePerDay.GetBaseValue()}, 添加modifier后值={player.HealthChangePerDay.GetValue() + (effect.Value.type == ModifierType.Add ? effect.Value.value : 0)}");
-                        player.ModifierManager.AddTimedModifier(player.HealthChangePerDay, modifier, duration);
+                        player.modifierManager.AddTimedModifier(player.HealthChangePerDay, modifier, duration);
                         break;
                     case "SanityChangePerDay":
                         Debug.Log($"[Food] 添加到SanityChangePerDay: 基础值={player.SanityChangePerDay.GetBaseValue()}, 添加modifier后值={player.SanityChangePerDay.GetValue() + (effect.Value.type == ModifierType.Add ? effect.Value.value : 0)}");
-                        player.ModifierManager.AddTimedModifier(player.SanityChangePerDay, modifier, duration);
+                        player.modifierManager.AddTimedModifier(player.SanityChangePerDay, modifier, duration);
                         break;
                 }
             }
