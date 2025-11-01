@@ -20,7 +20,9 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         [SerializeField] private GameObject confirmPanel;
         [SerializeField] private Text confirmText;
         [SerializeField] private Button confirmButton;
+        [SerializeField] private Button cancelButton;
         [SerializeField] private Button nextDayButton;
+        [SerializeField] private Button restartButton;
 
         private PlayerAttributes playerAttributes;
         private FoodGenerator foodGenerator;
@@ -57,9 +59,19 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
                 confirmButton.onClick.AddListener(ConfirmEat);
             }
 
+            if (cancelButton != null)
+            {
+                cancelButton.onClick.AddListener(CancelSelection);
+            }
+
             if (nextDayButton != null)
             {
                 nextDayButton.onClick.AddListener(NextDay);
+            }
+
+            if (restartButton != null)
+            {
+                restartButton.onClick.AddListener(RestartGame);
             }
 
             Debug.Log("=== EatGame 初始化完成 ===");
@@ -177,7 +189,12 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             // 检查游戏结束
             if (playerAttributes.IsGameOver())
             {
-                Debug.Log("❌ 游戏结束！生命值降至0");
+                string reason = "";
+                if (playerAttributes.Health.GetValue() <= 0) reason = "生命值";
+                else if (playerAttributes.Satiety.GetValue() <= 0) reason = "饱食度";
+                else if (playerAttributes.Sanity.GetValue() <= 0) reason = "SAN值";
+
+                Debug.Log($"❌ 游戏结束！{reason}降至0");
                 GameOver();
                 return;
             }
@@ -187,6 +204,27 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             if (nextDayButton != null) nextDayButton.gameObject.SetActive(true);
 
             isWaitingForNextDay = true;
+            UpdateUI();
+        }
+
+        public void CancelSelection()
+        {
+            Debug.Log("取消选择食物");
+
+            selectedFood = null;
+
+            // 隐藏确认面板
+            if (confirmPanel != null)
+            {
+                confirmPanel.SetActive(false);
+            }
+
+            // 重新启用食物按钮
+            foreach (var button in foodButtons)
+            {
+                button.interactable = true;
+            }
+
             UpdateUI();
         }
 
@@ -221,14 +259,25 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
 
         private void GameOver()
         {
-            Debug.Log($"\n🏁 游戏结束！");
+            string reason = "";
+            if (playerAttributes.Health.GetValue() <= 0) reason = "生命值";
+            else if (playerAttributes.Satiety.GetValue() <= 0) reason = "饱食度";
+            else if (playerAttributes.Sanity.GetValue() <= 0) reason = "SAN值";
+
+            Debug.Log($"\n🏁 游戏结束！{reason}降至0");
             Debug.Log($"生存天数: {currentDay - 1}");
             Debug.Log($"最终属性状态:\n{playerAttributes.GetStatusDescription()}");
 
             if (gameOverPanel != null)
             {
                 gameOverPanel.SetActive(true);
-                gameOverText.text = $"游戏结束！\n生存了 {currentDay - 1} 天\n\n最终状态:\n{playerAttributes.GetStatusDescription()}";
+                gameOverText.text = $"游戏结束！\n{reason}降至0\n生存了 {currentDay - 1} 天\n\n最终状态:\n{playerAttributes.GetStatusDescription()}";
+            }
+
+            // 显示重来按钮
+            if (restartButton != null)
+            {
+                restartButton.gameObject.SetActive(true);
             }
 
             // 禁用食物按钮
@@ -260,10 +309,16 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
                 nextDayButton.gameObject.SetActive(false);
             }
 
+            if (restartButton != null)
+            {
+                restartButton.gameObject.SetActive(false);
+            }
+
             // 重新启用所有食物按钮
             foreach (var button in foodButtons)
             {
                 button.interactable = true;
+                button.gameObject.SetActive(true);
             }
 
             InitializeGame();

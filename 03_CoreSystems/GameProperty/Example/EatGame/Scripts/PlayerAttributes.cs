@@ -106,7 +106,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         /// </summary>
         public bool IsGameOver()
         {
-            return Health.GetValue() <= 0;
+            return Health.GetValue() <= 0 || Satiety.GetValue() <= 0 || Sanity.GetValue() <= 0;
         }
 
         /// <summary>
