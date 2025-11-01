@@ -175,30 +175,6 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
                 }
             }
 
-            // 处理每日结算
-            Debug.Log("\n--- 每日属性结算 ---");
-            Debug.Log($"结算前每日变化: 饱食度{playerAttributes.SatietyChangePerDay.GetValue():+0.0;-0.0;0}, 生命值{playerAttributes.HealthChangePerDay.GetValue():+0.0;-0.0;0}, SAN{playerAttributes.SanityChangePerDay.GetValue():+0.0;-0.0;0}");
-
-            // 显示活跃修饰符详情
-            Debug.Log($"当前活跃修饰符数量: {playerAttributes.ModifierManager.GetActiveModifierCount()}");
-
-            playerAttributes.ProcessDailyChanges();
-
-            Debug.Log($"结算后属性:\n{playerAttributes.GetStatusDescription()}");
-
-            // 检查游戏结束
-            if (playerAttributes.IsGameOver())
-            {
-                string reason = "";
-                if (playerAttributes.Health.GetValue() <= 0) reason = "生命值";
-                else if (playerAttributes.Satiety.GetValue() <= 0) reason = "饱食度";
-                else if (playerAttributes.Sanity.GetValue() <= 0) reason = "SAN值";
-
-                Debug.Log($"❌ 游戏结束！{reason}降至0");
-                GameOver();
-                return;
-            }
-
             // 隐藏确认面板，显示下一天按钮
             if (confirmPanel != null) confirmPanel.SetActive(false);
             if (nextDayButton != null) nextDayButton.gameObject.SetActive(true);
@@ -230,6 +206,30 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
 
         public void NextDay()
         {
+            // 处理每日结算
+            Debug.Log("\n--- 每日属性结算 ---");
+            Debug.Log($"结算前每日变化: 饱食度{playerAttributes.SatietyChangePerDay.GetValue():+0.0;-0.0;0}, 生命值{playerAttributes.HealthChangePerDay.GetValue():+0.0;-0.0;0}, SAN{playerAttributes.SanityChangePerDay.GetValue():+0.0;-0.0;0}");
+
+            // 显示活跃修饰符详情
+            Debug.Log($"当前活跃修饰符数量: {playerAttributes.ModifierManager.GetActiveModifierCount()}");
+
+            playerAttributes.ProcessDailyChanges();
+
+            Debug.Log($"结算后属性:\n{playerAttributes.GetStatusDescription()}");
+
+            // 检查游戏结束
+            if (playerAttributes.IsGameOver())
+            {
+                string reason = "";
+                if (playerAttributes.Health.GetValue() <= 0) reason = "生命值";
+                else if (playerAttributes.Satiety.GetValue() <= 0) reason = "饱食度";
+                else if (playerAttributes.Sanity.GetValue() <= 0) reason = "SAN值";
+
+                Debug.Log($"❌ 游戏结束！{reason}降至0");
+                GameOver();
+                return;
+            }
+
             // 下一天
             currentDay++;
             isWaitingForNextDay = false;
