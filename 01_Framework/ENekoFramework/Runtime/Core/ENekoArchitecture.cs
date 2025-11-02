@@ -133,7 +133,7 @@ namespace EasyPack.ENekoFramework
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <typeparam name="TImplementation">具体实现类型</typeparam>
         public void RegisterService<TService, TImplementation>()
-            where TService : class
+            where TService : class, IService
             where TImplementation : class, TService, new()
         {
             Container.Register<TService, TImplementation>();
@@ -168,7 +168,7 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <returns>服务实例</returns>
-        public async Task<TService> ResolveAsync<TService>() where TService : class
+        public async Task<TService> ResolveAsync<TService>() where TService : class, IService
         {
             return await Container.ResolveAsync<TService>();
         }

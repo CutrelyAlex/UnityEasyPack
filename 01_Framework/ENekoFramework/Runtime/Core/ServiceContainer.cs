@@ -38,7 +38,7 @@ namespace EasyPack.ENekoFramework
         /// <typeparam name="TImplementation">具体实现类型</typeparam>
         /// <exception cref="InvalidOperationException">如果服务已注册或超出容量限制则抛出</exception>
         public void Register<TService, TImplementation>()
-            where TService : class
+            where TService : class, IService
             where TImplementation : class, TService, new()
         {
             lock (_lock)
@@ -66,7 +66,7 @@ namespace EasyPack.ENekoFramework
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <returns>服务实例</returns>
         /// <exception cref="InvalidOperationException">如果服务未注册则抛出</exception>
-        public async Task<TService> ResolveAsync<TService>() where TService : class
+        public async Task<TService> ResolveAsync<TService>() where TService : class, IService
         {
             ServiceDescriptor descriptor;
         
@@ -87,14 +87,11 @@ namespace EasyPack.ENekoFramework
             {
                 lock (_lock)
                 {
-                    // 双重检查模式
-                    if (descriptor.Instance == null)
-                    {
-                        descriptor.Instance = (IService)Activator.CreateInstance(descriptor.ImplementationType);
-                    }
+                    // 检查实例是否已创建
+                    descriptor.Instance ??= (IService)Activator.CreateInstance(descriptor.ImplementationType);
                 }
             
-                // 异步初始化（仅IService类型）
+                // 异步初始化IService的实例
                 if (descriptor.Instance is IService service)
                 {
                     await service.InitializeAsync();
