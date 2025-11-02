@@ -134,7 +134,7 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <returns>服务描述符，如果未注册则返回 null</returns>
-        public ServiceDescriptor GetServiceDescriptor<TService>() where TService : class, IService
+        public ServiceDescriptor GetServiceDescriptor<TService>() where TService : class
         {
             lock (_lock)
             {
