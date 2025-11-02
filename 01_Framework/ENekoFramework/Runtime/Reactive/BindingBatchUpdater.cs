@@ -5,7 +5,6 @@ namespace EasyPack.ENekoFramework
 {
     /// <summary>
     /// 帧末批处理管理器 - 在 LateUpdate 时统一刷新所有脏绑定
-    /// 性能目标: 1000个绑定批处理 < 16ms
     /// </summary>
     public sealed class BindingBatchUpdater : MonoBehaviour
     {
@@ -36,7 +35,7 @@ namespace EasyPack.ENekoFramework
         public bool IsUpdateScheduled => _isUpdateScheduled;
         
         /// <summary>
-        /// 脏绑定数量（仅用于测试）
+        /// 脏绑定数量
         /// </summary>
         public int DirtyBindingsCount => _dirtyBindings.Count;
         
