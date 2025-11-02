@@ -15,7 +15,7 @@ namespace EasyPack.ENekoFramework
         /// <summary>具体实现的类型</summary>
         public Type ImplementationType { get; }
         
-        /// <summary>服务工厂函数（用于延迟创建）</summary>
+        /// <summary>服务工厂函数</summary>
         public Func<ServiceContainer, object> Factory { get; }
     
         /// <summary>服务的单例实例（如果尚未创建则为 null）</summary>

@@ -29,7 +29,7 @@ namespace EasyPack
                     var architecture = EasyPackArchitecture.Instance;
                     if (architecture != null)
                     {
-                        var service = architecture.GetServiceAsync<ISerializationService>().GetAwaiter().GetResult();
+                        var service = architecture.ResolveAsync<ISerializationService>().GetAwaiter().GetResult();
                         if (service != null)
                         {
                             return service;

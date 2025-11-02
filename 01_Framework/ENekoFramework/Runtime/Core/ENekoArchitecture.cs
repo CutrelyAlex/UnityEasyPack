@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,6 +13,8 @@ namespace EasyPack.ENekoFramework
     /// <typeparam name="T">派生架构类型（用于单例模式）</typeparam>
     public abstract class ENekoArchitecture<T> where T : ENekoArchitecture<T>, new()
     {
+        #region 单例模式
+
         private static T _instance;
         private static readonly object _lock = new object();
     
@@ -39,6 +42,26 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
+        /// 重置架构单例。
+        /// 警告：释放所有服务并清空容器。
+        /// </summary>
+        public static void ResetInstance()
+        {
+            lock (_lock)
+            {
+                if (_instance != null)
+                {
+                    _instance.Container?.Clear();
+                    _instance = null;
+                }
+            }
+        }
+
+        #endregion
+
+        #region 核心组件
+
+        /// <summary>
         /// 管理所有已注册服务的服务容器。
         /// </summary>
         protected ServiceContainer Container { get; private set; }
@@ -62,6 +85,10 @@ namespace EasyPack.ENekoFramework
         /// 指示架构是否已初始化。
         /// </summary>
         public bool IsInitialized { get; private set; }
+
+        #endregion
+
+        #region 初始化
 
         /// <summary>
         /// 受保护的构造函数以强制执行单例模式。
@@ -96,27 +123,125 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         protected abstract void OnInit();
 
+        #endregion
+
+        #region 服务注册
+
         /// <summary>
         /// 在容器中注册服务。
         /// </summary>
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <typeparam name="TImplementation">具体实现类型</typeparam>
         public void RegisterService<TService, TImplementation>()
-            where TService : class, IService
+            where TService : class
             where TImplementation : class, TService, new()
         {
             Container.Register<TService, TImplementation>();
         }
 
         /// <summary>
-        /// 从容器解析服务。
+        /// 注册延迟创建的服务。
+        /// </summary>
+        /// <typeparam name="TService">服务类型</typeparam>
+        /// <param name="factory">服务工厂函数</param>
+        public void RegisterLazy<TService>(Func<ServiceContainer, TService> factory) where TService : class
+        {
+            Container.RegisterLazy(factory);
+        }
+
+        /// <summary>
+        /// 注册单例服务实例。
+        /// </summary>
+        /// <typeparam name="TService">服务类型</typeparam>
+        /// <param name="instance">服务实例</param>
+        public void RegisterSingleton<TService>(TService instance) where TService : class
+        {
+            Container.RegisterSingleton(instance);
+        }
+
+        #endregion
+
+        #region 服务解析
+
+        /// <summary>
+        /// 从容器异步解析服务。
         /// </summary>
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <returns>服务实例</returns>
-        public async Task<TService> GetServiceAsync<TService>() where TService : class, IService
+        public async Task<TService> ResolveAsync<TService>() where TService : class
         {
             return await Container.ResolveAsync<TService>();
         }
+
+        /// <summary>
+        /// 同步解析服务实例。
+        /// </summary>
+        /// <typeparam name="TService">服务类型</typeparam>
+        /// <returns>服务实例</returns>
+        public TService Resolve<TService>() where TService : class
+        {
+            return Container.Resolve<TService>();
+        }
+
+        #endregion
+
+        #region 服务管理
+
+        /// <summary>
+        /// 检查服务是否已注册。
+        /// </summary>
+        /// <typeparam name="TService">服务类型</typeparam>
+        /// <returns>如果已注册返回 true，否则返回 false</returns>
+        public bool IsServiceRegistered<TService>() where TService : class
+        {
+            return Container.IsRegistered<TService>();
+        }
+
+        /// <summary>
+        /// 移除已注册的服务。
+        /// </summary>
+        /// <typeparam name="TService">服务类型</typeparam>
+        /// <returns>如果成功移除返回 true，否则返回 false</returns>
+        public bool UnregisterService<TService>() where TService : class
+        {
+            return Container.Unregister<TService>();
+        }
+
+        /// <summary>
+        /// 获取所有已注册的服务类型。
+        /// </summary>
+        /// <returns>已注册的服务类型集合</returns>
+        public IEnumerable<Type> GetRegisteredServices()
+        {
+            return Container.GetRegisteredTypes();
+        }
+
+        #endregion
+
+        #region 容器状态查询
+
+        /// <summary>
+        /// 检查服务是否已实例化。
+        /// </summary>
+        /// <typeparam name="TService">服务类型</typeparam>
+        /// <returns>如果已实例化返回 true，否则返回 false</returns>
+        public bool HasInstance<TService>() where TService : class
+        {
+            return Container.HasInstance<TService>();
+        }
+
+        /// <summary>
+        /// 获取已注册的服务数量。
+        /// </summary>
+        /// <returns>服务数量</returns>
+        public int GetServiceCount()
+        {
+            return Container.GetServiceCount();
+        }
+
+        #endregion
+
+        #region 命令系统
 
         /// <summary>
         /// 发送命令并异步执行
@@ -134,6 +259,10 @@ namespace EasyPack.ENekoFramework
             return await CommandDispatcher.ExecuteAsync(command, timeoutSeconds, cancellationToken);
         }
 
+        #endregion
+
+        #region 查询系统
+
         /// <summary>
         /// 执行查询并同步返回结果
         /// </summary>
@@ -144,6 +273,10 @@ namespace EasyPack.ENekoFramework
         {
             return QueryExecutor.Execute(query);
         }
+
+        #endregion
+
+        #region 事件系统
 
         /// <summary>
         /// 发布事件
@@ -175,20 +308,6 @@ namespace EasyPack.ENekoFramework
             EventBus.Unsubscribe(handler);
         }
 
-        /// <summary>
-        /// 重置架构单例（用于测试目的）。
-        /// 警告：释放所有服务并清空容器。
-        /// </summary>
-        public static void ResetInstance()
-        {
-            lock (_lock)
-            {
-                if (_instance != null)
-                {
-                    _instance.Container?.Clear();
-                    _instance = null;
-                }
-            }
-        }
+        #endregion
     }
 }

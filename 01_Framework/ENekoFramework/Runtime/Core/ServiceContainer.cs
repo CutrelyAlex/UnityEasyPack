@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace EasyPack.ENekoFramework
@@ -37,7 +38,7 @@ namespace EasyPack.ENekoFramework
         /// <typeparam name="TImplementation">具体实现类型</typeparam>
         /// <exception cref="InvalidOperationException">如果服务已注册或超出容量限制则抛出</exception>
         public void Register<TService, TImplementation>()
-            where TService : class, IService
+            where TService : class
             where TImplementation : class, TService, new()
         {
             lock (_lock)
@@ -65,7 +66,7 @@ namespace EasyPack.ENekoFramework
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <returns>服务实例</returns>
         /// <exception cref="InvalidOperationException">如果服务未注册则抛出</exception>
-        public async Task<TService> ResolveAsync<TService>() where TService : class, IService
+        public async Task<TService> ResolveAsync<TService>() where TService : class
         {
             ServiceDescriptor descriptor;
         
@@ -108,7 +109,7 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <returns>如果已注册返回 true，否则返回 false</returns>
-        public bool IsRegistered<TService>() where TService : class, IService
+        public bool IsRegistered<TService>() where TService : class
         {
             lock (_lock)
             {
@@ -218,7 +219,7 @@ namespace EasyPack.ENekoFramework
         }
         
         /// <summary>
-        /// 同步解析服务（用于工厂函数中）
+        /// 同步解析服务
         /// </summary>
         /// <typeparam name="TService">服务类型</typeparam>
         /// <returns>服务实例</returns>
@@ -226,49 +227,49 @@ namespace EasyPack.ENekoFramework
         {
             return ResolveInternal<TService>();
         }
-        
+
         /// <summary>
         /// 内部解析方法，支持循环依赖检测
         /// </summary>
         private TService ResolveInternal<TService>() where TService : class
         {
             var serviceType = typeof(TService);
-            
+
             // 初始化解析栈
             if (_resolutionStack == null)
             {
                 _resolutionStack = new Stack<Type>();
             }
-            
+
             // 检测循环依赖
             if (_resolutionStack.Contains(serviceType))
             {
                 var path = BuildDependencyPath(serviceType);
                 throw new CircularDependencyException(path);
             }
-            
+
             _resolutionStack.Push(serviceType);
-            
+
             try
             {
                 ServiceDescriptor descriptor;
-                
+
                 lock (_lock)
                 {
                     if (!_services.TryGetValue(serviceType, out descriptor))
                     {
                         throw new InvalidOperationException($"服务 {serviceType.Name} 未注册。");
                     }
-                    
+
                     descriptor.LastAccessedAt = DateTime.UtcNow;
                 }
-                
+
                 // 如果实例已存在，直接返回
                 if (descriptor.Instance != null)
                 {
                     return descriptor.Instance as TService;
                 }
-                
+
                 // 使用工厂创建实例
                 lock (_lock)
                 {
@@ -278,7 +279,7 @@ namespace EasyPack.ENekoFramework
                         descriptor.Instance = descriptor.Factory(this);
                     }
                 }
-                
+
                 return descriptor.Instance as TService;
             }
             finally
@@ -286,6 +287,68 @@ namespace EasyPack.ENekoFramework
                 _resolutionStack.Pop();
             }
         }
+        
+        /// <summary>
+        /// 移除已注册的服务。
+        /// </summary>
+        /// <typeparam name="TService">服务类型</typeparam>
+        /// <returns>如果成功移除返回 true，否则返回 false</returns>
+        public bool Unregister<TService>() where TService : class
+        {
+            var serviceType = typeof(TService);
+            lock (_lock)
+            {
+                if (_services.TryGetValue(serviceType, out var descriptor))
+                {
+                    (descriptor.Instance as IDisposable)?.Dispose();
+                    return _services.Remove(serviceType);
+                }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 获取所有已注册的服务类型。
+        /// </summary>
+        /// <returns>已注册的服务类型集合</returns>
+        public IEnumerable<Type> GetRegisteredTypes()
+        {
+            lock (_lock)
+            {
+                return _services.Keys.ToList();
+            }
+        }
+
+        /// <summary>
+        /// 检查服务是否已实例化。
+        /// </summary>
+        /// <typeparam name="TService">服务类型</typeparam>
+        /// <returns>如果已实例化返回 true，否则返回 false</returns>
+        public bool HasInstance<TService>() where TService : class
+        {
+            var serviceType = typeof(TService);
+            lock (_lock)
+            {
+                return _services.TryGetValue(serviceType, out var descriptor) && descriptor.Instance != null;
+            }
+        }
+
+        /// <summary>
+        /// 获取已注册的服务数量。
+        /// </summary>
+        /// <returns>服务数量</returns>
+        public int GetServiceCount()
+        {
+            lock (_lock)
+            {
+                return _services.Count;
+            }
+        }
+
+
+
+
+
         
         /// <summary>
         /// 构建循环依赖路径字符串

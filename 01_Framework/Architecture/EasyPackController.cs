@@ -31,7 +31,7 @@ namespace EasyPack
         /// <returns>服务实例（异步）</returns>
         protected async Task<T> GetServiceAsync<T>() where T : class, IService
         {
-            return await GetArchitecture().GetServiceAsync<T>();
+            return await GetArchitecture().ResolveAsync<T>();
         }
         
         /// <summary>
