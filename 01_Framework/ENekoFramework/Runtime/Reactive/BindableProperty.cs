@@ -44,7 +44,7 @@ namespace EasyPack.ENekoFramework
         private readonly List<WeakReference> _listeners = new List<WeakReference>();
         private readonly List<Action<T>> _callbacks = new List<Action<T>>();
         private readonly object _lock = new object();
-        private bool _isBatching;
+        private int _batchDepth;
         private bool _hasChangedDuringBatch;
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace EasyPack.ENekoFramework
 
                 _value = value;
 
-                if (_isBatching)
+                if (_batchDepth > 0)
                 {
                     _hasChangedDuringBatch = true;
                 }
@@ -123,22 +123,33 @@ namespace EasyPack.ENekoFramework
 
         /// <summary>
         /// 开始批量更新。批处理期间的变更只会触发一次通知。
+        /// 支持嵌套调用，只有最外层的 EndBatch() 会触发通知。
         /// 调用 EndBatch() 以提交变更并通知监听器。
         /// </summary>
         public void BeginBatch()
         {
-            _isBatching = true;
-            _hasChangedDuringBatch = false;
+            if (_batchDepth == 0)
+            {
+                _hasChangedDuringBatch = false;
+            }
+            _batchDepth++;
         }
 
         /// <summary>
         /// 结束批量更新，如果发生了任何变更则通知监听器。
+        /// 支持嵌套调用，只有最外层的 EndBatch() 会触发通知。
         /// </summary>
         public void EndBatch()
         {
-            _isBatching = false;
+            if (_batchDepth <= 0)
+            {
+                UnityEngine.Debug.LogWarning("EndBatch 调用次数多于 BeginBatch");
+                return;
+            }
 
-            if (_hasChangedDuringBatch)
+            _batchDepth--;
+
+            if (_batchDepth == 0 && _hasChangedDuringBatch)
             {
                 NotifyListeners();
                 _hasChangedDuringBatch = false;
