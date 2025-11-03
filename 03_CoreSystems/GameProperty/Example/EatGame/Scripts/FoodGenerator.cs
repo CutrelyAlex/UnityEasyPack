@@ -168,7 +168,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             };
             mentalFocus.ImmediateEffects["Sanity"] = 30f;
             mentalFocus.ImmediateEffects["Satiety"] = -5f;
-            mentalFocus.SustainedEffects["SanityChangePerDay"] = (ModifierType.Override, 0f, 3);  // 覆盖为0，SAN值不变化
+            mentalFocus.SustainedEffects["SanityChangePerDay"] = (ModifierType.Override, 0f, 2);  // 覆盖为0，SAN值不变化
             _foodTemplates.Add(mentalFocus);
         }
 

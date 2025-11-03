@@ -3,6 +3,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace EasyPack.ENekoFramework.Editor.Windows
 {
@@ -14,29 +15,40 @@ namespace EasyPack.ENekoFramework.Editor.Windows
     {
         private Vector2 _scrollPosition;
         private List<EventLogEntry> _eventLog = new List<EventLogEntry>();
-        private string _filterText = "";
         private bool _autoScroll = true;
         private const int MaxLogEntries = 1000;
-        
+
         // 筛选缓存
         private List<EventLogEntry> _cachedFilteredLogs;
         private List<string> _lastSelectedArchitectures = new List<string>();
         private string _lastSelectedEventTypeFilter = "";
         private bool _lastUseEventTypeFilter = false;
-        private string _lastFilterText = "";
         private bool _filterCacheValid = false;
-        
+
         // 架构缓存
         private Dictionary<string, string> _cachedArchToNamespace;
         private bool _archCacheValid = false;
-        
+
         // 筛选器
         private List<string> _architectureNames = new List<string>();
         private List<bool> _architectureFilters = new List<bool>();
         private string _selectedEventTypeFilter = "";
         private bool _useEventTypeFilter = false;
         private Vector2 _filterScrollPosition;
-        
+
+        // 数据持久化
+        private const string EventLogDataKey = "EasyPack.EventMonitor.EventLogData";
+        private const string EventLogTimestampKey = "EasyPack.EventMonitor.EventLogTimestamp";
+        private static readonly TimeSpan MaxDataAge = TimeSpan.FromMinutes(30); // 数据最长保存30分钟
+
+        // 自动刷新
+        private bool _autoRefreshEnabled = true;
+        private float _refreshInterval = 2.0f; // 2秒刷新一次
+        private double _lastRefreshTime;
+        private Dictionary<Type, int> _subscriberCountCache = new Dictionary<Type, int>();
+        private double _lastSubscriberCacheTime;
+        private const double SubscriberCacheDuration = 0.5; // 订阅者缓存0.5秒
+
         // 用于在编辑器中捕获运行时事件
         private static EventMonitorWindow _activeWindow;
 
@@ -66,46 +78,152 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         {
             _activeWindow = this;
             RefreshArchitectureList();
-            
-            // 连接EventBus监控回调
-            #if UNITY_EDITOR
-            EventBus.OnEventPublished += LogEventFromBus;
-            #endif
-        }
 
+            // 从持久化存储恢复事件日志
+            LoadEventLogData();
+
+            // 初始化自动刷新时间戳
+            _lastRefreshTime = EditorApplication.timeSinceStartup;
+            _lastSubscriberCacheTime = EditorApplication.timeSinceStartup;
+
+            // 连接EventBus监控回调
+#if UNITY_EDITOR
+            EventBus.OnEventPublished += LogEventFromBus;
+#endif
+        }
         private void OnDisable()
         {
+            // 保存事件日志到持久化存储
+            SaveEventLogData();
+
             if (_activeWindow == this)
             {
                 _activeWindow = null;
             }
-            
-            #if UNITY_EDITOR
+
+#if UNITY_EDITOR
             EventBus.OnEventPublished -= LogEventFromBus;
-            #endif
+#endif
         }
-        
+
         private void LogEventFromBus(Type eventType, object eventData, int subscriberCount)
         {
+            // 使用传入的订阅者数量（来自EventBus），但会在自动刷新时更新
             AddEventLog(eventType, eventData, subscriberCount);
         }
 
+        /// <summary>
+        /// 刷新订阅者数量缓存
+        /// </summary>
+        private void RefreshSubscriberCountCache()
+        {
+            try
+            {
+                var architectures = ServiceInspector.GetAllArchitectureInstances();
+                var eventTypes = new HashSet<Type>();
+
+                // 收集所有事件类型
+                foreach (var entry in _eventLog)
+                {
+                    if (entry.EventType != null)
+                    {
+                        eventTypes.Add(entry.EventType);
+                    }
+                }
+
+                // 重新计算每个事件类型的订阅者数量
+                foreach (var eventType in eventTypes)
+                {
+                    int totalCount = 0;
+
+                    foreach (var architecture in architectures)
+                    {
+                        try
+                        {
+                            var eventBus = ServiceInspector.GetEventBusFromArchitecture(architecture);
+                            if (eventBus != null)
+                            {
+                                var method = eventBus.GetType().GetMethod("GetSubscriberCount")
+                                    .MakeGenericMethod(eventType);
+                                var count = (int)method.Invoke(eventBus, null);
+                                totalCount += count;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[EventMonitor] 刷新订阅者缓存失败: {ex.Message}");
+                        }
+                    }
+
+                    _subscriberCountCache[eventType] = totalCount;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[EventMonitor] 刷新订阅者缓存失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 刷新显示的订阅者数量
+        /// </summary>
+        private void RefreshDisplayedSubscriberCounts()
+        {
+            bool needsRepaint = false;
+
+            // 更新所有事件日志条目的订阅者数量
+            foreach (var entry in _eventLog)
+            {
+                if (entry.EventType != null && _subscriberCountCache.TryGetValue(entry.EventType, out int cachedCount))
+                {
+                    if (entry.SubscriberCount != cachedCount)
+                    {
+                        entry.SubscriberCount = cachedCount;
+                        needsRepaint = true;
+                    }
+                }
+            }
+
+            if (needsRepaint)
+            {
+                Repaint();
+            }
+        }
         private void OnGUI()
         {
+            if (_autoRefreshEnabled && Event.current.type == EventType.Layout)
+            {
+                double currentTime = EditorApplication.timeSinceStartup;
+
+                // 检查是否需要刷新订阅者数量缓存
+                if (currentTime - _lastSubscriberCacheTime > SubscriberCacheDuration)
+                {
+                    RefreshSubscriberCountCache();
+                    _lastSubscriberCacheTime = currentTime;
+                }
+
+                // 检查是否需要刷新显示
+                if (currentTime - _lastRefreshTime > _refreshInterval)
+                {
+                    RefreshDisplayedSubscriberCounts();
+                    _lastRefreshTime = currentTime;
+                }
+            }
+
             DrawToolbar();
             DrawFilters();
             DrawEventLog();
             DrawFooter();
         }
-        
+
         private void DrawFilters()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Height(100));
-            
+
             EditorGUILayout.LabelField("筛选器", EditorStyles.boldLabel);
-            
+
             EditorGUILayout.BeginHorizontal();
-            
+
             // 架构筛选
             EditorGUILayout.LabelField("架构:", GUILayout.Width(50));
             _filterScrollPosition = EditorGUILayout.BeginScrollView(_filterScrollPosition, GUILayout.Height(40));
@@ -114,65 +232,70 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                 _architectureFilters[i] = EditorGUILayout.ToggleLeft(_architectureNames[i], _architectureFilters[i]);
             }
             EditorGUILayout.EndScrollView();
-            
+
             EditorGUILayout.EndHorizontal();
-            
+
             EditorGUILayout.BeginHorizontal();
-            
+
             // 事件类型筛选
             _useEventTypeFilter = EditorGUILayout.ToggleLeft("按事件类型筛选", _useEventTypeFilter, GUILayout.Width(120));
             if (_useEventTypeFilter)
             {
                 _selectedEventTypeFilter = EditorGUILayout.TextField(_selectedEventTypeFilter, GUILayout.Width(150));
             }
-            
+
             EditorGUILayout.EndHorizontal();
-            
+
             EditorGUILayout.EndVertical();
         }
 
         private void DrawToolbar()
         {
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-            
+
             if (GUILayout.Button("清空", EditorStyles.toolbarButton, GUILayout.Width(60)))
             {
                 _eventLog.Clear();
             }
-            
-            _autoScroll = GUILayout.Toggle(_autoScroll, "自动滚动", EditorStyles.toolbarButton, GUILayout.Width(80));
-            
-            // 监控开关
-            var monitoringEnabled = EditorMonitoringConfig.EnableEventMonitoring;
-            var newMonitoringState = GUILayout.Toggle(monitoringEnabled, "启用监控", EditorStyles.toolbarButton, GUILayout.Width(80));
-            if (newMonitoringState != monitoringEnabled)
+
+            // 自动刷新开关
+            _autoRefreshEnabled = GUILayout.Toggle(_autoRefreshEnabled, "自动刷新", EditorStyles.toolbarButton, GUILayout.Width(80));
+
+            if (_autoRefreshEnabled)
             {
-                EditorMonitoringConfig.EnableEventMonitoring = newMonitoringState;
+                // 刷新间隔设置
+                GUILayout.Label("间隔:", EditorStyles.toolbarButton, GUILayout.Width(35));
+                float newInterval = EditorGUILayout.FloatField(_refreshInterval, EditorStyles.toolbarTextField, GUILayout.Width(40));
+                if (newInterval != _refreshInterval)
+                {
+                    _refreshInterval = Mathf.Max(0.1f, newInterval); // 最小0.1秒
+                }
+                GUILayout.Label("秒", EditorStyles.toolbarButton, GUILayout.Width(20));
             }
-            
-            GUILayout.Space(10);
-            GUILayout.Label("筛选:", EditorStyles.toolbarButton, GUILayout.Width(40));
-            _filterText = GUILayout.TextField(_filterText, EditorStyles.toolbarTextField, GUILayout.Width(150));
-            
-            if (GUILayout.Button("×", EditorStyles.toolbarButton, GUILayout.Width(20)))
+            else
             {
-                _filterText = "";
-                GUI.FocusControl(null);
+                // 手动刷新按钮
+                if (GUILayout.Button("刷新", EditorStyles.toolbarButton, GUILayout.Width(50)))
+                {
+                    RefreshSubscriberCountCache();
+                    RefreshDisplayedSubscriberCounts();
+                    _lastRefreshTime = EditorApplication.timeSinceStartup;
+                }
             }
-            
+
             GUILayout.FlexibleSpace();
-            
+
             GUILayout.Label($"事件总数: {_eventLog.Count}/{MaxLogEntries}", EditorStyles.toolbarButton);
-            
+
             EditorGUILayout.EndHorizontal();
         }
 
         private void DrawEventLog()
         {
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
-            
+
             var filteredLogs = GetFilteredLogs();
-            
+
             if (filteredLogs.Count == 0)
             {
                 if (_eventLog.Count == 0)
@@ -190,71 +313,71 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                 {
                     DrawEventEntry(entry);
                 }
-                
+
                 if (_autoScroll)
                 {
                     _scrollPosition.y = float.MaxValue;
                 }
             }
-            
+
             EditorGUILayout.EndScrollView();
         }
 
         private void DrawEventEntry(EventLogEntry entry)
         {
             EditorGUILayout.BeginVertical("box");
-            
+
             EditorGUILayout.BeginHorizontal();
-            
+
             // 时间戳
             GUILayout.Label(entry.Timestamp.ToString("HH:mm:ss.fff"), GUILayout.Width(100));
-            
+
             // 事件类型
             var prevColor = GUI.contentColor;
             GUI.contentColor = GetEventTypeColor(entry.EventType);
             GUILayout.Label(entry.EventType.Name, EditorStyles.boldLabel, GUILayout.Width(200));
             GUI.contentColor = prevColor;
-            
+
             // 订阅者数量
             GUILayout.Label($"订阅者: {entry.SubscriberCount}", GUILayout.Width(80));
-            
+
             GUILayout.FlexibleSpace();
-            
+
             // 展开/折叠按钮
             if (GUILayout.Button(entry.IsExpanded ? "▼" : "▶", EditorStyles.label, GUILayout.Width(20)))
             {
                 entry.IsExpanded = !entry.IsExpanded;
             }
-            
+
             EditorGUILayout.EndHorizontal();
-            
+
             // 详细信息（展开时显示）
             if (entry.IsExpanded)
             {
                 EditorGUI.indentLevel++;
-                
+
                 EditorGUILayout.LabelField("完整类型:", entry.EventType.FullName, EditorStyles.wordWrappedLabel);
-                
+
                 if (entry.EventData != null)
                 {
                     EditorGUILayout.LabelField("事件数据:", entry.DataSummary, EditorStyles.wordWrappedLabel);
                 }
-                
+
                 EditorGUI.indentLevel--;
             }
-            
+
             EditorGUILayout.EndVertical();
         }
 
         private void DrawFooter()
         {
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-            
+
             if (_eventLog.Count >= MaxLogEntries)
             {
                 EditorGUILayout.HelpBox($"已达到最大记录数 ({MaxLogEntries})，旧事件将被自动清除", MessageType.Warning);
             }
-            
+
             EditorGUILayout.EndHorizontal();
         }
 
@@ -267,21 +390,20 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                 if (_architectureFilters[i])
                     currentSelectedArchitectures.Add(_architectureNames[i]);
             }
-            
+
             bool filterChanged = !_filterCacheValid ||
                 !_lastSelectedArchitectures.SequenceEqual(currentSelectedArchitectures) ||
                 _lastUseEventTypeFilter != _useEventTypeFilter ||
-                (_useEventTypeFilter && _lastSelectedEventTypeFilter != _selectedEventTypeFilter) ||
-                _lastFilterText != _filterText;
-            
+                (_useEventTypeFilter && _lastSelectedEventTypeFilter != _selectedEventTypeFilter);
+
             if (!filterChanged && _cachedFilteredLogs != null)
             {
                 return _cachedFilteredLogs;
             }
-            
+
             // 重新计算过滤结果
             var filtered = _eventLog.ToList();
-            
+
             // 架构筛选：仅当有架构被勾选时才进行筛选，否则显示空列表
             if (currentSelectedArchitectures.Count > 0)
             {
@@ -290,7 +412,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                 {
                     var allArchitectures = ServiceInspector.GetAllArchitectureInstances();
                     _cachedArchToNamespace = new Dictionary<string, string>();
-                    
+
                     // 建立架构名称到其所在命名空间的映射
                     foreach (var arch in allArchitectures)
                     {
@@ -301,15 +423,15 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                             _cachedArchToNamespace[archName] = archNamespace;
                         }
                     }
-                    
+
                     _archCacheValid = true;
                 }
-                
+
                 filtered = filtered.Where(e =>
                 {
                     var eventNamespace = e.EventType.Namespace;
-                    return currentSelectedArchitectures.Any(arch => 
-                        _cachedArchToNamespace.ContainsKey(arch) && 
+                    return currentSelectedArchitectures.Any(arch =>
+                        _cachedArchToNamespace.ContainsKey(arch) &&
                         eventNamespace?.StartsWith(_cachedArchToNamespace[arch]) == true
                     );
                 }).ToList();
@@ -319,7 +441,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                 // 当没有勾选任何架构时，显示空列表
                 filtered = new List<EventLogEntry>();
             }
-            
+
             // 事件类型筛选
             if (_useEventTypeFilter && !string.IsNullOrEmpty(_selectedEventTypeFilter))
             {
@@ -327,28 +449,18 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                     e.EventType.Name.IndexOf(_selectedEventTypeFilter, StringComparison.OrdinalIgnoreCase) >= 0
                 ).ToList();
             }
-            
-            // 文本筛选
-            if (!string.IsNullOrEmpty(_filterText))
-            {
-                filtered = filtered.Where(e =>
-                    e.EventType.Name.IndexOf(_filterText, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    e.EventType.FullName.IndexOf(_filterText, StringComparison.OrdinalIgnoreCase) >= 0
-                ).ToList();
-            }
-            
+
             _cachedFilteredLogs = filtered;
-            
+
             // 更新缓存状态
             _lastSelectedArchitectures = currentSelectedArchitectures.ToList();
             _lastUseEventTypeFilter = _useEventTypeFilter;
             _lastSelectedEventTypeFilter = _selectedEventTypeFilter;
-            _lastFilterText = _filterText;
             _filterCacheValid = true;
-            
+
             return _cachedFilteredLogs;
         }
-        
+
         private void RefreshArchitectureList()
         {
             // 保存当前的筛选状态
@@ -357,10 +469,10 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             {
                 previousFilters[_architectureNames[i]] = _architectureFilters[i];
             }
-            
+
             _architectureNames.Clear();
             _architectureFilters.Clear();
-            
+
             var architectureNames = ServiceInspector.GetAllArchitectureNames();
             foreach (var arch in architectureNames)
             {
@@ -380,19 +492,19 @@ namespace EasyPack.ENekoFramework.Editor.Windows
                 SubscriberCount = subscriberCount,
                 DataSummary = GetEventDataSummary(eventData)
             };
-            
+
             _eventLog.Add(entry);
-            
+
             // 限制日志条数
             if (_eventLog.Count > MaxLogEntries)
             {
                 _eventLog.RemoveAt(0);
             }
-            
+
             // 清除筛选缓存，因为数据已更新
             _filterCacheValid = false;
             _cachedFilteredLogs = null;
-            
+
             Repaint();
         }
 
@@ -400,7 +512,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         {
             if (eventData == null)
                 return "null";
-            
+
             try
             {
                 // 尝试序列化为 JSON
@@ -414,7 +526,7 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             {
                 // 如果无法序列化，使用 ToString
             }
-            
+
             var str = eventData.ToString();
             return str.Length > 200 ? str.Substring(0, 200) + "..." : str;
         }
@@ -438,6 +550,133 @@ namespace EasyPack.ENekoFramework.Editor.Windows
             public int SubscriberCount { get; set; }
             public string DataSummary { get; set; }
             public bool IsExpanded { get; set; }
+        }
+
+        /// <summary>
+        /// 保存事件日志数据到EditorPrefs
+        /// </summary>
+        private void SaveEventLogData()
+        {
+            try
+            {
+                // 只保存最近的100条记录以避免数据过大
+                var entriesToSave = _eventLog.Take(100).ToList();
+
+                // 序列化事件日志
+                var serializableEntries = entriesToSave.Select(entry => new SerializableEventLogEntry
+                {
+                    Timestamp = entry.Timestamp,
+                    EventTypeName = entry.EventType?.FullName ?? "Unknown",
+                    EventTypeAssembly = entry.EventType?.Assembly?.FullName ?? "",
+                    SubscriberCount = entry.SubscriberCount,
+                    DataSummary = entry.DataSummary ?? "",
+                    IsExpanded = entry.IsExpanded
+                }).ToList();
+
+                var jsonData = JsonUtility.ToJson(new SerializableEventLogData
+                {
+                    Entries = serializableEntries.ToArray(),
+                    SaveTime = DateTime.Now
+                });
+
+                EditorPrefs.SetString(EventLogDataKey, jsonData);
+                EditorPrefs.SetString(EventLogTimestampKey, DateTime.Now.ToString("O"));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[EventMonitor] 保存事件日志失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 从EditorPrefs加载事件日志数据
+        /// </summary>
+        private void LoadEventLogData()
+        {
+            try
+            {
+                var timestampStr = EditorPrefs.GetString(EventLogTimestampKey, "");
+                if (string.IsNullOrEmpty(timestampStr))
+                    return;
+
+                if (!DateTime.TryParse(timestampStr, out var saveTime))
+                    return;
+
+                // 检查数据是否过期
+                if (DateTime.Now - saveTime > MaxDataAge)
+                {
+                    // 清除过期数据
+                    EditorPrefs.DeleteKey(EventLogDataKey);
+                    EditorPrefs.DeleteKey(EventLogTimestampKey);
+                    return;
+                }
+
+                var jsonData = EditorPrefs.GetString(EventLogDataKey, "");
+                if (string.IsNullOrEmpty(jsonData))
+                    return;
+
+                var serializableData = JsonUtility.FromJson<SerializableEventLogData>(jsonData);
+                if (serializableData?.Entries == null)
+                    return;
+
+                // 反序列化事件日志
+                _eventLog.Clear();
+                foreach (var serializableEntry in serializableData.Entries)
+                {
+                    try
+                    {
+                        var eventType = Type.GetType($"{serializableEntry.EventTypeName}, {serializableEntry.EventTypeAssembly}");
+
+                        var entry = new EventLogEntry
+                        {
+                            Timestamp = serializableEntry.Timestamp,
+                            EventType = eventType,
+                            EventData = null, // 无法恢复原始事件数据
+                            SubscriberCount = serializableEntry.SubscriberCount,
+                            DataSummary = serializableEntry.DataSummary,
+                            IsExpanded = serializableEntry.IsExpanded
+                        };
+
+                        _eventLog.Add(entry);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[EventMonitor] 恢复事件日志条目失败: {ex.Message}");
+                    }
+                }
+
+                // 清除筛选缓存，因为数据已更新
+                _filterCacheValid = false;
+                _cachedFilteredLogs = null;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[EventMonitor] 加载事件日志失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 可序列化的事件日志数据
+        /// </summary>
+        [Serializable]
+        private class SerializableEventLogData
+        {
+            public SerializableEventLogEntry[] Entries;
+            public DateTime SaveTime;
+        }
+
+        /// <summary>
+        /// 可序列化的事件日志条目
+        /// </summary>
+        [Serializable]
+        private class SerializableEventLogEntry
+        {
+            public DateTime Timestamp;
+            public string EventTypeName;
+            public string EventTypeAssembly;
+            public int SubscriberCount;
+            public string DataSummary;
+            public bool IsExpanded;
         }
     }
 }

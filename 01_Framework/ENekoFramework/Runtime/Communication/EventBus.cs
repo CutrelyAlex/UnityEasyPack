@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace EasyPack.ENekoFramework
 {
@@ -15,7 +16,7 @@ namespace EasyPack.ENekoFramework
     public class EventBus
     {
         private readonly Dictionary<Type, List<WeakReference>> _subscriptions;
-        
+
         /// <summary>
         /// 事件发布时的监控回调（用于编辑器监控）
         /// </summary>
@@ -50,23 +51,23 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 发布事件（At-most-once 语义：处理函数抛出异常不会重试）
+        /// 发布事件（处理函数抛出异常不会重试）
         /// </summary>
         /// <typeparam name="TEvent">事件类型</typeparam>
         /// <param name="eventData">事件数据</param>
         public void Publish<TEvent>(TEvent eventData) where TEvent : IEvent
         {
             var eventType = typeof(TEvent);
-            
+
             // 调用事件监控回调
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             if (OnEventPublished != null && ShouldInvokeEventMonitoring())
             {
                 int subscriberCount = GetSubscriberCount<TEvent>();
                 OnEventPublished.Invoke(eventType, eventData, subscriberCount);
             }
-            #endif
-            
+#endif
+
             if (!_subscriptions.ContainsKey(eventType))
                 return;
 
@@ -106,17 +107,17 @@ namespace EasyPack.ENekoFramework
                 handlers.Remove(deadRef);
             }
         }
-        
+
         /// <summary>
         /// 检查是否应该调用事件监控回调
         /// </summary>
         private static bool ShouldInvokeEventMonitoring()
         {
-            #if UNITY_EDITOR
-            return UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode;
-            #else
+#if UNITY_EDITOR
+            return Editor.EditorMonitoringConfig.EnableEventMonitoring;
+#else
             return false;
-            #endif
+#endif
         }
 
         /// <summary>
@@ -164,7 +165,11 @@ namespace EasyPack.ENekoFramework
                 return 0;
 
             var handlers = _subscriptions[eventType];
-            return handlers.FindAll(weakRef => weakRef.IsAlive).Count;
+            int aliveCount = handlers.FindAll(weakRef => weakRef.IsAlive).Count;
+
+            handlers.RemoveAll(weakRef => !weakRef.IsAlive);
+
+            return aliveCount;
         }
     }
 }
