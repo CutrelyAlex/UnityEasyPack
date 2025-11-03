@@ -102,7 +102,10 @@ namespace EasyPack
         {
             await base.OnInitializeAsync();
             
-            // TODO: 可以在此处调用未迁移系统的 RegisterSerializers() 方法
+            // 注册所有外部系统的序列化器（将迁移）
+            GamePropertySystem.GamePropertySerializationInitializer.RegisterSerializers(this);
+            InventorySystem.InventorySerializationInitializer.RegisterSerializers(this);
+            EmeCardSystem.CardSerializationInitializer.RegisterSerializers(this);
 
             Debug.Log("[SerializationService] 序列化服务初始化完成");
         }

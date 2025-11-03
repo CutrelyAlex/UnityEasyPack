@@ -8,13 +8,18 @@ namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// EmeCard 的 JSON 序列化器
-    /// 负责将 Card 与其子层级转换为 JSON，及从 JSON 重建
+    /// 实现双泛型接口，将 Card 与其子层级转换为 JSON，及从 JSON 重建
     /// </summary>
-    public class CardJsonSerializer : JsonSerializerBase<Card>
+    public class CardJsonSerializer : ITypeSerializer<Card, SerializableCard>
     {
         private readonly GamePropertyJsonSerializer _propertySerializer = new();
 
-        public override string SerializeToJson(Card obj)
+        #region ITypeSerializer<Card, SerializableCard> 实现
+
+        /// <summary>
+        /// 将 Card 对象转换为可序列化的 DTO
+        /// </summary>
+        public SerializableCard ToSerializable(Card obj)
         {
             if (obj == null)
             {
@@ -31,11 +36,30 @@ namespace EasyPack.EmeCardSystem
             }
 
             var visited = new HashSet<Card>(ReferenceEqualityComparer<Card>.Default);
-            var dto = SerializeCardRecursive(obj, visited, new List<Card>());
+            return SerializeCardRecursive(obj, visited, new List<Card>());
+        }
+
+        /// <summary>
+        /// 从可序列化 DTO 转换回 Card 对象
+        /// </summary>
+        public Card FromSerializable(SerializableCard dto)
+        {
+            return DeserializeCardRecursive(dto);
+        }
+
+        /// <summary>
+        /// 将 DTO 序列化为 JSON 字符串
+        /// </summary>
+        public string ToJson(SerializableCard dto)
+        {
+            if (dto == null) return null;
             return JsonUtility.ToJson(dto);
         }
 
-        public override Card DeserializeFromJson(string json)
+        /// <summary>
+        /// 从 JSON 字符串反序列化为 DTO
+        /// </summary>
+        public SerializableCard FromJson(string json)
         {
             if (string.IsNullOrEmpty(json)) return null;
 
@@ -62,8 +86,30 @@ namespace EasyPack.EmeCardSystem
                 );
             }
 
-            return DeserializeCardRecursive(data);
+            return data;
         }
+
+        /// <summary>
+        /// 将 Card 直接序列化为 JSON
+        /// </summary>
+        public string SerializeToJson(Card obj)
+        {
+            var dto = ToSerializable(obj);
+            return ToJson(dto);
+        }
+
+        /// <summary>
+        /// 从 JSON 直接反序列化为 Card
+        /// </summary>
+        public Card DeserializeFromJson(string json)
+        {
+            var dto = FromJson(json);
+            return FromSerializable(dto);
+        }
+
+        #endregion
+
+        #region 私有辅助方法
 
         private SerializableCard SerializeCardRecursive(Card card, HashSet<Card> visited, List<Card> path)
         {
@@ -248,4 +294,5 @@ namespace EasyPack.EmeCardSystem
         public int GetHashCode(T obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
 }
+    #endregion
 

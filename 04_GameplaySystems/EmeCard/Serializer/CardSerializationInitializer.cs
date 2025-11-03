@@ -1,48 +1,29 @@
+using System;
 using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// EmeCard 序列化系统初始化器
+    /// 负责向 SerializationService 注册 Card 序列化器
     /// </summary>
     public static class CardSerializationInitializer
     {
-        private static bool _isInitialized = false;
-        private static readonly object _lock = new();
-
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void Initialize()
+        /// <summary>
+        /// 向序列化服务注册所有 Card 相关的序列化器
+        /// </summary>
+        /// <param name="service">序列化服务实例</param>
+        public static void RegisterSerializers(ISerializationService service)
         {
-            lock (_lock)
+            try
             {
-                if (_isInitialized)
-                {
-                    Debug.LogWarning("[EmeCard] Card 序列化系统已初始化，跳过重复注册");
-                    return;
-                }
-
-                try
-                {
-                    SerializationServiceManager.RegisterSerializer(new CardJsonSerializer());
-                    _isInitialized = true;
-                    Debug.Log("[EmeCard] Card 序列化系统初始化完成");
-                }
-                catch (System.Exception ex)
-                {
-                    Debug.LogError($"[EmeCard] Card 序列化系统初始化失败: {ex.Message}\n{ex.StackTrace}");
-                }
+                service.RegisterSerializer<Card, SerializableCard>(new CardJsonSerializer());
+                Debug.Log("[EmeCard] Card 序列化器注册完成");
             }
-        }
-
-        internal static bool IsInitialized => _isInitialized;
-
-        internal static void ResetForTesting()
-        {
-            lock (_lock)
+            catch (Exception ex)
             {
-                _isInitialized = false;
+                Debug.LogError($"[EmeCard] Card 序列化器注册失败: {ex.Message}\n{ex.StackTrace}");
             }
         }
     }
 }
-
