@@ -12,9 +12,10 @@ namespace EasyPack
         protected override void OnInit()
         {
             // 注册核心服务
-
             Container.Register<ISerializationService, SerializationService>();
-        
+
+            // 注册GameSystem服务
+            Container.Register<IGamePropertyManager, GamePropertyManager>();
         }
     }
 }

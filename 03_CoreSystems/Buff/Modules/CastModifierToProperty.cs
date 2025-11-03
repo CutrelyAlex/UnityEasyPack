@@ -11,9 +11,9 @@ namespace EasyPack.BuffSystem
     public class CastModifierToProperty : BuffModule
     {
         /// <summary>
-        /// 获取或设置组合属性管理器，用于查找目标属性
+        /// 获取或设置属性管理器，用于查找目标属性
         /// </summary>
-        public GamePropertyManager CombineGamePropertyManager { get; set; }
+        public GamePropertyManager PropertyManager { get; set; }
 
         /// <summary>
         /// 获取或设置要应用的修饰符模板
@@ -21,13 +21,7 @@ namespace EasyPack.BuffSystem
         public IModifier Modifier { get; set; }
 
         /// <summary>
-        /// 组合属性的 ID，用于从管理器中获取对应的组合属性
-        /// </summary>
-        public string CombinePropertyID { get; set; }
-
-        /// <summary>
-        /// 具体属性的 ID，用于在组合属性中查找相应的 GameProperty
-        /// 为空时使用组合属性的结果属性
+        /// 目标属性的 ID
         /// </summary>
         public string PropertyID { get; set; }
 
@@ -47,9 +41,9 @@ namespace EasyPack.BuffSystem
         /// <returns>目标 GameProperty 实例，未找到返回 null</returns>
         private GameProperty GetProperty()
         {
-            if (_cachedProperty == null && CombineGamePropertyManager != null)
+            if (_cachedProperty == null && PropertyManager != null)
             {
-                _cachedProperty = CombineGamePropertyManager.GetGamePropertyFromCombine(CombinePropertyID, PropertyID);
+                _cachedProperty = PropertyManager.Get(PropertyID);
             }
             return _cachedProperty;
         }
@@ -58,16 +52,14 @@ namespace EasyPack.BuffSystem
         /// 创建一个新的 CastModifierToProperty 实例并注册生命周期回调
         /// </summary>
         /// <param name="modifier">要应用的修饰符模板</param>
-        /// <param name="combinePropertyID">组合属性 ID</param>
-        /// <param name="combineGamePropertyManager">组合属性管理器</param>
-        /// <param name="propertyID">具体属性 ID（可选，为空时使用组合属性的结果属性）</param>
+        /// <param name="propertyID">目标属性ID</param>
+        /// <param name="propertyManager">属性管理器</param>
         /// <exception cref="ArgumentNullException">当必需参数为 null 时抛出</exception>
-        public CastModifierToProperty(IModifier modifier, string combinePropertyID, GamePropertyManager combineGamePropertyManager, string propertyID = "")
+        public CastModifierToProperty(IModifier modifier, string propertyID, GamePropertyManager propertyManager)
         {
             Modifier = modifier ?? throw new ArgumentNullException(nameof(modifier));
-            CombinePropertyID = combinePropertyID ?? throw new ArgumentNullException(nameof(combinePropertyID));
-            PropertyID = propertyID;
-            CombineGamePropertyManager = combineGamePropertyManager ?? throw new ArgumentNullException(nameof(combineGamePropertyManager));
+            PropertyID = propertyID ?? throw new ArgumentNullException(nameof(propertyID));
+            PropertyManager = propertyManager ?? throw new ArgumentNullException(nameof(propertyManager));
 
             // 注册 Buff 生命周期回调
             RegisterCallback(BuffCallBackType.OnCreate, OnCreate);

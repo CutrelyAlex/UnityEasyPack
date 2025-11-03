@@ -26,7 +26,6 @@ namespace EasyPack.InventorySystem
             }
 
             _kindToType[kind] = conditionType;
-            Debug.Log($"[ConditionTypeRegistry] 注册条件类型: {kind} -> {conditionType.Name}");
         }
 
         /// <summary>

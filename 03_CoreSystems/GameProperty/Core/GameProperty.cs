@@ -7,8 +7,6 @@ using System.Linq;
 /// 基于float数值的游戏属性类
 /// 支持修饰符系统，依赖系统，脏标记系统
 /// 可用于实现角色属性，装备属性，buff/debuff等各种游戏数值计算
-/// 
-/// 通常与CombineProperty配合使用，也可以单独使用GameProperty
 /// </summary>
 
 namespace EasyPack.GamePropertySystem
@@ -64,8 +62,8 @@ namespace EasyPack.GamePropertySystem
             // 1. 有非Clamp的RangeModifier（随机性）
             // 2. 有随机依赖
             // 3. 自身脏了（包含依赖项传播过来的脏标记）
-            bool needsRecalculation = _hasNonClampRangeModifier 
-                || DependencyManager.HasRandomDependency 
+            bool needsRecalculation = _hasNonClampRangeModifier
+                || DependencyManager.HasRandomDependency
                 || _isDirty;
 
             if (!needsRecalculation)
@@ -114,10 +112,10 @@ namespace EasyPack.GamePropertySystem
                 var oldBaseValue = _baseValue;
                 _baseValue = value;
                 MakeDirty();
-                
+
                 // 触发基础值变化事件
                 OnBaseValueChanged?.Invoke(oldBaseValue, _baseValue);
-                
+
                 // 立即计算以确保事件和依赖更新正确触发
                 GetValue();
             }
@@ -216,11 +214,11 @@ namespace EasyPack.GamePropertySystem
         {
             bool wasAlreadyDirty = _isDirty;
             _isDirty = true;
-            
+
             DependencyManager.InvalidateDirtyCache();
-            
+
             _onDirty?.Invoke();
-            
+
             // 只有在第一次变脏时才传播到依赖者
             if (!wasAlreadyDirty && DependencyManager.DependentCount > 0)
             {

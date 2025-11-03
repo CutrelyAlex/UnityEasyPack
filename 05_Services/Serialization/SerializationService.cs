@@ -101,9 +101,8 @@ namespace EasyPack
         protected override async Task OnInitializeAsync()
         {
             await base.OnInitializeAsync();
-            
+
             // 注册所有外部系统的序列化器（将迁移）
-            GamePropertySystem.GamePropertySerializationInitializer.RegisterSerializers(this);
             InventorySystem.InventorySerializationInitializer.RegisterSerializers(this);
             EmeCardSystem.CardSerializationInitializer.RegisterSerializers(this);
 
@@ -115,12 +114,12 @@ namespace EasyPack
         /// 清理所有已注册的序列化器
         /// </summary>
         protected override async Task OnDisposeAsync()
-        {     
+        {
             lock (_lock)
             {
                 _serializers.Clear();
             }
-            
+
             await base.OnDisposeAsync();
 
             Debug.Log("[SerializationService] 序列化服务已释放");
@@ -133,7 +132,7 @@ namespace EasyPack
         /// <summary>
         /// 注册双泛型类型序列化器
         /// </summary>
-        public void RegisterSerializer<TOriginal, TSerializable>(ITypeSerializer<TOriginal, TSerializable> serializer) 
+        public void RegisterSerializer<TOriginal, TSerializable>(ITypeSerializer<TOriginal, TSerializable> serializer)
             where TSerializable : ISerializable
         {
             lock (_lock)

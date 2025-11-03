@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using EasyPack.GamePropertySystem;
 
@@ -13,15 +14,16 @@ namespace EasyPack.BuffSystem
         private BuffManager _buffManager;
         private GameObject _dummyTarget;
         private GameObject _dummyCreator;
-        private GamePropertyManager _combineGamePropertyManager;
+        private GamePropertyManager _gamePropertyManager;
 
-        void Start()
+        async void Start()
         {
             // 初始化基础组件
             _buffManager = new BuffManager();
             _dummyTarget = new GameObject("DummyTarget");
             _dummyCreator = new GameObject("DummyCreator");
-            _combineGamePropertyManager = new GamePropertyManager();
+            _gamePropertyManager = new GamePropertyManager();
+            await _gamePropertyManager.InitializeAsync();
 
             Debug.Log("=== Buff 系统示例开始 ===\n");
 
@@ -252,10 +254,10 @@ namespace EasyPack.BuffSystem
             Debug.Log("=== 示例5：属性修改型 Buff ===");
 
             // 5.1 创建测试属性
-            var strength = new CombinePropertySingle("Strength", 10f);
-            var health = new CombinePropertySingle("Health", 100f);
-            _combineGamePropertyManager.AddOrUpdate(strength);
-            _combineGamePropertyManager.AddOrUpdate(health);
+            var strength = new GameProperty("Strength", 10f);
+            var health = new GameProperty("Health", 100f);
+            _gamePropertyManager.Register(strength);
+            _gamePropertyManager.Register(health);
 
             Debug.Log($"初始力量: {strength.GetValue()}");
             Debug.Log($"初始生命值: {health.GetValue()}");
@@ -272,10 +274,7 @@ namespace EasyPack.BuffSystem
 
             // 5.3 添加属性修改模块
             var strengthModifier = new FloatModifier(ModifierType.Add, 0, 5f);  // 增加5点力量
-            var strengthModule = new CastModifierToProperty(strengthModifier, "Strength", _combineGamePropertyManager)
-            {
-                CombineGamePropertyManager = _combineGamePropertyManager
-            };
+            var strengthModule = new CastModifierToProperty(strengthModifier, "Strength", _gamePropertyManager);
             strengthBuff.BuffModules.Add(strengthModule);
 
             // 5.4 应用Buff并观察效果
@@ -296,10 +295,7 @@ namespace EasyPack.BuffSystem
             };
 
             var healthModifier = new FloatModifier(ModifierType.Mul, 0, 1.5f);  // 增加50%生命值
-            var healthModule = new CastModifierToProperty(healthModifier, "Health", _combineGamePropertyManager)
-            {
-                CombineGamePropertyManager = _combineGamePropertyManager
-            };
+            var healthModule = new CastModifierToProperty(healthModifier, "Health", _gamePropertyManager);
             healthBuff.BuffModules.Add(healthModule);
 
             _buffManager.CreateBuff(healthBuff, _dummyCreator, _dummyTarget);
@@ -489,15 +485,15 @@ namespace EasyPack.BuffSystem
             Debug.Log("=== 示例9：复杂 RPG Buff 组合 ===");
 
             // 9.1 设置角色属性系统
-            var strength = new CombinePropertySingle("Strength", 15f);
-            var agility = new CombinePropertySingle("Agility", 12f);
-            var health = new CombinePropertySingle("Health", 100f);
-            var mana = new CombinePropertySingle("Mana", 50f);
+            var strength = new GameProperty("Strength", 15f);
+            var agility = new GameProperty("Agility", 12f);
+            var health = new GameProperty("Health", 100f);
+            var mana = new GameProperty("Mana", 50f);
 
-            _combineGamePropertyManager.AddOrUpdate(strength);
-            _combineGamePropertyManager.AddOrUpdate(agility);
-            _combineGamePropertyManager.AddOrUpdate(health);
-            _combineGamePropertyManager.AddOrUpdate(mana);
+            _gamePropertyManager.Register(strength);
+            _gamePropertyManager.Register(agility);
+            _gamePropertyManager.Register(health);
+            _gamePropertyManager.Register(mana);
 
             Debug.Log("=== 角色初始属性 ===");
             Debug.Log($"力量: {strength.GetValue()}, 敏捷: {agility.GetValue()}");
@@ -518,15 +514,9 @@ namespace EasyPack.BuffSystem
             };
 
             // 添加多个效果模块
-            var strBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 3f), "Strength", _combineGamePropertyManager)
-            {
-                CombineGamePropertyManager = _combineGamePropertyManager
-            };
+            var strBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 3f), "Strength", _gamePropertyManager);
 
-            var agiBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 2f), "Agility", _combineGamePropertyManager)
-            {
-                CombineGamePropertyManager = _combineGamePropertyManager
-            };
+            var agiBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 2f), "Agility", _gamePropertyManager);
 
             var rageModule = new RageEffectModule();
 

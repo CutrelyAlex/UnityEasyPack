@@ -1,320 +1,451 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
+using EasyPack.ENekoFramework;
+using EasyPack.GamePropertySystem;
 
-namespace EasyPack.GamePropertySystem
+namespace EasyPack
 {
     /// <summary>
-    /// 游戏属性管理器，负责集中管理所有组合属性（ICombineGameProperty）的生命周期
-    /// 提供属性的添加、查询、更新、删除等功能，支持线程安全的并发访问
+    /// 游戏属性管理器
+    /// 提供属性注册、查询、分类管理和批量操作功能
+    /// 实现IService接口，支持生命周期管理
     /// </summary>
-    public class GamePropertyManager
+    public class GamePropertyManager : IGamePropertyManager
     {
+        #region 字段
 
-        private readonly ConcurrentDictionary<string, ICombineGameProperty> _properties = new ConcurrentDictionary<string, ICombineGameProperty>();
+        // 核心数据
+        private ConcurrentDictionary<string, GameProperty> _properties;
+        private ConcurrentDictionary<string, PropertyMetadata> _metadata;
+        private ConcurrentDictionary<string, string> _propertyToCategory;
 
-        #region 增删改查
+        // 运行时索引
+        private ConcurrentDictionary<string, HashSet<string>> _categories;
+        private ConcurrentDictionary<string, HashSet<string>> _tagIndex;
+
+        // 服务生命周期状态
+        private ServiceLifecycleState _state = ServiceLifecycleState.Uninitialized;
+
+        #endregion
+
+        #region IService 生命周期
 
         /// <summary>
-        /// 添加或更新一个 ICombineGameProperty，如果已存在则替换并释放旧实例
+        /// 服务的当前生命周期状态
         /// </summary>
-        /// <param name="property">要添加或更新的组合属性</param>
-        public void AddOrUpdate(ICombineGameProperty property)
+        public ServiceLifecycleState State => _state;
+
+        /// <summary>
+        /// 异步初始化服务
+        /// </summary>
+        public async Task InitializeAsync()
         {
-            if (property == null)
-            {
-                Debug.LogWarning("不能添加空的属性到管理器");
+            if (_state != ServiceLifecycleState.Uninitialized)
                 return;
-            }
 
-            var oldProperty = _properties.AddOrUpdate(property.ID, property, (key, oldValue) =>
-            {
-                // 释放旧值占用的资源
-                oldValue?.Dispose();
-                return property;
-            });
+            _state = ServiceLifecycleState.Initializing;
+
+            // 初始化字典
+            _properties = new ConcurrentDictionary<string, GameProperty>();
+            _metadata = new ConcurrentDictionary<string, PropertyMetadata>();
+            _propertyToCategory = new ConcurrentDictionary<string, string>();
+            _categories = new ConcurrentDictionary<string, HashSet<string>>();
+            _tagIndex = new ConcurrentDictionary<string, HashSet<string>>();
+
+            // 注册GameProperty系统的序列化器
+            await RegisterSerializers();
+
+            _state = ServiceLifecycleState.Ready;
+            await Task.CompletedTask;
         }
 
         /// <summary>
-        /// 添加或更新一个 GameProperty（自动包装为 CombinePropertySingle）
+        /// 注册GameProperty系统的序列化器
         /// </summary>
-        /// <param name="property">要添加的 GameProperty</param>
-        /// <returns>自动包装的 CombinePropertySingle 实例</returns>
-        public CombinePropertySingle Wrap(GameProperty property)
+        private async Task RegisterSerializers()
         {
+            try
+            {
+                // 获取序列化服务
+                var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+
+                // 注册所有修饰符相关的序列化器
+                serializationService.RegisterSerializer(new ModifierSerializer());
+                serializationService.RegisterSerializer(new FloatModifierSerializer());
+                serializationService.RegisterSerializer(new RangeModifierSerializer());
+                serializationService.RegisterSerializer(new ModifierListSerializer());
+
+                // 注册GameProperty JSON序列化器
+                serializationService.RegisterSerializer(new GamePropertyJsonSerializer());
+
+                Debug.Log("[GamePropertyManager] GameProperty序列化器注册完成");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[GamePropertyManager] 序列化器注册失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 暂停服务
+        /// </summary>
+        public void Pause()
+        {
+            if (_state == ServiceLifecycleState.Ready)
+                _state = ServiceLifecycleState.Paused;
+        }
+
+        /// <summary>
+        /// 恢复服务
+        /// </summary>
+        public void Resume()
+        {
+            if (_state == ServiceLifecycleState.Paused)
+                _state = ServiceLifecycleState.Ready;
+        }
+
+        /// <summary>
+        /// 释放服务资源
+        /// </summary>
+        public void Dispose()
+        {
+            _properties?.Clear();
+            _metadata?.Clear();
+            _categories?.Clear();
+            _tagIndex?.Clear();
+            _propertyToCategory?.Clear();
+            _state = ServiceLifecycleState.Disposed;
+        }
+
+        #endregion
+
+        #region 注册API
+
+        /// <summary>
+        /// 注册单个属性到指定分类
+        /// </summary>
+        public void Register(GameProperty property, string category = "Default", PropertyMetadata metadata = null)
+        {
+            ThrowIfNotReady();
+
             if (property == null)
-            {
-                Debug.LogWarning("不能添加空的属性到管理器");
-                return null;
-            }
+                throw new ArgumentNullException(nameof(property));
 
-            // 检查是否已存在相同 ID 的包装器
-            if (_properties.TryGetValue(property.ID, out var existing) && existing is CombinePropertySingle existingSingle)
+            if (string.IsNullOrEmpty(property.ID))
+                throw new ArgumentException("属性ID不能为空");
+
+            if (_properties.ContainsKey(property.ID))
+                throw new ArgumentException($"属性 '{property.ID}' 已注册");
+
+            // 添加到主表
+            _properties[property.ID] = property;
+            _propertyToCategory[property.ID] = category ?? "Default";
+
+            // 添加元数据
+            if (metadata != null)
             {
-                // 如果 ResultHolder 的 ID 和基础值与原属性匹配，认为是同一个属性的包装
-                if (existingSingle.ResultHolder.ID == property.ID)
+                // 去重标签
+                if (metadata.Tags != null)
+                    metadata.Tags = metadata.Tags.Distinct().ToArray();
+
+                _metadata[property.ID] = metadata;
+
+                // 更新标签索引
+                if (metadata.Tags != null)
                 {
-                    // 更新 ResultHolder 的基础值（如果有变化）
-                    if (!Mathf.Approximately(existingSingle.ResultHolder.GetBaseValue(), property.GetBaseValue()))
+                    foreach (var tag in metadata.Tags)
                     {
-                        existingSingle.ResultHolder.SetBaseValue(property.GetBaseValue());
+                        if (!_tagIndex.ContainsKey(tag))
+                            _tagIndex[tag] = new HashSet<string>();
+
+                        _tagIndex[tag].Add(property.ID);
                     }
-
-                    // 返回已存在的包装器实例
-                    return existingSingle;
                 }
             }
 
-            // 创建新的 CombinePropertySingle 包装器
-            var wrapper = new CombinePropertySingle(property.ID, property.GetBaseValue());
+            // 更新分类索引
+            if (!_categories.ContainsKey(category))
+                _categories[category] = new HashSet<string>();
 
-            // 复制所有修饰符到 ResultHolder
-            if (property.Modifiers != null && property.Modifiers.Count > 0)
-            {
-                foreach (var modifier in property.Modifiers)
-                {
-                    var clonedModifier = modifier.Clone();
-                    wrapper.ResultHolder.AddModifier(clonedModifier);
-                }
-            }
-
-            AddOrUpdate(wrapper);
-            return wrapper;
+            _categories[category].Add(property.ID);
         }
 
         /// <summary>
-        /// 批量包装并添加 GameProperty
+        /// 批量注册属性到指定分类
         /// </summary>
-        /// <param name="properties">要添加的 GameProperty 集合</param>
-        /// <returns>包装后的 CombinePropertySingle 集合</returns>
-        public IEnumerable<CombinePropertySingle> WrapRange(IEnumerable<GameProperty> properties)
+        public void RegisterRange(IEnumerable<GameProperty> properties, string category = "Default")
         {
-            if (properties == null) yield break;
+            ThrowIfNotReady();
+
+            if (properties == null)
+                throw new ArgumentNullException(nameof(properties));
 
             foreach (var property in properties)
             {
-                var wrapper = Wrap(property);
-                if (wrapper != null)
-                    yield return wrapper;
+                Register(property, category, null);
             }
         }
 
+        #endregion
+
+        #region 查询API
+
         /// <summary>
-        /// 根据ID获取 ICombineGameProperty
+        /// 通过ID获取属性
         /// </summary>
-        /// <param name="id">属性的唯一标识符</param>
-        /// <returns>对应的组合属性实例，如果不存在或无效返回 null</returns>
-        public ICombineGameProperty Get(string id)
+        public GameProperty Get(string id)
         {
-            if (string.IsNullOrEmpty(id)) return null;
+            if (string.IsNullOrEmpty(id))
+                return null;
 
             _properties.TryGetValue(id, out var property);
-            return property?.IsValid() == true ? property : null;
+            return property;
         }
 
         /// <summary>
-        /// 根据ID获取 CombinePropertySingle
+        /// 获取指定分类的所有属性
         /// </summary>
-        /// <param name="id">属性ID</param>
-        /// <returns>CombinePropertySingle 实例，如果不存在或类型不匹配返回 null</returns>
-        public CombinePropertySingle GetSingle(string id)
+        public IEnumerable<GameProperty> GetByCategory(string category, bool includeChildren = false)
         {
-            return Get(id) as CombinePropertySingle;
-        }
+            if (string.IsNullOrEmpty(category))
+                return Enumerable.Empty<GameProperty>();
 
-        /// <summary>
-        /// 根据ID获取 CombinePropertyCustom
-        /// </summary>
-        /// <param name="id">属性ID</param>
-        /// <returns>CombinePropertyCustom 实例，如果不存在或类型不匹配返回 null</returns>
-        public CombinePropertyCustom GetCustom(string id)
-        {
-            return Get(id) as CombinePropertyCustom;
-        }
-
-        /// <summary>
-        /// 根据ID直接获取 GameProperty（自动从组合属性中提取）
-        /// </summary>
-        /// <param name="id">组合属性ID</param>
-        /// <param name="subId">子属性ID（对于 CombinePropertyCustom）</param>
-        /// <returns>GameProperty 实例</returns>
-        public GameProperty GetGameProperty(string id, string subId = "")
-        {
-            return GetGamePropertyFromCombine(id, subId);
-        }
-
-        /// <summary>
-        /// 从组合属性中获取内部的 GameProperty
-        /// </summary>
-        /// <param name="combinePropertyID">组合属性的ID</param>
-        /// <param name="id">子属性ID（对于 CombinePropertyCustom），为空则返回 ResultHolder</param>
-        /// <returns>内部的 GameProperty 实例</returns>
-        public GameProperty GetGamePropertyFromCombine(string combinePropertyID, string id = "")
-        {
-            if (string.IsNullOrEmpty(combinePropertyID)) return null;
-
-            var property = Get(combinePropertyID);
-            return property?.GetProperty(id);
-        }
-
-        /// <summary>
-        /// 删除指定ID的 ICombineGameProperty 并释放其资源
-        /// </summary>
-        /// <param name="id">要删除的属性ID</param>
-        /// <returns>删除成功返回 true，否则返回 false</returns>
-        public bool Remove(string id)
-        {
-            if (string.IsNullOrEmpty(id)) return false;
-
-            var removed = _properties.TryRemove(id, out var property);
-
-            if (removed)
+            if (!includeChildren)
             {
-                property?.Dispose();
-            }
-
-            return removed;
-        }
-
-        /// <summary>
-        /// 获取所有有效的 ICombineGameProperty
-        /// </summary>
-        public IEnumerable<ICombineGameProperty> GetAll()
-        {
-            foreach (var property in _properties.Values)
-            {
-                if (property?.IsValid() == true)
-                    yield return property;
-            }
-        }
-
-        /// <summary>
-        /// 获取所有 CombinePropertySingle
-        /// </summary>
-        public IEnumerable<CombinePropertySingle> GetAllSingles()
-        {
-            foreach (var property in GetAll())
-            {
-                if (property is CombinePropertySingle single)
-                    yield return single;
-            }
-        }
-
-        /// <summary>
-        /// 获取所有 CombinePropertyCustom
-        /// </summary>
-        public IEnumerable<CombinePropertyCustom> GetAllCustoms()
-        {
-            foreach (var property in GetAll())
-            {
-                if (property is CombinePropertyCustom custom)
-                    yield return custom;
-            }
-        }
-
-        /// <summary>
-        /// 清空所有属性
-        /// </summary>
-        public void Clear()
-        {
-            foreach (var property in _properties.Values)
-            {
-                property?.Dispose();
-            }
-
-            _properties.Clear();
-        }
-
-        /// <summary>
-        /// 清理无效属性
-        /// </summary>
-        public int CleanupInvalidProperties()
-        {
-            var invalidKeys = new List<string>();
-
-            foreach (var kvp in _properties)
-            {
-                if (kvp.Value?.IsValid() != true)
+                // 精确匹配
+                if (_categories.TryGetValue(category, out var ids))
                 {
-                    invalidKeys.Add(kvp.Key);
+                    return ids.Select(id => _properties[id]).Where(p => p != null);
+                }
+                return Enumerable.Empty<GameProperty>();
+            }
+            else
+            {
+                // 支持通配符："Category.*" 匹配所有子分类
+                var results = new List<GameProperty>();
+                var prefix = category.EndsWith(".*") ? category.Substring(0, category.Length - 2) + "." : category + ".";
+
+                foreach (var kvp in _categories)
+                {
+                    if (kvp.Key == category || kvp.Key.StartsWith(prefix))
+                    {
+                        results.AddRange(kvp.Value.Select(id => _properties[id]).Where(p => p != null));
+                    }
+                }
+
+                return results;
+            }
+        }
+
+        /// <summary>
+        /// 获取包含指定标签的所有属性
+        /// </summary>
+        public IEnumerable<GameProperty> GetByTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag))
+                return Enumerable.Empty<GameProperty>();
+
+            if (_tagIndex.TryGetValue(tag, out var ids))
+            {
+                return ids.Select(id => _properties[id]).Where(p => p != null);
+            }
+
+            return Enumerable.Empty<GameProperty>();
+        }
+
+        /// <summary>
+        /// 组合查询：获取同时满足分类和标签条件的属性（交集）
+        /// </summary>
+        public IEnumerable<GameProperty> GetByCategoryAndTag(string category, string tag)
+        {
+            var categoryProps = GetByCategory(category).Select(p => p.ID).ToHashSet();
+            var tagProps = GetByTag(tag).Select(p => p.ID).ToHashSet();
+
+            var intersection = categoryProps.Intersect(tagProps);
+            return intersection.Select(id => _properties[id]).Where(p => p != null);
+        }
+
+        /// <summary>
+        /// 获取属性的元数据
+        /// </summary>
+        public PropertyMetadata GetMetadata(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return null;
+
+            _metadata.TryGetValue(id, out var metadata);
+            return metadata;
+        }
+
+        /// <summary>
+        /// 获取所有已注册的属性ID
+        /// </summary>
+        public IEnumerable<string> GetAllPropertyIds()
+        {
+            return _properties.Keys;
+        }
+
+        /// <summary>
+        /// 获取所有分类名
+        /// </summary>
+        public IEnumerable<string> GetAllCategories()
+        {
+            return _categories.Keys;
+        }
+
+        #endregion
+
+        #region 移除API
+
+        /// <summary>
+        /// 移除指定属性
+        /// </summary>
+        public bool Unregister(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return false;
+
+            // 从主表移除
+            if (!_properties.TryRemove(id, out var property))
+                return false;
+
+            // 从元数据移除
+            _metadata.TryRemove(id, out _);
+
+            // 从分类索引移除
+            if (_propertyToCategory.TryRemove(id, out var category))
+            {
+                if (_categories.TryGetValue(category, out var categorySet))
+                {
+                    categorySet.Remove(id);
+                    if (categorySet.Count == 0)
+                        _categories.TryRemove(category, out _);
                 }
             }
 
-            foreach (var key in invalidKeys)
+            // 从标签索引移除
+            foreach (var tagSet in _tagIndex.Values)
             {
-                Remove(key);
+                tagSet.Remove(id);
             }
 
-            return invalidKeys.Count;
-        }
-        #endregion
-
-        #region 查询
-
-        /// <summary>
-        /// 获取属性数量
-        /// </summary>
-        public int Count => _properties.Count;
-
-        /// <summary>
-        /// 检查是否包含指定ID的属性
-        /// </summary>
-        public bool Contains(string id)
-        {
-            return !string.IsNullOrEmpty(id) && _properties.ContainsKey(id);
+            return true;
         }
 
         /// <summary>
-        /// 检查指定ID的属性是否为 CombinePropertySingle
+        /// 移除整个分类及其所有属性
         /// </summary>
-        public bool IsSingle(string id)
+        public void UnregisterCategory(string category)
         {
-            return Get(id) is CombinePropertySingle;
-        }
+            if (string.IsNullOrEmpty(category))
+                return;
 
-        /// <summary>
-        /// 检查指定ID的属性是否为 CombinePropertyCustom
-        /// </summary>
-        public bool IsCustom(string id)
-        {
-            return Get(id) is CombinePropertyCustom;
+            if (_categories.TryRemove(category, out var ids))
+            {
+                foreach (var id in ids.ToList())
+                {
+                    Unregister(id);
+                }
+            }
         }
 
         #endregion
 
-        #region 批量操作
+        #region 批量操作API
 
         /// <summary>
-        /// 批量添加或更新组合属性
+        /// 设置分类中所有属性的激活状态
         /// </summary>
-        /// <param name="properties">要添加的组合属性集合</param>
-        public void AddOrUpdateRange(IEnumerable<ICombineGameProperty> properties)
+        public OperationResult<List<string>> SetCategoryActive(string category, bool active)
         {
-            if (properties == null) return;
+            ThrowIfNotReady();
+
+            var successIds = new List<string>();
+            var failures = new List<FailureRecord>();
+
+            var properties = GetByCategory(category).ToList();
+
+            if (properties.Count == 0)
+            {
+                failures.Add(new FailureRecord(category, "分类不存在或为空", FailureType.CategoryNotFound));
+                return OperationResult<List<string>>.PartialSuccess(successIds, 0, failures);
+            }
 
             foreach (var property in properties)
             {
-                AddOrUpdate(property);
+                try
+                {
+                    // GameProperty没有直接的Active属性，这里通过Enable/Disable修饰符来实现
+                    // 实际实现可能需要根据项目具体需求调整
+                    property.SetBaseValue(active ? property.GetBaseValue() : 0);
+                    successIds.Add(property.ID);
+                }
+                catch (Exception ex)
+                {
+                    failures.Add(new FailureRecord(property.ID, ex.Message, FailureType.UnknownError));
+                }
             }
+
+            return failures.Count == 0
+                ? OperationResult<List<string>>.Success(successIds, successIds.Count)
+                : OperationResult<List<string>>.PartialSuccess(successIds, successIds.Count, failures);
         }
 
         /// <summary>
-        /// 批量移除属性
+        /// 为分类中所有属性应用修饰符
         /// </summary>
-        /// <param name="ids">要移除的属性ID集合</param>
-        /// <returns>成功移除的数量</returns>
-        public int RemoveRange(IEnumerable<string> ids)
+        public OperationResult<List<string>> ApplyModifierToCategory(string category, IModifier modifier)
         {
-            if (ids == null) return 0;
+            ThrowIfNotReady();
 
-            int count = 0;
-            foreach (var id in ids)
+            if (modifier == null)
+                throw new ArgumentNullException(nameof(modifier));
+
+            var successIds = new List<string>();
+            var failures = new List<FailureRecord>();
+
+            var properties = GetByCategory(category).ToList();
+
+            if (properties.Count == 0)
             {
-                if (Remove(id))
-                    count++;
+                failures.Add(new FailureRecord(category, "分类不存在或为空", FailureType.CategoryNotFound));
+                return OperationResult<List<string>>.PartialSuccess(successIds, 0, failures);
             }
 
-            return count;
+            foreach (var property in properties)
+            {
+                try
+                {
+                    var clonedModifier = modifier.Clone();
+                    property.AddModifier(clonedModifier);
+                    successIds.Add(property.ID);
+                }
+                catch (Exception ex)
+                {
+                    failures.Add(new FailureRecord(property.ID, ex.Message, FailureType.InvalidModifier));
+                }
+            }
+
+            return failures.Count == 0
+                ? OperationResult<List<string>>.Success(successIds, successIds.Count)
+                : OperationResult<List<string>>.PartialSuccess(successIds, successIds.Count, failures);
+        }
+
+        #endregion
+
+        #region 辅助方法
+
+        /// <summary>
+        /// 检查服务是否就绪，否则抛出异常
+        /// </summary>
+        private void ThrowIfNotReady()
+        {
+            if (_state != ServiceLifecycleState.Ready)
+                throw new InvalidOperationException($"服务未就绪，当前状态: {_state}");
         }
 
         #endregion

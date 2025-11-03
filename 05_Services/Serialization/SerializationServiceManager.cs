@@ -7,7 +7,7 @@ namespace EasyPack
     /// <summary>
     /// 序列化服务全局访问管理器（已过时）
     /// 提供向后兼容的代理访问，优先使用架构服务
-    /// 建议使用 EasyPackArchitecture.Instance.Container.ResolveAsync&lt;ISerializationService&gt;() 代替
+    /// 建议使用 EasyPackArchitecture.Instance.ResolveAsync&lt;ISerializationService&gt;() 代替
     /// </summary>
     public static class SerializationServiceManager
     {
@@ -89,7 +89,7 @@ namespace EasyPack
         }
 
         #region 注册静态方法（已过时）
-        
+
         /// <summary>
         /// 注册类型序列化器（已过时）
         /// </summary>

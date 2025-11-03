@@ -22,8 +22,8 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         public GameProperty HealthCapacity { get; private set; }         // 生命值承受能力
         public GameProperty SanityCapacity { get; private set; }         // SAN承受能力
 
-        // 奇怪评分 - 演示CombineProperty的复杂组合
-        public CombinePropertyCustom StrangeScore { get; private set; }
+        // 奇怪评分 - 使用依赖系统实现复杂组合计算
+        public GameProperty StrangeScore { get; private set; }
 
         // 修饰符管理器
         public ModifierManager modifierManager { get; private set; }
@@ -50,9 +50,8 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             HealthCapacity = new GameProperty("HealthCapacity", 100f);
             SanityCapacity = new GameProperty("SanityCapacity", 100f);
 
-            // 初始化奇怪评分 - 复杂的组合属性
-            StrangeScore = new CombinePropertyCustom("StrangeScore", 0f);
-            SetupStrangeScoreCalculation();
+            // 初始化奇怪评分 - 使用依赖系统实现复杂组合计算
+            StrangeScore = new GameProperty("StrangeScore", 0f);
         }
 
         private void SetupDependencies()
@@ -88,26 +87,20 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
                 if (newVal < 20) baseChange -= 2;  // SAN值过低恶性循环
                 return baseChange;
             });
+
+            // 奇怪评分依赖于所有属性 - 使用依赖系统实现复杂组合计算
+            SetupStrangeScoreDependencies();
         }
 
         /// <summary>
-        /// 设置奇怪评分的复杂计算逻辑
+        /// 设置奇怪评分的复杂依赖和计算逻辑
         /// </summary>
-        private void SetupStrangeScoreCalculation()
+        private void SetupStrangeScoreDependencies()
         {
-            // 注册所有相关属性到组合属性中
-            StrangeScore.RegisterProperty(Satiety);
-            StrangeScore.RegisterProperty(Health);
-            StrangeScore.RegisterProperty(Sanity);
-            StrangeScore.RegisterProperty(SatietyChangePerDay);
-            StrangeScore.RegisterProperty(HealthChangePerDay);
-            StrangeScore.RegisterProperty(SanityChangePerDay);
-            StrangeScore.RegisterProperty(SatietyCapacity);
-            StrangeScore.RegisterProperty(HealthCapacity);
-            StrangeScore.RegisterProperty(SanityCapacity);
+            // StrangeScore 依赖于多个属性，当任何依赖属性变化时都会重新计算
+            // 我们添加依赖到所有相关属性，并在回调中执行完整的评分计算
 
-            // 设置复杂的评分计算公式
-            StrangeScore.Calculater = (combine) =>
+            System.Func<GameProperty, float, float> calculateStrangeScore = (dep, newVal) =>
             {
                 float satietyRatio = Satiety.GetValue() / Mathf.Max(SatietyCapacity.GetValue(), 1f);
                 float healthRatio = Health.GetValue() / Mathf.Max(HealthCapacity.GetValue(), 1f);
@@ -137,6 +130,17 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
 
                 return Mathf.Clamp(totalScore + randomFactor, 0f, 100f);
             };
+
+            // 添加所有依赖关系
+            StrangeScore.AddDependency(Satiety, calculateStrangeScore);
+            StrangeScore.AddDependency(Health, calculateStrangeScore);
+            StrangeScore.AddDependency(Sanity, calculateStrangeScore);
+            StrangeScore.AddDependency(SatietyChangePerDay, calculateStrangeScore);
+            StrangeScore.AddDependency(HealthChangePerDay, calculateStrangeScore);
+            StrangeScore.AddDependency(SanityChangePerDay, calculateStrangeScore);
+            StrangeScore.AddDependency(SatietyCapacity, calculateStrangeScore);
+            StrangeScore.AddDependency(HealthCapacity, calculateStrangeScore);
+            StrangeScore.AddDependency(SanityCapacity, calculateStrangeScore);
         }
 
         /// <summary>
