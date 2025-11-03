@@ -58,7 +58,6 @@ namespace EasyPack.ENekoFramework.Editor.Windows
 
         private void OnEnable()
         {
-            RefreshServices();
             RefreshArchitectureList();
         }
 
