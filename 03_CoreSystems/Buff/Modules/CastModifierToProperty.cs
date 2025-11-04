@@ -109,8 +109,7 @@ namespace EasyPack.BuffSystem
         }
 
         /// <summary>
-        /// 添加修饰符到目标属性（克隆模板以支持多次应用）
-        /// Modifier 字段已在构造函数验证非 null，此处无需重复验证
+        /// 添加修饰符到目标属性
         /// </summary>
         private void AddModifier()
         {
@@ -126,7 +125,7 @@ namespace EasyPack.BuffSystem
         }
 
         /// <summary>
-        /// 移除最后添加的修饰符（对应堆叠层数减少）
+        /// 移除最后添加的修饰符
         /// </summary>
         private void RemoveSingleModifier()
         {
@@ -141,7 +140,7 @@ namespace EasyPack.BuffSystem
         }
 
         /// <summary>
-        /// 移除所有已应用的修饰符（对应 Buff 完全移除）
+        /// 移除所有已应用的修饰符
         /// </summary>
         private void RemoveAllModifiers()
         {
