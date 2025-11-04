@@ -9,11 +9,11 @@ namespace EasyPack
     /// <summary>
     /// GamePropertyManager 序列化器
     /// </summary>
-    public class PropertyManagerSerializer : ITypeSerializer<GamePropertyManager, PropertyManagerDTO>
+    public class PropertyManagerSerializer : ITypeSerializer<GamePropertyService, PropertyManagerDTO>
     {
         private readonly GamePropertyJsonSerializer _propertySerializer = new GamePropertyJsonSerializer();
 
-        public PropertyManagerDTO ToSerializable(GamePropertyManager obj)
+        public PropertyManagerDTO ToSerializable(GamePropertyService obj)
         {
             if (obj == null) return null;
 
@@ -66,13 +66,13 @@ namespace EasyPack
             };
         }
 
-        public GamePropertyManager FromSerializable(PropertyManagerDTO dto)
+        public GamePropertyService FromSerializable(PropertyManagerDTO dto)
         {
             if (dto == null)
-                throw new SerializationException("DTO 为 null", typeof(GamePropertyManager),
+                throw new SerializationException("DTO 为 null", typeof(GamePropertyService),
                     SerializationErrorCode.DeserializationFailed);
 
-            var manager = new GamePropertyManager();
+            var manager = new GamePropertyService();
             manager.InitializeAsync().Wait();
 
             if (dto.Properties != null)
@@ -117,21 +117,21 @@ namespace EasyPack
             {
                 var dto = JsonUtility.FromJson<PropertyManagerDTO>(json);
                 if (dto == null)
-                    throw new SerializationException("JSON 解析失败", typeof(GamePropertyManager),
+                    throw new SerializationException("JSON 解析失败", typeof(GamePropertyService),
                         SerializationErrorCode.DeserializationFailed);
                 return dto;
             }
             catch (System.Exception ex) when (!(ex is SerializationException))
             {
                 throw new SerializationException($"JSON 解析失败: {ex.Message}",
-                    typeof(GamePropertyManager), SerializationErrorCode.DeserializationFailed, ex);
+                    typeof(GamePropertyService), SerializationErrorCode.DeserializationFailed, ex);
             }
         }
 
-        public string SerializeToJson(GamePropertyManager obj) =>
+        public string SerializeToJson(GamePropertyService obj) =>
             ToJson(ToSerializable(obj));
 
-        public GamePropertyManager DeserializeFromJson(string json) =>
+        public GamePropertyService DeserializeFromJson(string json) =>
             FromSerializable(FromJson(json));
 
         private string SerializeCustomData(List<CustomDataEntry> customData)

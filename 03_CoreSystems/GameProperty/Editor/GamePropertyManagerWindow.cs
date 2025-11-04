@@ -12,7 +12,7 @@ namespace EasyPack.Editor
     /// </summary>
     public class GamePropertyManagerWindow : EditorWindow
     {
-        private GamePropertyManager _manager;
+        private GamePropertyService _manager;
         private string _searchText = "";
         private string _selectedCategory = "All";
         private string _selectedTag = "All";
@@ -33,21 +33,21 @@ namespace EasyPack.Editor
             try
             {
                 // 先检查服务是否已注册和初始化
-                if (!EasyPackArchitecture.Instance.IsServiceRegistered<IGamePropertyManager>())
+                if (!EasyPackArchitecture.Instance.IsServiceRegistered<IGamePropertyService>())
                 {
                     _initialized = false;
                     return;
                 }
 
                 // 检查服务是否已实例化
-                if (!EasyPackArchitecture.Instance.HasInstance<IGamePropertyManager>())
+                if (!EasyPackArchitecture.Instance.HasInstance<IGamePropertyService>())
                 {
                     _initialized = false;
                     return;
                 }
 
                 // 解析服务
-                var service = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
+                var service = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
 
                 // 检查服务状态
                 if (service.State != ENekoFramework.ServiceLifecycleState.Ready)
@@ -56,7 +56,7 @@ namespace EasyPack.Editor
                     return;
                 }
 
-                _manager = service as GamePropertyManager;
+                _manager = service as GamePropertyService;
                 _initialized = true;
                 Repaint();
             }
@@ -71,11 +71,11 @@ namespace EasyPack.Editor
         {
             if (!_initialized || _manager == null)
             {
-                if (!EasyPackArchitecture.Instance.IsServiceRegistered<IGamePropertyManager>())
+                if (!EasyPackArchitecture.Instance.IsServiceRegistered<IGamePropertyService>())
                 {
                     EditorGUILayout.HelpBox("GamePropertyManager 服务未注册到架构。", MessageType.Warning);
                 }
-                else if (!EasyPackArchitecture.Instance.HasInstance<IGamePropertyManager>())
+                else if (!EasyPackArchitecture.Instance.HasInstance<IGamePropertyService>())
                 {
                     EditorGUILayout.HelpBox("GamePropertyManager 服务未实例化。请先初始化架构。", MessageType.Warning);
                 }

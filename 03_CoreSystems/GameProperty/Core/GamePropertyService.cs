@@ -14,7 +14,7 @@ namespace EasyPack
     /// 提供属性注册、查询、分类管理和批量操作功能
     /// 实现IService接口，支持生命周期管理
     /// </summary>
-    public class GamePropertyManager : IGamePropertyManager
+    public class GamePropertyService : IGamePropertyService
     {
         #region 字段
 
@@ -26,6 +26,10 @@ namespace EasyPack
         // 运行时索引
         private ConcurrentDictionary<string, HashSet<string>> _categories;
         private ConcurrentDictionary<string, HashSet<string>> _tagIndex;
+
+        // 线程安全锁（保护 HashSet 操作）
+        private readonly object _categoryLock = new object();
+        private readonly object _tagLock = new object();
 
         // 服务生命周期状态
         private ServiceLifecycleState _state = ServiceLifecycleState.Uninitialized;
@@ -153,24 +157,30 @@ namespace EasyPack
 
                 _metadata[property.ID] = metadata;
 
-                // 更新标签索引
+                // 更新标签索引（线程安全）
                 if (metadata.Tags != null)
                 {
                     foreach (var tag in metadata.Tags)
                     {
-                        if (!_tagIndex.ContainsKey(tag))
-                            _tagIndex[tag] = new HashSet<string>();
+                        lock (_tagLock)
+                        {
+                            if (!_tagIndex.ContainsKey(tag))
+                                _tagIndex[tag] = new HashSet<string>();
 
-                        _tagIndex[tag].Add(property.ID);
+                            _tagIndex[tag].Add(property.ID);
+                        }
                     }
                 }
             }
 
-            // 更新分类索引
-            if (!_categories.ContainsKey(category))
-                _categories[category] = new HashSet<string>();
+            // 更新分类索引（线程安全）
+            lock (_categoryLock)
+            {
+                if (!_categories.ContainsKey(category))
+                    _categories[category] = new HashSet<string>();
 
-            _categories[category].Add(property.ID);
+                _categories[category].Add(property.ID);
+            }
         }
 
         /// <summary>

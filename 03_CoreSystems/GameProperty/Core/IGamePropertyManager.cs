@@ -10,7 +10,7 @@ namespace EasyPack
     /// 游戏属性管理器接口
     /// 提供属性注册、查询、分类管理和批量操作功能
     /// </summary>
-    public interface IGamePropertyManager : IService
+    public interface IGamePropertyService : IService
     {
         #region 注册API
 

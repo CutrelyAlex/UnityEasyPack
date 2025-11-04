@@ -11,14 +11,14 @@ namespace EasyPack.GamePropertySystem
     /// </summary>
     public class ManagerUsageExample : MonoBehaviour
     {
-        private IGamePropertyManager _manager;
+        private IGamePropertyService _manager;
 
         private async void Start()
         {
             try
             {
                 // 从 EasyPack 架构获取 GamePropertyManager 服务
-                _manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
+                _manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
 
                 // 清理之前可能存在的示例数据
                 CleanupExampleData();
@@ -207,7 +207,7 @@ namespace EasyPack.GamePropertySystem
         {
             Debug.Log("=== 示例5: 属性依赖系统 ===");
 
-            _manager = new GamePropertyManager();
+            _manager = new GamePropertyService();
             await _manager.InitializeAsync();
 
             // 创建基础属性
