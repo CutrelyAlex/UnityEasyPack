@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.Experimental.GraphView;
@@ -383,3 +384,4 @@ namespace EasyPack.ENekoFramework.Editor.Windows
         }
     }
 }
+#endif

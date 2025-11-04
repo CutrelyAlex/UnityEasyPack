@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 
@@ -97,3 +98,4 @@ namespace EasyPack.ENekoFramework.Editor
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEditor;
 
 namespace EasyPack.Editor
@@ -15,3 +16,4 @@ namespace EasyPack.Editor
         }
     }
 }
+#endif

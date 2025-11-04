@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 using EasyPack.ENekoFramework.Editor.Windows;
@@ -212,3 +213,4 @@ namespace EasyPack.ENekoFramework.Editor
         #endregion
     }
 }
+#endif
