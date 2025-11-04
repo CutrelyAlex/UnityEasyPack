@@ -17,7 +17,7 @@ namespace EasyPack
 
             // 注册GameProperty服务
             Container.Register<IGamePropertyService, GamePropertyService>();
-            Container.Register<IBuffService, BuffManager>();
+            Container.Register<IBuffService, BuffService>();
         }
     }
 }

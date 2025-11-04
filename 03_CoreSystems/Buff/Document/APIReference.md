@@ -1,103 +1,100 @@
-# Buff System - API Reference
+# Buff 系统 API 参考文档
 
-**适用EasyPack版本：** EasyPack v1.5.30
-**最后更新：** 2025-10-26
-
----
+**适用 EasyPack 版本：** EasyPack v1.6.2  
+**最后更新：** 2025-11-04
 
 ## 目录
 
 - [核心类](#核心类)
+  - [Buff](#buff-类)
+  - [BuffData](#buffdata-类)
+  - [BuffModule](#buffmodule-类)
+  - [BuffService](#BuffService-类)
+  - [CastModifierToProperty](#castmodifiertoproperty-类)
+  - [IBuffService](#ibuffservice-接口)
 - [枚举类型](#枚举类型)
-- [使用示例](#使用示例)
-- [相关资源](#相关资源)
+- [API 速查表](#api-速查表)
 
 ---
 
 ## 核心类
 
-### Buff
+---
+
+## 核心类
+
+---
+
+### BuffModule
 
 **命名空间：** `EasyPack.BuffSystem`  
-**继承：** `object`
+**继承：** `object`  
+**类型：** 抽象类
 
-代表一个应用到游戏对象的 Buff 实例，包含生命周期管理和事件系统。
+定义 Buff 的具体行为模块，通过回调系统响应生命周期事件。
 
 #### 构造函数
 
 ```csharp
-public Buff(BuffData buffData, GameObject creator, GameObject target)
+public BuffModule()
 ```
 
-创建一个新的 Buff 实例。
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `buffData` | `BuffData` | Buff 的配置数据 |
-| `creator` | `GameObject` | 施加 Buff 的对象（施法者） |
-| `target` | `GameObject` | 接受 Buff 的对象（目标） |
-
-**返回值：** `Buff` 实例
+创建一个新的 BuffModule 实例。
 
 ---
 
 #### 属性
 
-##### BuffData
+##### Priority
 ```csharp
-public BuffData BuffData { get; }
+public int Priority { get; set; }
 ```
 
-获取 Buff 的配置数据（只读）。
-
-**类型：** `BuffData`  
-**说明：** 包含 Buff 的静态属性（ID、名称、持续时间等）
-
----
-
-##### Creator
-```csharp
-public GameObject Creator { get; }
-```
-
-获取施加此 Buff 的游戏对象（只读）。
-
-**类型：** `GameObject`  
-**说明：** 施法者，可能为 `null`
-
----
-
-##### Target
-```csharp
-public GameObject Target { get; }
-```
-
-获取接受此 Buff 的游戏对象（只读）。
-
-**类型：** `GameObject`  
-**说明：** Buff 的目标对象，不能为 `null`
-
----
-
-##### CurrentStacks
-```csharp
-public int CurrentStacks { get; set; }
-```
-
-获取或设置当前堆叠层数。
+模块执行优先级。
 
 **类型：** `int`  
-**默认值：** `1`  
-**说明：** 范围 [0, BuffData.MaxStacks]，设置为 0 会触发移除
+**默认值：** `0`  
+**说明：** 数值越大优先级越高，执行越早
 
 ---
 
-##### DurationTimer
+##### TriggerCondition
 ```csharp
-public float DurationTimer { get; set; }
+public Func<Buff, bool> TriggerCondition { get; set; }
 ```
 
-获取或设置剩余持续时间（秒）。
+触发条件检查函数。
+
+**类型：** `Func<Buff, bool>`  
+**默认值：** `null`  
+**说明：** 
+- 返回 `true` 时模块才会执行
+- `null` 表示无条件执行
+
+---
+
+#### 方法
+
+##### RegisterCallback
+```csharp
+protected void RegisterCallback(BuffCallBackType callbackType, Action<Buff, object[]> callback)
+```
+
+注册生命周期回调。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `callbackType` | `BuffCallBackType` | 回调类型枚举 |
+| `callback` | `Action<Buff, object[]>` | 回调函数 |
+
+**可用回调类型：**
+- `BuffCallBackType.OnCreate` - Buff 创建时
+- `BuffCallBackType.OnTick` - 周期触发时
+- `BuffCallBackType.OnUpdate` - 每帧更新时
+- `BuffCallBackType.OnAddStack` - 堆叠增加时
+- `BuffCallBackType.OnReduceStack` - 堆叠减少时
+- `BuffCallBackType.OnRemove` - Buff 移除时
+- `BuffCallBackType.Custom` - 自定义事件
 
 **类型：** `float`  
 **默认值：** `BuffData.Duration`  
@@ -143,7 +140,7 @@ public event Action<Buff> OnCreate
 Buff 创建时触发的事件。
 
 **参数类型：** `Action<Buff>`  
-**触发时机：** `BuffManager.CreateBuff()` 创建实例后
+**触发时机：** `BuffService.CreateBuff()` 创建实例后
 
 ---
 
@@ -168,7 +165,7 @@ public event Action<Buff> OnUpdate
 Buff 每帧更新时触发的事件。
 
 **参数类型：** `Action<Buff>`  
-**触发时机：** `BuffManager.Update()` 每次调用  
+**触发时机：** `BuffService.Update()` 每次调用  
 **性能警告：** ⚠️ 每帧触发，谨慎使用耗时操作
 
 ---
@@ -479,7 +476,7 @@ Buff 模块列表。
 
 ---
 
-### BuffManager
+### BuffService
 
 **命名空间：** `EasyPack.BuffSystem`  
 **继承：** `object`
@@ -489,10 +486,10 @@ Buff 模块列表。
 #### 构造函数
 
 ```csharp
-public BuffManager()
+public BuffService()
 ```
 
-创建一个新的 BuffManager 实例。
+创建一个新的 BuffService 实例。
 
 ---
 
@@ -1020,24 +1017,34 @@ Buff 回调类型。
 using EasyPack.BuffSystem;
 using EasyPack.GamePropertySystem;
 using EasyPack;
+using System;
 using UnityEngine;
 
 public class CompleteExample : MonoBehaviour
 {
-    private BuffManager buffManager;
-    private GamePropertyManager propertyManager;
+    private IBuffService _buffService;
+    private IGamePropertyService _propertyManager;
     private GameObject player;
 
-    void Start()
+    async void Start()
     {
-        // 1. 初始化管理器
-        buffManager = new BuffManager();
-        propertyManager = new GamePropertyManager();
+        try
+        {
+            // 1. 从 EasyPack 架构初始化服务
+            _buffService = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
+            _propertyManager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"服务初始化失败: {ex.Message}");
+            return;
+        }
+
         player = new GameObject("Player");
 
         // 2. 初始化属性
-        var strength = new CombinePropertySingle("Strength", 10f);
-        propertyManager.AddOrUpdate(strength);
+        var strength = new GameProperty("Strength", 10f);
+        _propertyManager.Register(strength);
 
         // 3. 创建 BuffData
         var powerBuff = new BuffData
@@ -1058,12 +1065,12 @@ public class CompleteExample : MonoBehaviour
         var propertyModule = new CastModifierToProperty(
             strengthModifier,
             "Strength",
-            propertyManager
+            _propertyManager
         );
         powerBuff.BuffModules.Add(propertyModule);
 
         // 5. 应用 Buff
-        Buff buff = buffManager.CreateBuff(powerBuff, gameObject, player);
+        Buff buff = _buffService.CreateBuff(powerBuff, gameObject, player);
 
         // 6. 注册事件
         buff.OnCreate += (b) => Debug.Log($"{b.BuffData.Name} 已创建");
@@ -1071,7 +1078,7 @@ public class CompleteExample : MonoBehaviour
         buff.OnRemove += (b) => Debug.Log($"{b.BuffData.Name} 已移除");
 
         // 7. 查询 Buff
-        bool hasBuff = buffManager.ContainsBuff(player, "PowerBuff");
+        bool hasBuff = _buffService.ContainsBuff(player, "PowerBuff");
         Debug.Log($"玩家有力量增益: {hasBuff}");
         Debug.Log($"当前力量: {strength.GetValue()}");
     }
@@ -1079,7 +1086,10 @@ public class CompleteExample : MonoBehaviour
     void Update()
     {
         // 8. 每帧更新
-        buffManager.Update(Time.deltaTime);
+        if (_buffService != null)
+        {
+            _buffService.Update(Time.deltaTime);
+        }
     }
 }
 ```
@@ -1096,3 +1106,4 @@ public class CompleteExample : MonoBehaviour
 
 **维护者：** EasyPack 团队  
 **许可证：** 遵循项目主许可证
+

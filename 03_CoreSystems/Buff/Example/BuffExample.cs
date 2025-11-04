@@ -11,19 +11,27 @@ namespace EasyPack.BuffSystem
     /// </summary>
     public class BuffExample : MonoBehaviour
     {
-        private BuffManager _buffManager;
+        private IBuffService _buffManager;
         private GameObject _dummyTarget;
         private GameObject _dummyCreator;
-        private GamePropertyService _gamePropertyManager;
+        private IGamePropertyService _gamePropertyManager;
 
         async void Start()
         {
             // 初始化基础组件
-            _buffManager = new BuffManager();
-            _dummyTarget = new GameObject("DummyTarget");
-            _dummyCreator = new GameObject("DummyCreator");
-            _gamePropertyManager = new GamePropertyService();
-            await _gamePropertyManager.InitializeAsync();
+            try
+            {
+                // 通过 EasyPack 架构获取服务
+                _buffManager = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
+                _dummyTarget = new GameObject("DummyTarget");
+                _dummyCreator = new GameObject("DummyCreator");
+                _gamePropertyManager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"服务初始化失败: {ex.Message}");
+                return;
+            }
 
             Debug.Log("=== Buff 系统示例开始 ===\n");
 
@@ -619,7 +627,8 @@ namespace EasyPack.BuffSystem
             // 好的做法：批量移除
             var startTime = Time.realtimeSinceStartup;
             _buffManager.RemoveBuffsByTag(_dummyTarget, "Test");
-            _buffManager.FlushPendingRemovals();  // 立即处理批量移除
+            // 注意: FlushPendingRemovals() 是 BuffService 的内部方法，不在 IBuffService 接口中
+            // 批量移除会在下一次 Update() 时自动处理
             var batchTime = Time.realtimeSinceStartup - startTime;
 
             Debug.Log($"批量移除耗时: {batchTime * 1000:F2}ms");
@@ -669,15 +678,10 @@ namespace EasyPack.BuffSystem
 
             // 安全的Buff创建
             BuffData safeBuff = null;
-            try
-            {
-                var safeBuffInstance = _buffManager.CreateBuff(safeBuff, _dummyCreator, _dummyTarget);
-                Debug.Log("这行不应该执行");
-            }
-            catch (System.Exception)
-            {
-                Debug.Log("✓ 正确处理了空BuffData的情况");
-            }
+
+            var safeBuffInstance = _buffManager.CreateBuff(safeBuff, _dummyCreator, _dummyTarget);
+            if (safeBuffInstance == null)
+                Debug.Log("安全的Buff创建：传入null BuffData，未创建Buff实例");
 
             // 安全的查询
             bool safeQuery = _buffManager.ContainsBuff(null, "TestBuff");

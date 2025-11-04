@@ -142,8 +142,18 @@ namespace EasyPack
                 throw new ArgumentException("属性ID不能为空");
 
             if (_properties.ContainsKey(property.ID))
-                throw new ArgumentException($"属性 '{property.ID}' 已注册");
+            {
+                Debug.LogWarning($"属性 '{property.ID}' 已注册");
+                return;
+            }
+            RegisterInternal(property, category, metadata);
+        }
 
+        /// <summary>
+        /// 内部注册逻辑
+        /// </summary>
+        private void RegisterInternal(GameProperty property, string category, PropertyMetadata metadata)
+        {
             // 添加到主表
             _properties[property.ID] = property;
             _propertyToCategory[property.ID] = category ?? "Default";

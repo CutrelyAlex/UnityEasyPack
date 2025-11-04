@@ -10,7 +10,7 @@ namespace EasyPack.BuffSystem
     /// Buff生命周期管理器，负责Buff的创建、更新、移除和查询
     /// 实现IBuffService接口以集成到EasyPack架构中
     /// </summary>
-    public class BuffManager : IBuffService
+    public class BuffService : IBuffService
     {
         #region IService 生命周期
 
@@ -293,7 +293,7 @@ namespace EasyPack.BuffSystem
         /// <param name="buff">要增加堆叠的 Buff 实例</param>
         /// <param name="stack">要增加的堆叠层数</param>
         /// <returns>返回管理器自身以支持链式调用</returns>
-        private BuffManager IncreaseBuffStacks(Buff buff, int stack = 1)
+        private BuffService IncreaseBuffStacks(Buff buff, int stack = 1)
         {
             if (buff.CurrentStacks >= buff.BuffData.MaxStacks)
                 return this;
@@ -313,7 +313,7 @@ namespace EasyPack.BuffSystem
         /// <param name="buff">要减少堆叠的 Buff 实例</param>
         /// <param name="stack">要减少的堆叠层数（必须为正数）</param>
         /// <returns>返回管理器自身以支持链式调用</returns>
-        private BuffManager DecreaseBuffStacks(Buff buff, int stack = 1)
+        private BuffService DecreaseBuffStacks(Buff buff, int stack = 1)
         {
             if (buff == null)
                 return this;
@@ -363,7 +363,7 @@ namespace EasyPack.BuffSystem
         /// </summary>
         /// <param name="buff">要移除的 Buff 实例</param>
         /// <returns>返回管理器自身以支持链式调用</returns>
-        private BuffManager QueueBuffForRemoval(Buff buff)
+        private BuffService QueueBuffForRemoval(Buff buff)
         {
             if (buff == null)
                 return this;
@@ -454,7 +454,7 @@ namespace EasyPack.BuffSystem
 
         #region 全局移除操作
 
-        public BuffManager RemoveAllBuffsByID(string buffID)
+        public BuffService RemoveAllBuffsByID(string buffID)
         {
             if (_buffsByID.TryGetValue(buffID, out var buffs))
             {
@@ -467,7 +467,7 @@ namespace EasyPack.BuffSystem
             return this;
         }
 
-        public BuffManager RemoveAllBuffsByTag(string tag)
+        public BuffService RemoveAllBuffsByTag(string tag)
         {
             if (_buffsByTag.TryGetValue(tag, out var buffs))
             {
@@ -480,7 +480,7 @@ namespace EasyPack.BuffSystem
             return this;
         }
 
-        public BuffManager RemoveAllBuffsByLayer(string layer)
+        public BuffService RemoveAllBuffsByLayer(string layer)
         {
             if (_buffsByLayer.TryGetValue(layer, out var buffs))
             {
@@ -493,7 +493,7 @@ namespace EasyPack.BuffSystem
             return this;
         }
 
-        public BuffManager FlushPendingRemovals()
+        public BuffService FlushPendingRemovals()
         {
             ProcessBuffRemovals();
             return this;
