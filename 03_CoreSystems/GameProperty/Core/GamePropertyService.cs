@@ -142,10 +142,8 @@ namespace EasyPack
                 throw new ArgumentException("属性ID不能为空");
 
             if (_properties.ContainsKey(property.ID))
-            {
-                Debug.LogWarning($"属性 '{property.ID}' 已注册");
-                return;
-            }
+                throw new ArgumentException($"属性ID '{property.ID}' 已存在，不能重复注册");
+
             RegisterInternal(property, category, metadata);
         }
 
