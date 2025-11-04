@@ -56,7 +56,7 @@ namespace EasyPack.GamePropertySystem
     /// <summary>
     /// 定义脏标记系统接口，用于标记属性需要重新计算并响应脏状态变化
     /// </summary>
-    public interface IDrityTackable
+    public interface IDirtyTrackable
     {
         /// <summary>
         /// 将对象标记为脏状态，表示需要重新计算
@@ -66,7 +66,7 @@ namespace EasyPack.GamePropertySystem
         /// <summary>
         /// 注册一个在对象变为脏状态时执行的回调函数
         /// </summary>
-        /// <param name="aciton">脏状态变化时的回调函数</param>
-        void OnDirty(Action aciton);
+        /// <param name="action">脏状态变化时的回调函数</param>
+        void OnDirty(Action action);
     }
 }

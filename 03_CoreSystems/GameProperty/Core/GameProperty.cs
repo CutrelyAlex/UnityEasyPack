@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace EasyPack.GamePropertySystem
 {
-    public class GameProperty : IModifiableProperty<float>, IDrityTackable
+    public class GameProperty : IModifiableProperty<float>, IDirtyTrackable
     {
         // 比较大小的静态常量
         private const float EPSILON = 0.0001f;

@@ -126,7 +126,7 @@ namespace EasyPack.GamePropertySystem
                 }
                 else
                 {
-                    ((IDrityTackable)dependent).MakeDirty();
+                    dependent.MakeDirty();
                     dependent.GetValue();
                 }
             }
