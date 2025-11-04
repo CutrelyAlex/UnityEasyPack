@@ -1,7 +1,7 @@
 # Inventory System - Mermaid 图集文档
 
-**适用EasyPack版本：** EasyPack v1.5.30  
-**最后更新:** 2025-10-26
+**适用EasyPack版本：** EasyPack v1.7.0  
+**最后更新:** 2025-11-04
 
 ---
 
@@ -19,21 +19,23 @@
 
 ## 目录
 
-- [概述](#概述)
-- [类图](#类图)
-  - [核心类图](#核心类图)
-  - [条件系统类图](#条件系统类图)
-- [流程图](#流程图)
-  - [添加物品流程图](#添加物品流程图)
-  - [跨容器转移流程图](#跨容器转移流程图)
-- [序列图](#序列图)
-  - [物品添加序列图](#物品添加序列图)
-  - [InventoryManager 跨容器操作序列图](#inventorymanager-跨容器操作序列图)
-- [状态图](#状态图)
-  - [槽位状态转换图](#槽位状态转换图)
-- [数据流图](#数据流图)
-  - [物品数据流图](#物品数据流图)
-- [延伸阅读](#延伸阅读)
+- [Inventory System - Mermaid 图集文档](#inventory-system---mermaid-图集文档)
+  - [概述](#概述)
+  - [目录](#目录)
+  - [类图](#类图)
+    - [核心类图](#核心类图)
+    - [条件系统类图](#条件系统类图)
+  - [流程图](#流程图)
+    - [添加物品流程图](#添加物品流程图)
+    - [跨容器转移流程图](#跨容器转移流程图)
+  - [序列图](#序列图)
+    - [物品添加序列图](#物品添加序列图)
+    - [InventoryManager 跨容器操作序列图](#inventorymanager-跨容器操作序列图)
+  - [状态图](#状态图)
+    - [槽位状态转换图](#槽位状态转换图)
+  - [数据流图](#数据流图)
+    - [物品数据流图](#物品数据流图)
+  - [延伸阅读](#延伸阅读)
 
 ---
 
@@ -72,8 +74,15 @@ classDiagram
     }
     
     class GridItem {
-        +int GridWidth
-        +int GridHeight
+        +List~(int x, int y)~ Shape
+        +bool CanRotate
+        +RotationAngle Rotation
+        +int ActualWidth
+        +int ActualHeight
+        +GetOccupiedCells() List~(int x, int y)~
+        +Rotate() bool
+        +SetRotation(RotationAngle) bool
+        +static CreateRectangleShape(int, int) List~(int x, int y)~
         +IItem Clone()
     }
     
@@ -321,12 +330,6 @@ flowchart TD
    - 优先使用空槽位
    - 无限容量容器自动创建新槽位
 5. **事件触发**：更新缓存、触发 `OnItemAddResult` 事件
-
-**典型执行时间：**
-- 添加到现有槽位：约 0.1-0.5 毫秒
-- 添加到新槽位：约 0.5-1 毫秒
-- 批处理模式：约 5-10 毫秒（100 个物品）
-
 ---
 
 ### 跨容器转移流程图

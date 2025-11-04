@@ -1,7 +1,7 @@
 # Inventory System - API 参考文档
 
-**适用EasyPack版本：** EasyPack v1.5.30  
-**最后更新：** 2025-10-26
+**适用EasyPack版本：** EasyPack v1.7.0  
+**最后更新：** 2025-11-04
 
 ---
 
@@ -922,40 +922,249 @@ Item
 ```
 
 **说明：**  
-网格物品，继承自 `Item` 并添加网格尺寸属性。
+网格物品，继承自 `Item` 并添加形状、旋转等网格布局属性。支持矩形和任意复杂形状。
 
 ---
 
 #### 属性
 
-##### `int GridWidth { get; set; }`
+##### `List<(int x, int y)> Shape { get; set; }`
 
-**说明：** 物品在网格中的宽度（列数）。
+**说明：** 物品的形状，由占据的单元格坐标列表组成（相对于左上角原点）。默认为 1x1 单格物品。
 
-**类型：** `int`
+**类型：** `List<(int x, int y)>`
 
-**默认值：** `1`
-
----
-
-##### `int GridHeight { get; set; }`
-
-**说明：** 物品在网格中的高度（行数）。
-
-**类型：** `int`
-
-**默认值：** `1`
+**默认值：** `new List<(int x, int y)> { (0, 0) }`
 
 **使用示例：**
 
 ```csharp
-var largeItem = new GridItem
+// 创建 2x2 矩形物品
+var armor = new GridItem
 {
-    ID = "shield",
-    Name = "大盾",
-    GridWidth = 2,
-    GridHeight = 3
+    ID = "plate_armor",
+    Name = "板甲",
+    Shape = GridItem.CreateRectangleShape(2, 2)
 };
+
+// 创建 L 形物品
+var lShapedKey = new GridItem
+{
+    ID = "l_shaped_key",
+    Name = "L形钥匙",
+    Shape = new List<(int x, int y)>
+    {
+        (0, 0), (1, 0),  // 水平的两格
+        (0, 1)           // 下方的一格
+    }
+};
+
+// 创建十字形物品
+var cross = new GridItem
+{
+    ID = "cross_item",
+    Name = "十字形物品",
+    Shape = new List<(int x, int y)>
+    {
+        (1, 0),          // 上
+        (0, 1), (1, 1), (2, 1),  // 中间行
+        (1, 2)           // 下
+    }
+};
+```
+
+---
+
+##### `bool CanRotate { get; set; }`
+
+**说明：** 物品是否可以旋转。
+
+**类型：** `bool`
+
+**默认值：** `false`
+
+---
+
+##### `RotationAngle Rotation { get; set; }`
+
+**说明：** 物品当前旋转角度。
+
+**类型：** `RotationAngle` (枚举值：`Rotate0`、`Rotate90`、`Rotate180`、`Rotate270`)
+
+**默认值：** `RotationAngle.Rotate0`
+
+**使用示例：**
+
+```csharp
+var staff = new GridItem
+{
+    ID = "staff",
+    Name = "法杖",
+    Shape = GridItem.CreateRectangleShape(1, 3),  // 竖直 1x3
+    CanRotate = true
+};
+
+// 旋转 90 度（变为 3x1）
+staff.Rotate();
+Debug.Log($"旋转后 - 宽度: {staff.ActualWidth}, 高度: {staff.ActualHeight}");
+```
+
+---
+
+##### `int ActualWidth { get; }`
+
+**说明：** 物品当前实际占用的宽度（考虑旋转）。
+
+**类型：** `int`
+
+**访问权限：** 只读
+
+---
+
+##### `int ActualHeight { get; }`
+
+**说明：** 物品当前实际占用的高度（考虑旋转）。
+
+**类型：** `int`
+
+**访问权限：** 只读
+
+---
+
+#### 方法
+
+##### `static List<(int x, int y)> CreateRectangleShape(int width, int height)`
+
+**说明：** 辅助方法，快速创建矩形形状的单元格列表。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `width` | `int` | 必填 | 矩形宽度 | - |
+| `height` | `int` | 必填 | 矩形高度 | - |
+
+**返回值：**
+- **类型：** `List<(int x, int y)>`
+- **说明：** 包含所有单元格坐标的列表
+
+**使用示例：**
+
+```csharp
+// 快速创建 3x2 矩形
+var shape = GridItem.CreateRectangleShape(3, 2);
+// 结果：[(0,0), (1,0), (2,0), (0,1), (1,1), (2,1)]
+
+var backpack = new GridItem
+{
+    ID = "backpack",
+    Name = "背包",
+    Shape = GridItem.CreateRectangleShape(2, 3)
+};
+```
+
+---
+
+##### `List<(int x, int y)> GetOccupiedCells()`
+
+**说明：** 获取物品当前占据的单元格列表（考虑旋转）。
+
+**返回值：**
+- **类型：** `List<(int x, int y)>`
+- **说明：** 占据的单元格坐标列表
+
+**使用示例：**
+
+```csharp
+var item = new GridItem
+{
+    ID = "item",
+    Shape = GridItem.CreateRectangleShape(2, 2),
+    CanRotate = true
+};
+
+var cells = item.GetOccupiedCells();
+Debug.Log($"物品占据 {cells.Count} 个格子");
+
+item.Rotate();  // 旋转 90 度
+var cellsAfterRotation = item.GetOccupiedCells();
+Debug.Log($"旋转后仍占据 {cellsAfterRotation.Count} 个格子");
+```
+
+---
+
+##### `bool Rotate()`
+
+**说明：** 顺时针旋转物品 90 度（如果启用了 `CanRotate`）。
+
+**返回值：**
+- **类型：** `bool`
+- **说明：** 旋转是否成功（如果未启用 `CanRotate` 则返回 `false`）
+
+**使用示例：**
+
+```csharp
+var staff = new GridItem
+{
+    ID = "staff",
+    Name = "法杖",
+    Shape = GridItem.CreateRectangleShape(1, 3),
+    CanRotate = true
+};
+
+if (staff.Rotate())
+{
+    Debug.Log($"旋转成功！新大小：{staff.ActualWidth}x{staff.ActualHeight}");
+}
+```
+
+---
+
+##### `bool SetRotation(RotationAngle angle)`
+
+**说明：** 设置物品的旋转角度。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `angle` | `RotationAngle` | 必填 | 目标旋转角度 | - |
+
+**返回值：**
+- **类型：** `bool`
+- **说明：** 设置是否成功
+
+**使用示例：**
+
+```csharp
+var item = new GridItem
+{
+    ID = "item",
+    Shape = GridItem.CreateRectangleShape(1, 3),
+    CanRotate = true
+};
+
+// 直接设置为 180 度旋转
+item.SetRotation(RotationAngle.Rotate180);
+Debug.Log($"当前旋转角度: {item.Rotation}");
+```
+
+---
+
+##### `new GridItem Clone()`
+
+**说明：** 克隆网格物品（包括形状、旋转、所有属性）。
+
+**返回值：**
+- **类型：** `GridItem`
+- **说明：** 新的物品副本
+
+**使用示例：**
+
+```csharp
+var original = new GridItem { ID = "sword", Shape = GridItem.CreateRectangleShape(1, 2) };
+var copy = original.Clone();
+copy.ID = "sword_copy";
 ```
 
 ---

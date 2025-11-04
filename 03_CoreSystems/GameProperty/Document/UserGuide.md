@@ -257,9 +257,9 @@ public class DerivedAttributeExample : MonoBehaviour
 }
 ```
 
-### 场景 4：GamePropertyManager 集中管理
+### 场景 4：GamePropertyService 集中管理
 
-使用 GamePropertyManager 管理大量属性：
+使用 GamePropertyService 管理大量属性：
 
 ```csharp
 using UnityEngine;
@@ -269,12 +269,12 @@ using EasyPack.GamePropertySystem;
 
 public class ManagerExample : MonoBehaviour
 {
-    private IGamePropertyManager manager;
+    private IGamePropertyService manager;
     
     async void Start()
     {
-        // 从 EasyPack 架构获取 GamePropertyManager 服务
-        manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
+        // 从 EasyPack 架构获取 GamePropertyService 服务
+        manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
         
         // 创建并注册角色属性
         var hp = new GameProperty("hp", 100f);
@@ -410,10 +410,10 @@ var serializer = new PropertyManagerSerializer();
 
 // 序列化 Manager
 string json = serializer.SerializeToJson(manager);
-PlayerPrefs.SetString("GamePropertyManager", json);
+PlayerPrefs.SetString("GamePropertyService", json);
 
 // 反序列化 Manager
-string loadedJson = PlayerPrefs.GetString("GamePropertyManager");
+string loadedJson = PlayerPrefs.GetString("GamePropertyService");
 var loadedManager = serializer.DeserializeFromJson(loadedJson);
 
 // 索引会自动重建，无需手动处理
@@ -627,7 +627,7 @@ propB.AddDependency(propA, (dep, val) => val * 2f);  // 警告: 检测到循环�
 
 ```csharp
 // 调试示例
-var manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
+var manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
 
 // 检查属性是否已注册
 var allIds = manager.GetAllPropertyIds();
@@ -725,7 +725,7 @@ public class CharacterStats
 
 ### 管理器相关
 
-- **GamePropertyManager（属性管理器）**：集中管理大量属性的服务，提供注册、查询、批量操作功能。
+- **GamePropertyService（属性管理器）**：集中管理大量属性的服务，提供注册、查询、批量操作功能。
 
 - **Category（分类）**：属性的分类标识，支持层级结构（如 "Character.Vital.Health"）。
 

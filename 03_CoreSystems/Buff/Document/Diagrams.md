@@ -15,7 +15,7 @@
 ## 图表索引
 
 1. [类结构图](#1-类结构图) - 核心类及其关系
-2. [BuffManager 更新流程图](#2-buffmanager-更新流程图) - Update 方法的执行流程
+2. [BuffService 更新流程图](#2-BuffService-更新流程图) - Update 方法的执行流程
 3. [Buff 生命周期序列图](#3-buff-生命周期序列图) - 创建到移除的完整流程
 4. [Buff 堆叠状态图](#4-buff-堆叠状态图) - 堆叠策略状态转换
 
@@ -62,7 +62,7 @@ classDiagram
         +List~BuffModule~ BuffModules
     }
 
-    class BuffManager {
+    class BuffService {
         -Dictionary~GameObject, List~Buff~~ _targetToBuffs
         -Dictionary~string, List~Buff~~ _buffsByID
         -Dictionary~string, List~Buff~~ _buffsByTag
@@ -120,30 +120,30 @@ classDiagram
     Buff "1" --> "1" BuffData : uses
     Buff "1" --> "1" GameObject : creator
     Buff "1" --> "1" GameObject : target
-    BuffManager "1" --> "*" Buff : manages
+    BuffService "1" --> "*" Buff : manages
     BuffData "1" --> "*" BuffModule : contains
     BuffModule <|-- CastModifierToProperty : inherits
     CastModifierToProperty --> GamePropertyManager : uses
     CastModifierToProperty --> IModifier : uses
 
     %% 索引关系
-    BuffManager --> Buff : _targetToBuffs
-    BuffManager --> Buff : _buffsByID
-    BuffManager --> Buff : _buffsByTag
-    BuffManager --> Buff : _buffsByLayer
+    BuffService --> Buff : _targetToBuffs
+    BuffService --> Buff : _buffsByID
+    BuffService --> Buff : _buffsByTag
+    BuffService --> Buff : _buffsByLayer
 ```
 
 **关键点：**
 - `Buff` 持有 `BuffData` 配置和生命周期状态
-- `BuffManager` 使用多个字典索引 Buff，支持快速查询
+- `BuffService` 使用多个字典索引 Buff，支持快速查询
 - `BuffModule` 是抽象基类，可扩展实现各种效果
 - `CastModifierToProperty` 桥接 Buff 系统和属性系统
 
 ---
 
-## 2. BuffManager 更新流程图
+## 2. BuffService 更新流程图
 
-展示 `BuffManager.Update()` 方法的执行流程。
+展示 `BuffService.Update()` 方法的执行流程。
 
 ```mermaid
 flowchart TD
@@ -232,7 +232,7 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant Client
-    participant BuffManager
+    participant BuffService
     participant Buff
     participant BuffData
     participant BuffModule
@@ -240,17 +240,17 @@ sequenceDiagram
 
     Note over Client,GamePropertyManager: 场景 1: 创建新 Buff
 
-    Client->>BuffManager: CreateBuff(buffData, creator, target)
-    BuffManager->>BuffManager: 检查目标是否已有该 Buff
+    Client->>BuffService: CreateBuff(buffData, creator, target)
+    BuffService->>BuffService: 检查目标是否已有该 Buff
     
     alt Buff 不存在
-        BuffManager->>Buff: new Buff(buffData, creator, target)
+        BuffService->>Buff: new Buff(buffData, creator, target)
         Buff->>BuffData: 获取配置数据
         BuffData-->>Buff: Duration, MaxStacks, Modules...
         Buff->>Buff: 初始化计时器和堆叠数
-        BuffManager->>BuffManager: 添加到所有索引
-        BuffManager->>BuffModule: 按 Priority 排序模块
-        BuffManager->>BuffModule: Execute(OnCreate)
+        BuffService->>BuffService: 添加到所有索引
+        BuffService->>BuffModule: 按 Priority 排序模块
+        BuffService->>BuffModule: Execute(OnCreate)
         
         loop 每个模块
             BuffModule->>BuffModule: 检查 TriggerCondition
@@ -258,16 +258,16 @@ sequenceDiagram
             GamePropertyManager-->>BuffModule: 修饰符已添加
         end
         
-        BuffManager->>Buff: 触发 OnCreate 事件
+        BuffService->>Buff: 触发 OnCreate 事件
         Buff-->>Client: OnCreate(buff)
         
         alt TriggerOnCreate == true
-            BuffManager->>Buff: 触发 OnTrigger 事件
+            BuffService->>Buff: 触发 OnTrigger 事件
             Buff-->>Client: OnTrigger(buff)
         end
         
     else Buff 已存在
-        BuffManager->>Buff: 应用叠加策略
+        BuffService->>Buff: 应用叠加策略
         
         alt BuffSuperpositionStrategy == Reset
             Buff->>Buff: DurationTimer = Duration
@@ -281,13 +281,13 @@ sequenceDiagram
         
         alt BuffSuperpositionStacksStrategy == Add
             Buff->>Buff: AddStack()
-            BuffManager->>BuffModule: Execute(OnAddStack)
+            BuffService->>BuffModule: Execute(OnAddStack)
             
             loop 每个模块
                 BuffModule->>GamePropertyManager: AddModifier(propertyID, modifier)
             end
             
-            BuffManager->>Buff: 触发 OnAddStack 事件
+            BuffService->>Buff: 触发 OnAddStack 事件
             Buff-->>Client: OnAddStack(buff)
         end
     end
@@ -295,49 +295,49 @@ sequenceDiagram
     Note over Client,GamePropertyManager: 场景 2: Update 循环
 
     loop 每帧
-        Client->>BuffManager: Update(deltaTime)
-        BuffManager->>Buff: 更新 DurationTimer
+        Client->>BuffService: Update(deltaTime)
+        BuffService->>Buff: 更新 DurationTimer
         Buff->>Buff: DurationTimer -= deltaTime
         
         alt DurationTimer <= 0 && !IsPermanent
-            BuffManager->>BuffManager: 标记为待移除
+            BuffService->>BuffService: 标记为待移除
         end
         
         alt TriggerInterval > 0
-            BuffManager->>Buff: 更新 TriggerTimer
+            BuffService->>Buff: 更新 TriggerTimer
             Buff->>Buff: TriggerTimer -= deltaTime
             
             alt TriggerTimer <= 0
                 Buff->>Buff: TriggerTimer = TriggerInterval
-                BuffManager->>Buff: 触发 OnTrigger 事件
+                BuffService->>Buff: 触发 OnTrigger 事件
                 Buff-->>Client: OnTrigger(buff)
-                BuffManager->>BuffModule: Execute(OnTick)
+                BuffService->>BuffModule: Execute(OnTick)
             end
         end
         
-        BuffManager->>Buff: 触发 OnUpdate 事件
+        BuffService->>Buff: 触发 OnUpdate 事件
         Buff-->>Client: OnUpdate(buff)
-        BuffManager->>BuffModule: Execute(OnUpdate)
+        BuffService->>BuffModule: Execute(OnUpdate)
     end
 
     Note over Client,GamePropertyManager: 场景 3: 移除 Buff
 
-    Client->>BuffManager: RemoveBuff(buff)
-    BuffManager->>BuffManager: 添加到 _pendingRemovals
-    BuffManager->>BuffManager: FlushPendingRemovals()
+    Client->>BuffService: RemoveBuff(buff)
+    BuffService->>BuffService: 添加到 _pendingRemovals
+    BuffService->>BuffService: FlushPendingRemovals()
     
     loop 每个待移除 Buff
-        BuffManager->>Buff: 触发 OnRemove 事件
+        BuffService->>Buff: 触发 OnRemove 事件
         Buff-->>Client: OnRemove(buff)
-        BuffManager->>BuffModule: Execute(OnRemove)
+        BuffService->>BuffModule: Execute(OnRemove)
         
         loop 每个模块
             BuffModule->>GamePropertyManager: RemoveModifier(propertyID, modifier)
             GamePropertyManager-->>BuffModule: 修饰符已移除
         end
         
-        BuffManager->>BuffManager: 从所有索引中移除
-        BuffManager->>Buff: 销毁 Buff 对象
+        BuffService->>BuffService: 从所有索引中移除
+        BuffService->>Buff: 销毁 Buff 对象
     end
 ```
 
@@ -559,14 +559,14 @@ flowchart LR
     Module2 -->|治疗| Property2[GameProperty: Health]
     Module3 -->|伤害| Property2
 
-    BuffManager[BuffManager] -->|管理| Buff1
-    BuffManager -->|管理| Buff2
-    BuffManager -->|管理| Buff3
+    BuffService[BuffService] -->|管理| Buff1
+    BuffService -->|管理| Buff2
+    BuffService -->|管理| Buff3
 
-    BuffManager -->|索引| Index1[_targetToBuffs]
-    BuffManager -->|索引| Index2[_buffsByID]
-    BuffManager -->|索引| Index3[_buffsByTag]
-    BuffManager -->|索引| Index4[_buffsByLayer]
+    BuffService -->|索引| Index1[_targetToBuffs]
+    BuffService -->|索引| Index2[_buffsByID]
+    BuffService -->|索引| Index3[_buffsByTag]
+    BuffService -->|索引| Index4[_buffsByLayer]
 
     Index1 -.快速查询.-> Target1
     Index1 -.快速查询.-> Target2
@@ -575,7 +575,7 @@ flowchart LR
     Index4 -.快速查询.-> Buff3
 
     style BuffData fill:#e1f5e1
-    style BuffManager fill:#d1ecf1
+    style BuffService fill:#d1ecf1
     style Property1 fill:#fff3cd
     style Property2 fill:#fff3cd
 ```
@@ -583,7 +583,7 @@ flowchart LR
 **数据流说明：**
 1. **配置复用**：一个 `BuffData` 可被多个 `Buff` 实例复用
 2. **模块共享**：`BuffData.BuffModules` 被所有实例共享
-3. **多重索引**：`BuffManager` 维护多个字典加速查询
+3. **多重索引**：`BuffService` 维护多个字典加速查询
 4. **属性修改**：`BuffModule` 通过 `GamePropertyManager` 修改属性
 
 ---

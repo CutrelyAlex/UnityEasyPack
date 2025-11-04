@@ -1,7 +1,7 @@
 # Inventory System - 用户使用指南
 
-**适用EasyPack版本:** EasyPack v1.5.30  
-**最后更新:** 2025-10-26
+**适用EasyPack版本:** EasyPack v1.7.0  
+**最后更新:** 2025-11-04
 
 ---
 
@@ -31,27 +31,51 @@
 
 ## 目录
 
-- [概述](#概述)
-- [快速开始](#快速开始)
-  - [前置要求](#前置要求)
-  - [导入命名空间](#导入命名空间)
-  - [第一示例](#第一示例)
-  - [验证集成](#验证集成)
-- [常见场景](#常见场景)
-  - [场景 1：创建容器并添加物品](#场景-1创建容器并添加物品)
-  - [场景 2：物品堆叠和数量管理](#场景-2物品堆叠和数量管理)
-  - [场景 3：使用条件限制容器接受的物品类型](#场景-3使用条件限制容器接受的物品类型)
-  - [场景 4：物品在容器间转移](#场景-4物品在容器间转移)
-  - [场景 5：使用 InventoryManager 管理多个容器](#场景-5使用-inventorymanager-管理多个容器)
-- [进阶用法](#进阶用法)
-  - [进阶 1：网格容器系统](#进阶-1网格容器系统)
-  - [进阶 2：批量操作优化](#进阶-2批量操作优化)
-  - [进阶 3：序列化与持久化](#进阶-3序列化与持久化)
-  - [进阶 4：自定义条件和属性查询](#进阶-4自定义条件和属性查询)
-- [故障排查](#故障排查)
-- [术语表](#术语表)
-- [最佳实践](#最佳实践)
-- [延伸阅读](#延伸阅读)
+- [Inventory System - 用户使用指南](#inventory-system---用户使用指南)
+  - [概述](#概述)
+    - [核心特性](#核心特性)
+    - [适用场景](#适用场景)
+  - [目录](#目录)
+  - [快速开始](#快速开始)
+    - [前置要求](#前置要求)
+    - [导入命名空间](#导入命名空间)
+    - [第一示例](#第一示例)
+    - [验证集成](#验证集成)
+  - [常见场景](#常见场景)
+    - [场景 1：创建容器并添加物品](#场景-1创建容器并添加物品)
+    - [场景 2：物品堆叠和数量管理](#场景-2物品堆叠和数量管理)
+    - [场景 3：使用条件限制容器接受的物品类型](#场景-3使用条件限制容器接受的物品类型)
+    - [场景 4：物品在容器间转移](#场景-4物品在容器间转移)
+    - [场景 5：使用 InventoryManager 管理多个容器](#场景-5使用-inventorymanager-管理多个容器)
+  - [进阶用法](#进阶用法)
+    - [进阶 1：网格容器系统](#进阶-1网格容器系统)
+    - [进阶 2：批量操作优化](#进阶-2批量操作优化)
+    - [进阶 3：序列化与持久化](#进阶-3序列化与持久化)
+    - [进阶 4：自定义条件和属性查询](#进阶-4自定义条件和属性查询)
+  - [故障排查](#故障排查)
+    - [常见问题](#常见问题)
+      - [问题 1：编译错误 - 找不到类型 `Container`](#问题-1编译错误---找不到类型-container)
+      - [问题 2：运行时错误 - AddItems 返回 `ItemConditionNotMet`](#问题-2运行时错误---additems-返回-itemconditionnotmet)
+      - [问题 3：性能问题 - 频繁添加物品导致卡顿](#问题-3性能问题---频繁添加物品导致卡顿)
+      - [问题 4：序列化错误 - 反序列化后物品丢失](#问题-4序列化错误---反序列化后物品丢失)
+      - [问题 5：网格容器放置失败 - 无法放置物品](#问题-5网格容器放置失败---无法放置物品)
+    - [FAQ 更新记录](#faq-更新记录)
+      - [问题 X：（待补充）](#问题-x待补充)
+  - [术语表](#术语表)
+    - [容器（Container）](#容器container)
+    - [槽位（Slot）](#槽位slot)
+    - [物品（Item）](#物品item)
+    - [堆叠（Stacking）](#堆叠stacking)
+    - [物品条件（Item Condition）](#物品条件item-condition)
+    - [InventoryManager（库存管理器）](#inventorymanager库存管理器)
+    - [批处理（Batch Processing）](#批处理batch-processing)
+    - [网格物品（Grid Item）](#网格物品grid-item)
+  - [最佳实践](#最佳实践)
+    - [1. 优先使用 InventoryManager 管理多个容器](#1-优先使用-inventorymanager-管理多个容器)
+    - [2. 大量操作时使用批处理](#2-大量操作时使用批处理)
+    - [3. 使用统一序列化服务](#3-使用统一序列化服务)
+    - [4. 使用只读属性访问槽位](#4-使用只读属性访问槽位)
+  - [延伸阅读](#延伸阅读)
 
 ---
 
@@ -423,7 +447,7 @@ public class InventoryManagerExample : MonoBehaviour
 
 ### 进阶 1：网格容器系统
 
-**适用场景：** 实现类似《暗黑破坏神》《逃离塔科夫》的网格背包，物品占据多个格子
+**适用场景：** 实现类似《暗黑破坏神》《逃离塔科夫》的网格背包，物品占据多个格子，支持任意形状
 
 **代码示例：**
 
@@ -438,15 +462,14 @@ public class GridContainerExample : MonoBehaviour
         // 创建 5x4 的网格容器（总计 20 格）
         var gridBackpack = new GridContainer("grid_backpack", "网格背包", "GridBackpack", 5, 4);
         
-        // 创建网格物品（2x2 大小的盔甲）
+        // 场景 1：创建矩形物品 - 2x2 大小的盔甲
         var armor = new GridItem
         {
             ID = "plate_armor",
             Name = "板甲",
             Type = "Equipment",
             IsStackable = false,
-            GridWidth = 2,
-            GridHeight = 2
+            Shape = GridItem.CreateRectangleShape(2, 2)  // 使用辅助方法创建 2x2 矩形形状
         };
         
         // 尝试在 (0, 0) 位置放置盔甲
@@ -456,25 +479,57 @@ public class GridContainerExample : MonoBehaviour
         {
             Debug.Log("盔甲成功放置在 (0,0)，占据 2x2 格子");
             Debug.Log($"已用槽位：{gridBackpack.UsedSlots}/20");
+            Debug.Log($"盔甲实际宽度：{armor.ActualWidth}，高度：{armor.ActualHeight}");
         }
         
         // 查询指定位置的物品
         var itemAt00 = gridBackpack.GetItemAt(0, 0);
         Debug.Log($"(0,0) 位置的物品：{itemAt00?.Name}");
         
-        // 创建 1x1 的小物品
+        // 场景 2：创建 1x1 的小物品
         var ring = new GridItem
         {
             ID = "gold_ring",
             Name = "金戒指",
             Type = "Equipment",
             IsStackable = false,
-            GridWidth = 1,
-            GridHeight = 1
+            Shape = GridItem.CreateRectangleShape(1, 1)  // 1x1 单格物品
         };
         
         // 在 (3, 0) 放置戒指
         gridBackpack.AddItemsAtPosition(ring, 1, 3, 0);
+        
+        // 场景 3：创建 L 形物品（任意形状）
+        var lShapedItem = new GridItem
+        {
+            ID = "l_shaped_key",
+            Name = "L 形钥匙",
+            Type = "Tool",
+            IsStackable = false,
+            Shape = new System.Collections.Generic.List<(int x, int y)>
+            {
+                (0, 0), (1, 0),        // 水平的两格
+                (0, 1)                  // 下方的一格
+            }
+        };
+        
+        // 在 (0, 2) 放置 L 形物品
+        gridBackpack.AddItemsAtPosition(lShapedItem, 1, 0, 2);
+        
+        // 场景 4：支持旋转的物品
+        var rotatableItem = new GridItem
+        {
+            ID = "rotatable_staff",
+            Name = "可旋转法杖",
+            Type = "Equipment",
+            IsStackable = false,
+            Shape = GridItem.CreateRectangleShape(1, 3),  // 竖直 1x3
+            CanRotate = true  // 启用旋转
+        };
+        
+        // 可以旋转物品（旋转 90 度变为 3x1）
+        rotatableItem.Rotate();
+        Debug.Log($"旋转后的宽度：{rotatableItem.ActualWidth}，高度：{rotatableItem.ActualHeight}");
         
         // 移动物品到新位置
         bool moveSuccess = gridBackpack.MoveItemToPosition(0, 0, 2, 2);
@@ -483,10 +538,18 @@ public class GridContainerExample : MonoBehaviour
 }
 ```
 
+**Shape 系统特点：**
+- 统一的形状表示：所有物品形状都用 `List<(int x, int y)>` 表示单元格坐标
+- `CreateRectangleShape(width, height)` 辅助方法用于快速创建矩形形状
+- 支持任意复杂形状：L形、十字形、T形等，只需列出占据的格子坐标
+- 旋转支持：启用 `CanRotate` 后可以旋转物品，形状会自动变换
+- `ActualWidth` 和 `ActualHeight` 自动计算当前旋转后的实际占用空间
+
 **性能优化建议：**
 - 网格容器适合小型背包（< 10x10），大型背包建议使用线性容器
 - 使用 `GetItemAt()` 前先检查坐标是否合法
 - 批量操作时使用 `BeginBatch()` / `EndBatch()` 减少事件触发
+- 对于复杂形状的物品，创建时预计算好形状坐标列表，避免运行时动态创建
 
 ---
 

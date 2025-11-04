@@ -60,7 +60,7 @@ namespace EasyPack.InventorySystem
                 ContainerIds = (item.IsContainerItem && item.ContainerIds != null && item.ContainerIds.Count > 0)
                     ? new List<string>(item.ContainerIds)
                     : null,
-                Shape = item.Shape != null 
+                Shape = item.Shape != null
                     ? item.Shape.ConvertAll(cell => new SerializedCell { x = cell.x, y = cell.y })
                     : new List<SerializedCell> { new SerializedCell { x = 0, y = 0 } },
                 CanRotate = item.CanRotate,
