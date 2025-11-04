@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 
 namespace EasyPack.InventorySystem
@@ -156,6 +157,40 @@ namespace EasyPack.InventorySystem
             return true;
         }
 
+        /// <summary>
+        /// 检查指定位置是否可以放置网格物品（支持任意形状）
+        /// </summary>
+        /// <param name="gridItem">要放置的网格物品</param>
+        /// <param name="slotIndex">放置的起始槽位索引</param>
+        /// <param name="excludeIndex">排除的槽位索引（用于移动物品时）</param>
+        /// <returns>是否可以放置</returns>
+        public bool CanPlaceGridItem(GridItem gridItem, int slotIndex, int excludeIndex = -1)
+        {
+            var (startX, startY) = IndexToCoord(slotIndex);
+            var occupiedCells = gridItem.GetOccupiedCells();
+
+            foreach (var (dx, dy) in occupiedCells)
+            {
+                int x = startX + dx;
+                int y = startY + dy;
+
+                // 检查是否超出边界
+                if (x < 0 || x >= GridWidth || y < 0 || y >= GridHeight)
+                    return false;
+
+                int checkIndex = CoordToIndex(x, y);
+                if (checkIndex == excludeIndex) continue;
+
+                var slot = _slots[checkIndex];
+
+                // 检查槽位是否已被占用
+                if (slot.IsOccupied)
+                    return false;
+            }
+
+            return true;
+        }
+
         #endregion
 
         #region 添加物品
@@ -217,8 +252,7 @@ namespace EasyPack.InventorySystem
             // 如果指定了槽位，检查该位置是否可以放置
             if (slotIndex >= 0)
             {
-                var (x, y) = IndexToCoord(slotIndex);
-                if (x < 0 || !CanPlaceAt(x, y, gridItem.ActualWidth, gridItem.ActualHeight))
+                if (!CanPlaceGridItem(gridItem, slotIndex))
                     return (AddItemResult.NoSuitableSlotFound, 0);
 
                 // 放置物品并占用空间
@@ -227,7 +261,7 @@ namespace EasyPack.InventorySystem
             }
 
             // 自动寻找可放置位置
-            int targetIndex = FindPlacementPosition(gridItem.ActualWidth, gridItem.ActualHeight);
+            int targetIndex = FindPlacementPosition(gridItem);
             if (targetIndex < 0)
                 return (AddItemResult.ContainerIsFull, 0);
 
@@ -236,21 +270,27 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 寻找可以放置指定尺寸物品的位置
+        /// 寻找可以放置网格物品的位置（支持任意形状）
         /// </summary>
-        /// <param name="width">物品宽度</param>
-        /// <param name="height">物品高度</param>
-        /// <returns>可放置的槽位索引，如果没有则返回-1</returns>
-        private int FindPlacementPosition(int width, int height)
+        private int FindPlacementPosition(GridItem gridItem)
         {
+            var occupiedCells = gridItem.GetOccupiedCells();
+            if (occupiedCells.Count == 0)
+                return -1;
+
+            // 计算物品的边界框
+            int maxDx = occupiedCells.Max(c => c.x);
+            int maxDy = occupiedCells.Max(c => c.y);
+
             // 从左上到右下扫描
-            for (int y = 0; y <= GridHeight - height; y++)
+            for (int y = 0; y <= GridHeight - maxDy - 1; y++)
             {
-                for (int x = 0; x <= GridWidth - width; x++)
+                for (int x = 0; x <= GridWidth - maxDx - 1; x++)
                 {
-                    if (CanPlaceAt(x, y, width, height))
+                    int slotIndex = CoordToIndex(x, y);
+                    if (CanPlaceGridItem(gridItem, slotIndex))
                     {
-                        return CoordToIndex(x, y);
+                        return slotIndex;
                     }
                 }
             }
@@ -263,6 +303,7 @@ namespace EasyPack.InventorySystem
         private void PlaceGridItem(GridItem gridItem, int slotIndex)
         {
             var (startX, startY) = IndexToCoord(slotIndex);
+            var occupiedCells = gridItem.GetOccupiedCells();
 
             // 在主槽位放置实际物品
             var mainSlot = _slots[slotIndex];
@@ -275,20 +316,22 @@ namespace EasyPack.InventorySystem
             _cacheService.UpdateItemCountCache(gridItem.ID, 1);
 
             // 在其他占用的槽位放置占位符
-            for (int dy = 0; dy < gridItem.ActualHeight; dy++)
+            bool isFirst = true;
+            foreach (var (dx, dy) in occupiedCells)
             {
-                for (int dx = 0; dx < gridItem.ActualWidth; dx++)
+                if (isFirst)
                 {
-                    if (dx == 0 && dy == 0) continue; // 跳过主槽位
-
-                    int occupiedIndex = CoordToIndex(startX + dx, startY + dy);
-                    var occupiedSlot = _slots[occupiedIndex];
-                    var marker = new GridOccupiedMarker { MainSlotIndex = slotIndex };
-                    occupiedSlot.SetItem(marker, 1);
-
-                    // 更新空槽位缓存（占位符槽位也被占用）
-                    _cacheService.UpdateEmptySlotCache(occupiedIndex, false);
+                    isFirst = false;
+                    continue; // 跳过主槽位（第一个单元格）
                 }
+
+                int occupiedIndex = CoordToIndex(startX + dx, startY + dy);
+                var occupiedSlot = _slots[occupiedIndex];
+                var marker = new GridOccupiedMarker { MainSlotIndex = slotIndex };
+                occupiedSlot.SetItem(marker, 1);
+
+                // 更新空槽位缓存（占位符槽位也被占用）
+                _cacheService.UpdateEmptySlotCache(occupiedIndex, false);
             }
 
             // 触发槽位变更事件
@@ -337,19 +380,17 @@ namespace EasyPack.InventorySystem
             var (startX, startY) = IndexToCoord(slotIndex);
             string itemId = gridItem.ID;
             string itemType = gridItem.Type;
+            var occupiedCells = gridItem.GetOccupiedCells();
 
             // 清理所有占用的槽位
-            for (int dy = 0; dy < gridItem.ActualHeight; dy++)
+            foreach (var (dx, dy) in occupiedCells)
             {
-                for (int dx = 0; dx < gridItem.ActualWidth; dx++)
-                {
-                    int occupiedIndex = CoordToIndex(startX + dx, startY + dy);
-                    var occupiedSlot = _slots[occupiedIndex];
-                    occupiedSlot.ClearSlot();
+                int occupiedIndex = CoordToIndex(startX + dx, startY + dy);
+                var occupiedSlot = _slots[occupiedIndex];
+                occupiedSlot.ClearSlot();
 
-                    // 更新空槽位缓存
-                    _cacheService.UpdateEmptySlotCache(occupiedIndex, true);
-                }
+                // 更新空槽位缓存
+                _cacheService.UpdateEmptySlotCache(occupiedIndex, true);
             }
 
             // 更新缓存

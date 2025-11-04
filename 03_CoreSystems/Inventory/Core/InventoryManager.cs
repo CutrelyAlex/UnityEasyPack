@@ -1,13 +1,14 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// 多个容器管理的系统
     /// </summary>
-    public class InventoryManager
+    public partial class InventoryManager
     {
         #region 存储
 
@@ -57,40 +58,33 @@ namespace EasyPack.InventorySystem
         /// <returns>注册是否成功</returns>
         public bool RegisterContainer(Container container, int priority = 0, string category = "Default")
         {
-            try
+            if (container?.ID == null) return false;
+
+            if (_containers.ContainsKey(container.ID))
             {
-                if (container?.ID == null) return false;
-
-                if (_containers.ContainsKey(container.ID))
-                {
-                    UnregisterContainer(container.ID);
-                }
-
-                // 注册容器
-                _containers[container.ID] = container;
-                _containerPriorities[container.ID] = priority;
-                _containerCategories[container.ID] = category ?? "Default";
-
-                // 按类型建立索引
-                string containerType = container.Type ?? "Unknown";
-                if (!_containersByType.ContainsKey(containerType))
-                    _containersByType[containerType] = new HashSet<string>();
-
-                _containersByType[containerType].Add(container.ID);
-
-                // 如果全局条件已启用，添加到新容器
-                if (_enableGlobalConditions)
-                {
-                    ApplyGlobalConditionsToContainer(container);
-                }
-
-                OnContainerRegistered?.Invoke(container);
-                return true;
+                UnregisterContainer(container.ID);
             }
-            catch
+
+            // 注册容器
+            _containers[container.ID] = container;
+            _containerPriorities[container.ID] = priority;
+            _containerCategories[container.ID] = category ?? "Default";
+
+            // 按类型建立索引
+            string containerType = container.Type ?? "Unknown";
+            if (!_containersByType.ContainsKey(containerType))
+                _containersByType[containerType] = new HashSet<string>();
+
+            _containersByType[containerType].Add(container.ID);
+
+            // 如果全局条件已启用，添加到新容器
+            if (_enableGlobalConditions)
             {
-                return false;
+                ApplyGlobalConditionsToContainer(container);
             }
+
+            OnContainerRegistered?.Invoke(container);
+            return true;
         }
 
         /// <summary>
@@ -130,8 +124,9 @@ namespace EasyPack.InventorySystem
                 OnContainerUnregistered?.Invoke(container);
                 return true;
             }
-            catch
+            catch (System.Exception ex)
             {
+                UnityEngine.Debug.LogError($"[InventoryManager] 注销容器失败：{ex.Message}\n{ex.StackTrace}");
                 return false;
             }
         }
@@ -143,14 +138,7 @@ namespace EasyPack.InventorySystem
         /// <returns>找到的容器，未找到返回null</returns>
         public Container GetContainer(string containerId)
         {
-            try
-            {
-                return string.IsNullOrEmpty(containerId) ? null : _containers.GetValueOrDefault(containerId);
-            }
-            catch
-            {
-                return null;
-            }
+            return string.IsNullOrEmpty(containerId) ? null : _containers.GetValueOrDefault(containerId);
         }
 
         /// <summary>
@@ -159,14 +147,7 @@ namespace EasyPack.InventorySystem
         /// <returns>所有容器的只读列表</returns>
         public IReadOnlyList<Container> GetAllContainers()
         {
-            try
-            {
-                return _containers.Values.ToList().AsReadOnly();
-            }
-            catch
-            {
-                return new List<Container>().AsReadOnly();
-            }
+            return _containers.Values.ToList().AsReadOnly();
         }
 
         /// <summary>
@@ -176,25 +157,18 @@ namespace EasyPack.InventorySystem
         /// <returns>指定类型的容器列表</returns>
         public List<Container> GetContainersByType(string containerType)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(containerType) || !_containersByType.TryGetValue(containerType, out var containerIds))
-                    return new List<Container>();
-
-                var result = new List<Container>();
-                foreach (string containerId in containerIds)
-                {
-                    if (_containers.TryGetValue(containerId, out var container))
-                    {
-                        result.Add(container);
-                    }
-                }
-                return result;
-            }
-            catch
-            {
+            if (string.IsNullOrEmpty(containerType) || !_containersByType.TryGetValue(containerType, out var containerIds))
                 return new List<Container>();
+
+            var result = new List<Container>();
+            foreach (string containerId in containerIds)
+            {
+                if (_containers.TryGetValue(containerId, out var container))
+                {
+                    result.Add(container);
+                }
             }
+            return result;
         }
 
         /// <summary>
@@ -204,25 +178,18 @@ namespace EasyPack.InventorySystem
         /// <returns>指定分类的容器列表</returns>
         public List<Container> GetContainersByCategory(string category)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(category))
-                    return new List<Container>();
-
-                var result = new List<Container>();
-                foreach (var kvp in _containerCategories)
-                {
-                    if (kvp.Value == category && _containers.TryGetValue(kvp.Key, out var container))
-                    {
-                        result.Add(container);
-                    }
-                }
-                return result;
-            }
-            catch
-            {
+            if (string.IsNullOrEmpty(category))
                 return new List<Container>();
+
+            var result = new List<Container>();
+            foreach (var kvp in _containerCategories)
+            {
+                if (kvp.Value == category && _containers.TryGetValue(kvp.Key, out var container))
+                {
+                    result.Add(container);
+                }
             }
+            return result;
         }
 
         /// <summary>
@@ -232,21 +199,14 @@ namespace EasyPack.InventorySystem
         /// <returns>按优先级排序的容器列表</returns>
         public List<Container> GetContainersByPriority(bool descending = true)
         {
-            try
+            var sortedContainers = _containers.Values.ToList();
+            sortedContainers.Sort((a, b) =>
             {
-                var sortedContainers = _containers.Values.ToList();
-                sortedContainers.Sort((a, b) =>
-                {
-                    int priorityA = _containerPriorities.GetValueOrDefault(a.ID, 0);
-                    int priorityB = _containerPriorities.GetValueOrDefault(b.ID, 0);
-                    return descending ? priorityB.CompareTo(priorityA) : priorityA.CompareTo(priorityB);
-                });
-                return sortedContainers;
-            }
-            catch
-            {
-                return new List<Container>();
-            }
+                int priorityA = _containerPriorities.GetValueOrDefault(a.ID, 0);
+                int priorityB = _containerPriorities.GetValueOrDefault(b.ID, 0);
+                return descending ? priorityB.CompareTo(priorityA) : priorityA.CompareTo(priorityB);
+            });
+            return sortedContainers;
         }
 
         /// <summary>
@@ -256,14 +216,7 @@ namespace EasyPack.InventorySystem
         /// <returns>是否已注册</returns>
         public bool IsContainerRegistered(string containerId)
         {
-            try
-            {
-                return !string.IsNullOrEmpty(containerId) && _containers.ContainsKey(containerId);
-            }
-            catch
-            {
-                return false;
-            }
+            return !string.IsNullOrEmpty(containerId) && _containers.ContainsKey(containerId);
         }
 
         /// <summary>
@@ -283,19 +236,12 @@ namespace EasyPack.InventorySystem
         /// <returns>设置是否成功</returns>
         public bool SetContainerPriority(string containerId, int priority)
         {
-            try
-            {
-                if (!IsContainerRegistered(containerId))
-                    return false;
-
-                _containerPriorities[containerId] = priority;
-                OnContainerPriorityChanged?.Invoke(containerId, priority);
-                return true;
-            }
-            catch
-            {
+            if (!IsContainerRegistered(containerId))
                 return false;
-            }
+
+            _containerPriorities[containerId] = priority;
+            OnContainerPriorityChanged?.Invoke(containerId, priority);
+            return true;
         }
 
         /// <summary>
@@ -305,14 +251,7 @@ namespace EasyPack.InventorySystem
         /// <returns>容器优先级，未找到返回0</returns>
         public int GetContainerPriority(string containerId)
         {
-            try
-            {
-                return _containerPriorities.GetValueOrDefault(containerId, 0);
-            }
-            catch
-            {
-                return 0;
-            }
+            return _containerPriorities.GetValueOrDefault(containerId, 0);
         }
 
         /// <summary>
@@ -323,20 +262,13 @@ namespace EasyPack.InventorySystem
         /// <returns>设置是否成功</returns>
         public bool SetContainerCategory(string containerId, string category)
         {
-            try
-            {
-                if (!IsContainerRegistered(containerId))
-                    return false;
-
-                string oldCategory = _containerCategories.GetValueOrDefault(containerId, "Default");
-                _containerCategories[containerId] = category ?? "Default";
-                OnContainerCategoryChanged?.Invoke(containerId, oldCategory, category);
-                return true;
-            }
-            catch
-            {
+            if (!IsContainerRegistered(containerId))
                 return false;
-            }
+
+            string oldCategory = _containerCategories.GetValueOrDefault(containerId, "Default");
+            _containerCategories[containerId] = category ?? "Default";
+            OnContainerCategoryChanged?.Invoke(containerId, oldCategory, category);
+            return true;
         }
 
         /// <summary>
@@ -346,14 +278,7 @@ namespace EasyPack.InventorySystem
         /// <returns>容器分类，未找到返回"Default"</returns>
         public string GetContainerCategory(string containerId)
         {
-            try
-            {
-                return _containerCategories.GetValueOrDefault(containerId, "Default");
-            }
-            catch
-            {
-                return "Default";
-            }
+            return _containerCategories.GetValueOrDefault(containerId, "Default");
         }
 
 
@@ -368,12 +293,13 @@ namespace EasyPack.InventorySystem
         /// <returns>是否满足所有全局条件</returns>
         public bool ValidateGlobalItemConditions(IItem item)
         {
+            if (item == null) return false;
+            if (!_enableGlobalConditions)
+                return true;
+
+            // 用户提供的条件检查可能抛异常，需要保护
             try
             {
-                if (item == null) return false;
-                if (!_enableGlobalConditions)
-                    return true;
-
                 foreach (var condition in _globalItemConditions)
                 {
                     if (!condition.CheckCondition(item))
@@ -381,8 +307,9 @@ namespace EasyPack.InventorySystem
                 }
                 return true;
             }
-            catch
+            catch (System.Exception ex)
             {
+                UnityEngine.Debug.LogError($"[InventoryManager] 全局条件检查失败：{ex.Message}");
                 return false;
             }
         }
@@ -414,9 +341,9 @@ namespace EasyPack.InventorySystem
                     OnGlobalConditionAdded?.Invoke(condition);
                 }
             }
-            catch
+            catch (System.Exception ex)
             {
-                // 静默处理异常
+                UnityEngine.Debug.LogError($"[InventoryManager] 操作失败：{ex.Message}"); // 静默处理异常
             }
         }
 
@@ -427,27 +354,20 @@ namespace EasyPack.InventorySystem
         /// <returns>移除是否成功</returns>
         public bool RemoveGlobalItemCondition(IItemCondition condition)
         {
-            try
-            {
-                if (condition == null) return false;
+            if (condition == null) return false;
 
-                bool removed = _globalItemConditions.Remove(condition);
-                if (removed)
+            bool removed = _globalItemConditions.Remove(condition);
+            if (removed)
+            {
+                // 从所有容器中移除此条件
+                foreach (var container in _containers.Values)
                 {
-                    // 从所有容器中移除此条件
-                    foreach (var container in _containers.Values)
-                    {
-                        container.ContainerCondition.Remove(condition);
-                    }
-
-                    OnGlobalConditionRemoved?.Invoke(condition);
+                    container.ContainerCondition.Remove(condition);
                 }
-                return removed;
+
+                OnGlobalConditionRemoved?.Invoke(condition);
             }
-            catch
-            {
-                return false;
-            }
+            return removed;
         }
 
         /// <summary>
@@ -456,29 +376,23 @@ namespace EasyPack.InventorySystem
         /// <param name="enable">是否启用</param>
         public void SetGlobalConditionsEnabled(bool enable)
         {
-            try
+            if (_enableGlobalConditions == enable) return;
+
+            _enableGlobalConditions = enable;
+
+            if (enable)
             {
-                if (_enableGlobalConditions == enable) return;
-
-                _enableGlobalConditions = enable;
-
-                if (enable)
+                foreach (var container in _containers.Values)
                 {
-                    foreach (var container in _containers.Values)
-                    {
-                        ApplyGlobalConditionsToContainer(container);
-                    }
-                }
-                else
-                {
-                    foreach (var container in _containers.Values)
-                    {
-                        RemoveGlobalConditionsFromContainer(container);
-                    }
+                    ApplyGlobalConditionsToContainer(container);
                 }
             }
-            catch
+            else
             {
+                foreach (var container in _containers.Values)
+                {
+                    RemoveGlobalConditionsFromContainer(container);
+                }
             }
         }
 
@@ -492,18 +406,12 @@ namespace EasyPack.InventorySystem
         /// <param name="container">目标容器</param>
         private void ApplyGlobalConditionsToContainer(Container container)
         {
-            try
+            foreach (var condition in _globalItemConditions)
             {
-                foreach (var condition in _globalItemConditions)
+                if (!container.ContainerCondition.Contains(condition))
                 {
-                    if (!container.ContainerCondition.Contains(condition))
-                    {
-                        container.ContainerCondition.Add(condition);
-                    }
+                    container.ContainerCondition.Add(condition);
                 }
-            }
-            catch
-            {
             }
         }
 
@@ -513,15 +421,9 @@ namespace EasyPack.InventorySystem
         /// <param name="container">目标容器</param>
         private void RemoveGlobalConditionsFromContainer(Container container)
         {
-            try
+            foreach (var condition in _globalItemConditions)
             {
-                foreach (var condition in _globalItemConditions)
-                {
-                    container.ContainerCondition.Remove(condition);
-                }
-            }
-            catch
-            {
+                container.ContainerCondition.Remove(condition);
             }
         }
 
@@ -671,8 +573,9 @@ namespace EasyPack.InventorySystem
                     _ => MoveResult.Failed
                 };
             }
-            catch
+            catch (System.Exception ex)
             {
+                UnityEngine.Debug.LogError($"[InventoryManager] 物品移动失败：{ex.Message}");
                 return MoveResult.Failed;
             }
         }
@@ -747,8 +650,9 @@ namespace EasyPack.InventorySystem
                     _ => (MoveResult.Failed, 0)
                 };
             }
-            catch
+            catch (System.Exception ex)
             {
+                UnityEngine.Debug.LogError($"[InventoryManager] 物品转移失败：{ex.Message}");
                 return (MoveResult.Failed, 0);
             }
         }
@@ -762,29 +666,22 @@ namespace EasyPack.InventorySystem
         /// <returns>转移结果和实际转移数量</returns>
         public (MoveResult result, int transferredCount) AutoMoveItem(string itemId, string fromContainerId, string toContainerId)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(itemId))
-                    return (MoveResult.ItemNotFound, 0);
+            if (string.IsNullOrEmpty(itemId))
+                return (MoveResult.ItemNotFound, 0);
 
-                var sourceContainer = GetContainer(fromContainerId);
-                if (sourceContainer == null)
-                    return (MoveResult.SourceContainerNotFound, 0);
+            var sourceContainer = GetContainer(fromContainerId);
+            if (sourceContainer == null)
+                return (MoveResult.SourceContainerNotFound, 0);
 
-                var targetContainer = GetContainer(toContainerId);
-                if (targetContainer == null)
-                    return (MoveResult.TargetContainerNotFound, 0);
+            var targetContainer = GetContainer(toContainerId);
+            if (targetContainer == null)
+                return (MoveResult.TargetContainerNotFound, 0);
 
-                if (!sourceContainer.HasItem(itemId))
-                    return (MoveResult.ItemNotFound, 0);
+            if (!sourceContainer.HasItem(itemId))
+                return (MoveResult.ItemNotFound, 0);
 
-                int totalCount = sourceContainer.GetItemTotalCount(itemId);
-                return TransferItems(itemId, totalCount, fromContainerId, toContainerId);
-            }
-            catch
-            {
-                return (MoveResult.Failed, 0);
-            }
+            int totalCount = sourceContainer.GetItemTotalCount(itemId);
+            return TransferItems(itemId, totalCount, fromContainerId, toContainerId);
         }
 
         /// <summary>
@@ -1044,23 +941,16 @@ namespace EasyPack.InventorySystem
         /// <returns>全局物品总数量</returns>
         public int GetGlobalItemCount(string itemId)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(itemId))
-                    return 0;
-
-                int totalCount = 0;
-                foreach (var container in _containers.Values)
-                {
-                    totalCount += container.GetItemTotalCount(itemId);
-                }
-
-                return totalCount;
-            }
-            catch
-            {
+            if (string.IsNullOrEmpty(itemId))
                 return 0;
+
+            int totalCount = 0;
+            foreach (var container in _containers.Values)
+            {
+                totalCount += container.GetItemTotalCount(itemId);
             }
+
+            return totalCount;
         }
 
         /// <summary>
@@ -1089,9 +979,10 @@ namespace EasyPack.InventorySystem
                     }
                 }
             }
-            catch
+            catch (System.Exception ex)
             {
 
+                UnityEngine.Debug.LogError($"[InventoryManager] 操作失败：{ex.Message}");
             }
 
             return results;
@@ -1123,9 +1014,10 @@ namespace EasyPack.InventorySystem
                     }
                 }
             }
-            catch
+            catch (System.Exception ex)
             {
 
+                UnityEngine.Debug.LogError($"[InventoryManager] 操作失败：{ex.Message}");
             }
 
             return results;
@@ -1241,22 +1133,15 @@ namespace EasyPack.InventorySystem
         /// </summary>
         public void RefreshGlobalCache()
         {
-            try
+            foreach (var container in _containers.Values)
             {
-                foreach (var container in _containers.Values)
+                if (container is Container containerImpl)
                 {
-                    if (container is Container containerImpl)
-                    {
-                        containerImpl.RebuildCaches();
-                    }
+                    containerImpl.RebuildCaches();
                 }
-
-                OnGlobalCacheRefreshed?.Invoke();
             }
-            catch
-            {
 
-            }
+            OnGlobalCacheRefreshed?.Invoke();
         }
 
         /// <summary>
@@ -1264,22 +1149,15 @@ namespace EasyPack.InventorySystem
         /// </summary>
         public void ValidateGlobalCache()
         {
-            try
+            foreach (var container in _containers.Values)
             {
-                foreach (var container in _containers.Values)
+                if (container is Container containerImpl)
                 {
-                    if (container is Container containerImpl)
-                    {
-                        containerImpl.ValidateCaches();
-                    }
+                    containerImpl.ValidateCaches();
                 }
-
-                OnGlobalCacheValidated?.Invoke();
             }
-            catch
-            {
 
-            }
+            OnGlobalCacheValidated?.Invoke();
         }
         #endregion
     }

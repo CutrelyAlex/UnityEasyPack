@@ -556,28 +556,157 @@ namespace EasyPack.InventorySystem
         /// <param name="slotIndex">指定的槽位索引，-1表示自动寻找合适的槽位</param>
         /// <param name="exceededCount">超出堆叠上限的数量</param>
         /// <returns>添加结果和成功添加的数量</returns>
-        public virtual (AddItemResult result, int addedCount)
+        #endregion
+
+        #region AddItems辅助方法
+
+        /// <summary>
+        /// 验证物品添加的基本条件
+        /// </summary>
+        private (bool isValid, AddItemResult result) ValidateAddItemRequest(IItem item, int count)
+        {
+            if (item == null)
+                return (false, AddItemResult.ItemIsNull);
+
+            if (count <= 0)
+                return (false, AddItemResult.AddNothingLOL);
+
+            if (!ValidateItemCondition(item))
+                return (false, AddItemResult.ItemConditionNotMet);
+
+            return (true, AddItemResult.Success);
+        }
+
+        /// <summary>
+        /// 尝试将物品堆叠到现有槽位
+        /// </summary>
+        private (int addedCount, List<int> affectedSlots, BatchCacheUpdates cacheUpdates) ProcessStackableItems(
+            IItem item, int count)
+        {
+            var cacheUpdates = new BatchCacheUpdates(item.ID, item.Type);
+            var affectedSlots = new List<int>();
+
+            if (!item.IsStackable)
+                return (0, affectedSlots, cacheUpdates);
+
+            var (stackedCount, stackedSlots, slotChanges) = TryStackItems(item, count);
+
+            if (stackedCount > 0)
+            {
+                affectedSlots.AddRange(stackedSlots);
+                cacheUpdates.TotalCountDelta += stackedCount;
+
+                // 触发槽位变更事件
+                foreach (var change in slotChanges)
+                {
+                    int slotIdx = change.Key;
+                    var slot = _slots[slotIdx];
+                    OnSlotQuantityChanged(slotIdx, slot.Item, change.Value.oldCount, change.Value.newCount);
+                }
+            }
+
+            return (stackedCount, affectedSlots, cacheUpdates);
+        }
+
+        /// <summary>
+        /// 处理指定槽位添加
+        /// </summary>
+        private (bool success, int addedCount, int remaining, BatchCacheUpdates cacheUpdates) ProcessSpecificSlotAddition(
+            IItem item, int slotIndex, int count)
+        {
+            var cacheUpdates = new BatchCacheUpdates(item.ID, item.Type);
+
+            if (slotIndex < 0)
+                return (false, 0, count, cacheUpdates);
+
+            var (success, addedCount, newRemaining) = TryAddToSpecificSlot(item, slotIndex, count);
+
+            if (success)
+            {
+                cacheUpdates.TotalCountDelta += addedCount;
+                cacheUpdates.SlotIndexUpdates.Add((slotIndex, true));
+                cacheUpdates.TypeIndexUpdates.Add((slotIndex, true));
+                cacheUpdates.EmptySlotUpdates.Add((slotIndex, false));
+            }
+
+            return (success, addedCount, newRemaining, cacheUpdates);
+        }
+
+        /// <summary>
+        /// 处理空槽位和新槽位填充
+        /// </summary>
+        private (int addedCount, List<int> affectedSlots, BatchCacheUpdates cacheUpdates) ProcessEmptyAndNewSlots(
+            IItem item, int count)
+        {
+            var cacheUpdates = new BatchCacheUpdates(item.ID, item.Type);
+            var affectedSlots = new List<int>();
+            int totalAdded = 0;
+            int remainingCount = count;
+
+            while (remainingCount > 0)
+            {
+                // 尝试空槽位
+                var (emptySuccess, emptyAdded, emptyRemaining, emptySlotIndex) =
+                    TryAddToEmptySlot(item, remainingCount);
+
+                if (emptySuccess)
+                {
+                    totalAdded += emptyAdded;
+                    remainingCount = emptyRemaining;
+                    affectedSlots.Add(emptySlotIndex);
+
+                    cacheUpdates.TotalCountDelta += emptyAdded;
+                    cacheUpdates.SlotIndexUpdates.Add((emptySlotIndex, true));
+                    cacheUpdates.TypeIndexUpdates.Add((emptySlotIndex, true));
+
+                    if (remainingCount <= 0)
+                        break;
+                    continue;
+                }
+
+                // 尝试新槽位
+                var (newSuccess, newAdded, newRemaining, newSlotIndex) =
+                    TryAddToNewSlot(item, remainingCount);
+
+                if (newSuccess)
+                {
+                    totalAdded += newAdded;
+                    remainingCount = newRemaining;
+                    affectedSlots.Add(newSlotIndex);
+
+                    cacheUpdates.TotalCountDelta += newAdded;
+                    cacheUpdates.SlotIndexUpdates.Add((newSlotIndex, true));
+                    cacheUpdates.TypeIndexUpdates.Add((newSlotIndex, true));
+
+                    if (remainingCount <= 0)
+                        break;
+                    continue;
+                }
+
+                // 无法继续添加
+                break;
+            }
+
+            return (totalAdded, affectedSlots, cacheUpdates);
+        }
+
+        /// <summary>
+        /// 添加指定数量的物品到容器（内部实现，带超出数量返回）
+        /// </summary>
+        (AddItemResult result, int actualCount)
         AddItemsWithCount(IItem item, out int exceededCount, int count = 1, int slotIndex = -1)
         {
             exceededCount = 0;
-            List<int> affectedSlots = new(12);
             var emptySlots = new List<int>();
 
-            // 基本验证
-            if (item == null)
+            // 1. 基本验证
+            var (isValid, validationResult) = ValidateAddItemRequest(item, count);
+            if (!isValid)
             {
-                OnItemAddResult?.Invoke(item, count, 0, AddItemResult.ItemIsNull, emptySlots);
-                return (AddItemResult.ItemIsNull, 0);
+                OnItemAddResult?.Invoke(item, count, 0, validationResult, emptySlots);
+                return (validationResult, 0);
             }
 
-            if (count <= 0)
-                return (AddItemResult.AddNothingLOL, 0);
-
-            if (!ValidateItemCondition(item))
-            {
-                OnItemAddResult?.Invoke(item, count, 0, AddItemResult.ItemConditionNotMet, emptySlots);
-                return (AddItemResult.ItemConditionNotMet, 0);
-            }
             // 开始批量更新模式
             BeginBatchUpdate();
 
@@ -585,147 +714,92 @@ namespace EasyPack.InventorySystem
             {
                 int totalAdded = 0;
                 int remainingCount = count;
-
-                // 批量缓存更新数据
-                var cacheUpdates = new BatchCacheUpdates(item.ID, item.Type);
+                var affectedSlots = new List<int>(12);
+                var aggregatedCacheUpdates = new BatchCacheUpdates(item.ID, item.Type);
 
                 // 将物品添加到待更新列表并缓存物品引用
                 _pendingTotalCountUpdates.Add(item.ID);
                 _itemRefCache[item.ID] = item;
 
-                // 1. 堆叠处理
-                if (item.IsStackable && slotIndex == -1)
+                // 2. 堆叠处理（仅在未指定槽位时）
+                if (slotIndex == -1)
                 {
-                    var (stackedCount, stackedSlots, slotChanges) = TryStackItems(item, remainingCount);
+                    var (stackedCount, stackedSlots, stackCacheUpdates) = ProcessStackableItems(item, remainingCount);
 
                     if (stackedCount > 0)
                     {
                         totalAdded += stackedCount;
                         remainingCount -= stackedCount;
                         affectedSlots.AddRange(stackedSlots);
-
-                        cacheUpdates.TotalCountDelta += stackedCount;
-
-                        // 批量事件触发
-                        foreach (var change in slotChanges)
-                        {
-                            int slotIdx = change.Key;
-                            var slot = _slots[slotIdx];
-                            OnSlotQuantityChanged(slotIdx, slot.Item, change.Value.oldCount, change.Value.newCount);
-                        }
+                        aggregatedCacheUpdates.Merge(stackCacheUpdates);
 
                         if (remainingCount <= 0)
                         {
-                            ApplyBatchCacheUpdates(cacheUpdates);
+                            ApplyBatchCacheUpdates(aggregatedCacheUpdates);
                             OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                             return (AddItemResult.Success, totalAdded);
                         }
                     }
                 }
 
-                // 2. 指定槽位处理
+                // 3. 指定槽位处理
                 if (slotIndex >= 0 && remainingCount > 0)
                 {
-                    var (success, addedCount, newRemaining) = TryAddToSpecificSlot(item, slotIndex, remainingCount);
+                    var (success, addedCount, newRemaining, slotCacheUpdates) =
+                        ProcessSpecificSlotAddition(item, slotIndex, remainingCount);
 
                     if (success)
                     {
                         totalAdded += addedCount;
                         remainingCount = newRemaining;
                         affectedSlots.Add(slotIndex);
-
-                        // 缓存更新
-                        cacheUpdates.TotalCountDelta += addedCount;
-                        cacheUpdates.SlotIndexUpdates.Add((slotIndex, true));
-                        cacheUpdates.TypeIndexUpdates.Add((slotIndex, true));
-                        cacheUpdates.EmptySlotUpdates.Add((slotIndex, false));
+                        aggregatedCacheUpdates.Merge(slotCacheUpdates);
 
                         if (remainingCount <= 0)
                         {
-                            ApplyBatchCacheUpdates(cacheUpdates);
+                            ApplyBatchCacheUpdates(aggregatedCacheUpdates);
                             OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                             return (AddItemResult.Success, totalAdded);
                         }
                     }
                     else
                     {
+                        // 指定槽位失败，部分成功时也要应用缓存
                         if (totalAdded > 0)
-                        {
-                            ApplyBatchCacheUpdates(cacheUpdates);
-                            OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
-                        }
-                        OnItemAddResult?.Invoke(item, remainingCount, 0, AddItemResult.NoSuitableSlotFound, emptySlots);
+                            ApplyBatchCacheUpdates(aggregatedCacheUpdates);
+
+                        OnItemAddResult?.Invoke(item, totalAdded > 0 ? totalAdded : count,
+                            totalAdded > 0 ? totalAdded : 0,
+                            AddItemResult.NoSuitableSlotFound, affectedSlots);
                         return (AddItemResult.NoSuitableSlotFound, totalAdded);
                     }
                 }
 
-                // 3. 空槽位和新槽位处理
-                while (remainingCount > 0)
+                // 4. 空槽位和新槽位处理
+                if (remainingCount > 0)
                 {
-                    var (emptySlotSuccess, emptyAddedCount, emptyRemaining, emptySlotIndex) =
-                        TryAddToEmptySlot(item, remainingCount);
+                    var (emptyAddedCount, emptySlots2, emptyCacheUpdates) =
+                        ProcessEmptyAndNewSlots(item, remainingCount);
 
-                    if (emptySlotSuccess)
-                    {
-                        totalAdded += emptyAddedCount;
-                        remainingCount = emptyRemaining;
-                        affectedSlots.Add(emptySlotIndex);
-
-                        cacheUpdates.TotalCountDelta += emptyAddedCount;
-                        cacheUpdates.SlotIndexUpdates.Add((emptySlotIndex, true));
-                        cacheUpdates.TypeIndexUpdates.Add((emptySlotIndex, true));
-
-                        if (remainingCount <= 0)
-                        {
-                            ApplyBatchCacheUpdates(cacheUpdates);
-                            OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
-                            return (AddItemResult.Success, totalAdded);
-                        }
-                        continue;
-                    }
-
-                    var (newSlotSuccess, newAddedCount, newRemaining, newSlotIndex) =
-                        TryAddToNewSlot(item, remainingCount);
-
-                    if (newSlotSuccess)
-                    {
-                        totalAdded += newAddedCount;
-                        remainingCount = newRemaining;
-                        affectedSlots.Add(newSlotIndex);
-
-                        cacheUpdates.TotalCountDelta += newAddedCount;
-                        cacheUpdates.SlotIndexUpdates.Add((newSlotIndex, true));
-                        cacheUpdates.TypeIndexUpdates.Add((newSlotIndex, true));
-
-                        if (remainingCount <= 0)
-                        {
-                            ApplyBatchCacheUpdates(cacheUpdates);
-                            OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
-                            return (AddItemResult.Success, totalAdded);
-                        }
-                        continue;
-                    }
-
-                    // 无法继续添加
-                    if (totalAdded > 0)
-                    {
-                        exceededCount = remainingCount;
-                        ApplyBatchCacheUpdates(cacheUpdates);
-                        OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
-                        OnItemAddResult?.Invoke(item, remainingCount, 0, AddItemResult.ContainerIsFull, emptySlots);
-                        return (AddItemResult.ContainerIsFull, totalAdded);
-                    }
-                    else
-                    {
-                        exceededCount = count;
-                        bool noEmptySlots = _cacheService.GetEmptySlotIndices().Count == 0;
-                        AddItemResult result = noEmptySlots ? AddItemResult.ContainerIsFull : AddItemResult.NoSuitableSlotFound;
-                        OnItemAddResult?.Invoke(item, count, 0, result, emptySlots);
-                        return (result, 0);
-                    }
+                    totalAdded += emptyAddedCount;
+                    remainingCount -= emptyAddedCount;
+                    affectedSlots.AddRange(emptySlots2);
+                    aggregatedCacheUpdates.Merge(emptyCacheUpdates);
                 }
 
-                ApplyBatchCacheUpdates(cacheUpdates);
+                // 5. 应用所有缓存更新并返回结果
+                ApplyBatchCacheUpdates(aggregatedCacheUpdates);
+
+                if (remainingCount > 0)
+                {
+                    // 部分成功
+                    exceededCount = remainingCount;
+                    OnItemAddResult?.Invoke(item, totalAdded, totalAdded, AddItemResult.Success, affectedSlots);
+                    OnItemAddResult?.Invoke(item, remainingCount, 0, AddItemResult.ContainerIsFull, emptySlots);
+                    return (AddItemResult.ContainerIsFull, totalAdded);
+                }
+
+                // 完全成功
                 OnItemAddResult?.Invoke(item, count, totalAdded, AddItemResult.Success, affectedSlots);
                 return (AddItemResult.Success, totalAdded);
             }
@@ -799,7 +873,7 @@ namespace EasyPack.InventorySystem
         #region 中间处理API
 
         /// <summary>
-        /// 尝试将物品堆叠到已有相同物品的槽位中 - 极致优化版本
+        /// 尝试将物品堆叠到已有相同物品的槽位中
         /// </summary>
         protected virtual (int stackedCount, List<int> affectedSlots, Dictionary<int, (int oldCount, int newCount)> changes)
             TryStackItems(IItem item, int remainingCount)

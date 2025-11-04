@@ -26,19 +26,30 @@ namespace EasyPack.InventorySystem
         public CustomItemCondition SlotCondition { get; set; }
         public Container Container { get; set; }
 
+        /// <summary>
+        /// 设置槽位物品
+        /// </summary>
+        /// <param name="item">要设置的物品</param>
+        /// <param name="count">物品数量</param>
+        /// <returns>设置是否成功</returns>
         public bool SetItem(IItem item, int count = 1)
         {
+            // 物品不能为 null
             if (item == null)
-            {
                 return false;
-            }
 
-            if (IsOccupied && Item != null && item != null && Item.ID == item.ID)
+            // 验证槽位条件
+            if (!CheckSlotCondition(item))
+                return false;
+
+            // 如果是相同物品，只更新数量
+            if (IsOccupied && Item != null && Item.ID == item.ID)
             {
                 ItemCount = count;
                 return true;
             }
 
+            // 设置新物品
             Item = item;
             ItemCount = count;
             IsOccupied = true;

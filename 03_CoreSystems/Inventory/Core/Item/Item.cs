@@ -33,7 +33,7 @@ namespace EasyPack.InventorySystem
         public Dictionary<string, object> Attributes { get; set; } = new Dictionary<string, object>();
 
 
-        public bool IsContanierItem = false;
+        public bool IsContainerItem = false;
         public List<string> ContainerIds { get; set; } // 容器类型的物品对于的ID区域
 
         #endregion
@@ -50,7 +50,7 @@ namespace EasyPack.InventorySystem
                 Weight = this.Weight,
                 IsStackable = this.IsStackable,
                 MaxStackCount = this.MaxStackCount,
-                IsContanierItem = this.IsContanierItem
+                IsContainerItem = this.IsContainerItem
             };
 
             if (this.Attributes != null)

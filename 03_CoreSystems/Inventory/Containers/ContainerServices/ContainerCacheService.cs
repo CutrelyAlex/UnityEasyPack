@@ -24,12 +24,12 @@ namespace EasyPack.InventorySystem
         #region 构造函数
         public ContainerCacheService(int capacity)
         {
+            // 为大容量容器预分配缓存空间
             if (capacity > 500)
             {
-                // 为大容量容器预分配缓存空间
-                var itemSlotCache = new Dictionary<string, HashSet<int>>(100);
-                var itemTypeCache = new Dictionary<string, HashSet<int>>(100 / 4);
-                var itemCountCache = new Dictionary<string, int>(100);
+                _itemSlotIndexCache = new Dictionary<string, HashSet<int>>(100);
+                _itemTypeIndexCache = new Dictionary<string, HashSet<int>>(100 / 4);
+                _itemCountCache = new Dictionary<string, int>(100);
             }
         }
         #endregion
@@ -268,6 +268,17 @@ namespace EasyPack.InventorySystem
             SlotIndexUpdates = new List<(int, bool)>();
             TypeIndexUpdates = new List<(int, bool)>();
             EmptySlotUpdates = new List<(int, bool)>();
+        }
+
+        /// <summary>
+        /// 合并另一个批量缓存更新
+        /// </summary>
+        public void Merge(BatchCacheUpdates other)
+        {
+            TotalCountDelta += other.TotalCountDelta;
+            SlotIndexUpdates.AddRange(other.SlotIndexUpdates);
+            TypeIndexUpdates.AddRange(other.TypeIndexUpdates);
+            EmptySlotUpdates.AddRange(other.EmptySlotUpdates);
         }
     }
 }

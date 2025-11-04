@@ -22,9 +22,9 @@ namespace EasyPack.InventorySystem
                 Weight = obj.Weight,
                 IsStackable = obj.IsStackable,
                 MaxStackCount = obj.MaxStackCount,
-                isContanierItem = obj.IsContanierItem,
+                isContanierItem = obj.IsContainerItem,
                 Attributes = CustomDataUtility.ToEntries(obj.Attributes),
-                ContainerIds = (obj.IsContanierItem && obj.ContainerIds != null && obj.ContainerIds.Count > 0)
+                ContainerIds = (obj.IsContainerItem && obj.ContainerIds != null && obj.ContainerIds.Count > 0)
                     ? new List<string>(obj.ContainerIds)
                     : null
             };
@@ -58,7 +58,7 @@ namespace EasyPack.InventorySystem
                 Weight = dto.Weight,
                 IsStackable = dto.IsStackable,
                 MaxStackCount = dto.MaxStackCount,
-                IsContanierItem = dto.isContanierItem,
+                IsContainerItem = dto.isContanierItem,
             };
 
             // 反序列化自定义属性
@@ -74,7 +74,7 @@ namespace EasyPack.InventorySystem
             // 反序列化容器ID列表
             if (dto.ContainerIds != null && dto.ContainerIds.Count > 0)
             {
-                item.IsContanierItem = true;
+                item.IsContainerItem = true;
                 item.ContainerIds = new List<string>(dto.ContainerIds);
             }
 

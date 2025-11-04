@@ -20,10 +20,20 @@ namespace EasyPack.InventorySystem
     public class GridItem : Item, IItem
     {
         /// <summary>
-        /// 形状的单元格坐标列表（相对于左上角原点）
-        /// 默认为 1x1 单格物品
+        /// 物品默认在网格中的宽度（用于矩形形状）
         /// </summary>
-        public List<(int x, int y)> Shape { get; set; } = new List<(int x, int y)> { (0, 0) };
+        public int GridWidth { get; set; } = 1;
+
+        /// <summary>
+        /// 物品默认在网格中的高度（用于矩形形状）
+        /// </summary>
+        public int GridHeight { get; set; } = 1;
+
+        /// <summary>
+        /// 自定义形状的单元格坐标列表（相对于左上角原点）
+        /// 如果为 null 或空，则使用 GridWidth × GridHeight 的矩形形状
+        /// </summary>
+        public List<(int x, int y)> CustomShape { get; set; } = null;
 
         /// <summary>
         /// 是否可以旋转
@@ -40,10 +50,25 @@ namespace EasyPack.InventorySystem
         /// </summary>
         public List<(int x, int y)> GetOccupiedCells()
         {
-            if (Shape == null || Shape.Count == 0)
-                return new List<(int x, int y)> { (0, 0) };
+            // 如果有自定义形状，使用自定义形状
+            if (CustomShape != null && CustomShape.Count > 0)
+            {
+                return RotateShape(CustomShape, Rotation);
+            }
 
-            return RotateShape(Shape, Rotation);
+            // 否则使用矩形形状
+            var cells = new List<(int x, int y)>();
+            int width = ActualWidth;
+            int height = ActualHeight;
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    cells.Add((x, y));
+                }
+            }
+            return cells;
         }
 
         /// <summary>
@@ -105,9 +130,20 @@ namespace EasyPack.InventorySystem
         {
             get
             {
-                var cells = GetOccupiedCells();
-                if (cells.Count == 0) return 1;
-                return cells.Max(c => c.x) + 1;
+                if (CustomShape != null && CustomShape.Count > 0)
+                {
+                    var cells = GetOccupiedCells();
+                    return cells.Max(c => c.x) + 1;
+                }
+
+                return Rotation switch
+                {
+                    RotationAngle.Rotate0 => GridWidth,
+                    RotationAngle.Rotate90 => GridHeight,
+                    RotationAngle.Rotate180 => GridWidth,
+                    RotationAngle.Rotate270 => GridHeight,
+                    _ => GridWidth
+                };
             }
         }
 
@@ -118,9 +154,20 @@ namespace EasyPack.InventorySystem
         {
             get
             {
-                var cells = GetOccupiedCells();
-                if (cells.Count == 0) return 1;
-                return cells.Max(c => c.y) + 1;
+                if (CustomShape != null && CustomShape.Count > 0)
+                {
+                    var cells = GetOccupiedCells();
+                    return cells.Max(c => c.y) + 1;
+                }
+
+                return Rotation switch
+                {
+                    RotationAngle.Rotate0 => GridHeight,
+                    RotationAngle.Rotate90 => GridWidth,
+                    RotationAngle.Rotate180 => GridHeight,
+                    RotationAngle.Rotate270 => GridWidth,
+                    _ => GridHeight
+                };
             }
         }
 
@@ -132,25 +179,6 @@ namespace EasyPack.InventorySystem
             // 网格物品通常不可堆叠
             IsStackable = false;
             MaxStackCount = 1;
-        }
-
-        /// <summary>
-        /// 创建矩形形状的单元格列表
-        /// </summary>
-        /// <param name="width">宽度</param>
-        /// <param name="height">高度</param>
-        /// <returns>矩形形状的单元格坐标列表</returns>
-        public static List<(int x, int y)> CreateRectangleShape(int width, int height)
-        {
-            var cells = new List<(int x, int y)>();
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    cells.Add((x, y));
-                }
-            }
-            return cells;
         }
 
         /// <summary>
@@ -201,7 +229,9 @@ namespace EasyPack.InventorySystem
                 MaxStackCount = this.MaxStackCount,
                 IsContainerItem = this.IsContainerItem,
                 ContainerIds = this.ContainerIds != null ? new List<string>(this.ContainerIds) : null,
-                Shape = this.Shape != null ? new List<(int x, int y)>(this.Shape) : new List<(int x, int y)> { (0, 0) },
+                GridWidth = this.GridWidth,
+                GridHeight = this.GridHeight,
+                CustomShape = this.CustomShape != null ? new List<(int x, int y)>(this.CustomShape) : null,
                 CanRotate = this.CanRotate,
                 Rotation = this.Rotation,
                 Attributes = new Dictionary<string, object>(this.Attributes)
