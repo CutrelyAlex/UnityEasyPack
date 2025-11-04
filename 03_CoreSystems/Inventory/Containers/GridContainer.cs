@@ -305,37 +305,43 @@ namespace EasyPack.InventorySystem
             var (startX, startY) = IndexToCoord(slotIndex);
             var occupiedCells = gridItem.GetOccupiedCells();
 
-            // 在主槽位放置实际物品
-            var mainSlot = _slots[slotIndex];
-            mainSlot.SetItem(gridItem, 1);
+            // 获取主槽位索引（第一个占用单元格的索引）
+            var (firstDx, firstDy) = occupiedCells[0];
+            int mainSlotIndex = CoordToIndex(startX + firstDx, startY + firstDy);
 
-            // 更新主槽位缓存
-            _cacheService.UpdateEmptySlotCache(slotIndex, false);
-            _cacheService.UpdateItemSlotIndexCache(gridItem.ID, slotIndex, true);
-            _cacheService.UpdateItemTypeCache(gridItem.Type, slotIndex, true);
-            _cacheService.UpdateItemCountCache(gridItem.ID, 1);
-
-            // 在其他占用的槽位放置占位符
+            // 遍历所有占用的单元格
             bool isFirst = true;
             foreach (var (dx, dy) in occupiedCells)
             {
+                int currentIndex = CoordToIndex(startX + dx, startY + dy);
+                var currentSlot = _slots[currentIndex];
+
                 if (isFirst)
                 {
+                    // 第一个单元格放置实际物品
+                    currentSlot.SetItem(gridItem, 1);
+
+                    // 更新主槽位缓存
+                    _cacheService.UpdateEmptySlotCache(currentIndex, false);
+                    _cacheService.UpdateItemSlotIndexCache(gridItem.ID, currentIndex, true);
+                    _cacheService.UpdateItemTypeCache(gridItem.Type, currentIndex, true);
+                    _cacheService.UpdateItemCountCache(gridItem.ID, 1);
+
                     isFirst = false;
-                    continue; // 跳过主槽位（第一个单元格）
                 }
+                else
+                {
+                    // 其他单元格放置占位符，指向主槽位
+                    var marker = new GridOccupiedMarker { MainSlotIndex = mainSlotIndex };
+                    currentSlot.SetItem(marker, 1);
 
-                int occupiedIndex = CoordToIndex(startX + dx, startY + dy);
-                var occupiedSlot = _slots[occupiedIndex];
-                var marker = new GridOccupiedMarker { MainSlotIndex = slotIndex };
-                occupiedSlot.SetItem(marker, 1);
-
-                // 更新空槽位缓存（占位符槽位也被占用）
-                _cacheService.UpdateEmptySlotCache(occupiedIndex, false);
+                    // 更新空槽位缓存（占位符槽位也被占用）
+                    _cacheService.UpdateEmptySlotCache(currentIndex, false);
+                }
             }
 
             // 触发槽位变更事件
-            OnSlotQuantityChanged(slotIndex, gridItem, 0, 1);
+            OnSlotQuantityChanged(mainSlotIndex, gridItem, 0, 1);
 
             // 触发总数变更事件
             TriggerItemTotalCountChanged(gridItem.ID, gridItem);
@@ -372,15 +378,20 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 移除网格物品的专用方法
         /// </summary>
-        private (RemoveItemResult result, int removedCount) RemoveGridItem(GridItem gridItem, int slotIndex, int count)
+        private (RemoveItemResult result, int removedCount) RemoveGridItem(GridItem gridItem, int mainSlotIndex, int count)
         {
             if (count != 1)
                 return (RemoveItemResult.InsufficientQuantity, 0);
 
-            var (startX, startY) = IndexToCoord(slotIndex);
             string itemId = gridItem.ID;
             string itemType = gridItem.Type;
             var occupiedCells = gridItem.GetOccupiedCells();
+
+            // 计算起始位置（锚点）
+            var (mainX, mainY) = IndexToCoord(mainSlotIndex);
+            var (firstDx, firstDy) = occupiedCells[0];
+            int startX = mainX - firstDx;
+            int startY = mainY - firstDy;
 
             // 清理所有占用的槽位
             foreach (var (dx, dy) in occupiedCells)
@@ -393,13 +404,13 @@ namespace EasyPack.InventorySystem
                 _cacheService.UpdateEmptySlotCache(occupiedIndex, true);
             }
 
-            // 更新缓存
-            _cacheService.UpdateItemSlotIndexCache(itemId, slotIndex, false);
-            _cacheService.UpdateItemTypeCache(itemType, slotIndex, false);
+            // 更新缓存（使用主槽位索引）
+            _cacheService.UpdateItemSlotIndexCache(itemId, mainSlotIndex, false);
+            _cacheService.UpdateItemTypeCache(itemType, mainSlotIndex, false);
             _cacheService.UpdateItemCountCache(itemId, -1);
 
             // 触发槽位变更事件
-            OnSlotQuantityChanged(slotIndex, gridItem, 1, 0);
+            OnSlotQuantityChanged(mainSlotIndex, gridItem, 1, 0);
 
             // 触发总数变更事件
             TriggerItemTotalCountChanged(itemId, null);
@@ -453,34 +464,49 @@ namespace EasyPack.InventorySystem
             if (!slot.IsOccupied) return false;
 
             // 如果是占位符，找到主物品
+            int mainSlotIndex = index;
             if (slot.Item is GridOccupiedMarker marker)
             {
-                index = marker.MainSlotIndex;
-                slot = Slots[index];
+                mainSlotIndex = marker.MainSlotIndex;
+                slot = Slots[mainSlotIndex];
             }
 
             if (slot.Item is not GridItem gridItem || !gridItem.CanRotate)
                 return false;
 
-            var (startX, startY) = IndexToCoord(index);
+            // 计算当前的起始位置（锚点）
+            var (mainX, mainY) = IndexToCoord(mainSlotIndex);
+            var occupiedCellsBefore = gridItem.GetOccupiedCells();
+            var (firstDx, firstDy) = occupiedCellsBefore[0];
+            int startX = mainX - firstDx;
+            int startY = mainY - firstDy;
+            int startIndex = CoordToIndex(startX, startY);
 
-            // 检查旋转后是否还能放置
-            int newWidth = gridItem.ActualHeight;  // 旋转后宽高互换
-            int newHeight = gridItem.ActualWidth;
+            // 保存原始旋转状态
+            var originalRotation = gridItem.Rotation;
 
-            if (!CanPlaceAt(startX, startY, newWidth, newHeight, index))
-                return false;
+            // 先清理当前占用（在旋转之前）
+            RemoveGridItem(gridItem, mainSlotIndex, 1);
 
-            // 先清理当前占用
-            RemoveGridItem(gridItem, index, 1);
-
-            // 旋转
+            // 旋转物品
             gridItem.Rotate();
 
-            // 重新放置
-            PlaceGridItem(gridItem, index);
+            // 检查旋转后是否还能放置
+            bool canPlace = CanPlaceGridItem(gridItem, startIndex, -1);
 
-            return true;
+            if (canPlace)
+            {
+                // 可以放置，重新放置旋转后的物品
+                PlaceGridItem(gridItem, startIndex);
+                return true;
+            }
+            else
+            {
+                // 不能放置，还原旋转并放回原位
+                gridItem.Rotation = originalRotation;
+                PlaceGridItem(gridItem, startIndex);
+                return false;
+            }
         }
 
         #endregion

@@ -62,7 +62,7 @@ namespace EasyPack.InventorySystem
         /// <param name="actualCount">实际添加的数量</param>
         /// <param name="result">操作结果</param>
         /// <param name="affectedSlots">涉及的槽位索引列表（失败时为空列表）</param>
-        public event System.Action<IItem, int, int, AddItemResult, List<int>> OnItemAddResult;
+        public event Action<IItem, int, int, AddItemResult, List<int>> OnItemAddResult;
 
         /// <summary>
         /// 移除物品操作结果事件（统一处理成功和失败）
@@ -72,7 +72,7 @@ namespace EasyPack.InventorySystem
         /// <param name="actualCount">实际移除的数量</param>
         /// <param name="result">操作结果</param>
         /// <param name="affectedSlots">涉及的槽位索引列表（失败时为空列表）</param>
-        public event System.Action<string, int, int, RemoveItemResult, List<int>> OnItemRemoveResult;
+        public event Action<string, int, int, RemoveItemResult, List<int>> OnItemRemoveResult;
 
         /// <summary>
         /// 槽位数量变更事件
@@ -81,7 +81,7 @@ namespace EasyPack.InventorySystem
         /// <param name="item">变更的物品</param>
         /// <param name="oldCount">原数量</param>
         /// <param name="newCount">新数量</param>
-        public event System.Action<int, IItem, int, int> OnSlotCountChanged;
+        public event Action<int, IItem, int, int> OnSlotCountChanged;
 
         /// <summary>
         /// 触发槽位物品数量变更事件
@@ -111,7 +111,7 @@ namespace EasyPack.InventorySystem
         /// <param name="item">物品引用（可能为null，如果物品已完全移除）</param>
         /// <param name="oldTotalCount">旧总数</param>
         /// <param name="newTotalCount">新总数</param>
-        public event System.Action<string, IItem, int, int> OnItemTotalCountChanged;
+        public event Action<string, IItem, int, int> OnItemTotalCountChanged;
 
         private readonly Dictionary<string, int> _itemTotalCounts = new();
 

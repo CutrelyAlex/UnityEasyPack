@@ -251,6 +251,9 @@ namespace EasyPack.InventorySystem
         /// <returns>容器优先级，未找到返回0</returns>
         public int GetContainerPriority(string containerId)
         {
+            if (string.IsNullOrEmpty(containerId))
+                return 0;
+
             return _containerPriorities.GetValueOrDefault(containerId, 0);
         }
 
@@ -278,6 +281,9 @@ namespace EasyPack.InventorySystem
         /// <returns>容器分类，未找到返回"Default"</returns>
         public string GetContainerCategory(string containerId)
         {
+            if (string.IsNullOrEmpty(containerId))
+                return "Default";
+
             return _containerCategories.GetValueOrDefault(containerId, "Default");
         }
 

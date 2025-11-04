@@ -121,7 +121,7 @@ namespace EasyPack
                         SerializationErrorCode.DeserializationFailed);
                 return dto;
             }
-            catch (System.Exception ex) when (!(ex is SerializationException))
+            catch (Exception ex) when (!(ex is SerializationException))
             {
                 throw new SerializationException($"JSON 解析失败: {ex.Message}",
                     typeof(GamePropertyService), SerializationErrorCode.DeserializationFailed, ex);

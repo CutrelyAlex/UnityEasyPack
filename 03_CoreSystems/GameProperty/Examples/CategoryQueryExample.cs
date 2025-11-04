@@ -240,7 +240,7 @@ namespace EasyPack.GamePropertySystem
             foreach (var prop in displayProps.OrderBy(p =>
             {
                 var meta = _manager.GetMetadata(p.ID);
-                return meta.GetCustomData<int>("sortOrder", 999);
+                return meta.GetCustomData("sortOrder", 999);
             }))
             {
                 var meta = _manager.GetMetadata(prop.ID);

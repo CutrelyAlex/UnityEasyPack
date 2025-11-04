@@ -17,7 +17,7 @@ namespace EasyPack.EmeCardSystem
         {
             try
             {
-                service.RegisterSerializer<Card, SerializableCard>(new CardJsonSerializer());
+                service.RegisterSerializer(new CardJsonSerializer());
                 Debug.Log("[EmeCard] Card 序列化器注册完成");
             }
             catch (Exception ex)

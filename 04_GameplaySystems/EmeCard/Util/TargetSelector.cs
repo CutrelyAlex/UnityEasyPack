@@ -141,7 +141,7 @@ namespace EasyPack.EmeCardSystem
         {
             cat = default(CardCategory);
             if (string.IsNullOrEmpty(value)) return false;
-            return Enum.TryParse<CardCategory>(value, true, out cat);
+            return Enum.TryParse(value, true, out cat);
         }
 
         /// <summary>

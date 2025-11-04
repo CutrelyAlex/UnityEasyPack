@@ -194,7 +194,7 @@ namespace EasyPack.InventorySystem
             return occupiedSlots;
         }
 
-        private void ExecuteInventoryOperationSafely(System.Action operation)
+        private void ExecuteInventoryOperationSafely(Action operation)
         {
             var backupData = CreateInventoryBackup();
 

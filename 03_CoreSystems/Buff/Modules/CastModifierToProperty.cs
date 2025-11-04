@@ -18,7 +18,7 @@ namespace EasyPack.BuffSystem
         /// <summary>
         /// 获取或设置属性管理器（具体实现），用于向后兼容
         /// </summary>
-        [System.Obsolete("使用 PropertyManagerInterface 替代，以支持 IGamePropertyService 接口")]
+        [Obsolete("使用 PropertyManagerInterface 替代，以支持 IGamePropertyService 接口")]
         public GamePropertyService PropertyManager
         {
             get => PropertyManagerInterface as GamePropertyService;
