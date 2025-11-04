@@ -11,9 +11,19 @@ namespace EasyPack.BuffSystem
     public class CastModifierToProperty : BuffModule
     {
         /// <summary>
-        /// 获取或设置属性管理器，用于查找目标属性
+        /// 获取或设置属性管理器接口，用于查找目标属性
         /// </summary>
-        public GamePropertyService PropertyManager { get; set; }
+        public IGamePropertyService PropertyManagerInterface { get; set; }
+
+        /// <summary>
+        /// 获取或设置属性管理器（具体实现），用于向后兼容
+        /// </summary>
+        [System.Obsolete("使用 PropertyManagerInterface 替代，以支持 IGamePropertyService 接口")]
+        public GamePropertyService PropertyManager
+        {
+            get => PropertyManagerInterface as GamePropertyService;
+            set => PropertyManagerInterface = value;
+        }
 
         /// <summary>
         /// 获取或设置要应用的修饰符模板
@@ -41,9 +51,9 @@ namespace EasyPack.BuffSystem
         /// <returns>目标 GameProperty 实例，未找到返回 null</returns>
         private GameProperty GetProperty()
         {
-            if (_cachedProperty == null && PropertyManager != null)
+            if (_cachedProperty == null && PropertyManagerInterface != null)
             {
-                _cachedProperty = PropertyManager.Get(PropertyID);
+                _cachedProperty = PropertyManagerInterface.Get(PropertyID);
             }
             return _cachedProperty;
         }
@@ -53,13 +63,13 @@ namespace EasyPack.BuffSystem
         /// </summary>
         /// <param name="modifier">要应用的修饰符模板</param>
         /// <param name="propertyID">目标属性ID</param>
-        /// <param name="propertyManager">属性管理器</param>
+        /// <param name="propertyManager">属性管理器接口</param>
         /// <exception cref="ArgumentNullException">当必需参数为 null 时抛出</exception>
-        public CastModifierToProperty(IModifier modifier, string propertyID, GamePropertyService propertyManager)
+        public CastModifierToProperty(IModifier modifier, string propertyID, IGamePropertyService propertyManager)
         {
             Modifier = modifier ?? throw new ArgumentNullException(nameof(modifier));
             PropertyID = propertyID ?? throw new ArgumentNullException(nameof(propertyID));
-            PropertyManager = propertyManager ?? throw new ArgumentNullException(nameof(propertyManager));
+            PropertyManagerInterface = propertyManager ?? throw new ArgumentNullException(nameof(propertyManager));
 
             // 注册 Buff 生命周期回调
             RegisterCallback(BuffCallBackType.OnCreate, OnCreate);

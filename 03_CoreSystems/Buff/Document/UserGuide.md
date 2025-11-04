@@ -1,32 +1,7 @@
-# Buff System - User Guide
+# Buff 系统用户使用指南
 
-**适用EasyPack版本：** EasyPack v1.5.30
-**最后更新：** 2025-10-26
-
----
-
-## 概述
-
-**Buff System** 是一个灵活的增益/减益效果管理系统，支持时间管理、堆叠控制、模块化效果和事件回调机制。可用于实现 RPG 游戏中的各种临时状态效果、持续伤害/治疗、属性加成等功能。
-
-### 核心特性
-
-- ✅ **生命周期管理**：自动处理 Buff 的创建、更新、过期和移除
-- ✅ **堆叠系统**：支持多种堆叠策略（叠加、重置、保持）
-- ✅ **模块化设计**：通过 BuffModule 实现可复用的 Buff 效果
-- ✅ **标签和层级**：使用标签和层级批量管理和查询 Buff
-- ✅ **事件系统**：提供完整的生命周期事件回调
-- ✅ **性能优化**：批量移除、索引查询、swap-remove 优化
-
-### 适用场景
-
-- RPG 角色状态系统（增益、减益、光环）
-- 持续伤害/治疗效果（DoT/HoT）
-- 临时属性加成（装备、技能、药水）
-- 条件触发效果（低血量触发、连击触发）
-- 战斗状态管理（眩晕、沉默、无敌）
-
----
+**适用 EasyPack 版本：** EasyPack v1.6.2  
+**最后更新：** 2025-11-04
 
 ## 目录
 
@@ -36,7 +11,34 @@
 - [进阶用法](#进阶用法)
 - [故障排查](#故障排查)
 - [术语表](#术语表)
-- [相关资源](#相关资源)
+
+---
+
+## 概述
+
+### 系统简介
+
+Buff 系统是 EasyPack 框架中的核心效果管理模块，用于管理游戏中的**增益、减益和其他临时或永久效果**。无论是 RPG 的强化、MOBA 的控制效果，还是 SLG 的状态类效果，Buff 系统都能以统一、高效的方式处理。
+
+### 核心特性
+
+| 特性 | 说明 |
+|------|------|
+| **生命周期管理** | 自动管理 Buff 的创建、更新、过期和移除全过程 |
+| **灵活堆叠机制** | 支持多种堆叠策略（叠加、重置、保持等），最大限度支持 Buff 叠加 |
+| **智能索引系统** | 通过 ID、标签、层级的三维索引快速查询和批量操作 |
+| **模块化架构** | 每个 Buff 可附加多个功能模块，支持自定义扩展 |
+| **事件驱动** | 完整的生命周期事件（创建、触发、堆叠、移除等），便于业务逻辑集成 |
+| **高性能优化** | 使用对象池、批量处理、O(1) 移除等技术，支持大量 Buff 并发运行 |
+| **属性系统集成** | 内置支持与 GameProperty 系统的集成，轻松实现属性修改效果 |
+
+### 适用场景
+
+- **RPG 游戏**：属性增强、持续伤害、控制效果
+- **MOBA/竞技游戏**：临时强化、减益效果、技能状态
+- **SLG 游戏**：建筑加速、科技强化、城市 Debuff
+- **卡牌游戏**：随从强化、场景效果、卡牌状态
+- **任何需要临时/永久效果的游戏类型**
 
 ---
 
@@ -62,14 +64,23 @@ using UnityEngine;
 
 public class QuickStartExample : MonoBehaviour
 {
-    private BuffManager buffManager;
+    private BuffService BuffService;
     private GameObject player;
     private GameObject buffCreator;
+    private IBuffService _buffService;
 
-    void Start()
+    async void Start()
     {
-        // 1. 初始化 Buff 管理器
-        buffManager = new BuffManager();
+        // 1. 从 EasyPack 架构获取 Buff 服务
+        try
+        {
+            _buffService = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"Buff 服务初始化失败: {ex.Message}");
+            return;
+        }
         
         // 2. 创建目标对象和施法者
         player = new GameObject("Player");
@@ -86,19 +97,22 @@ public class QuickStartExample : MonoBehaviour
         };
 
         // 4. 应用 Buff 到目标
-        Buff buff = buffManager.CreateBuff(speedBoost, buffCreator, player);
+        Buff buff = _buffService.CreateBuff(speedBoost, buffCreator, player);
         Debug.Log($"Buff 创建成功: {buff.BuffData.Name}");
         Debug.Log($"持续时间: {buff.DurationTimer} 秒");
 
         // 5. 检查 Buff 是否存在
-        bool hasSpeedBoost = buffManager.ContainsBuff(player, "SpeedBoost");
+        bool hasSpeedBoost = _buffService.ContainsBuff(player, "SpeedBoost");
         Debug.Log($"玩家是否有速度提升: {hasSpeedBoost}");
     }
 
     void Update()
     {
         // 6. 每帧更新 Buff 管理器（处理时间和触发）
-        buffManager.Update(Time.deltaTime);
+        if (_buffService != null)
+        {
+            _buffService.Update(Time.deltaTime);
+        }
     }
 }
 ```
@@ -114,17 +128,27 @@ public class QuickStartExample : MonoBehaviour
 实现中毒、灼烧等持续伤害效果：
 
 ```csharp
+using System;
 using EasyPack.BuffSystem;
 using UnityEngine;
 
 public class DotBuffExample : MonoBehaviour
 {
-    private BuffManager buffManager;
+    private IBuffService _buffService;
     private GameObject target;
 
-    void Start()
+    async void Start()
     {
-        buffManager = new BuffManager();
+        try
+        {
+            _buffService = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Buff 服务初始化失败: {ex.Message}");
+            return;
+        }
+
         target = new GameObject("Enemy");
 
         // 创建中毒 Buff
@@ -144,7 +168,7 @@ public class DotBuffExample : MonoBehaviour
         poisonBuff.BuffModules.Add(damageModule);
 
         // 应用中毒效果
-        Buff buff = buffManager.CreateBuff(poisonBuff, gameObject, target);
+        Buff buff = _buffService.CreateBuff(poisonBuff, gameObject, target);
         
         // 设置触发事件
         buff.OnTrigger += (b) =>
@@ -158,7 +182,10 @@ public class DotBuffExample : MonoBehaviour
 
     void Update()
     {
-        buffManager.Update(Time.deltaTime);
+        if (_buffService != null)
+        {
+            _buffService.Update(Time.deltaTime);
+        }
     }
 }
 
@@ -191,6 +218,7 @@ public class PoisonDamageModule : BuffModule
 通过 Buff 临时增加角色的力量、敏捷等属性：
 
 ```csharp
+using System;
 using EasyPack.BuffSystem;
 using EasyPack.GamePropertySystem;
 using EasyPack;
@@ -198,21 +226,30 @@ using UnityEngine;
 
 public class AttributeBuffExample : MonoBehaviour
 {
-    private BuffManager buffManager;
-    private GamePropertyManager propertyManager;
+    private IBuffService _buffService;
+    private IGamePropertyService _propertyManager;
     private GameObject player;
 
-    void Start()
+    async void Start()
     {
-        buffManager = new BuffManager();
-        propertyManager = new GamePropertyManager();
+        try
+        {
+            _buffService = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
+            _propertyManager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"服务初始化失败: {ex.Message}");
+            return;
+        }
+
         player = new GameObject("Player");
 
         // 初始化角色属性
-        var strength = new CombinePropertySingle("Strength", 10f);
-        var agility = new CombinePropertySingle("Agility", 8f);
-        propertyManager.AddOrUpdate(strength);
-        propertyManager.AddOrUpdate(agility);
+        var strength = new GameProperty("Strength", 10f);
+        var agility = new GameProperty("Agility", 8f);
+        _propertyManager.Register(strength);
+        _propertyManager.Register(agility);
 
         Debug.Log($"初始力量: {strength.GetValue()}");
         Debug.Log($"初始敏捷: {agility.GetValue()}");
@@ -230,9 +267,9 @@ public class AttributeBuffExample : MonoBehaviour
         // 添加属性修改模块（每层 +5 力量）
         var strengthModifier = new FloatModifier(ModifierType.Add, 0, 5f);
         var strengthModule = new CastModifierToProperty(
-            strengthModifier, 
+            strengthModifier,            
             "Strength", 
-            propertyManager
+            _propertyManager
         );
         strengthBuff.BuffModules.Add(strengthModule);
 
@@ -249,15 +286,15 @@ public class AttributeBuffExample : MonoBehaviour
         var agilityModule = new CastModifierToProperty(
             agilityModifier, 
             "Agility", 
-            propertyManager
+            _propertyManager
         );
         agilityBuff.BuffModules.Add(agilityModule);
 
         // 应用 Buff
-        buffManager.CreateBuff(strengthBuff, gameObject, player);
-        buffManager.CreateBuff(strengthBuff, gameObject, player); // 堆叠第 2 层
-        buffManager.CreateBuff(strengthBuff, gameObject, player); // 堆叠第 3 层
-        buffManager.CreateBuff(agilityBuff, gameObject, player);
+        _buffService.CreateBuff(strengthBuff, gameObject, player);
+        _buffService.CreateBuff(strengthBuff, gameObject, player); // 堆叠第 2 层
+        _buffService.CreateBuff(strengthBuff, gameObject, player); // 堆叠第 3 层
+        _buffService.CreateBuff(agilityBuff, gameObject, player);
 
         Debug.Log($"Buff 后力量: {strength.GetValue()}"); // 输出：25 (10 + 5*3)
         Debug.Log($"Buff 后敏捷: {agility.GetValue()}");  // 输出：12 (8 * 1.5)
@@ -265,7 +302,10 @@ public class AttributeBuffExample : MonoBehaviour
 
     void Update()
     {
-        buffManager.Update(Time.deltaTime);
+        if (_buffService != null)
+        {
+            _buffService.Update(Time.deltaTime);
+        }
     }
 }
 ```
@@ -279,18 +319,28 @@ public class AttributeBuffExample : MonoBehaviour
 通过标签和层级批量操作相关的 Buff：
 
 ```csharp
+using System;
 using EasyPack.BuffSystem;
 using UnityEngine;
 using System.Collections.Generic;
 
 public class TagLayerExample : MonoBehaviour
 {
-    private BuffManager buffManager;
+    private IBuffService _buffService;
     private GameObject player;
 
-    void Start()
+    async void Start()
     {
-        buffManager = new BuffManager();
+        try
+        {
+            _buffService = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Buff 服务初始化失败: {ex.Message}");
+            return;
+        }
+
         player = new GameObject("Player");
 
         // 创建不同类型的 Buff
@@ -331,39 +381,42 @@ public class TagLayerExample : MonoBehaviour
         };
 
         // 应用所有 Buff
-        buffManager.CreateBuff(blessingBuff, gameObject, player);
-        buffManager.CreateBuff(curseBuff, gameObject, player);
-        buffManager.CreateBuff(passiveAura, gameObject, player);
-        buffManager.CreateBuff(stunBuff, gameObject, player);
+        _buffService.CreateBuff(blessingBuff, gameObject, player);
+        _buffService.CreateBuff(curseBuff, gameObject, player);
+        _buffService.CreateBuff(passiveAura, gameObject, player);
+        _buffService.CreateBuff(stunBuff, gameObject, player);
 
-        Debug.Log($"玩家身上的 Buff 总数: {buffManager.GetTargetBuffs(player).Count}");
+        Debug.Log($"玩家身上的 Buff 总数: {_buffService.GetTargetBuffs(player).Count}");
 
         // 按标签查询
-        var magicBuffs = buffManager.GetBuffsByTag(player, "Magic");
-        var negativeBuffs = buffManager.GetBuffsByTag(player, "Negative");
+        var magicBuffs = _buffService.GetBuffsByTag(player, "Magic");
+        var negativeBuffs = _buffService.GetBuffsByTag(player, "Negative");
         Debug.Log($"魔法类 Buff 数量: {magicBuffs.Count}");
         Debug.Log($"负面 Buff 数量: {negativeBuffs.Count}");
 
         // 按层级查询
-        var debuffs = buffManager.GetBuffsByLayer(player, "Debuff");
-        var enhancements = buffManager.GetBuffsByLayer(player, "Enhancement");
+        var debuffs = _buffService.GetBuffsByLayer(player, "Debuff");
+        var enhancements = _buffService.GetBuffsByLayer(player, "Enhancement");
         Debug.Log($"减益效果数量: {debuffs.Count}");
         Debug.Log($"增益效果数量: {enhancements.Count}");
 
         // 批量移除：使用净化技能移除所有可移除的魔法效果
         Debug.Log("\n使用净化技能...");
-        buffManager.RemoveBuffsByTag(player, "Removable");
-        Debug.Log($"净化后剩余 Buff 数量: {buffManager.GetTargetBuffs(player).Count}");
+        _buffService.RemoveBuffsByTag(player, "Removable");
+        Debug.Log($"净化后剩余 Buff 数量: {_buffService.GetTargetBuffs(player).Count}");
 
         // 批量移除：解除所有控制效果
         Debug.Log("\n解除控制效果...");
-        buffManager.RemoveBuffsByLayer(player, "CC");
-        Debug.Log($"解除控制后剩余 Buff 数量: {buffManager.GetTargetBuffs(player).Count}");
+        _buffService.RemoveBuffsByLayer(player, "CC");
+        Debug.Log($"解除控制后剩余 Buff 数量: {_buffService.GetTargetBuffs(player).Count}");
     }
 
     void Update()
     {
-        buffManager.Update(Time.deltaTime);
+        if (_buffService != null)
+        {
+            _buffService.Update(Time.deltaTime);
+        }
     }
 }
 ```
@@ -377,17 +430,27 @@ public class TagLayerExample : MonoBehaviour
 理解和使用不同的堆叠策略：
 
 ```csharp
+using System;
 using EasyPack.BuffSystem;
 using UnityEngine;
 
 public class StackingStrategyExample : MonoBehaviour
 {
-    private BuffManager buffManager;
+    private IBuffService _buffService;
     private GameObject target;
 
-    void Start()
+    async void Start()
     {
-        buffManager = new BuffManager();
+        try
+        {
+            _buffService = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"Buff 服务初始化失败: {ex.Message}");
+            return;
+        }
+
         target = new GameObject("Target");
 
         // 策略 1: Add - 持续时间叠加
@@ -416,24 +479,27 @@ public class StackingStrategyExample : MonoBehaviour
         };
 
         // 第一次应用
-        var buff = buffManager.CreateBuff(buffData, gameObject, target);
+        var buff = _buffService.CreateBuff(buffData, gameObject, target);
         Debug.Log($"初始持续时间: {buff.DurationTimer} 秒");
 
         // 模拟过去 2 秒
-        buffManager.Update(2f);
+        _buffService.Update(2f);
         Debug.Log($"2 秒后持续时间: {buff.DurationTimer} 秒");
 
         // 再次应用相同 Buff
-        buffManager.CreateBuff(buffData, gameObject, target);
+        _buffService.CreateBuff(buffData, gameObject, target);
         Debug.Log($"再次应用后持续时间: {buff.DurationTimer} 秒");
 
         // 清理
-        buffManager.RemoveAllBuffs(target);
+        _buffService.RemoveAllBuffs(target);
     }
 
     void Update()
     {
-        buffManager.Update(Time.deltaTime);
+        if (_buffService != null)
+        {
+            _buffService.Update(Time.deltaTime);
+        }
     }
 }
 ```
@@ -451,17 +517,27 @@ public class StackingStrategyExample : MonoBehaviour
 监听 Buff 的各种生命周期事件：
 
 ```csharp
+using System;
 using EasyPack.BuffSystem;
 using UnityEngine;
 
 public class LifecycleEventExample : MonoBehaviour
 {
-    private BuffManager buffManager;
+    private IBuffService _buffService;
     private GameObject player;
 
-    void Start()
+    async void Start()
     {
-        buffManager = new BuffManager();
+        try
+        {
+            _buffService = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Buff 服务初始化失败: {ex.Message}");
+            return;
+        }
+
         player = new GameObject("Player");
 
         // 创建 Buff
@@ -476,7 +552,7 @@ public class LifecycleEventExample : MonoBehaviour
             TriggerOnCreate = true  // 创建时立即触发一次
         };
 
-        var buff = buffManager.CreateBuff(rageBuff, gameObject, player);
+        var buff = _buffService.CreateBuff(rageBuff, gameObject, player);
 
         // 设置所有生命周期事件
         buff.OnCreate += (b) =>
@@ -519,15 +595,18 @@ public class LifecycleEventExample : MonoBehaviour
         };
 
         // 测试堆叠事件
-        buffManager.CreateBuff(rageBuff, gameObject, player); // 触发 OnAddStack
-        buffManager.CreateBuff(rageBuff, gameObject, player); // 触发 OnAddStack
+        _buffService.CreateBuff(rageBuff, gameObject, player); // 触发 OnAddStack
+        _buffService.CreateBuff(rageBuff, gameObject, player); // 触发 OnAddStack
 
         Debug.Log("\n开始模拟时间流逝...");
     }
 
     void Update()
     {
-        buffManager.Update(Time.deltaTime);
+        if (_buffService != null)
+        {
+            _buffService.Update(Time.deltaTime);
+        }
     }
 }
 ```
@@ -647,7 +726,7 @@ public class CustomModuleExample : MonoBehaviour
 {
     void Start()
     {
-        var buffManager = new BuffManager();
+        var BuffService = new BuffService();
         var target = new GameObject("Target");
 
         // 创建使用自定义模块的 Buff
@@ -663,10 +742,10 @@ public class CustomModuleExample : MonoBehaviour
 
         healingAura.BuffModules.Add(new HealingAuraModule(10f, 1.2f));
 
-        var buff = buffManager.CreateBuff(healingAura, gameObject, target);
+        var buff = _buffService.CreateBuff(healingAura, gameObject, target);
         
         // 在 Update 中更新管理器
-        // buffManager.Update(Time.deltaTime);
+        // _buffService.Update(Time.deltaTime);
     }
 }
 ```
@@ -684,6 +763,7 @@ public class CustomModuleExample : MonoBehaviour
 一个 Buff 可以包含多个模块，实现复合效果：
 
 ```csharp
+using System;
 using EasyPack.BuffSystem;
 using EasyPack.GamePropertySystem;
 using EasyPack;
@@ -692,21 +772,30 @@ using System.Collections.Generic;
 
 public class CompositeBuffExample : MonoBehaviour
 {
-    private BuffManager buffManager;
-    private GamePropertyManager propertyManager;
+    private IBuffService _buffService;
+    private IGamePropertyService _propertyManager;
     private GameObject player;
 
-    void Start()
+    async void Start()
     {
-        buffManager = new BuffManager();
-        propertyManager = new GamePropertyManager();
+        try
+        {
+            _buffService = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
+            _propertyManager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"服务初始化失败: {ex.Message}");
+            return;
+        }
+
         player = new GameObject("Player");
 
         // 初始化属性
-        var strength = new CombinePropertySingle("Strength", 20f);
-        var health = new CombinePropertySingle("Health", 100f);
-        propertyManager.AddOrUpdate(strength);
-        propertyManager.AddOrUpdate(health);
+        var strength = new GameProperty("Strength", 20f);
+        var health = new GameProperty("Health", 100f);
+        _propertyManager.Register(strength);
+        _propertyManager.Register(health);
 
         // 创建"战斗狂热" Buff - 包含多种效果
         var battleFrenzy = new BuffData
@@ -723,14 +812,14 @@ public class CompositeBuffExample : MonoBehaviour
         var strengthBoost = new CastModifierToProperty(
             new FloatModifier(ModifierType.Add, 0, 5f),
             "Strength",
-            propertyManager
+            _propertyManager
         );
 
         // 模块 2: 增加生命值上限
         var healthBoost = new CastModifierToProperty(
             new FloatModifier(ModifierType.Mul, 0, 1.2f),
             "Health",
-            propertyManager
+            _propertyManager
         );
 
         // 模块 3: 持续回复生命
@@ -754,7 +843,7 @@ public class CompositeBuffExample : MonoBehaviour
         });
 
         // 应用 Buff
-        var buff = buffManager.CreateBuff(battleFrenzy, gameObject, player);
+        var buff = _buffService.CreateBuff(battleFrenzy, gameObject, player);
         
         Debug.Log($"战斗狂热效果已激活！");
         Debug.Log($"力量: {strength.GetValue()}");
@@ -763,7 +852,10 @@ public class CompositeBuffExample : MonoBehaviour
 
     void Update()
     {
-        buffManager.Update(Time.deltaTime);
+        if (_buffService != null)
+        {
+            _buffService.Update(Time.deltaTime);
+        }
     }
 }
 
@@ -803,17 +895,26 @@ public class VisualEffectModule : BuffModule
 大量 Buff 场景下的最佳实践：
 
 ```csharp
+using System;
 using EasyPack.BuffSystem;
 using UnityEngine;
 using System.Collections.Generic;
 
 public class PerformanceExample : MonoBehaviour
 {
-    private BuffManager buffManager;
+    private IBuffService _buffService;
 
-    void Start()
+    async void Start()
     {
-        buffManager = new BuffManager();
+        try
+        {
+            _buffService = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Buff 服务初始化失败: {ex.Message}");
+            return;
+        }
 
         // 场景 1: 批量清理相同类型的 Buff
         BatchRemovalExample();
@@ -843,14 +944,16 @@ public class PerformanceExample : MonoBehaviour
                 ID = "TempEffect",
                 Tags = new List<string> { "Temporary", "AOE" }
             };
-            buffManager.CreateBuff(tempBuff, gameObject, target);
+            _buffService.CreateBuff(tempBuff, gameObject, target);
         }
 
         Debug.Log($"创建了 {targets.Count} 个目标的 Buff");
 
-        // 好的做法：使用全局批量移除
-        buffManager.RemoveAllBuffsByTag("Temporary");
-        buffManager.FlushPendingRemovals();  // 立即处理批量移除
+        // 好的做法：逐个目标清理临时 Buff
+        foreach (var target in targets)
+        {
+            _buffService.RemoveBuffsByTag(target, "Temporary");
+        }
 
         Debug.Log("批量移除完成");
 
@@ -875,21 +978,22 @@ public class PerformanceExample : MonoBehaviour
                 ID = $"Buff_{i}",
                 Tags = new List<string> { i % 2 == 0 ? "Even" : "Odd", "Test" }
             };
-            buffManager.CreateBuff(buffData, gameObject, player);
+            _buffService.CreateBuff(buffData, gameObject, player);
         }
 
-        // 使用索引快速查询（O(1) 时间复杂度）
-        var evenBuffs = buffManager.GetBuffsByTag(player, "Even");
-        var oddBuffs = buffManager.GetBuffsByTag(player, "Odd");
+        // 使用标签快速查询
+        var evenBuffs = _buffService.GetBuffsByTag(player, "Even");
+        var oddBuffs = _buffService.GetBuffsByTag(player, "Odd");
 
         Debug.Log($"偶数 Buff: {evenBuffs.Count}");
         Debug.Log($"奇数 Buff: {oddBuffs.Count}");
 
-        // 全局查询
-        bool hasTestBuffs = buffManager.ContainsBuffWithTag("Test");
-        Debug.Log($"全局是否有测试 Buff: {hasTestBuffs}");
+        // 获取所有 Buff 并检查
+        var allBuffs = _buffService.GetTargetBuffs(player);
+        bool hasTestBuffs = allBuffs.Exists(b => b.BuffData.Tags.Contains("Test"));
+        Debug.Log($"玩家是否有测试 Buff: {hasTestBuffs}");
 
-        buffManager.RemoveAllBuffs(player);
+        _buffService.RemoveAllBuffs(player);
         Destroy(player);
     }
 
@@ -913,7 +1017,7 @@ public class PerformanceExample : MonoBehaviour
             targets.Add(target);
             
             // 复用相同的 BuffData
-            buffManager.CreateBuff(sharedBuffData, gameObject, target);
+            _buffService.CreateBuff(sharedBuffData, gameObject, target);
         }
 
         Debug.Log($"使用同一个 BuffData 创建了 {targets.Count} 个 Buff 实例");
@@ -921,14 +1025,17 @@ public class PerformanceExample : MonoBehaviour
         // 清理
         foreach (var target in targets)
         {
-            buffManager.RemoveAllBuffs(target);
+            _buffService.RemoveAllBuffs(target);
             Destroy(target);
         }
     }
 
     void Update()
     {
-        buffManager.Update(Time.deltaTime);
+        if (_buffService != null)
+        {
+            _buffService.Update(Time.deltaTime);
+        }
     }
 }
 ```
@@ -936,7 +1043,6 @@ public class PerformanceExample : MonoBehaviour
 **性能建议：**
 - ✅ 使用标签和层级批量操作，避免遍历
 - ✅ 复用 `BuffData` 配置，减少内存分配
-- ✅ 调用 `FlushPendingRemovals()` 立即处理批量移除
 - ✅ 合理设置 `TriggerInterval`，避免过于频繁的触发（建议 ≥ 0.5 秒）
 - ❌ 避免在 `OnUpdate` 中执行耗时操作
 
@@ -946,9 +1052,9 @@ public class PerformanceExample : MonoBehaviour
 
 ### 常见问题
 
-#### 问题 1：编译错误 - 找不到类型 `BuffManager`
+#### 问题 1：编译错误 - 找不到类型 `BuffService`
 
-**症状：** 提示 `The type or namespace name 'BuffManager' could not be found`  
+**症状：** 提示 `The type or namespace name 'BuffService' could not be found`  
 **原因：** 缺少命名空间引用  
 **解决方法：** 在文件头部添加命名空间：
 
@@ -963,13 +1069,13 @@ using EasyPack; // 如果使用修饰符
 #### 问题 2：Buff 不会自动过期
 
 **症状：** 设置了 `Duration` 但 Buff 永不消失  
-**原因：** 未在 `Update` 中调用 `BuffManager.Update()`  
+**原因：** 未在 `Update` 中调用 `BuffService.Update()`  
 **解决方法：** 确保每帧更新管理器：
 
 ```csharp
 void Update()
 {
-    buffManager.Update(Time.deltaTime);
+    BuffService.Update(Time.deltaTime);
 }
 ```
 
@@ -979,7 +1085,7 @@ void Update()
 
 **症状：** `OnTrigger` 事件未被调用  
 **原因 1：** 未设置 `TriggerInterval`  
-**原因 2：** 未调用 `BuffManager.Update()`  
+**原因 2：** 未调用 `BuffService.Update()`  
 **解决方法：**
 
 ```csharp
@@ -993,7 +1099,7 @@ var buffData = new BuffData
 // 确保每帧更新
 void Update()
 {
-    buffManager.Update(Time.deltaTime);
+    BuffService.Update(Time.deltaTime);
 }
 ```
 
@@ -1047,10 +1153,10 @@ var module = new CastModifierToProperty(
 
 ```csharp
 // 正确：使用管理器移除
-buffManager.RemoveBuff(buff);
+BuffService.RemoveBuff(buff);
 
 // 正确：按 ID 移除
-buffManager.RemoveBuffByID(target, "BuffID");
+BuffService.RemoveBuffByID(target, "BuffID");
 
 // 错误：直接从列表移除不会触发回调
 // buffs.Remove(buff);  ❌ 不要这样做
@@ -1079,7 +1185,7 @@ buffManager.RemoveBuffByID(target, "BuffID");
 ### BuffModule（Buff 模块）
 实现 Buff 具体行为的可复用组件，通过注册生命周期回调函数来响应 Buff 事件。一个 Buff 可以包含多个模块。
 
-### BuffManager（Buff 管理器）
+### BuffService（Buff 管理器）
 管理所有 Buff 实例的生命周期，负责创建、更新、移除和查询 Buff。提供批量操作和索引查询功能。
 
 ### 堆叠（Stack）
