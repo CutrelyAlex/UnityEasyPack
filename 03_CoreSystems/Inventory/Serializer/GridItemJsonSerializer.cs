@@ -22,10 +22,19 @@ namespace EasyPack.InventorySystem
         public List<string> ContainerIds;
 
         // GridItem 特有属性
-        public int GridWidth;
-        public int GridHeight;
+        public List<SerializedCell> Shape; // 形状的单元格坐标列表
         public bool CanRotate;
         public int Rotation; // 旋转角度 (0=0°, 1=90°, 2=180°, 3=270°)
+    }
+
+    /// <summary>
+    /// 单元格坐标的序列化对象
+    /// </summary>
+    [Serializable]
+    public class SerializedCell
+    {
+        public int x;
+        public int y;
     }
 
     /// <summary>
@@ -51,8 +60,9 @@ namespace EasyPack.InventorySystem
                 ContainerIds = (item.IsContainerItem && item.ContainerIds != null && item.ContainerIds.Count > 0)
                     ? new List<string>(item.ContainerIds)
                     : null,
-                GridWidth = item.GridWidth,
-                GridHeight = item.GridHeight,
+                Shape = item.Shape != null 
+                    ? item.Shape.ConvertAll(cell => new SerializedCell { x = cell.x, y = cell.y })
+                    : new List<SerializedCell> { new SerializedCell { x = 0, y = 0 } },
                 CanRotate = item.CanRotate,
                 Rotation = (int)item.Rotation
             };
@@ -87,8 +97,9 @@ namespace EasyPack.InventorySystem
                 IsStackable = dto.IsStackable,
                 Weight = dto.Weight,
                 IsContainerItem = dto.isContanierItem,
-                GridWidth = dto.GridWidth,
-                GridHeight = dto.GridHeight,
+                Shape = dto.Shape != null && dto.Shape.Count > 0
+                    ? dto.Shape.ConvertAll(cell => (cell.x, cell.y))
+                    : new List<(int x, int y)> { (0, 0) },
                 CanRotate = dto.CanRotate,
                 Rotation = (RotationAngle)dto.Rotation
             };
