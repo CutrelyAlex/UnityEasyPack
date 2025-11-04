@@ -225,24 +225,30 @@ namespace EasyPack
 
             if (!includeChildren)
             {
-                // 精确匹配
+                // 精确匹配（线程安全）
                 if (_categories.TryGetValue(category, out var ids))
                 {
-                    return ids.Select(id => _properties[id]).Where(p => p != null);
+                    lock (_categoryLock)
+                    {
+                        return ids.ToList().Select(id => _properties[id]).Where(p => p != null).ToList();
+                    }
                 }
                 return Enumerable.Empty<GameProperty>();
             }
             else
             {
-                // 支持通配符："Category.*" 匹配所有子分类
+                // 支持通配符："Category.*" 匹配所有子分类（线程安全）
                 var results = new List<GameProperty>();
                 var prefix = category.EndsWith(".*") ? category.Substring(0, category.Length - 2) + "." : category + ".";
 
-                foreach (var kvp in _categories)
+                lock (_categoryLock)
                 {
-                    if (kvp.Key == category || kvp.Key.StartsWith(prefix))
+                    foreach (var kvp in _categories)
                     {
-                        results.AddRange(kvp.Value.Select(id => _properties[id]).Where(p => p != null));
+                        if (kvp.Key == category || kvp.Key.StartsWith(prefix))
+                        {
+                            results.AddRange(kvp.Value.ToList().Select(id => _properties[id]).Where(p => p != null));
+                        }
                     }
                 }
 
@@ -260,7 +266,10 @@ namespace EasyPack
 
             if (_tagIndex.TryGetValue(tag, out var ids))
             {
-                return ids.Select(id => _properties[id]).Where(p => p != null);
+                lock (_tagLock)
+                {
+                    return ids.ToList().Select(id => _properties[id]).Where(p => p != null).ToList();
+                }
             }
 
             return Enumerable.Empty<GameProperty>();
@@ -325,21 +334,27 @@ namespace EasyPack
             // 从元数据移除
             _metadata.TryRemove(id, out _);
 
-            // 从分类索引移除
+            // 从分类索引移除（线程安全）
             if (_propertyToCategory.TryRemove(id, out var category))
             {
-                if (_categories.TryGetValue(category, out var categorySet))
+                lock (_categoryLock)
                 {
-                    categorySet.Remove(id);
-                    if (categorySet.Count == 0)
-                        _categories.TryRemove(category, out _);
+                    if (_categories.TryGetValue(category, out var categorySet))
+                    {
+                        categorySet.Remove(id);
+                        if (categorySet.Count == 0)
+                            _categories.TryRemove(category, out _);
+                    }
                 }
             }
 
-            // 从标签索引移除
-            foreach (var tagSet in _tagIndex.Values)
+            // 从标签索引移除（线程安全）
+            lock (_tagLock)
             {
-                tagSet.Remove(id);
+                foreach (var tagSet in _tagIndex.Values)
+                {
+                    tagSet.Remove(id);
+                }
             }
 
             return true;
