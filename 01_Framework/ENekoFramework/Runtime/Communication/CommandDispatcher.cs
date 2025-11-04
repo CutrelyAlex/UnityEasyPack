@@ -12,15 +12,15 @@ namespace EasyPack.ENekoFramework
     public class CommandDispatcher
     {
         private readonly List<CommandDescriptor> _commandHistory;
-        private readonly int _defaultTimeoutSeconds;
+        private readonly float _defaultTimeoutSeconds;
         private readonly bool _enableHistory;
 
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="defaultTimeoutSeconds">默认超时秒数（默认 4 秒）</param>
+        /// <param name="defaultTimeoutSeconds">默认超时秒数（默认 4 秒，支持小数如 0.5）</param>
         /// <param name="enableHistory">是否启用命令历史记录（默认 true，禁用可提升性能）</param>
-        public CommandDispatcher(int defaultTimeoutSeconds = 4, bool enableHistory = true)
+        public CommandDispatcher(float defaultTimeoutSeconds = 4f, bool enableHistory = true)
         {
             _commandHistory = enableHistory ? new List<CommandDescriptor>() : null;
             _defaultTimeoutSeconds = defaultTimeoutSeconds;
@@ -32,19 +32,19 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         /// <typeparam name="TResult">命令返回类型</typeparam>
         /// <param name="command">要执行的命令</param>
-        /// <param name="timeoutSeconds">超时秒数（null 使用默认值）</param>
+        /// <param name="timeoutSeconds">超时秒数（float）</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>命令执行结果</returns>
         public async Task<TResult> ExecuteAsync<TResult>(
             ICommand<TResult> command,
-            int? timeoutSeconds = null,
+            float? timeoutSeconds = null,
             CancellationToken cancellationToken = default)
         {
             if (command == null)
                 throw new ArgumentNullException(nameof(command));
 
             var timeout = timeoutSeconds ?? _defaultTimeoutSeconds;
-            
+
             // 只在启用历史记录时创建描述符
             CommandDescriptor descriptor = null;
             if (_enableHistory)
@@ -146,7 +146,7 @@ namespace EasyPack.ENekoFramework
         public CommandStatus Status { get; set; }
 
         /// <summary>超时秒数</summary>
-        public int TimeoutSeconds { get; set; }
+        public float TimeoutSeconds { get; set; }
 
         /// <summary>执行结果（成功时）</summary>
         public object Result { get; set; }

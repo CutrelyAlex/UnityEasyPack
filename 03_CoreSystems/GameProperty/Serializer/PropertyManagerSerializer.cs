@@ -112,11 +112,20 @@ namespace EasyPack
         public PropertyManagerDTO FromJson(string json)
         {
             if (string.IsNullOrEmpty(json)) return null;
-            var dto = JsonUtility.FromJson<PropertyManagerDTO>(json);
-            if (dto == null)
-                throw new SerializationException("JSON 解析失败", typeof(GamePropertyManager),
-                    SerializationErrorCode.DeserializationFailed);
-            return dto;
+
+            try
+            {
+                var dto = JsonUtility.FromJson<PropertyManagerDTO>(json);
+                if (dto == null)
+                    throw new SerializationException("JSON 解析失败", typeof(GamePropertyManager),
+                        SerializationErrorCode.DeserializationFailed);
+                return dto;
+            }
+            catch (System.Exception ex) when (!(ex is SerializationException))
+            {
+                throw new SerializationException($"JSON 解析失败: {ex.Message}",
+                    typeof(GamePropertyManager), SerializationErrorCode.DeserializationFailed, ex);
+            }
         }
 
         public string SerializeToJson(GamePropertyManager obj) =>

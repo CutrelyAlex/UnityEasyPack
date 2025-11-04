@@ -81,8 +81,7 @@ namespace EasyPack
 
                 // 注册GameProperty JSON序列化器
                 serializationService.RegisterSerializer(new GamePropertyJsonSerializer());
-
-                Debug.Log("[GamePropertyManager] GameProperty序列化器注册完成");
+                serializationService.RegisterSerializer(new PropertyManagerSerializer());
             }
             catch (Exception ex)
             {
