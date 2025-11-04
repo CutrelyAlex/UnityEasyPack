@@ -1079,6 +1079,104 @@ Debug.Log($"更新成功: {updated}");
 
 **命名空间：** `EasyPack.GamePropertySystem`
 
+---
+
+## 序列化类
+
+### PropertyManagerSerializer 类
+
+GamePropertyManager 的序列化器，实现 `ITypeSerializer<GamePropertyManager, PropertyManagerDTO>` 接口。
+
+**命名空间：** `EasyPack`
+
+#### 方法
+
+##### SerializeToJson(GamePropertyManager obj)
+
+将 GamePropertyManager 序列化为 JSON 字符串。
+
+**参数：**
+
+| 参数名 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| obj | GamePropertyManager | - | 要序列化的管理器实例 |
+
+**返回值：** JSON 字符串
+
+**示例：**
+
+```csharp
+var serializer = new PropertyManagerSerializer();
+string json = serializer.SerializeToJson(manager);
+```
+
+##### DeserializeFromJson(string json)
+
+从 JSON 字符串反序列化为 GamePropertyManager。
+
+**参数：**
+
+| 参数名 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| json | string | - | JSON 字符串 |
+
+**返回值：** GamePropertyManager 实例
+
+**异常：**
+- `SerializationException` - JSON 格式无效或反序列化失败
+
+**示例：**
+
+```csharp
+var serializer = new PropertyManagerSerializer();
+var manager = serializer.DeserializeFromJson(json);
+```
+
+---
+
+## Editor 工具
+
+### GamePropertyManagerWindow 类
+
+GamePropertyManager 的可视化管理窗口，通过 EasyPack 架构安全解析服务。
+
+**命名空间：** `EasyPack.Editor`
+
+**打开方式：** 菜单 `EasyPack/CoreSystems/游戏属性(GameProperty)/管理器窗口`
+
+#### 解析流程
+
+窗口在 `OnEnable` 时执行以下检查：
+
+1. 检查服务是否已注册
+2. 检查服务是否已实例化
+3. 检查服务状态是否为 Ready
+4. 仅在所有条件满足时才解析服务
+
+**重要**：窗口不会主动初始化服务，只会在服务已就绪时解析。
+
+#### 功能特性
+
+- 实时显示所有属性的 ID、基础值、最终值
+- 文本搜索（支持搜索 ID、显示名、描述）
+- 分类过滤（下拉菜单）
+- 标签过滤（下拉菜单）
+- 可切换的元数据显示
+- 可切换的修饰符显示
+- 安全的服务解析（不主动初始化）
+
+#### 使用要求
+
+- EasyPack 架构必须已初始化
+- `IGamePropertyManager` 服务必须已注册并初始化为 Ready 状态
+---
+
+### PropertyMetadata 类（继续）
+
+存储属性的元数据信息。
+
+**命名空间：** `EasyPack.GamePropertySystem`
+
 #### 属性
 
 ##### DisplayName

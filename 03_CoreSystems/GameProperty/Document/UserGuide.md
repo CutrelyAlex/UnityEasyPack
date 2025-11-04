@@ -367,6 +367,66 @@ public class SaveLoadExample : MonoBehaviour
 
 ## 进阶用法
 
+### Editor 可视化管理工具
+
+GameProperty 系统提供了强大的 Editor 窗口工具，通过 EasyPack 架构自动解析 Manager 服务。
+
+**打开管理窗口**：
+
+菜单路径：`EasyPack/CoreSystems/游戏属性(GameProperty)/管理器窗口`
+
+**工作原理**：
+
+窗口在打开时会检查以下条件，只在服务就绪时才解析：
+
+1. 检查服务是否已注册 (`IsServiceRegistered`)
+2. 检查服务是否已实例化 (`HasInstance`)
+3. 检查服务状态是否为 Ready
+4. 解析服务实例（不会触发初始化）
+
+如果服务未就绪，窗口会显示相应的提示信息，不会主动初始化服务。
+
+**功能特性**：
+
+- **实时查看**：显示所有属性的ID、基础值、最终值
+- **搜索功能**：按 ID、显示名或描述搜索属性
+- **分类过滤**：下拉菜单快速筛选分类
+- **标签过滤**：按标签筛选属性
+- **元数据显示**：可切换显示属性的元数据信息
+- **修饰符查看**：可切换显示应用的修饰符详情
+
+### 序列化和持久化
+
+GameProperty Manager 支持完整的序列化功能，可用于游戏存档、数据交换等场景。
+
+**序列化示例**：
+
+```csharp
+using EasyPack;
+using EasyPack.GamePropertySystem;
+
+// 创建序列化器
+var serializer = new PropertyManagerSerializer();
+
+// 序列化 Manager
+string json = serializer.SerializeToJson(manager);
+PlayerPrefs.SetString("GamePropertyManager", json);
+
+// 反序列化 Manager
+string loadedJson = PlayerPrefs.GetString("GamePropertyManager");
+var loadedManager = serializer.DeserializeFromJson(loadedJson);
+
+// 索引会自动重建，无需手动处理
+var properties = loadedManager.GetByCategory("Character.Vital");
+```
+
+**序列化特性**：
+
+- 自动序列化所有属性数据和元数据
+- 反序列化时自动重建分类索引和标签索引
+- 支持修饰符的完整序列化
+- 容错机制：部分属性序列化失败不影响其他属性
+
 ### 修饰符优先级控制
 
 修饰符的 Priority 参数决定了同类型修饰符的应用顺序：

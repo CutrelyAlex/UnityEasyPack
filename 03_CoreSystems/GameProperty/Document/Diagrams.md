@@ -14,6 +14,7 @@
   - [依赖系统序列图](#依赖系统序列图)
   - [属性状态机图](#属性状态机图)
   - [管理器交互时序图](#管理器交互时序图)
+  - [序列化流程图](#序列化流程图)
 
 ---
 
@@ -482,11 +483,28 @@ sequenceDiagram
 
 **说明：**
 
-1. **服务获取**：通过 EasyPackArchitecture 异步解析管理器服务
+1. **服务获取**：通过 `EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>()` 异步解析管理器服务
 2. **属性注册**：同时更新主表、元数据、分类索引和标签索引
 3. **分类查询**：通过分类索引快速定位属性 ID，再从主表获取实例
 4. **批量操作**：遍历分类下的所有属性，克隆修饰符后逐个应用
 5. **标签查询**：通过标签索引快速查找，支持多标签组合查询
+
+**架构集成模式**：
+
+Manager 作为服务注册到 EasyPack 架构中：
+
+```csharp
+// 在 EasyPackArchitecture.OnInit() 中
+Container.Register<IGamePropertyManager, GamePropertyManager>();
+
+// 用户代码中获取
+var manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
+
+// Editor 窗口安全解析
+// 打开菜单 EasyPack/CoreSystems/游戏属性(GameProperty)/管理器窗口
+// 窗口会先检查服务状态（已注册、已实例化、已就绪）
+// 只在服务 Ready 时才解析，不会主动初始化
+```
 
 **索引优化：**
 - **分类索引**：支持层级分类（如 "Character.Vital.HP"）
@@ -498,6 +516,58 @@ sequenceDiagram
 - **UI 显示**：按 "displayInUI" 标签筛选需要显示的属性
 - **存档系统**：按 "saveable" 标签筛选需要保存的属性
 - **Buff 系统**：批量为某分类属性应用修饰符
+
+---
+
+## 序列化流程图
+
+展示 GamePropertyManager 的序列化和反序列化过程。
+
+```mermaid
+flowchart TD
+    Start([序列化请求]) --> ToSerializable[ToSerializable]
+    ToSerializable --> CollectProps[遍历所有属性]
+    CollectProps --> SerializeProp[序列化 GameProperty]
+    SerializeProp --> GetCategory[获取属性所属分类]
+    GetCategory --> GetMetadata[获取元数据]
+    GetMetadata --> BuildDTO[构建 PropertyManagerDTO]
+    BuildDTO --> ToJson[JsonUtility.ToJson]
+    ToJson --> End1([JSON 字符串])
+
+    Start2([反序列化请求]) --> FromJson[JsonUtility.FromJson]
+    FromJson --> CreateManager[创建新 Manager]
+    CreateManager --> Init[InitializeAsync]
+    Init --> DeserializeProps[遍历 DTO.Properties]
+    DeserializeProps --> DeserializeProp[反序列化 GameProperty]
+    DeserializeProp --> FindMetadata[查找对应元数据]
+    FindMetadata --> Register[Register 属性]
+    Register --> RebuildIndex[自动重建索引]
+    RebuildIndex --> End2([Manager 实例])
+
+    style Start fill:#e1f5e1
+    style End1 fill:#ffe1e1
+    style Start2 fill:#e1f5e1
+    style End2 fill:#ffe1e1
+    style RebuildIndex fill:#fff4e1
+```
+
+**说明：**
+
+1. **序列化流程**：
+   - 遍历所有属性并序列化为 JSON
+   - 收集元数据和分类信息
+   - 构建 DTO 对象并转换为 JSON
+
+2. **反序列化流程**：
+   - 解析 JSON 为 DTO 对象
+   - 创建新的 Manager 实例并初始化
+   - 逐个反序列化属性并注册
+   - **自动重建索引**（分类索引、标签索引）
+
+3. **关键优化**：
+   - 索引不序列化，运行时重建
+   - 部分失败不影响其他属性
+   - 使用 Unity JsonUtility 保证兼容性
 
 ---
 

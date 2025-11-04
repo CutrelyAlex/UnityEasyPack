@@ -20,6 +20,9 @@ namespace EasyPack.GamePropertySystem
                 // 从 EasyPack 架构获取 GamePropertyManager 服务
                 _manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
 
+                // 清理之前可能存在的示例数据
+                CleanupExampleData();
+
                 await DemoBasicUsage();
                 await DemoMetadataUsage();
                 await DemoBatchOperations();
@@ -32,9 +35,26 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
+        /// 清理之前运行的示例数据
+        /// </summary>
+        private void CleanupExampleData()
+        {
+            var exampleIds = new[] {
+                "hp", "mp", "strength",
+                "hp_meta", "hp_batch", "mp_batch", "stamina_batch",
+                "hp_adv", "mp_adv", "crit_adv"
+            };
+
+            foreach (var id in exampleIds)
+            {
+                _manager.Unregister(id);
+            }
+        }
+
+        /// <summary>
         /// 示例1: 基础用法 - 注册和查询
         /// </summary>
-        private async Task DemoBasicUsage()
+        private Task DemoBasicUsage()
         {
             Debug.Log("=== 示例1: 基础用法 ===");
 
@@ -58,12 +78,14 @@ namespace EasyPack.GamePropertySystem
             {
                 Debug.Log($"重要属性: {prop.ID} = {prop.GetValue()}");
             }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// 示例2: 元数据用法
         /// </summary>
-        private async Task DemoMetadataUsage()
+        private Task DemoMetadataUsage()
         {
             Debug.Log("=== 示例2: 元数据用法 ===");
 
@@ -96,12 +118,14 @@ namespace EasyPack.GamePropertySystem
 
             var sortOrder = retrievedMeta.GetCustomData<int>("sortOrder");
             Debug.Log($"排序顺序: {sortOrder}");
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// 示例3: 批量操作
         /// </summary>
-        private async Task DemoBatchOperations()
+        private Task DemoBatchOperations()
         {
             Debug.Log("=== 示例3: 批量操作 ===");
 
@@ -135,12 +159,14 @@ namespace EasyPack.GamePropertySystem
                     Debug.LogError($"失败: {failure.ItemId} - {failure.ErrorMessage}");
                 }
             }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// 示例4: 高级查询
         /// </summary>
-        private async Task DemoAdvancedQueries()
+        private Task DemoAdvancedQueries()
         {
             Debug.Log("=== 示例4: 高级查询 ===");
 
@@ -170,6 +196,8 @@ namespace EasyPack.GamePropertySystem
             // 获取所有分类
             var categories = _manager.GetAllCategories();
             Debug.Log($"所有分类: {string.Join(", ", categories)}");
+
+            return Task.CompletedTask;
         }
 
         /// <summary>

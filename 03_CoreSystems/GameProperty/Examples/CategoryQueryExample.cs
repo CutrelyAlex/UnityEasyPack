@@ -20,6 +20,9 @@ namespace EasyPack.GamePropertySystem
                 // 从 EasyPack 架构获取 GamePropertyManager 服务
                 _manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
 
+                // 清理之前的示例数据
+                CleanupExampleData();
+
                 await DemoHierarchicalCategories();
                 await DemoTagQueries();
                 await DemoCombinedQueries();
@@ -31,10 +34,25 @@ namespace EasyPack.GamePropertySystem
             }
         }
 
+        private void CleanupExampleData()
+        {
+            var exampleIds = new[] {
+                "hp", "hpRegen", "mp", "mpRegen", "strength", "intelligence",
+                "hp_tag", "mp_tag", "level_tag", "tempBuff",
+                "hp_comb", "mp_comb", "attack_comb", "defense_comb",
+                "crit_wild", "critDamage_wild", "armor_wild", "magicResist_wild"
+            };
+
+            foreach (var id in exampleIds)
+            {
+                _manager.Unregister(id);
+            }
+        }
+
         /// <summary>
         /// 示例1: 层级分类系统
         /// </summary>
-        private async Task DemoHierarchicalCategories()
+        private Task DemoHierarchicalCategories()
         {
             Debug.Log("=== 示例1: 层级分类系统 ===");
 
@@ -57,12 +75,14 @@ namespace EasyPack.GamePropertySystem
             // 查询顶层分类
             var characterProps = _manager.GetByCategory("Character", includeChildren: true);
             Debug.Log($"所有Character属性数量: {characterProps.Count()}");
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// 示例2: 标签查询
         /// </summary>
-        private async Task DemoTagQueries()
+        private Task DemoTagQueries()
         {
             Debug.Log("=== 示例2: 标签查询 ===");
 
@@ -91,12 +111,14 @@ namespace EasyPack.GamePropertySystem
 
             var tempProps = _manager.GetByTag("temporary");
             Debug.Log($"临时属性: {string.Join(", ", tempProps.Select(p => p.ID))}");
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// 示例3: 组合查询（分类 + 标签）
         /// </summary>
-        private async Task DemoCombinedQueries()
+        private Task DemoCombinedQueries()
         {
             Debug.Log("=== 示例3: 组合查询 ===");
 
@@ -120,12 +142,14 @@ namespace EasyPack.GamePropertySystem
             // 组合查询: Combat分类 + ui标签
             var combatUIProps = _manager.GetByCategoryAndTag("Character.Combat", "ui");
             Debug.Log($"Combat + UI: {string.Join(", ", combatUIProps.Select(p => p.ID))}");
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// 示例4: 通配符查询和动态分类
         /// </summary>
-        private async Task DemoWildcardQueries()
+        private Task DemoWildcardQueries()
         {
             Debug.Log("=== 示例4: 通配符查询 ===");
 
@@ -146,6 +170,8 @@ namespace EasyPack.GamePropertySystem
             // 查询所有Combat属性
             var combatProps = _manager.GetByCategory("Character.Combat", includeChildren: true);
             Debug.Log($"所有战斗属性: {string.Join(", ", combatProps.Select(p => p.ID))}");
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -180,7 +206,7 @@ namespace EasyPack.GamePropertySystem
         /// <summary>
         /// 示例6: 动态UI生成
         /// </summary>
-        public async Task DemoDynamicUIGeneration()
+        public Task DemoDynamicUIGeneration()
         {
             Debug.Log("=== 示例6: 动态UI生成 ===");
 
@@ -220,6 +246,8 @@ namespace EasyPack.GamePropertySystem
                 var meta = _manager.GetMetadata(prop.ID);
                 Debug.Log($"  [{meta.IconPath}] {meta.DisplayName}: {prop.GetValue()}");
             }
+
+            return Task.CompletedTask;
         }
 
         private void OnDestroy()
