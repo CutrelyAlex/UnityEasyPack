@@ -242,21 +242,22 @@ namespace EasyPack.BuffSystem
         /// <returns>返回管理器自身以支持链式调用</returns>
         private BuffManager DecreaseBuffStacks(Buff buff, int stack = 1)
         {
-            if (buff == null || buff.CurrentStacks <= 1)
-            {
-                QueueBuffForRemoval(buff);
+            if (buff == null)
                 return this;
-            }
 
+            // 先减少堆叠数
             buff.CurrentStacks -= stack;
+
+            // 触发事件（无论是否会被移除）
+            buff.OnReduceStack?.Invoke(buff);
+            InvokeBuffModules(buff, BuffCallBackType.OnReduceStack);
+
+            // 如果堆叠数<=0，加入移除队列
             if (buff.CurrentStacks <= 0)
             {
                 QueueBuffForRemoval(buff);
-                return this;
             }
 
-            buff.OnReduceStack?.Invoke(buff);
-            InvokeBuffModules(buff, BuffCallBackType.OnReduceStack);
             return this;
         }
 
@@ -291,6 +292,9 @@ namespace EasyPack.BuffSystem
         /// <returns>返回管理器自身以支持链式调用</returns>
         private BuffManager QueueBuffForRemoval(Buff buff)
         {
+            if (buff == null)
+                return this;
+
             _buffsToRemove.Add(buff);
             ProcessBuffRemovals();
 
