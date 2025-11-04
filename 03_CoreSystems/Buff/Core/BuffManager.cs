@@ -1,14 +1,87 @@
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
+using EasyPack.ENekoFramework;
 
 namespace EasyPack.BuffSystem
 {
     /// <summary>
     /// Buff生命周期管理器，负责Buff的创建、更新、移除和查询
-    /// 不直接操作IProperty，Buff的应用与移除由BuffHandle负责
+    /// 实现IBuffService接口以集成到EasyPack架构中
     /// </summary>
-    public class BuffManager
+    public class BuffManager : IBuffService
     {
+        #region IService 生命周期
+
+        private ServiceLifecycleState _state = ServiceLifecycleState.Uninitialized;
+
+        /// <summary>
+        /// 服务的当前生命周期状态
+        /// </summary>
+        public ServiceLifecycleState State => _state;
+
+        /// <summary>
+        /// 异步初始化服务
+        /// </summary>
+        public async Task InitializeAsync()
+        {
+            if (_state != ServiceLifecycleState.Uninitialized)
+                return;
+
+            _state = ServiceLifecycleState.Initializing;
+
+            // BuffManager的初始化已在构造函数中完成
+            // 这里仅用于符合IService接口
+
+            _state = ServiceLifecycleState.Ready;
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// 暂停服务
+        /// </summary>
+        public void Pause()
+        {
+            if (_state == ServiceLifecycleState.Ready)
+                _state = ServiceLifecycleState.Paused;
+        }
+
+        /// <summary>
+        /// 恢复服务
+        /// </summary>
+        public void Resume()
+        {
+            if (_state == ServiceLifecycleState.Paused)
+                _state = ServiceLifecycleState.Ready;
+        }
+
+        /// <summary>
+        /// 释放服务资源
+        /// </summary>
+        public void Dispose()
+        {
+            _targetToBuffs?.Clear();
+            _allBuffs?.Clear();
+            _removedBuffs?.Clear();
+            _timedBuffs?.Clear();
+            _permanentBuffs?.Clear();
+            _triggeredBuffs?.Clear();
+            _moduleCache?.Clear();
+            _buffsByID?.Clear();
+            _buffsByTag?.Clear();
+            _buffsByLayer?.Clear();
+            _buffPositions?.Clear();
+            _timedBuffPositions?.Clear();
+            _permanentBuffPositions?.Clear();
+            _buffsToRemove?.Clear();
+            _removalIndices?.Clear();
+
+            _state = ServiceLifecycleState.Disposed;
+        }
+
+        #endregion
+
         #region 核心数据结构
 
         // 主要存储结构
@@ -238,12 +311,14 @@ namespace EasyPack.BuffSystem
         /// 减少 Buff 堆叠层数，为 0 时移除 Buff
         /// </summary>
         /// <param name="buff">要减少堆叠的 Buff 实例</param>
-        /// <param name="stack">要减少的堆叠层数</param>
+        /// <param name="stack">要减少的堆叠层数（必须为正数）</param>
         /// <returns>返回管理器自身以支持链式调用</returns>
         private BuffManager DecreaseBuffStacks(Buff buff, int stack = 1)
         {
             if (buff == null)
                 return this;
+
+            if (stack <= 0) return this;
 
             // 先减少堆叠数
             buff.CurrentStacks -= stack;
@@ -265,10 +340,10 @@ namespace EasyPack.BuffSystem
 
         #region 单个Buff移除
 
-        public BuffManager RemoveBuff(Buff buff)
+        public void RemoveBuff(Buff buff)
         {
             if (buff == null)
-                return this;
+                return;
 
             switch (buff.BuffData.BuffRemoveStrategy)
             {
@@ -281,8 +356,6 @@ namespace EasyPack.BuffSystem
                 case BuffRemoveType.Manual:
                     break;
             }
-
-            return this;
         }
 
         /// <summary>
@@ -309,8 +382,7 @@ namespace EasyPack.BuffSystem
         /// 移除目标对象上的所有 Buff
         /// </summary>
         /// <param name="target">目标对象</param>
-        /// <returns>返回管理器自身以支持链式调用</returns>
-        public BuffManager RemoveAllBuffs(object target)
+        public void RemoveAllBuffs(object target)
         {
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
@@ -320,7 +392,6 @@ namespace EasyPack.BuffSystem
                 }
                 ProcessBuffRemovals();
             }
-            return this;
         }
 
         /// <summary>
@@ -328,8 +399,7 @@ namespace EasyPack.BuffSystem
         /// </summary>
         /// <param name="target">目标对象</param>
         /// <param name="buffID">Buff 的 ID</param>
-        /// <returns>返回管理器自身以支持链式调用</returns>
-        public BuffManager RemoveBuffByID(object target, string buffID)
+        public void RemoveBuffByID(object target, string buffID)
         {
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
@@ -348,10 +418,9 @@ namespace EasyPack.BuffSystem
                     ProcessBuffRemovals();
                 }
             }
-            return this;
         }
 
-        public BuffManager RemoveBuffsByTag(object target, string tag)
+        public void RemoveBuffsByTag(object target, string tag)
         {
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
@@ -364,10 +433,9 @@ namespace EasyPack.BuffSystem
                 }
                 ProcessBuffRemovals();
             }
-            return this;
         }
 
-        public BuffManager RemoveBuffsByLayer(object target, string layer)
+        public void RemoveBuffsByLayer(object target, string layer)
         {
             if (_targetToBuffs.TryGetValue(target, out List<Buff> buffs))
             {
@@ -380,7 +448,6 @@ namespace EasyPack.BuffSystem
                 }
                 ProcessBuffRemovals();
             }
-            return this;
         }
 
         #endregion
@@ -748,8 +815,12 @@ namespace EasyPack.BuffSystem
         /// <summary>
         /// 主更新循环，处理时间Buff和永久Buff的时间更新与触发
         /// </summary>
-        public BuffManager Update(float deltaTime)
+        public void Update(float deltaTime)
         {
+            // 暂停时跳过更新
+            if (_state != ServiceLifecycleState.Ready)
+                return;
+
             _removedBuffs.Clear();
             _triggeredBuffs.Clear();
 
@@ -768,8 +839,6 @@ namespace EasyPack.BuffSystem
             {
                 QueueBuffForRemoval(buff);
             }
-
-            return this;
         }
 
         private void ProcessTimedBuffs(float deltaTime)

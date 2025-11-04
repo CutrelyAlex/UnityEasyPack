@@ -1,3 +1,4 @@
+using EasyPack.BuffSystem;
 using EasyPack.ENekoFramework;
 using UnityEngine;
 
@@ -14,8 +15,9 @@ namespace EasyPack
             // 注册核心服务
             Container.Register<ISerializationService, SerializationService>();
 
-            // 注册GameSystem服务
-            Container.Register<IGamePropertyManager, GamePropertyManager>();
+            // 注册GameProperty服务
+            Container.Register<IGamePropertyService, GamePropertyService>();
+            Container.Register<IBuffService, BuffManager>();
         }
     }
 }

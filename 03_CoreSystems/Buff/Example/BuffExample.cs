@@ -14,7 +14,7 @@ namespace EasyPack.BuffSystem
         private BuffManager _buffManager;
         private GameObject _dummyTarget;
         private GameObject _dummyCreator;
-        private GamePropertyManager _gamePropertyManager;
+        private GamePropertyService _gamePropertyManager;
 
         async void Start()
         {
@@ -22,7 +22,7 @@ namespace EasyPack.BuffSystem
             _buffManager = new BuffManager();
             _dummyTarget = new GameObject("DummyTarget");
             _dummyCreator = new GameObject("DummyCreator");
-            _gamePropertyManager = new GamePropertyManager();
+            _gamePropertyManager = new GamePropertyService();
             await _gamePropertyManager.InitializeAsync();
 
             Debug.Log("=== Buff 系统示例开始 ===\n");

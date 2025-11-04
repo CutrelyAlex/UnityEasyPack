@@ -13,7 +13,7 @@ namespace EasyPack.BuffSystem
         /// <summary>
         /// 获取或设置属性管理器，用于查找目标属性
         /// </summary>
-        public GamePropertyManager PropertyManager { get; set; }
+        public GamePropertyService PropertyManager { get; set; }
 
         /// <summary>
         /// 获取或设置要应用的修饰符模板
@@ -55,7 +55,7 @@ namespace EasyPack.BuffSystem
         /// <param name="propertyID">目标属性ID</param>
         /// <param name="propertyManager">属性管理器</param>
         /// <exception cref="ArgumentNullException">当必需参数为 null 时抛出</exception>
-        public CastModifierToProperty(IModifier modifier, string propertyID, GamePropertyManager propertyManager)
+        public CastModifierToProperty(IModifier modifier, string propertyID, GamePropertyService propertyManager)
         {
             Modifier = modifier ?? throw new ArgumentNullException(nameof(modifier));
             PropertyID = propertyID ?? throw new ArgumentNullException(nameof(propertyID));
