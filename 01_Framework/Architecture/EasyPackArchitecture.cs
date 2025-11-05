@@ -1,5 +1,6 @@
 using EasyPack.BuffSystem;
 using EasyPack.ENekoFramework;
+using EasyPack.InventorySystem;
 using UnityEngine;
 
 namespace EasyPack
@@ -12,12 +13,19 @@ namespace EasyPack
     {
         protected override void OnInit()
         {
-            // 注册核心服务
+            // 02_Foundation
             Container.Register<ISerializationService, SerializationService>();
 
-            // 注册GameProperty服务
+            // 03_CoreSystems
             Container.Register<IGamePropertyService, GamePropertyService>();
             Container.Register<IBuffService, BuffService>();
+            Container.Register<IInventoryService, InventoryService>();
         }
+
+        public static ISerializationService SerializationService => Instance.Container.Resolve<ISerializationService>();
+        public static IInventoryService InventoryService => Instance.Container.Resolve<IInventoryService>();
+        public static IGamePropertyService GamePropertyService => Instance.Container.Resolve<IGamePropertyService>();
+        public static IBuffService BuffService => Instance.Container.Resolve<IBuffService>();
+
     }
 }
