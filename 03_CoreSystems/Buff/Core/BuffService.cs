@@ -31,8 +31,8 @@ namespace EasyPack.BuffSystem
 
             _state = ServiceLifecycleState.Initializing;
 
-            // BuffManager的初始化已在构造函数中完成
-            // 这里仅用于符合IService接口
+
+            // 预留异步初始化
 
             _state = ServiceLifecycleState.Ready;
             await Task.CompletedTask;
@@ -85,31 +85,31 @@ namespace EasyPack.BuffSystem
         #region 核心数据结构
 
         // 主要存储结构
-        private readonly Dictionary<object, List<Buff>> _targetToBuffs = new Dictionary<object, List<Buff>>();
-        private readonly List<Buff> _allBuffs = new List<Buff>();
-        private readonly List<Buff> _removedBuffs = new List<Buff>();
+        private readonly Dictionary<object, List<Buff>> _targetToBuffs = new();
+        private readonly List<Buff> _allBuffs = new();
+        private readonly List<Buff> _removedBuffs = new();
 
         // 按生命周期分类的Buff列表
-        private readonly List<Buff> _timedBuffs = new List<Buff>();
-        private readonly List<Buff> _permanentBuffs = new List<Buff>();
+        private readonly List<Buff> _timedBuffs = new();
+        private readonly List<Buff> _permanentBuffs = new();
 
         // 更新循环缓存
-        private readonly List<Buff> _triggeredBuffs = new List<Buff>();
-        private readonly List<BuffModule> _moduleCache = new List<BuffModule>();
+        private readonly List<Buff> _triggeredBuffs = new();
+        private readonly List<BuffModule> _moduleCache = new();
 
         // 快速查找索引
-        private readonly Dictionary<string, List<Buff>> _buffsByID = new Dictionary<string, List<Buff>>();
-        private readonly Dictionary<string, List<Buff>> _buffsByTag = new Dictionary<string, List<Buff>>();
-        private readonly Dictionary<string, List<Buff>> _buffsByLayer = new Dictionary<string, List<Buff>>();
+        private readonly Dictionary<string, List<Buff>> _buffsByID = new();
+        private readonly Dictionary<string, List<Buff>> _buffsByTag = new();
+        private readonly Dictionary<string, List<Buff>> _buffsByLayer = new();
 
         // 位置索引用于快速移除
-        private readonly Dictionary<Buff, int> _buffPositions = new Dictionary<Buff, int>();
-        private readonly Dictionary<Buff, int> _timedBuffPositions = new Dictionary<Buff, int>();
-        private readonly Dictionary<Buff, int> _permanentBuffPositions = new Dictionary<Buff, int>();
+        private readonly Dictionary<Buff, int> _buffPositions = new();
+        private readonly Dictionary<Buff, int> _timedBuffPositions = new();
+        private readonly Dictionary<Buff, int> _permanentBuffPositions = new();
 
         // 批量移除优化
-        private readonly HashSet<Buff> _buffsToRemove = new HashSet<Buff>();
-        private readonly List<int> _removalIndices = new List<int>();
+        private readonly HashSet<Buff> _buffsToRemove = new();
+        private readonly List<int> _removalIndices = new();
 
         #endregion
 
