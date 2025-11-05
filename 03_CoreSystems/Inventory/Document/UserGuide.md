@@ -85,34 +85,44 @@
 
 - Unity 2021.3 或更高版本
 - .NET Standard 2.1
-- 无外部依赖（系统完全独立）
+- 已集成 EasyPack 架构（使用 `IService` 接口和 `ISerializationService`）
 
 ### 导入命名空间
 
 在脚本文件头部添加以下引用：
 
 ```csharp
+using EasyPack;
 using EasyPack.InventorySystem;
 using UnityEngine;
 ```
 
 ### 第一示例
 
-创建一个简单的玩家背包并添加物品：
+通过 EasyPack 架构获取 InventoryService 并使用容器：
 
 ```csharp
+using EasyPack;
 using EasyPack.InventorySystem;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public class InventoryQuickStart : MonoBehaviour
 {
-    void Start()
+    async void Start()
     {
-        // 步骤 1：创建一个 20 格容量的玩家背包
-        var playerBackpack = new LinerContainer("player_backpack", "冒险者背包", "Backpack", 20);
-        Debug.Log($"创建背包：{playerBackpack.Name}，容量：{playerBackpack.Capacity}");
+        // 步骤 1：从 EasyPack 架构获取 InventoryService
+        var inventoryService = await EasyPackArchitecture.GetInventoryServiceAsync();
+        Debug.Log($"获取 InventoryService，当前状态: {inventoryService.State}");
         
-        // 步骤 2：创建物品
+        // 步骤 2：创建一个 20 格容量的玩家背包
+        var playerBackpack = new LinerContainer("player_backpack", "冒险者背包", "Backpack", 20);
+        
+        // 步骤 3：注册容器到服务
+        inventoryService.RegisterContainer(playerBackpack, priority: 1, category: "Player");
+        Debug.Log($"容器已注册，当前容器数量: {inventoryService.ContainerCount}");
+        
+        // 步骤 4：创建物品
         var healthPotion = new Item
         {
             ID = "health_potion",
@@ -122,10 +132,10 @@ public class InventoryQuickStart : MonoBehaviour
             MaxStackCount = 20
         };
         
-        // 步骤 3：添加 5 瓶生命药水到背包
+        // 步骤 5：添加 5 瓶生命药水到背包
         var (result, addedCount) = playerBackpack.AddItems(healthPotion, 5);
         
-        // 步骤 4：验证结果
+        // 步骤 6：验证结果
         if (result == AddItemResult.Success)
         {
             Debug.Log($"成功添加 {addedCount} 瓶生命药水");
@@ -141,7 +151,8 @@ public class InventoryQuickStart : MonoBehaviour
 
 **运行结果：**
 ```
-创建背包：冒险者背包，容量：20
+获取 InventoryService，当前状态: Ready
+容器已注册，当前容器数量: 1
 成功添加 5 瓶生命药水
 背包已使用槽位：1/20
 ```
@@ -375,33 +386,36 @@ public class ItemTransferExample : MonoBehaviour
 
 ---
 
-### 场景 5：使用 InventoryManager 管理多个容器
+### 场景 5：使用 InventoryService 管理多个容器
 
 **使用场景：** 游戏中存在多个容器（背包、装备、仓库），需要统一管理和跨容器操作
 
 **代码示例：**
 
 ```csharp
+using EasyPack;
 using EasyPack.InventorySystem;
+using System.Threading.Tasks;
 using UnityEngine;
 
-public class InventoryManagerExample : MonoBehaviour
+public class InventoryServiceExample : MonoBehaviour
 {
-    private InventoryManager inventoryManager = new InventoryManager();
-    
-    void Start()
+    async void Start()
     {
-        // 创建并注册容器
+        // 步骤 1：获取 InventoryService
+        var inventoryService = await EasyPackArchitecture.GetInventoryServiceAsync();
+        
+        // 步骤 2：创建并注册容器
         var backpack = new LinerContainer("backpack", "背包", "Backpack", 20);
         var equipment = new LinerContainer("equipment", "装备栏", "Equipment", 5);
         var warehouse = new LinerContainer("warehouse", "仓库", "Storage", -1);
         
-        // 注册容器到管理器（带优先级和分类）
-        inventoryManager.RegisterContainer(backpack, priority: 1, category: "Player");
-        inventoryManager.RegisterContainer(equipment, priority: 2, category: "Player");
-        inventoryManager.RegisterContainer(warehouse, priority: 0, category: "Home");
+        // 注册容器到服务（带优先级和分类）
+        inventoryService.RegisterContainer(backpack, priority: 1, category: "Player");
+        inventoryService.RegisterContainer(equipment, priority: 2, category: "Player");
+        inventoryService.RegisterContainer(warehouse, priority: 0, category: "Home");
         
-        // 创建物品
+        // 步骤 3：创建物品并添加到背包
         var healthPotion = new Item
         {
             ID = "health_potion",
@@ -411,34 +425,34 @@ public class InventoryManagerExample : MonoBehaviour
             MaxStackCount = 20
         };
         
-        // 添加物品到背包
         backpack.AddItems(healthPotion, 15);
         
-        // 跨容器转移（从背包到仓库）
-        bool transferSuccess = inventoryManager.TransferItems(
-            "backpack", "warehouse", "health_potion", 10
+        // 步骤 4：跨容器转移（从背包到仓库）
+        var (transferResult, transferredCount) = inventoryService.TransferItems(
+            "health_potion", 10, "backpack", "warehouse"
         );
-        Debug.Log($"转移成功：{transferSuccess}");
+        Debug.Log($"转移结果: {transferResult}, 已转移: {transferredCount}");
         
-        // 全局搜索物品
-        var foundContainers = inventoryManager.FindItemInContainers("health_potion");
-        Debug.Log($"药水在 {foundContainers.Count} 个容器中");
+        // 步骤 5：全局搜索物品
+        var foundResults = inventoryService.FindItemGlobally("health_potion");
+        Debug.Log($"药水在 {foundResults.Count} 个位置");
         
-        // 获取玩家分类的所有容器
-        var playerContainers = inventoryManager.GetContainersByCategory("Player");
+        // 步骤 6：获取玩家分类的所有容器
+        var playerContainers = inventoryService.GetContainersByCategory("Player");
         Debug.Log($"玩家拥有 {playerContainers.Count} 个容器");
         
-        // 获取药水的全局总数
-        int totalPotions = inventoryManager.GetItemTotalCountAcrossContainers("health_potion");
+        // 步骤 7：获取药水的全局总数
+        int totalPotions = inventoryService.GetGlobalItemCount("health_potion");
         Debug.Log($"药水总数：{totalPotions}");
     }
 }
 ```
 
 **关键要点：**
-- `InventoryManager` 集中管理多个容器，支持优先级和分类
+- `InventoryService` 是一个 `IService`，通过 EasyPack 架构管理生命周期
+- 服务集中管理多个容器，支持优先级和分类
 - `TransferItems()` 简化跨容器物品转移
-- `FindItemInContainers()` 可全局搜索物品位置
+- `FindItemGlobally()` 可全局搜索物品位置
 - 容器优先级影响自动分配和批量操作的顺序
 
 ---
@@ -620,64 +634,156 @@ public class BatchOperationsExample : MonoBehaviour
 
 ### 进阶 3：序列化与持久化
 
-**适用场景：** 保存玩家背包数据到本地文件或数据库
+**适用场景：** 游戏存档系统，保存和加载玩家背包、仓库等数据
+
+**核心变更：** Inventory 系统现在集成 EasyPack 的 `ISerializationService`，序列化器会在服务初始化时自动注册。
 
 **代码示例：**
 
 ```csharp
-using EasyPack.InventorySystem;
 using EasyPack;
-using UnityEngine;
+using EasyPack.InventorySystem;
 using System.IO;
+using System.Threading.Tasks;
+using UnityEngine;
 
-public class SerializationExample : MonoBehaviour
+public class InventorySerializationExample : MonoBehaviour
 {
-    void Start()
+    async void Start()
     {
-        // 创建并填充容器
-        var backpack = new LinerContainer("player_backpack", "背包", "Backpack", 20);
+        // 步骤 1：获取 InventoryService（会自动注册序列化器）
+        var inventoryService = await EasyPackArchitecture.GetInventoryServiceAsync();
         
-        var sword = new Item { ID = "sword", Name = "剑", Type = "Weapon" };
-        var potion = new Item { ID = "potion", Name = "药水", Type = "Consumable", IsStackable = true, MaxStackCount = 20 };
+        // 步骤 2：获取序列化服务
+        var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+        
+        // 步骤 3：创建容器并添加物品
+        var backpack = new LinerContainer("player_backpack", "玩家背包", "Backpack", 20);
+        
+        var sword = new Item
+        {
+            ID = "iron_sword",
+            Name = "铁剑",
+            Type = "Equipment",
+            IsStackable = false
+        };
+        sword.Attributes["Attack"] = 15;
+        sword.Attributes["Rarity"] = "Common";
+        
+        var potion = new Item
+        {
+            ID = "health_potion",
+            Name = "生命药水",
+            Type = "Consumable",
+            IsStackable = true,
+            MaxStackCount = 20
+        };
         
         backpack.AddItems(sword, 1);
-        backpack.AddItems(potion, 10);
+        backpack.AddItems(potion, 8);
         
-        Debug.Log($"原始背包：{backpack.Name}，物品数量：{backpack.UsedSlots}");
+        Debug.Log("原始背包内容:");
+        Debug.Log($"- 铁剑: {backpack.GetItemTotalCount("iron_sword")}");
+        Debug.Log($"- 生命药水: {backpack.GetItemTotalCount("health_potion")}");
         
-        // 使用统一序列化服务序列化容器到 JSON
-        string json = SerializationServiceManager.SerializeToJson(backpack);
-        Debug.Log($"序列化结果：\n{json}");
+        // 步骤 4：序列化容器为 JSON
+        string json = serializationService.SerializeToJson(backpack);
+        Debug.Log($"序列化 JSON:\n{json}");
         
-        // 保存到文件
+        // 步骤 5：保存到文件
         string savePath = Path.Combine(Application.persistentDataPath, "backpack.json");
         File.WriteAllText(savePath, json);
-        Debug.Log($"保存到：{savePath}");
+        Debug.Log($"保存到: {savePath}");
         
-        // 从文件加载
+        // 步骤 6：从文件加载
         string loadedJson = File.ReadAllText(savePath);
+        var loadedBackpack = serializationService.DeserializeFromJson<Container>(loadedJson);
         
-        // 使用统一序列化服务反序列化
-        var loadedBackpack = SerializationServiceManager.DeserializeFromJson<Container>(loadedJson);
+        Debug.Log("反序列化后的背包内容:");
+        Debug.Log($"- 铁剑: {loadedBackpack.GetItemTotalCount("iron_sword")}");
+        Debug.Log($"- 生命药水: {loadedBackpack.GetItemTotalCount("health_potion")}");
         
-        Debug.Log($"加载的背包：{loadedBackpack.Name}");
-        Debug.Log($"物品数量：{loadedBackpack.UsedSlots}");
-        Debug.Log($"药水数量：{loadedBackpack.GetItemTotalCount("potion")}");
+        // 步骤 7：验证属性保留
+        var loadedSwordSlot = loadedBackpack.Slots[0];
+        if (loadedSwordSlot.IsOccupied && loadedSwordSlot.Item.ID == "iron_sword")
+        {
+            Debug.Log($"铁剑攻击力: {loadedSwordSlot.Item.Attributes["Attack"]}");
+            Debug.Log($"铁剑稀有度: {loadedSwordSlot.Item.Attributes["Rarity"]}");
+        }
+    }
+}
+```
+
+**序列化高级功能：**
+
+```csharp
+using EasyPack;
+using EasyPack.InventorySystem;
+using System.Threading.Tasks;
+using UnityEngine;
+
+public class AdvancedSerializationExample : MonoBehaviour
+{
+    async void Start()
+    {
+        var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
         
-        // 验证数据完整性
-        bool integrityCheck = loadedBackpack.GetItemTotalCount("potion") == 10 
-            && loadedBackpack.GetItemTotalCount("sword") == 1;
-        Debug.Log($"数据完整性验证：{(integrityCheck ? "通过" : "失败")}");
+        // 1. 序列化带条件的容器
+        var equipmentSlots = new LinerContainer("equipment", "装备栏", "Equipment", 5);
+        equipmentSlots.ContainerCondition.Add(new ItemTypeCondition("Equipment"));
+        equipmentSlots.ContainerCondition.Add(new AttributeCondition("Level", 10, AttributeComparisonType.GreaterThanOrEqual));
+        
+        var sword = new Item { ID = "legendary_sword", Name = "传奇之剑", Type = "Equipment" };
+        sword.Attributes["Level"] = 50;
+        equipmentSlots.AddItems(sword, 1);
+        
+        // 序列化（包含条件和物品属性）
+        string json = serializationService.SerializeToJson(equipmentSlots);
+        
+        // 反序列化后条件依然生效
+        var loaded = serializationService.DeserializeFromJson<Container>(json);
+        Debug.Log($"容器条件数量: {loaded.ContainerCondition.Count}");
+        
+        // 2. 序列化单个物品
+        var item = new Item
+        {
+            ID = "epic_gem",
+            Name = "史诗宝石",
+            Type = "Gem"
+        };
+        item.Attributes["Quality"] = "Epic";
+        item.Attributes["Power"] = 100;
+        
+        string itemJson = serializationService.SerializeToJson(item);
+        var loadedItem = serializationService.DeserializeFromJson<Item>(itemJson);
+        Debug.Log($"加载的物品: {loadedItem.Name}, 品质: {loadedItem.Attributes["Quality"]}");
+        
+        // 3. 序列化网格容器（支持 GridItem 和 GridContainer）
+        var gridBag = new GridContainer("grid_bag", "网格包", "GridBag", 5, 4);
+        var armor = new GridItem
+        {
+            ID = "plate_armor",
+            Name = "板甲",
+            Type = "Equipment",
+            Shape = GridItem.CreateRectangleShape(2, 2)
+        };
+        
+        gridBag.AddItemsAtPosition(armor, 1, 0, 0);
+        
+        string gridJson = serializationService.SerializeToJson(gridBag);
+        var loadedGrid = serializationService.DeserializeFromJson<Container>(gridJson);
+        Debug.Log($"网格容器已用槽位: {loadedGrid.UsedSlots}");
     }
 }
 ```
 
 **关键要点：**
-- 使用 `SerializationServiceManager.SerializeToJson()` 进行序列化
-- 使用 `SerializationServiceManager.DeserializeFromJson<Container>()` 进行反序列化
-- 统一序列化服务自动处理线性容器和网格容器
-- 物品属性（Attributes）会自动序列化
-- 物品条件需要实现 `ISerializableCondition` 接口才能序列化
+- **自动注册**: InventoryService 初始化时自动向 `ISerializationService` 注册所需的序列化器
+- **支持类型**: `Item`, `GridItem`, `Container`（包括 `LinerContainer` 和 `GridContainer`）
+- **条件保留**: 容器条件（`ItemTypeCondition`, `AttributeCondition` 等）会被正确序列化和反序列化
+- **属性保留**: 物品的自定义属性（`Attributes` 字典）完整保留
+- **深拷贝**: 反序列化创建全新实例，与原对象完全独立
+- **依赖注入**: 序列化器使用 `ISerializationService` 进行递归序列化，避免循环依赖
 
 ---
 
@@ -892,8 +998,24 @@ var container = new LinerContainer("id", "名称", "类型", 20);
 
 ---
 
-### InventoryManager（库存管理器）
-管理多个容器的中央系统，提供跨容器操作、优先级管理、全局搜索等功能。
+### InventoryService（库存服务）
+
+**定义：** 实现 `IInventoryService` 接口的服务类，用于管理多个容器、执行跨容器操作、全局搜索和条件控制。
+
+**特点：**
+- 实现 `IService` 接口，集成到 EasyPack 架构中
+- 支持服务生命周期管理（初始化、暂停、恢复、释放）
+- 自动注册序列化器到 `ISerializationService`
+- 提供容器注册、分类、优先级管理
+- 支持全局条件、跨容器转移、批量操作
+- 线程安全设计，支持并发操作
+
+**使用示例：**
+```csharp
+var inventoryService = await EasyPackArchitecture.GetInventoryServiceAsync();
+inventoryService.RegisterContainer(backpack, priority: 1, category: "Player");
+var results = inventoryService.FindItemGlobally("health_potion");
+```
 
 ---
 
@@ -909,9 +1031,28 @@ var container = new LinerContainer("id", "名称", "类型", 20);
 
 ## 最佳实践
 
-### 1. 优先使用 InventoryManager 管理多个容器
+### 1. 优先使用 InventoryService 管理多个容器
 
 **推荐做法：**
+```csharp
+// 通过 EasyPack 架构获取服务
+var inventoryService = await EasyPackArchitecture.GetInventoryServiceAsync();
+
+// 注册所有容器
+inventoryService.RegisterContainer(playerBackpack, priority: 10, category: "Player");
+inventoryService.RegisterContainer(warehouse, priority: 5, category: "Home");
+
+// 使用服务进行跨容器操作
+var (result, count) = inventoryService.TransferItems("item_id", 50, "backpack_id", "warehouse_id");
+```
+
+**优点：**
+- 服务生命周期自动管理
+- 序列化器自动注册
+- 线程安全保证
+- 支持全局搜索和条件
+
+---**推荐做法：**
 ```csharp
 // ✅ 推荐：统一管理
 var manager = new InventoryManager();

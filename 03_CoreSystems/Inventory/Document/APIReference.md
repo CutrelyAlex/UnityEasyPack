@@ -1,7 +1,7 @@
 # Inventory System - API 参考文档
 
 **适用EasyPack版本：** EasyPack v1.7.0  
-**最后更新：** 2025-11-04
+**最后更新：** 2025-11-06
 
 ---
 
@@ -9,18 +9,21 @@
 
 本文档提供 **Inventory System** 的完整 API 参考。包含所有公开类、方法、属性的签名和参数说明。
 
+
 ---
 
 ## 目录
 
 - [概述](#概述)
+- [服务类](#服务类)
+  - [IInventoryService 接口](#iinventoryservice-接口)
+  - [InventoryService 类](#inventoryservice-类)
 - [核心类](#核心类)
   - [Item 类](#item-类)
   - [Container 类（抽象）](#container-类抽象)
   - [LinerContainer 类](#linercontainer-类)
   - [GridContainer 类](#gridcontainer-类)
   - [GridItem 类](#griditem-类)
-  - [InventoryManager 类](#inventorymanager-类)
   - [Slot 类](#slot-类)
 - [条件类](#条件类)
   - [IItemCondition 接口](#iitemcondition-接口)
@@ -35,7 +38,194 @@
 - [枚举类型](#枚举类型)
   - [AddItemResult 枚举](#additemresult-枚举)
   - [RemoveItemResult 枚举](#removeitemresult-枚举)
+  - [ServiceLifecycleState 枚举](#servicelifecyclestate-枚举)
 - [延伸阅读](#延伸阅读)
+
+---
+
+## 服务类
+
+### IInventoryService 接口
+
+**命名空间：** `EasyPack.InventorySystem`
+
+**继承关系：**
+```
+IService (from EasyPack.ENekoFramework)
+  └─ IInventoryService
+```
+
+**说明：**  
+库存服务接口，定义库存系统的核心功能，包括容器管理、跨容器操作、全局搜索和条件控制。
+
+---
+
+#### 主要方法
+
+##### `Task InitializeAsync()`
+
+**说明：** 异步初始化服务，注册序列化器到 `ISerializationService`。
+
+**返回值：** `Task`
+
+**使用示例：**
+```csharp
+var service = await EasyPackArchitecture.GetInventoryServiceAsync();
+// 服务已自动初始化
+```
+
+---
+
+##### `bool RegisterContainer(Container container, int priority = 0, string category = "Default")`
+
+**说明：** 注册容器到服务。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `container` | `Container` | 必填 | 要注册的容器 | - |
+| `priority` | `int` | 可选 | 容器优先级，数值越高优先级越高 | `0` |
+| `category` | `string` | 可选 | 容器分类 | `"Default"` |
+
+**返回值：**
+- **类型：** `bool`
+- **成功情况：** 返回 `true`
+- **失败情况：** 返回 `false`（容器为 null 或服务未就绪）
+
+**使用示例：**
+```csharp
+var backpack = new LinerContainer("player_backpack", "背包", "Backpack", 20);
+bool success = inventoryService.RegisterContainer(backpack, priority: 1, category: "Player");
+```
+
+---
+
+##### `(MoveResult result, int transferredCount) TransferItems(string itemId, int count, string fromContainerId, string toContainerId)`
+
+**说明：** 跨容器转移指定数量的物品。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `itemId` | `string` | 必填 | 物品 ID | - |
+| `count` | `int` | 必填 | 转移数量 | - |
+| `fromContainerId` | `string` | 必填 | 源容器 ID | - |
+| `toContainerId` | `string` | 必填 | 目标容器 ID | - |
+
+**返回值：**
+- **类型：** `(MoveResult result, int transferredCount)`
+- **成功情况：** `result = MoveResult.Success`, `transferredCount` 为实际转移数量
+- **失败情况：** `result` 为失败原因，`transferredCount = 0`
+
+**使用示例：**
+```csharp
+var (result, count) = inventoryService.TransferItems("health_potion", 10, "backpack", "warehouse");
+if (result == InventoryService.MoveResult.Success)
+{
+    Debug.Log($"成功转移 {count} 个物品");
+}
+```
+
+---
+
+##### `List<GlobalItemResult> FindItemGlobally(string itemId)`
+
+**说明：** 在所有注册的容器中搜索指定物品。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `itemId` | `string` | 必填 | 物品 ID | - |
+
+**返回值：**
+- **类型：** `List<GlobalItemResult>`
+- **说明：** 包含容器 ID、槽位索引、物品引用和数量的结果列表
+
+**使用示例：**
+```csharp
+var results = inventoryService.FindItemGlobally("health_potion");
+foreach (var result in results)
+{
+    Debug.Log($"在容器 {result.ContainerId} 的槽位 {result.SlotIndex} 找到 {result.Count} 个");
+}
+```
+
+---
+
+### InventoryService 类
+
+**命名空间：** `EasyPack.InventorySystem`
+
+**继承关系：**
+```
+System.Object
+  └─ InventoryService (implements IInventoryService)
+```
+
+**说明：**  
+库存服务的具体实现，负责管理多个容器、执行跨容器操作、全局搜索和条件控制。
+
+---
+
+#### 属性
+
+##### `ServiceLifecycleState State { get; }`
+
+**说明：** 服务当前的生命周期状态。
+
+**类型：** `ServiceLifecycleState`
+
+**可能值：**
+- `Uninitialized` - 未初始化
+- `Initializing` - 初始化中
+- `Ready` - 就绪
+- `Paused` - 已暂停
+- `Disposed` - 已释放
+
+---
+
+##### `int ContainerCount { get; }`
+
+**说明：** 当前注册的容器数量。
+
+**类型：** `int`
+
+---
+
+#### 方法
+
+##### `void SetGlobalConditionsEnabled(bool enable)`
+
+**说明：** 启用或禁用全局物品条件。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `enable` | `bool` | 必填 | 是否启用全局条件 | - |
+
+**使用示例：**
+```csharp
+// 添加全局条件
+inventoryService.AddGlobalItemCondition(new ItemTypeCondition("Weapon"));
+
+// 启用全局条件（所有容器将应用此条件）
+inventoryService.SetGlobalConditionsEnabled(true);
+```
+
+---
+
+##### `void Reset()`
+
+**说明：** 重置服务状态，清空所有容器、条件和缓存，但保留服务的初始化状态。
+
+**使用示例：**
+```csharp
+inventoryService.Reset(); // 清空所有数据但服务仍可用
+```
 
 ---
 
@@ -1631,14 +1821,40 @@ var anyCondition = new AnyCondition(
 
 **命名空间：** `EasyPack.InventorySystem`
 
+**继承关系：**
+```
+JsonSerializerBase<Container>
+  └─ ContainerJsonSerializer
+```
+
 **说明：**  
-容器的 JSON 序列化/反序列化工具。
+Container 类型的 JSON 序列化器，支持依赖注入 `ISerializationService`。
+
+---
+
+#### 构造函数
+
+##### `ContainerJsonSerializer(ISerializationService serializationService)`
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `serializationService` | `ISerializationService` | 必填 | 序列化服务实例，用于递归序列化 | - |
+
+**使用示例：**
+
+```csharp
+// 通常不需要手动创建，InventoryService 会自动注册
+var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+var serializer = new ContainerJsonSerializer(serializationService);
+```
 
 ---
 
 #### 方法
 
-##### `static string ToJson(Container container)`
+##### `string SerializeToJson(Container obj)`
 
 **说明：** 将容器序列化为 JSON 字符串。
 
@@ -1646,24 +1862,32 @@ var anyCondition = new AnyCondition(
 
 | 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
 |--------|------|----------|------|--------|
-| `container` | `Container` | 必填 | 要序列化的容器 | - |
+| `obj` | `Container` | 必填 | 要序列化的容器 | - |
 
 **返回值：**
 - **类型：** `string`
-- **说明：** JSON 字符串
+- **说明：** JSON 字符串，失败时返回 `null`
 
 **使用示例：**
 
 ```csharp
-string json = ContainerJsonSerializer.ToJson(container);
-File.WriteAllText("container.json", json);
+// 推荐使用 ISerializationService
+var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+string json = serializationService.SerializeToJson(container);
 ```
+
+**序列化内容：**
+- 容器类型（ContainerKind）
+- 基本属性（ID、Name、Type、Capacity）
+- 网格信息（IsGrid、Grid）
+- 容器条件（ContainerCondition）
+- 所有槽位及其物品
 
 ---
 
-##### `static T FromJson<T>(string json) where T : Container`
+##### `Container DeserializeFromJson(string json)`
 
-**说明：** 从 JSON 字符串反序列化容器。
+**说明：** 从 JSON 字符串反序列化为容器实例。
 
 **参数：**
 
@@ -1672,15 +1896,21 @@ File.WriteAllText("container.json", json);
 | `json` | `string` | 必填 | JSON 字符串 | - |
 
 **返回值：**
-- **类型：** `T` （容器类型）
-- **说明：** 反序列化的容器实例
+- **类型：** `Container`
+- **说明：** 容器实例，失败时返回 `null`
 
 **使用示例：**
 
 ```csharp
-string json = File.ReadAllText("container.json");
-var container = ContainerJsonSerializer.FromJson<LinerContainer>(json);
+// 推荐使用 ISerializationService
+var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+var container = serializationService.DeserializeFromJson<Container>(json);
 ```
+
+**注意事项：**
+- 会根据 `ContainerKind` 创建正确的容器类型（LinerContainer 或 GridContainer）
+- 物品和条件使用注入的 `ISerializationService` 进行递归反序列化
+- 反序列化失败时会在控制台输出错误信息
 
 ---
 
@@ -1688,22 +1918,102 @@ var container = ContainerJsonSerializer.FromJson<LinerContainer>(json);
 
 **命名空间：** `EasyPack.InventorySystem`
 
+**继承关系：**
+```
+JsonSerializerBase<Item>
+  └─ ItemJsonSerializer
+```
+
 **说明：**  
-物品的 JSON 序列化/反序列化工具。
+Item 类型的 JSON 序列化器。
 
 ---
 
 #### 方法
 
-##### `static string ToJson(IItem item)`
+##### `string SerializeToJson(Item obj)`
 
 **说明：** 将物品序列化为 JSON 字符串。
 
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `obj` | `Item` | 必填 | 要序列化的物品 | - |
+
+**返回值：**
+- **类型：** `string`
+- **说明：** JSON 字符串，失败时返回 `null`
+
+**使用示例：**
+
+```csharp
+var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+string json = serializationService.SerializeToJson(item);
+```
+
+**序列化内容：**
+- 基本属性（ID、Name、Type、Description、Weight）
+- 堆叠设置（IsStackable、MaxStackCount）
+- 容器物品标记（IsContainerItem、ContainerIds）
+- 自定义属性（Attributes，使用 CustomDataUtility 转换）
+
 ---
 
-##### `static IItem FromJson(string json)`
+##### `Item DeserializeFromJson(string json)`
 
-**说明：** 从 JSON 字符串反序列化物品。
+**说明：** 从 JSON 字符串反序列化为物品实例。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `json` | `string` | 必填 | JSON 字符串 | - |
+
+**返回值：**
+- **类型：** `Item`
+- **说明：** 物品实例，失败时返回 `null`
+
+**使用示例：**
+
+```csharp
+var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+var item = serializationService.DeserializeFromJson<Item>(json);
+```
+
+---
+
+### GridItemJsonSerializer 类
+
+**命名空间：** `EasyPack.InventorySystem`
+
+**说明：**  
+GridItem 类型的 JSON 序列化器，支持网格物品的形状信息序列化。
+
+**使用方式：** 同 ItemJsonSerializer，但支持 GridItem 特有的 Shape 属性。
+
+---
+
+### ConditionJsonSerializer 类
+
+**命名空间：** `EasyPack.InventorySystem`
+
+**说明：**  
+IItemCondition 的通用序列化器，支持所有实现 `ISerializableCondition` 接口的条件类型。
+
+**支持类型：**
+- `ItemTypeCondition`
+- `AttributeCondition`
+- `AllCondition`
+- `AnyCondition`
+- `NotCondition`
+
+**使用方式：**
+```csharp
+var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+string json = serializationService.SerializeToJson(condition, condition.GetType());
+var loaded = serializationService.DeserializeFromJson<IItemCondition>(json);
+```
 
 ---
 
@@ -1746,6 +2056,34 @@ var container = ContainerJsonSerializer.FromJson<LinerContainer>(json);
 | `SlotNotFound` | 槽位未找到 |
 | `InsufficientQuantity` | 数量不足 |
 | `Failed` | 移除失败（通用错误） |
+
+---
+
+### ServiceLifecycleState 枚举
+
+**命名空间：** `EasyPack.ENekoFramework`
+
+**说明：** 服务生命周期状态。
+
+**枚举值：**
+
+| 枚举值 | 说明 |
+|--------|------|
+| `Uninitialized` | 未初始化 |
+| `Initializing` | 初始化中 |
+| `Ready` | 就绪（可用） |
+| `Paused` | 已暂停 |
+| `Disposed` | 已释放 |
+
+**使用示例：**
+
+```csharp
+var inventoryService = await EasyPackArchitecture.GetInventoryServiceAsync();
+if (inventoryService.State == ServiceLifecycleState.Ready)
+{
+    Debug.Log("服务已就绪");
+}
+```
 
 ---
 
