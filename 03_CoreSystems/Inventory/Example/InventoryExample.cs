@@ -1,6 +1,7 @@
 using EasyPack;
 using EasyPack.InventorySystem;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
@@ -8,21 +9,21 @@ using UnityEngine;
 /// </summary>
 public class InventoryExample : MonoBehaviour
 {
-    // 新增：全局容器管理器
-    private InventoryManager _invMgr = new();
-
-    private void Start()
+    private async void Start()
     {
         // 测试
         // Test();
         // 启动实际使用案例展示
-        ShowInventoryUseCases();
+        await ShowInventoryUseCases();
     }
 
 
-    private void ShowInventoryUseCases()
+    private async Task ShowInventoryUseCases()
     {
         Debug.Log("===== 背包系统使用案例展示 =====");
+
+        // 案例0: 从 EasyPackArchitecture 获取 InventoryService
+        await ShowArchitectureServiceAccess();
 
         // 案例1: 创建玩家背包和各种容器
         ShowContainerCreation();
@@ -43,7 +44,7 @@ public class InventoryExample : MonoBehaviour
         ShowInventorySorting();
 
         // 案例7: 序列化与反序列化
-        ShowInventorySerialization();
+        await ShowInventorySerialization();
 
         // 新增扩展示例（源于测试脚本中已有但示例未覆盖的功能）
         ShowOrganizeInventory();                  // 案例8: OrganizeInventory 合并+排序
@@ -52,11 +53,46 @@ public class InventoryExample : MonoBehaviour
         ShowGlobalConditionsDemo();               // 案例11: 全局条件启用/禁用
         ShowCrossContainerAdvancedOps();          // 案例12: Transfer / AutoMove / Batch / Distribute
         ShowGlobalSearchDemo();                   // 案例13: 全局搜索与统计
-        ShowConditionAndAttributeSerialization(); // 案例14: 条件 + 属性序列化
+        await ShowConditionAndAttributeSerialization(); // 案例14: 条件 + 属性序列化
         ShowSlotAndCapacityEdgeCases();           // 案例15: 指定槽位/容量/满与空
 
 
         Debug.Log("===== 背包系统使用案例展示完成 =====");
+    }
+
+    // 案例0: 从 EasyPackArchitecture 获取 InventoryService
+    private async Task ShowArchitectureServiceAccess()
+    {
+        Debug.Log("案例0: 从 EasyPackArchitecture 获取 InventoryService");
+
+        // 获取库存服务实例
+        var inventoryService = await EasyPackArchitecture.GetInventoryServiceAsync();
+        Debug.Log($"成功获取 InventoryService，当前状态: {inventoryService.State}");
+
+        // 如果未初始化，则进行初始化
+        if (inventoryService.State == EasyPack.ENekoFramework.ServiceLifecycleState.Uninitialized)
+        {
+            await inventoryService.InitializeAsync();
+            Debug.Log("InventoryService 初始化完成");
+        }
+
+        // 创建并注册容器到服务
+        var testBackpack = new LinerContainer("arch_test_backpack", "架构测试背包", "Backpack", 10);
+        inventoryService.RegisterContainer(testBackpack, priority: 1, category: "Test");
+        Debug.Log($"已注册容器到服务，当前容器数量: {inventoryService.ContainerCount}");
+
+        // 创建物品并添加到容器
+        var testItem = CreateGameItem("test_item", "测试物品", true, 10, "Item");
+        testBackpack.AddItems(testItem, 5);
+        Debug.Log("已向容器添加物品");
+
+        // 全局搜索测试
+        var searchResults = inventoryService.FindItemGlobally("test_item");
+        Debug.Log($"全局搜索找到 {searchResults.Count} 个位置包含该物品");
+
+        // 清理测试容器
+        inventoryService.UnregisterContainer("arch_test_backpack");
+        Debug.Log("测试容器已清理\n");
     }
 
 
@@ -255,7 +291,7 @@ public class InventoryExample : MonoBehaviour
     /// <summary>
     /// 案例7: 序列化 / 反序列化（含完整 JSON 与精简 ID 模式）
     /// </summary>
-    private void ShowInventorySerialization()
+    private async Task ShowInventorySerialization()
     {
         Debug.Log("案例7: 序列化 / 反序列化");
 
@@ -274,12 +310,13 @@ public class InventoryExample : MonoBehaviour
         Debug.Log("原始背包内容：");
         DisplayInventoryContents(bag);
 
-        // 2. 序列化
-        string fullJson = SerializationServiceManager.SerializeToJson(bag);
+        // 2. 从架构获取序列化服务并序列化
+        var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+        string fullJson = serializationService.SerializeToJson(bag);
         Debug.Log($"[完整 JSON]\n{fullJson}");
 
         // 3. 反序列化为新实例并校验
-        var bagRestored = SerializationServiceManager.DeserializeFromJson<Container>(fullJson);
+        var bagRestored = serializationService.DeserializeFromJson<Container>(fullJson);
         Debug.Log("反序列化后的背包内容：");
         DisplayInventoryContents(bagRestored);
 
@@ -365,7 +402,7 @@ public class InventoryExample : MonoBehaviour
     private void ShowInventoryManagerBasics()
     {
         Debug.Log("案例10: InventoryManager 注册 / 分类 / 优先级");
-        var mgr = new InventoryManager();
+        var mgr = new InventoryService();
         var bag1 = new LinerContainer("player_bag1", "玩家背包1", "Backpack", 10);
         var bag2 = new LinerContainer("player_bag2", "玩家背包2", "Backpack", 15);
         var chest = new LinerContainer("home_chest", "家用储物箱", "Storage", 30);
@@ -388,7 +425,7 @@ public class InventoryExample : MonoBehaviour
     private void ShowGlobalConditionsDemo()
     {
         Debug.Log("案例11: 全局物品条件");
-        var mgr = new InventoryManager();
+        var mgr = new InventoryService();
 
         var bag = new LinerContainer("gcond_bag", "全局条件背包", "Backpack", 8);
         var chest = new LinerContainer("gcond_chest", "全局条件箱", "Storage", 8);
@@ -430,7 +467,7 @@ public class InventoryExample : MonoBehaviour
     private void ShowCrossContainerAdvancedOps()
     {
         Debug.Log("案例12: 跨容器高级操作");
-        var mgr = new InventoryManager();
+        var mgr = new InventoryService();
         var src = new LinerContainer("src_bag", "源包", "Backpack", 12);
         var dst = new LinerContainer("dst_bag", "目标包", "Backpack", 12);
         var extra = new LinerContainer("extra_bag", "额外包", "Backpack", 12);
@@ -450,7 +487,7 @@ public class InventoryExample : MonoBehaviour
         Debug.Log($"AutoMove 剩余苹果 结果={autoRes} 移动={autoCount}");
 
         // BatchMove （构造一个移动列表 - 这里移动 dst 的第0槽到 extra）
-        var batch = new List<InventoryManager.MoveRequest>
+        var batch = new List<InventoryService.MoveRequest>
         {
             new("dst_bag", 0, "extra_bag"),
             new("dst_bag", 1, "extra_bag")
@@ -468,7 +505,7 @@ public class InventoryExample : MonoBehaviour
     private void ShowGlobalSearchDemo()
     {
         Debug.Log("案例13: 全局搜索");
-        var mgr = new InventoryManager();
+        var mgr = new InventoryService();
         var b1 = new LinerContainer("gs_b1", "包1", "Backpack", 10);
         var b2 = new LinerContainer("gs_b2", "包2", "Backpack", 10);
         var eq = new LinerContainer("gs_equip", "装备栏", "Equipment", 6);
@@ -503,7 +540,7 @@ public class InventoryExample : MonoBehaviour
     }
 
     // 案例14: 条件 + 属性 序列化验证
-    private void ShowConditionAndAttributeSerialization()
+    private async Task ShowConditionAndAttributeSerialization()
     {
         Debug.Log("案例14: 条件与属性序列化");
         var chest = new LinerContainer("cond_serial_chest", "条件箱", "Chest", 6);
@@ -515,10 +552,12 @@ public class InventoryExample : MonoBehaviour
         gem.Attributes["Quality"] = "Epic";
         chest.AddItems(gem, 12);
 
-        string json = SerializationServiceManager.SerializeToJson(chest);
+        // 从架构获取序列化服务
+        var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+        string json = serializationService.SerializeToJson(chest);
         Debug.Log("[序列化 JSON]\n" + json);
 
-        var restored = SerializationServiceManager.DeserializeFromJson<Container>(json);
+        var restored = serializationService.DeserializeFromJson<Container>(json);
         Debug.Log("反序列化后内容：");
         DisplayInventoryContents(restored);
 

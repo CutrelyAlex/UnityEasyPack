@@ -1,6 +1,8 @@
 using EasyPack.BuffSystem;
 using EasyPack.ENekoFramework;
 using EasyPack.InventorySystem;
+using System;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace EasyPack
@@ -22,10 +24,24 @@ namespace EasyPack
             Container.Register<IInventoryService, InventoryService>();
         }
 
-        public static ISerializationService SerializationService => Instance.Container.Resolve<ISerializationService>();
-        public static IInventoryService InventoryService => Instance.Container.Resolve<IInventoryService>();
-        public static IGamePropertyService GamePropertyService => Instance.Container.Resolve<IGamePropertyService>();
-        public static IBuffService BuffService => Instance.Container.Resolve<IBuffService>();
+        public static async Task<ISerializationService> GetSerializationServiceAsync()
+        {
+            return await Instance.Container.ResolveAsync<ISerializationService>();
+        }
 
+        public static async Task<IInventoryService> GetInventoryServiceAsync()
+        {
+            return await Instance.Container.ResolveAsync<IInventoryService>();
+        }
+
+        public static async Task<IGamePropertyService> GetGamePropertyServiceAsync()
+        {
+            return await Instance.Container.ResolveAsync<IGamePropertyService>();
+        }
+
+        public static async Task<IBuffService> GetBuffServiceAsync()
+        {
+            return await Instance.Container.ResolveAsync<IBuffService>();
+        }
     }
 }

@@ -5,7 +5,7 @@ namespace EasyPack.InventorySystem
     /// <summary>
     /// 多个容器管理的系统
     /// </summary>
-    public partial class InventoryManager
+    public partial class InventoryService
     {
         #region 全局物品搜索
         /// <summary>
@@ -36,24 +36,29 @@ namespace EasyPack.InventorySystem
         {
             var results = new List<GlobalItemResult>();
 
+            if (!IsServiceAvailable() || string.IsNullOrEmpty(itemId))
+            {
+                return results;
+            }
+
             try
             {
-                if (string.IsNullOrEmpty(itemId))
-                    return results;
-
-                foreach (Container container in _containers.Values)
+                lock (_lock)
                 {
-                    if (container.HasItem(itemId)) // 利用缓存快速检查
+                    foreach (Container container in _containers.Values)
                     {
-                        var slotIndices = container.FindSlotIndices(itemId); // 利用缓存获取槽位索引
-                        foreach (int slotIndex in slotIndices)
+                        if (container.HasItem(itemId)) // 利用缓存快速检查
                         {
-                            if (slotIndex < container.Slots.Count)
+                            var slotIndices = container.FindSlotIndices(itemId); // 利用缓存获取槽位索引
+                            foreach (int slotIndex in slotIndices)
                             {
-                                var slot = container.Slots[slotIndex];
-                                if (slot.IsOccupied && slot.Item?.ID == itemId)
+                                if (slotIndex < container.Slots.Count)
                                 {
-                                    results.Add(new GlobalItemResult(container.ID, slotIndex, slot.Item, slot.ItemCount));
+                                    var slot = container.Slots[slotIndex];
+                                    if (slot.IsOccupied && slot.Item?.ID == itemId)
+                                    {
+                                        results.Add(new GlobalItemResult(container.ID, slotIndex, slot.Item, slot.ItemCount));
+                                    }
                                 }
                             }
                         }
@@ -63,14 +68,17 @@ namespace EasyPack.InventorySystem
             catch
             {
                 results.Clear();
-                foreach (var container in _containers.Values)
+                lock (_lock)
                 {
-                    for (int i = 0; i < container.Slots.Count; i++)
+                    foreach (var container in _containers.Values)
                     {
-                        var slot = container.Slots[i];
-                        if (slot.IsOccupied && slot.Item?.ID == itemId)
+                        for (int i = 0; i < container.Slots.Count; i++)
                         {
-                            results.Add(new GlobalItemResult(container.ID, i, slot.Item, slot.ItemCount));
+                            var slot = container.Slots[i];
+                            if (slot.IsOccupied && slot.Item?.ID == itemId)
+                            {
+                                results.Add(new GlobalItemResult(container.ID, i, slot.Item, slot.ItemCount));
+                            }
                         }
                     }
                 }
@@ -86,13 +94,18 @@ namespace EasyPack.InventorySystem
         /// <returns>全局物品总数量</returns>
         public int GetGlobalItemCount(string itemId)
         {
-            if (string.IsNullOrEmpty(itemId))
+            if (!IsServiceAvailable() || string.IsNullOrEmpty(itemId))
+            {
                 return 0;
+            }
 
             int totalCount = 0;
-            foreach (var container in _containers.Values)
+            lock (_lock)
             {
-                totalCount += container.GetItemTotalCount(itemId);
+                foreach (var container in _containers.Values)
+                {
+                    totalCount += container.GetItemTotalCount(itemId);
+                }
             }
 
             return totalCount;
@@ -107,27 +120,31 @@ namespace EasyPack.InventorySystem
         {
             var results = new Dictionary<string, int>();
 
+            if (!IsServiceAvailable() || string.IsNullOrEmpty(itemId))
+            {
+                return results;
+            }
+
             try
             {
-                if (string.IsNullOrEmpty(itemId))
-                    return results;
-
-                foreach (var container in _containers.Values)
+                lock (_lock)
                 {
-                    if (container.HasItem(itemId))
+                    foreach (var container in _containers.Values)
                     {
-                        int count = container.GetItemTotalCount(itemId);
-                        if (count > 0)
+                        if (container.HasItem(itemId))
                         {
-                            results[container.ID] = count;
+                            int count = container.GetItemTotalCount(itemId);
+                            if (count > 0)
+                            {
+                                results[container.ID] = count;
+                            }
                         }
                     }
                 }
             }
             catch (System.Exception ex)
             {
-
-                UnityEngine.Debug.LogError($"[InventoryManager] 操作失败：{ex.Message}");
+                UnityEngine.Debug.LogError($"[InventoryService] 操作失败：{ex.Message}");
             }
 
             return results;
@@ -142,27 +159,31 @@ namespace EasyPack.InventorySystem
         {
             var results = new List<GlobalItemResult>();
 
+            if (!IsServiceAvailable() || condition == null)
+            {
+                return results;
+            }
+
             try
             {
-                if (condition == null)
-                    return results;
-
-                foreach (var container in _containers.Values)
+                lock (_lock)
                 {
-                    for (int i = 0; i < container.Slots.Count; i++)
+                    foreach (var container in _containers.Values)
                     {
-                        var slot = container.Slots[i];
-                        if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
+                        for (int i = 0; i < container.Slots.Count; i++)
                         {
-                            results.Add(new GlobalItemResult(container.ID, i, slot.Item, slot.ItemCount));
+                            var slot = container.Slots[i];
+                            if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
+                            {
+                                results.Add(new GlobalItemResult(container.ID, i, slot.Item, slot.ItemCount));
+                            }
                         }
                     }
                 }
             }
             catch (System.Exception ex)
             {
-
-                UnityEngine.Debug.LogError($"[InventoryManager] 操作失败：{ex.Message}");
+                UnityEngine.Debug.LogError($"[InventoryService] 操作失败：{ex.Message}");
             }
 
             return results;
@@ -177,18 +198,23 @@ namespace EasyPack.InventorySystem
         {
             var results = new List<GlobalItemResult>();
 
+            if (!IsServiceAvailable() || string.IsNullOrEmpty(itemType))
+            {
+                return results;
+            }
+
             try
             {
-                if (string.IsNullOrEmpty(itemType))
-                    return results;
-
-                foreach (Container container in _containers.Values)
+                lock (_lock)
                 {
-                    // 利用容器的类型缓存查询
-                    var typeItems = container.GetItemsByType(itemType);
-                    foreach (var (slotIndex, item, count) in typeItems)
+                    foreach (Container container in _containers.Values)
                     {
-                        results.Add(new GlobalItemResult(container.ID, slotIndex, item, count));
+                        // 利用容器的类型缓存查询
+                        var typeItems = container.GetItemsByType(itemType);
+                        foreach (var (slotIndex, item, count) in typeItems)
+                        {
+                            results.Add(new GlobalItemResult(container.ID, slotIndex, item, count));
+                        }
                     }
                 }
             }
@@ -211,18 +237,23 @@ namespace EasyPack.InventorySystem
         {
             var results = new List<GlobalItemResult>();
 
+            if (!IsServiceAvailable() || string.IsNullOrEmpty(namePattern))
+            {
+                return results;
+            }
+
             try
             {
-                if (string.IsNullOrEmpty(namePattern))
-                    return results;
-
-                foreach (Container container in _containers.Values)
+                lock (_lock)
                 {
-                    // 利用容器的名称缓存查询
-                    var nameItems = container.GetItemsByName(namePattern);
-                    foreach (var (slotIndex, item, count) in nameItems)
+                    foreach (Container container in _containers.Values)
                     {
-                        results.Add(new GlobalItemResult(container.ID, slotIndex, item, count));
+                        // 利用容器的名称缓存查询
+                        var nameItems = container.GetItemsByName(namePattern);
+                        foreach (var (slotIndex, item, count) in nameItems)
+                        {
+                            results.Add(new GlobalItemResult(container.ID, slotIndex, item, count));
+                        }
                     }
                 }
             }
@@ -244,18 +275,23 @@ namespace EasyPack.InventorySystem
         {
             var results = new List<GlobalItemResult>();
 
+            if (!IsServiceAvailable() || string.IsNullOrEmpty(attributeName))
+            {
+                return results;
+            }
+
             try
             {
-                if (string.IsNullOrEmpty(attributeName))
-                    return results;
-
-                foreach (Container container in _containers.Values)
+                lock (_lock)
                 {
-                    // 利用容器的属性缓存查询
-                    var attributeItems = container.GetItemsByAttribute(attributeName, attributeValue);
-                    foreach (var (slotIndex, item, count) in attributeItems)
+                    foreach (Container container in _containers.Values)
                     {
-                        results.Add(new GlobalItemResult(container.ID, slotIndex, item, count));
+                        // 利用容器的属性缓存查询
+                        var attributeItems = container.GetItemsByAttribute(attributeName, attributeValue);
+                        foreach (var (slotIndex, item, count) in attributeItems)
+                        {
+                            results.Add(new GlobalItemResult(container.ID, slotIndex, item, count));
+                        }
                     }
                 }
             }

@@ -7,7 +7,7 @@ namespace EasyPack.InventorySystem
     /// <summary>
     /// 多个容器管理的系统
     /// </summary>
-    public partial class InventoryManager
+    public partial class InventoryService
     {
         #region 跨容器物品操作
 
@@ -62,15 +62,26 @@ namespace EasyPack.InventorySystem
         /// <returns>移动结果</returns>
         public MoveResult MoveItem(string fromContainerId, int fromSlot, string toContainerId, int toSlot = -1)
         {
+            if (!IsServiceAvailable())
+            {
+                return MoveResult.Failed;
+            }
+
             try
             {
-                var sourceContainer = GetContainer(fromContainerId);
-                if (sourceContainer == null)
-                    return MoveResult.SourceContainerNotFound;
+                Container sourceContainer;
+                Container targetContainer;
 
-                var targetContainer = GetContainer(toContainerId);
-                if (targetContainer == null)
-                    return MoveResult.TargetContainerNotFound;
+                lock (_lock)
+                {
+                    sourceContainer = GetContainer(fromContainerId);
+                    if (sourceContainer == null)
+                        return MoveResult.SourceContainerNotFound;
+
+                    targetContainer = GetContainer(toContainerId);
+                    if (targetContainer == null)
+                        return MoveResult.TargetContainerNotFound;
+                }
 
                 if (fromSlot < 0 || fromSlot >= sourceContainer.Slots.Count)
                     return MoveResult.SourceSlotNotFound;
@@ -111,7 +122,7 @@ namespace EasyPack.InventorySystem
             }
             catch (System.Exception ex)
             {
-                UnityEngine.Debug.LogError($"[InventoryManager] 物品移动失败：{ex.Message}");
+                UnityEngine.Debug.LogError($"[InventoryService] 物品移动失败：{ex.Message}");
                 return MoveResult.Failed;
             }
         }
@@ -126,18 +137,29 @@ namespace EasyPack.InventorySystem
         /// <returns>转移结果和实际转移数量</returns>
         public (MoveResult result, int transferredCount) TransferItems(string itemId, int count, string fromContainerId, string toContainerId)
         {
+            if (!IsServiceAvailable())
+            {
+                return (MoveResult.Failed, 0);
+            }
+
             try
             {
                 if (string.IsNullOrEmpty(itemId))
                     return (MoveResult.ItemNotFound, 0);
 
-                var sourceContainer = GetContainer(fromContainerId);
-                if (sourceContainer == null)
-                    return (MoveResult.SourceContainerNotFound, 0);
+                Container sourceContainer;
+                Container targetContainer;
 
-                var targetContainer = GetContainer(toContainerId);
-                if (targetContainer == null)
-                    return (MoveResult.TargetContainerNotFound, 0);
+                lock (_lock)
+                {
+                    sourceContainer = GetContainer(fromContainerId);
+                    if (sourceContainer == null)
+                        return (MoveResult.SourceContainerNotFound, 0);
+
+                    targetContainer = GetContainer(toContainerId);
+                    if (targetContainer == null)
+                        return (MoveResult.TargetContainerNotFound, 0);
+                }
 
                 if (!sourceContainer.HasItem(itemId))
                     return (MoveResult.ItemNotFound, 0);
@@ -188,7 +210,7 @@ namespace EasyPack.InventorySystem
             }
             catch (System.Exception ex)
             {
-                UnityEngine.Debug.LogError($"[InventoryManager] 物品转移失败：{ex.Message}");
+                UnityEngine.Debug.LogError($"[InventoryService] 物品转移失败：{ex.Message}");
                 return (MoveResult.Failed, 0);
             }
         }
@@ -202,16 +224,24 @@ namespace EasyPack.InventorySystem
         /// <returns>转移结果和实际转移数量</returns>
         public (MoveResult result, int transferredCount) AutoMoveItem(string itemId, string fromContainerId, string toContainerId)
         {
-            if (string.IsNullOrEmpty(itemId))
+            if (!IsServiceAvailable() || string.IsNullOrEmpty(itemId))
+            {
                 return (MoveResult.ItemNotFound, 0);
+            }
 
-            var sourceContainer = GetContainer(fromContainerId);
-            if (sourceContainer == null)
-                return (MoveResult.SourceContainerNotFound, 0);
+            Container sourceContainer;
+            Container targetContainer;
 
-            var targetContainer = GetContainer(toContainerId);
-            if (targetContainer == null)
-                return (MoveResult.TargetContainerNotFound, 0);
+            lock (_lock)
+            {
+                sourceContainer = GetContainer(fromContainerId);
+                if (sourceContainer == null)
+                    return (MoveResult.SourceContainerNotFound, 0);
+
+                targetContainer = GetContainer(toContainerId);
+                if (targetContainer == null)
+                    return (MoveResult.TargetContainerNotFound, 0);
+            }
 
             if (!sourceContainer.HasItem(itemId))
                 return (MoveResult.ItemNotFound, 0);
@@ -228,6 +258,11 @@ namespace EasyPack.InventorySystem
         public List<(MoveRequest request, MoveResult result, int movedCount)> BatchMoveItems(List<MoveRequest> requests)
         {
             var results = new List<(MoveRequest request, MoveResult result, int movedCount)>();
+
+            if (!IsServiceAvailable())
+            {
+                return results;
+            }
 
             try
             {
@@ -250,7 +285,12 @@ namespace EasyPack.InventorySystem
                         else
                         {
                             // 需要先获取槽位中的物品ID
-                            var sourceContainer = GetContainer(request.FromContainerId);
+                            Container sourceContainer;
+                            lock (_lock)
+                            {
+                                sourceContainer = GetContainer(request.FromContainerId);
+                            }
+
                             if (sourceContainer != null && request.FromSlot >= 0 && request.FromSlot < sourceContainer.Slots.Count)
                             {
                                 var slot = sourceContainer.Slots[request.FromSlot];
@@ -281,7 +321,12 @@ namespace EasyPack.InventorySystem
                         int movedCount = 0;
                         if (result == MoveResult.Success)
                         {
-                            var sourceContainer = GetContainer(request.FromContainerId);
+                            Container sourceContainer;
+                            lock (_lock)
+                            {
+                                sourceContainer = GetContainer(request.FromContainerId);
+                            }
+
                             if (sourceContainer != null && request.FromSlot >= 0 && request.FromSlot < sourceContainer.Slots.Count)
                             {
                                 var slot = sourceContainer.Slots[request.FromSlot];
@@ -317,6 +362,11 @@ namespace EasyPack.InventorySystem
         {
             var results = new Dictionary<string, int>();
 
+            if (!IsServiceAvailable())
+            {
+                return results;
+            }
+
             try
             {
                 if (item == null || totalCount <= 0 || targetContainerIds?.Count == 0)
@@ -330,13 +380,16 @@ namespace EasyPack.InventorySystem
                 var sortedContainers = new List<(string id, Container container, int priority)>();
 
                 // 准备容器列表并按优先级排序
-                foreach (string containerId in targetContainerIds)
+                lock (_lock)
                 {
-                    var container = GetContainer(containerId);
-                    if (container != null)
+                    foreach (string containerId in targetContainerIds)
                     {
-                        int priority = GetContainerPriority(containerId);
-                        sortedContainers.Add((containerId, container, priority));
+                        var container = GetContainer(containerId);
+                        if (container != null)
+                        {
+                            int priority = GetContainerPriority(containerId);
+                            sortedContainers.Add((containerId, container, priority));
+                        }
                     }
                 }
 

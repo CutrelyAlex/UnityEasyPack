@@ -102,8 +102,6 @@ namespace EasyPack
         {
             await base.OnInitializeAsync();
 
-            // 注册所有外部系统的序列化器（将迁移）
-            InventorySystem.InventorySerializationInitializer.RegisterSerializers(this);
             EmeCardSystem.CardSerializationInitializer.RegisterSerializers(this);
 
             Debug.Log("[SerializationService] 序列化服务初始化完成");

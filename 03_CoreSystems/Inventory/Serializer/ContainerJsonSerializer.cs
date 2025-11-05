@@ -9,6 +9,17 @@ namespace EasyPack.InventorySystem
     /// </summary>
     public class ContainerJsonSerializer : JsonSerializerBase<Container>
     {
+        private readonly ISerializationService _serializationService;
+
+        /// <summary>
+        /// 构造函数,注入序列化服务
+        /// </summary>
+        /// <param name="serializationService">序列化服务实例</param>
+        public ContainerJsonSerializer(ISerializationService serializationService)
+        {
+            _serializationService = serializationService ?? throw new ArgumentNullException(nameof(serializationService));
+        }
+
         public override string SerializeToJson(Container obj)
         {
             if (obj == null) return null;
@@ -31,8 +42,8 @@ namespace EasyPack.InventorySystem
                 {
                     if (cond != null)
                     {
-                        // 使用实际类型序列化条件（而不是接口类型）
-                        var condJson = SerializationServiceManager.SerializeToJson(cond, cond.GetType());
+                        // 使用注入的序列化服务序列化条件（而不是接口类型）
+                        var condJson = _serializationService.SerializeToJson(cond, cond.GetType());
                         if (!string.IsNullOrEmpty(condJson))
                         {
                             var serializedCond = JsonUtility.FromJson<SerializedCondition>(condJson);
@@ -53,8 +64,8 @@ namespace EasyPack.InventorySystem
                 string itemJson = null;
                 if (slot.Item is Item concrete)
                 {
-                    // 使用实际类型序列化物品
-                    itemJson = SerializationServiceManager.SerializeToJson(concrete, concrete.GetType());
+                    // 使用注入的序列化服务序列化物品
+                    itemJson = _serializationService.SerializeToJson(concrete, concrete.GetType());
                 }
 
                 dto.Slots.Add(new SerializedSlot
@@ -102,15 +113,8 @@ namespace EasyPack.InventorySystem
                 {
                     if (c == null || string.IsNullOrEmpty(c.Kind)) continue;
 
-                    var condType = ConditionTypeRegistry.GetConditionType(c.Kind);
-                    if (condType == null)
-                    {
-                        Debug.LogWarning($"[ContainerJsonSerializer] 未注册的条件类型: {c.Kind}");
-                        continue;
-                    }
-
                     var condJson = JsonUtility.ToJson(c);
-                    var cond = SerializationServiceManager.DeserializeFromJson(condJson, condType) as IItemCondition;
+                    var cond = _serializationService.DeserializeFromJson<IItemCondition>(condJson);
                     if (cond != null)
                     {
                         conds.Add(cond);
@@ -126,7 +130,7 @@ namespace EasyPack.InventorySystem
                 {
                     if (string.IsNullOrEmpty(s.ItemJson)) continue;
 
-                    var item = SerializationServiceManager.DeserializeFromJson<Item>(s.ItemJson);
+                    var item = _serializationService.DeserializeFromJson<Item>(s.ItemJson);
                     if (item == null) continue;
 
                     var (res, added) = container.AddItems(item, s.ItemCount, s.Index >= 0 ? s.Index : -1);

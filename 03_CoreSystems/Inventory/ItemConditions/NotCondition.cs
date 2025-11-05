@@ -73,12 +73,9 @@ namespace EasyPack.InventorySystem
                         var innerDto = JsonUtility.FromJson<SerializedCondition>(p.StringValue);
                         if (innerDto != null && !string.IsNullOrEmpty(innerDto.Kind))
                         {
-                            var condType = ConditionTypeRegistry.GetConditionType(innerDto.Kind);
-                            if (condType != null)
-                            {
-                                var condJson = JsonUtility.ToJson(innerDto);
-                                Inner = SerializationServiceManager.DeserializeFromJson(condJson, condType) as IItemCondition;
-                            }
+                            var serializer = new ConditionJsonSerializer();
+                            var innerJson = JsonUtility.ToJson(innerDto);
+                            Inner = serializer.DeserializeFromJson(innerJson);
                         }
                     }
                     catch (Exception ex)

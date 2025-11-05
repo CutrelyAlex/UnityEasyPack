@@ -119,7 +119,9 @@ namespace EasyPack.InventorySystem
                             var childDto = JsonUtility.FromJson<SerializedCondition>(childJsonStr);
                             if (childDto != null)
                             {
-                                IItemCondition childCondition = CreateConditionFromDto(childDto);
+                                var serializer = new ConditionJsonSerializer();
+                                var childJson = JsonUtility.ToJson(childDto);
+                                var childCondition = serializer.DeserializeFromJson(childJson);
                                 if (childCondition != null)
                                 {
                                     Children.Add(childCondition);
@@ -132,32 +134,6 @@ namespace EasyPack.InventorySystem
             }
 
             return this;
-        }
-
-        private static IItemCondition CreateConditionFromDto(SerializedCondition dto)
-        {
-            if (dto == null || string.IsNullOrEmpty(dto.Kind))
-                return null;
-
-            ISerializableCondition condition = null;
-
-            switch (dto.Kind)
-            {
-                case "ItemType":
-                    condition = new ItemTypeCondition("");
-                    break;
-                case "Attr":
-                    condition = new AttributeCondition("", null);
-                    break;
-                case "All":
-                    condition = new AllCondition();
-                    break;
-                case "Any":
-                    condition = new AnyCondition();
-                    break;
-            }
-
-            return condition?.FromDto(dto) as IItemCondition;
         }
     }
 }

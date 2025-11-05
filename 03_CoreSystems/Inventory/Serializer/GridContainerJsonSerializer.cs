@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace EasyPack.InventorySystem
@@ -7,6 +8,17 @@ namespace EasyPack.InventorySystem
     /// </summary>
     public class GridContainerJsonSerializer : JsonSerializerBase<GridContainer>
     {
+        private readonly ISerializationService _serializationService;
+
+        /// <summary>
+        /// 构造函数,注入序列化服务
+        /// </summary>
+        /// <param name="serializationService">序列化服务实例</param>
+        public GridContainerJsonSerializer(ISerializationService serializationService)
+        {
+            _serializationService = serializationService ?? throw new ArgumentNullException(nameof(serializationService));
+        }
+
         public override string SerializeToJson(GridContainer container)
         {
             var dto = ContainerToDto(container);
@@ -45,7 +57,7 @@ namespace EasyPack.InventorySystem
                 var slotDto = new SerializedSlot
                 {
                     Index = slot.Index,
-                    ItemJson = SerializationServiceManager.SerializeToJson(slot.Item, slot.Item.GetType()),
+                    ItemJson = _serializationService.SerializeToJson(slot.Item, slot.Item.GetType()),
                     ItemCount = slot.ItemCount
                 };
                 slotsList.Add(slotDto);
@@ -89,8 +101,8 @@ namespace EasyPack.InventorySystem
                     if (slotDto.Index < 0 || slotDto.Index >= container.Capacity)
                         continue;
 
-                    // 使用 Item 基类反序列化
-                    var item = SerializationServiceManager.DeserializeFromJson<Item>(slotDto.ItemJson);
+                    // 使用注入的序列化服务反序列化
+                    var item = _serializationService.DeserializeFromJson<Item>(slotDto.ItemJson);
                     if (item != null)
                     {
                         container.AddItems(item, slotDto.ItemCount, slotDto.Index);
@@ -103,18 +115,11 @@ namespace EasyPack.InventorySystem
             {
                 foreach (var condDto in dto.ContainerConditions)
                 {
-                    var condType = ConditionTypeRegistry.GetConditionType(condDto.Kind);
-                    if (condType != null)
+                    var condJson = JsonUtility.ToJson(condDto);
+                    var condition = _serializationService.DeserializeFromJson<IItemCondition>(condJson);
+                    if (condition != null)
                     {
-                        var tempCondition = System.Activator.CreateInstance(condType) as ISerializableCondition;
-                        if (tempCondition != null)
-                        {
-                            var condition = tempCondition.FromDto(condDto) as IItemCondition;
-                            if (condition != null)
-                            {
-                                container.ContainerCondition.Add(condition);
-                            }
-                        }
+                        container.ContainerCondition.Add(condition);
                     }
                 }
             }
