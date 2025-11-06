@@ -377,11 +377,11 @@ namespace EasyPack.EmeCardSystem
             => DoAddTag(newTag, SelectionRoot.Container, TargetScope.Children, CardFilterMode.ById, targetId, take);
 
         /// <summary>给源卡牌自身移除标签</summary>
-        public CardRuleBuilder DoRemoveTagToSource(string tag)
+        public CardRuleBuilder DoRemoveTagFromSource(string tag)
             => DoInvoke((ctx, matched) => ctx.Source.RemoveTag(tag));
 
         /// <summary>给容器卡牌自身移除标签</summary>
-        public CardRuleBuilder DoRemoveTagToContainer(string tag)
+        public CardRuleBuilder DoRemoveTagFromContainer(string tag)
             => DoInvoke((ctx, matched) => ctx.Container.RemoveTag(tag));
 
         /// <summary>修改匹配结果中指定标签的卡牌的属性</summary>
