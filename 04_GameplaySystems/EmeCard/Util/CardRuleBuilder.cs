@@ -81,17 +81,16 @@ namespace EasyPack.EmeCardSystem
         }
         
         /// <summary>添加条件判断和卡牌输出</summary>
-        public CardRuleBuilder When(Func<CardRuleContext, object[]> predicate)
+        public CardRuleBuilder When(Func<CardRuleContext, Tuple<bool,List<Card>>> predicate)
         {
             if (predicate != null)
                 _rule.Requirements.Add(new ConditionRequirement(context =>
                 {
-                    if (predicate(context)[0] is bool when) return when;
-                    return true;
+                    return predicate(context).Item1;
                 },context =>
                 {
-                    if (predicate(context)[1] is List<Card> need) return need;
-                    return null;
+                    if (predicate(context).Item2 == null) return null;
+                    return predicate(context).Item2;
                 }));
             return this;
         }
