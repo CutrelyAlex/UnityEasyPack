@@ -73,25 +73,38 @@ namespace EasyPack.EmeCardSystem
 
         #region 条件要求 - 核心
         /// <summary>添加条件判断</summary>
+        /// <param name="predicate">条件判断委托</param>
+        /// <returns>构建器自身，用于链式调用</returns>
         public CardRuleBuilder When(Func<CardRuleContext, bool> predicate)
         {
             if (predicate != null)
                 _rule.Requirements.Add(new ConditionRequirement(predicate));
             return this;
         }
-        
-        /// <summary>添加条件判断和卡牌输出</summary>
-        public CardRuleBuilder When(Func<CardRuleContext, Tuple<bool,List<Card>>> predicate)
+
+        /// <summary>
+        /// 添加条件判断和卡牌输出
+        /// <para>返回值格式：(matched: 是否匹配, cards: 匹配的卡牌列表)</para>
+        /// <para>优势：用户委托仅被调用一次，避免重复计算</para>
+        /// </summary>
+        /// <param name="predicate">返回匹配结果和卡牌列表的委托</param>
+        /// <returns>构建器自身，用于链式调用</returns>
+        public CardRuleBuilder WhenWithCards(
+            Func<CardRuleContext, (bool matched, List<Card> cards)> predicate)
         {
             if (predicate != null)
-                _rule.Requirements.Add(new ConditionRequirement(context =>
+                _rule.Requirements.Add(new ConditionRequirement(predicate));
+            return this;
+        }
+
+        [Obsolete("使用 WhenWithCards 替代", false)]
+        public CardRuleBuilder When(Func<CardRuleContext, Tuple<bool, List<Card>>> predicate)
+        {
+            if (predicate != null)
+                _rule.Requirements.Add(new ConditionRequirement(ctx =>
                 {
-                    var result = predicate(context);
-                    return result?.Item1 ?? false; 
-                },context =>
-                {
-                    var result = predicate(context);
-                    return result?.Item2;
+                    var result = predicate(ctx);
+                    return (result?.Item1 ?? false, result?.Item2 ?? new List<Card>());
                 }));
             return this;
         }
@@ -147,15 +160,15 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>要求源卡牌有指定标签</summary>
         public CardRuleBuilder WhenSourceHasTag(string tag)
-            => When(ctx => ctx.Source != null && ctx.Source.HasTag(tag));
+            => When(ctx => ctx.Source?.HasTag(tag) ?? false);
 
         /// <summary>要求源卡牌没有指定标签</summary>
         public CardRuleBuilder WhenSourceNotHasTag(string tag)
-            => When(ctx => ctx.Source != null && !ctx.Source.HasTag(tag));
+            => When(ctx => !(ctx.Source?.HasTag(tag) ?? false));
 
         /// <summary>要求源卡牌的ID为指定值</summary>
         public CardRuleBuilder WhenSourceId(string id)
-            => When(ctx => ctx.Source != null && string.Equals(ctx.Source.Id, id, StringComparison.Ordinal));
+            => When(ctx => string.Equals(ctx.Source?.Id, id, StringComparison.Ordinal));
 
         /// <summary>要求容器的类别为指定类别</summary>
         public CardRuleBuilder WhenContainerCategory(CardCategory category)
@@ -175,11 +188,11 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>要求容器有指定标签</summary>
         public CardRuleBuilder WhenContainerHasTag(string tag)
-            => When(ctx => ctx.Container != null && ctx.Container.HasTag(tag));
+            => When(ctx => ctx.Container?.HasTag(tag) ?? false);
 
         /// <summary>要求容器没有指定标签</summary>
         public CardRuleBuilder WhenContainerNotHasTag(string tag)
-            => When(ctx => ctx.Container != null && !ctx.Container.HasTag(tag));
+            => When(ctx => !(ctx.Container?.HasTag(tag) ?? false));
 
         /// <summary>要求事件数据为指定类型</summary>
         public CardRuleBuilder WhenEventDataIs<T>() where T : class
