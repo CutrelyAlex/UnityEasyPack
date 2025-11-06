@@ -293,17 +293,19 @@ namespace EasyPack
             _engine.RegisterRule(b => b
                 .On(CardEventType.Tick)
                 .AtSelf()
-                .DoInvoke((ctx, matched) =>
+                .WhenWithCards(ctx =>
                 {
-                    var torches = ctx.Container.Children
+                    var burnedTorches = ctx.Container.Children
                         .Where(c => c.HasTag("火把") &&
                                c.Properties?.FirstOrDefault()?.GetBaseValue() >= 5f)
                         .ToList();
 
-                    if (torches.Count == 0) return;
-
-                    Debug.Log($"[燃尽] {torches.Count} 个火把燃尽");
-                    foreach (var torch in torches)
+                    return (burnedTorches.Count > 0, burnedTorches);
+                })
+                .DoInvoke((ctx, matched) =>
+                {
+                    Debug.Log($"[燃尽] {matched.Count} 个火把燃尽");
+                    foreach (var torch in matched)
                     {
                         torch.Owner?.RemoveChild(torch, force: false);
                         var ash = _factory.Create("灰烬");
