@@ -149,9 +149,9 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public List<GameProperty> Properties { get; set; } = new List<GameProperty>();
         public GameProperty GetProperty(string id) => Properties?.FirstOrDefault(p => p.ID == id);
-        public GameProperty GetProperty(int index=0)
+        public GameProperty GetProperty(int index = 0)
         {
-            if(index<0 || index >= Properties.Count) return null;
+            if (index < 0 || index >= Properties.Count) return null;
             return Properties[index];
         }
 
@@ -220,10 +220,36 @@ namespace EasyPack.EmeCardSystem
 
 
         /// <summary>
+        /// 检测是否存在循环依赖。
+        /// </summary>
+        /// <param name="potentialChild">待检测的子卡牌。</param>
+        /// <returns>若添加 potentialChild 作为子卡会产生循环，返回 true；否则返回 false。</returns>
+        public bool HasCyclicDependency(Card potentialChild)
+        {
+            if (potentialChild == null) return false;
+            if (potentialChild == this) return true;
+
+            var visited = new HashSet<Card>();
+            var current = potentialChild.Owner;
+
+            while (current != null)
+            {
+                if (current == this) return true;
+
+                if (!visited.Add(current))
+                    break;
+
+                current = current.Owner;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// 将子卡牌加入当前卡牌作为持有者。
         /// </summary>
         /// <param name="child">子卡牌实例。</param>
-        /// <param name="intrinsic">是否作为“固有子卡”；固有子卡无法通过规则消耗或普通移除。</param>
+        /// <param name="intrinsic">是否作为"固有子卡"；固有子卡无法通过规则消耗或普通移除。</param>
         /// <remarks>
         /// 成功加入后，将向子卡派发 <see cref="CardEventType.AddedToOwner"/> 事件，
         /// 其 <see cref="CardEvent.Data"/> 为旧持有者（此处即 <c>this</c>）。
@@ -232,7 +258,8 @@ namespace EasyPack.EmeCardSystem
         {
             if (child == null) throw new ArgumentNullException(nameof(child));
             if (child.Owner != null) throw new InvalidOperationException("子卡牌已被其他卡牌持有。");
-            if (child == this) throw new Exception("卡牌不能添加自身为子卡牌。");
+
+            if (HasCyclicDependency(child)) throw new InvalidOperationException($"添加卡牌 '{child.Id}' 将形成循环依赖。");
 
 
             _children.Add(child);
