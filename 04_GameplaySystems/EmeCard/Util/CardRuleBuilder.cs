@@ -97,18 +97,6 @@ namespace EasyPack.EmeCardSystem
             return this;
         }
 
-        [Obsolete("使用 WhenWithCards 替代", false)]
-        public CardRuleBuilder When(Func<CardRuleContext, Tuple<bool, List<Card>>> predicate)
-        {
-            if (predicate != null)
-                _rule.Requirements.Add(new ConditionRequirement(ctx =>
-                {
-                    var result = predicate(ctx);
-                    return (result?.Item1 ?? false, result?.Item2 ?? new List<Card>());
-                }));
-            return this;
-        }
-
         /// <summary>添加卡牌需求：需要从指定根选择特定卡牌</summary>
         public CardRuleBuilder Need(
             SelectionRoot root,
