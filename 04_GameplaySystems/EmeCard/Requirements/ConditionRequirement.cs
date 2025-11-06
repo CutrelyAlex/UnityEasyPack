@@ -11,15 +11,18 @@ namespace EasyPack.EmeCardSystem
     public sealed class ConditionRequirement : IRuleRequirement
     {
         public Func<CardRuleContext, bool> Condition { get; }
+        
+        public Func<CardRuleContext,List<Card>> Matched { get; }
 
-        public ConditionRequirement(Func<CardRuleContext, bool> condition)
+        public ConditionRequirement(Func<CardRuleContext, bool> condition, Func<CardRuleContext,List<Card>> matched=null)
         {
             Condition = condition ?? throw new ArgumentNullException(nameof(condition));
+            Matched = matched ?? (ctx => new List<Card>());
         }
 
         public bool TryMatch(CardRuleContext ctx, out List<Card> matched)
         {
-            matched = new List<Card>();
+            matched = Matched(ctx);
             return Condition(ctx);
         }
     }
