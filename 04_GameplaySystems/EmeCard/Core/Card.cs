@@ -230,11 +230,11 @@ namespace EasyPack.EmeCardSystem
             if (potentialChild == this) return true;
 
             var visited = new HashSet<Card>();
-            var current = potentialChild.Owner;
+            var current = Owner;
 
             while (current != null)
             {
-                if (current == this) return true;
+                if (current == potentialChild) return true;
 
                 if (!visited.Add(current))
                     break;
