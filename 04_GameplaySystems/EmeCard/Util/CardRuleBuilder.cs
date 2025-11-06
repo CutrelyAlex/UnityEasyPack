@@ -86,11 +86,12 @@ namespace EasyPack.EmeCardSystem
             if (predicate != null)
                 _rule.Requirements.Add(new ConditionRequirement(context =>
                 {
-                    return predicate(context).Item1;
+                    var result = predicate(context);
+                    return result?.Item1 ?? false; 
                 },context =>
                 {
-                    if (predicate(context).Item2 == null) return null;
-                    return predicate(context).Item2;
+                    var result = predicate(context);
+                    return result?.Item2;
                 }));
             return this;
         }
