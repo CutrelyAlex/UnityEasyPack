@@ -72,11 +72,27 @@ namespace EasyPack.EmeCardSystem
         #endregion
 
         #region 条件要求 - 核心
-        /// <summary>添加条件判断和卡牌输出</summary>
-        public CardRuleBuilder When(Func<CardRuleContext, bool> predicate,Func<CardRuleContext,List<Card>> matched=null)
+        /// <summary>添加条件判断</summary>
+        public CardRuleBuilder When(Func<CardRuleContext, bool> predicate)
         {
             if (predicate != null)
-                _rule.Requirements.Add(new ConditionRequirement(predicate,matched));
+                _rule.Requirements.Add(new ConditionRequirement(predicate));
+            return this;
+        }
+        
+        /// <summary>添加条件判断和卡牌输出</summary>
+        public CardRuleBuilder When(Func<CardRuleContext, object[]> predicate)
+        {
+            if (predicate != null)
+                _rule.Requirements.Add(new ConditionRequirement(context =>
+                {
+                    if (predicate(context)[0] is bool when) return when;
+                    return true;
+                },context =>
+                {
+                    if (predicate(context)[1] is List<Card> need) return need;
+                    return null;
+                }));
             return this;
         }
 
