@@ -1269,27 +1269,28 @@ public int? MaxDepth = null
 
 **命名空间**：`EasyPack.EmeCardSystem`
 
-**描述**：自定义条件要求，使用布尔函数进行校验。
+**描述**：自定义条件要求，使用布尔函数进行校验，同时可以自定义卡牌输出。
 
 #### 构造函数
 
 ##### ConditionRequirement
 ```csharp
-public ConditionRequirement(Func<CardRuleContext, bool> condition)
+ public ConditionRequirement(Func<CardRuleContext, bool> condition, Func<CardRuleContext,List<Card>> matched=null)
 ```
 
 **参数**：
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `condition` | `Func<CardRuleContext, bool>` | 条件函数 |
+| 参数 | 类型 | 说明        |
+|------|------|-----------|
+| `condition` | `Func<CardRuleContext, bool>` | 条件函数      |
+| `matched` | `Func<CardRuleContext,List<Card>>` | 自定义卡牌输出函数 |
 
 **异常**：
 - `ArgumentNullException`：`condition` 为 `null`
 
 **示例**：
 ```csharp
-var req = new ConditionRequirement(ctx => ctx.Source.HasTag("玩家"));
+var req = new ConditionRequirement(ctx => ctx.Source.HasTag("玩家"),ctx => new List<Card>{ctx.Source});
 ```
 
 ---
