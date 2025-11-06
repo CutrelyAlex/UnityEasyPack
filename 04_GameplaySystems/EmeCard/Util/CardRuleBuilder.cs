@@ -79,6 +79,22 @@ namespace EasyPack.EmeCardSystem
                 _rule.Requirements.Add(new ConditionRequirement(predicate));
             return this;
         }
+        
+        /// <summary>添加条件判断和卡牌输出</summary>
+        public CardRuleBuilder When(Func<CardRuleContext, Tuple<bool,List<Card>>> predicate)
+        {
+            if (predicate != null)
+                _rule.Requirements.Add(new ConditionRequirement(context =>
+                {
+                    var result = predicate(context);
+                    return result?.Item1 ?? false; 
+                },context =>
+                {
+                    var result = predicate(context);
+                    return result?.Item2;
+                }));
+            return this;
+        }
 
         /// <summary>添加卡牌需求：需要从指定根选择特定卡牌</summary>
         public CardRuleBuilder Need(
