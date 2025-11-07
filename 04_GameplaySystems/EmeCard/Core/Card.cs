@@ -220,11 +220,11 @@ namespace EasyPack.EmeCardSystem
 
 
         /// <summary>
-        /// 检测是否存在循环依赖。
+        /// 检测传入卡牌是否是当前卡牌的祖父卡牌
         /// </summary>
-        /// <param name="potentialChild">待检测的子卡牌。</param>
-        /// <returns>若添加 potentialChild 作为子卡会产生循环，返回 true；否则返回 false。</returns>
-        public bool HasCyclicDependency(Card potentialChild)
+        /// <param name="potentialChild">传入卡牌。</param>
+        /// <returns>若 potentialChild 是当前卡牌的祖父卡牌，返回 true；否则返回 false。</returns>
+        public bool IsRecursiveParent(Card potentialChild)
         {
             if (potentialChild == null) return false;
             if (potentialChild == this) return true;
@@ -259,7 +259,7 @@ namespace EasyPack.EmeCardSystem
             if (child == null) throw new ArgumentNullException(nameof(child));
             if (child.Owner != null) throw new InvalidOperationException("子卡牌已被其他卡牌持有。");
 
-            if (HasCyclicDependency(child)) throw new InvalidOperationException($"添加卡牌 '{child.Id}' 将形成循环依赖。");
+            if (IsRecursiveParent(child)) throw new InvalidOperationException($"添加卡牌 '{child.Id}' 将形成循环依赖。");
 
 
             _children.Add(child);
