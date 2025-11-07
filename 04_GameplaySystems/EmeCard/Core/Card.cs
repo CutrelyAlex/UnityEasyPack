@@ -218,6 +218,18 @@ namespace EasyPack.EmeCardSystem
             return _intrinsics.Contains(child);
         }
 
+        /// <summary>
+        /// 判断某子卡是否为子卡。
+        /// </summary>
+        /// <param name="child">要检查的子卡。</param>
+        /// <returns>如果是固有子卡返回 true</returns>
+        public bool IsChild(Card child)
+        {
+            if (child == null) return false;
+            return _children.Contains(child);
+        }
+
+
 
         /// <summary>
         /// 检测传入卡牌是否是当前卡牌的祖父卡牌
