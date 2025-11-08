@@ -12,6 +12,17 @@ namespace EasyPack.InventorySystem
         #region 跨容器物品操作
 
         /// <summary>
+        /// 物品查找缓存结果
+        /// </summary>
+        private struct ItemLookupResult
+        {
+            public IItem Item;
+            public int FirstSlotIndex;
+            public int TotalCount;
+            public bool Found => Item != null;
+        }
+
+        /// <summary>
         /// 移动操作请求结构
         /// </summary>
         public struct MoveRequest
@@ -50,6 +61,47 @@ namespace EasyPack.InventorySystem
             TargetContainerFull,
             ItemConditionNotMet,
             Failed
+        }
+
+        /// <summary>
+        /// 快速物品查找
+        /// </summary>
+        private ItemLookupResult QuickFindItem(Container container, string itemId, int maxCount = int.MaxValue)
+        {
+            if (string.IsNullOrEmpty(itemId) || container == null)
+                return default;
+
+            int totalCount = 0;
+            int firstSlotIndex = -1;
+            IItem foundItem = null;
+
+            var slots = container.Slots;
+            for (int i = 0; i < slots.Count; i++)
+            {
+                var slot = slots[i];
+                if (slot.IsOccupied && slot.Item?.ID == itemId)
+                {
+                    if (foundItem == null)
+                    {
+                        foundItem = slot.Item;
+                        firstSlotIndex = i;
+                    }
+
+                    totalCount += slot.ItemCount;
+
+                    if (totalCount >= maxCount)
+                        break;
+                }
+            }
+
+            return foundItem != null
+                ? new ItemLookupResult
+                {
+                    Item = foundItem,
+                    FirstSlotIndex = firstSlotIndex,
+                    TotalCount = totalCount
+                }
+                : default;
         }
 
         /// <summary>
@@ -122,7 +174,7 @@ namespace EasyPack.InventorySystem
             }
             catch (System.Exception ex)
             {
-                UnityEngine.Debug.LogError($"[InventoryService] 物品移动失败：{ex.Message}");
+                Debug.LogError($"[InventoryService] 物品移动失败：{ex.Message}");
                 return MoveResult.Failed;
             }
         }
@@ -161,33 +213,20 @@ namespace EasyPack.InventorySystem
                         return (MoveResult.TargetContainerNotFound, 0);
                 }
 
-                if (!sourceContainer.HasItem(itemId))
+                var lookupResult = QuickFindItem(sourceContainer, itemId, count);
+
+                if (!lookupResult.Found)
                     return (MoveResult.ItemNotFound, 0);
 
-                int availableCount = sourceContainer.GetItemTotalCount(itemId);
-                if (availableCount < count)
+                if (lookupResult.TotalCount < count)
                     return (MoveResult.InsufficientQuantity, 0);
 
-                // 获取物品引用
-                IItem item = null;
-                foreach (var slot in sourceContainer.Slots)
-                {
-                    if (slot.IsOccupied && slot.Item?.ID == itemId)
-                    {
-                        item = slot.Item;
-                        break;
-                    }
-                }
-
-                if (item == null)
-                    return (MoveResult.ItemNotFound, 0);
-
                 // 检查全局条件
-                if (!ValidateGlobalItemConditions(item))
+                if (!ValidateGlobalItemConditions(lookupResult.Item))
                     return (MoveResult.ItemConditionNotMet, 0);
 
                 // 尝试添加到目标容器
-                var (addResult, addedCount) = targetContainer.AddItems(item, count);
+                var (addResult, addedCount) = targetContainer.AddItems(lookupResult.Item, count);
 
                 if (addResult == AddItemResult.Success && addedCount > 0)
                 {
@@ -210,7 +249,7 @@ namespace EasyPack.InventorySystem
             }
             catch (System.Exception ex)
             {
-                UnityEngine.Debug.LogError($"[InventoryService] 物品转移失败：{ex.Message}");
+                Debug.LogError($"[InventoryService] 物品转移失败：{ex.Message}");
                 return (MoveResult.Failed, 0);
             }
         }

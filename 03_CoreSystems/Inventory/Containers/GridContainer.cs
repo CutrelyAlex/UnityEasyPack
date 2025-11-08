@@ -51,7 +51,7 @@ namespace EasyPack.InventorySystem
 
             public new virtual IItem Clone()
             {
-                return new GridOccupiedMarker { MainSlotIndex = this.MainSlotIndex };
+                return new GridOccupiedMarker { MainSlotIndex = MainSlotIndex };
             }
         }
 
