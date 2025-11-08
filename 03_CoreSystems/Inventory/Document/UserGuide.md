@@ -560,8 +560,6 @@ public class GridContainerExample : MonoBehaviour
 - `ActualWidth` 和 `ActualHeight` 自动计算当前旋转后的实际占用空间
 
 **性能优化建议：**
-- 网格容器适合小型背包（< 10x10），大型背包建议使用线性容器
-- 使用 `GetItemAt()` 前先检查坐标是否合法
 - 批量操作时使用 `BeginBatch()` / `EndBatch()` 减少事件触发
 - 对于复杂形状的物品，创建时预计算好形状坐标列表，避免运行时动态创建
 
@@ -1147,4 +1145,4 @@ container._slots[0].ClearSlot(); // 破坏封装
 
 **维护者：** NEKOPACK 团队  
 **贡献者：** CutrelyAlex  
-**反馈渠道：** [GitHub Issues](https://github.com/CutrelyAlex/NEKOPACK-GITHUB/issues)
+**反馈渠道：** [GitHub Issues](https://github.com/CutrelyAlex/UnityEasyPack/issues)

@@ -479,43 +479,39 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start([开始: TransferItems]) --> GetSourceContainer[获取源容器]
+    Start([开始: TransferItems]) --> ValidateParams[验证参数有效性]
     
-    GetSourceContainer --> CheckSourceExists{源容器存在?}
-    CheckSourceExists -->|否| ReturnFalse1[返回 false]
-    CheckSourceExists -->|是| GetTargetContainer[获取目标容器]
+    ValidateParams --> GetContainers[获取源容器和目标容器]
     
-    GetTargetContainer --> CheckTargetExists{目标容器存在?}
-    CheckTargetExists -->|否| ReturnFalse2[返回 false]
-    CheckTargetExists -->|是| CheckItemInSource{源容器有物品?}
+    GetContainers --> CheckContainersExist{容器都存在?}
+    CheckContainersExist -->|否| ReturnFail[返回失败结果]
+    CheckContainersExist -->|是| QuickFind[QuickFindItem: 单次遍历查找物品]
     
-    CheckItemInSource -->|否| ReturnFalse3[返回 false]
-    CheckItemInSource -->|是| GetItemReference[获取物品引用]
+    QuickFind --> CheckItemFound{找到足够数量的物品?}
+    CheckItemFound -->|否| ReturnFail
+    CheckItemFound -->|是| ValidateConditions[验证全局物品条件]
     
-    GetItemReference --> RemoveFromSource[从源容器移除物品]
+    ValidateConditions --> CheckConditionsMet{条件满足?}
+    CheckConditionsMet -->|否| ReturnFail
+    CheckConditionsMet -->|是| TryAddToTarget[尝试添加到目标容器]
+    
+    TryAddToTarget --> CheckAddSuccess{添加成功?}
+    CheckAddSuccess -->|否| ReturnFail
+    CheckAddSuccess -->|是| RemoveFromSource[从源容器移除物品]
     
     RemoveFromSource --> CheckRemoveSuccess{移除成功?}
-    CheckRemoveSuccess -->|否| ReturnFalse4[返回 false]
-    CheckRemoveSuccess -->|是| AddToTarget[添加到目标容器]
+    CheckRemoveSuccess -->|否| ReturnFail
+    CheckRemoveSuccess -->|是| TriggerEvents[触发转移事件]
     
-    AddToTarget --> CheckAddSuccess{添加成功?}
-    CheckAddSuccess -->|否| Rollback[回滚：重新添加到源容器]
-    CheckAddSuccess -->|是| TriggerEvents[触发转移事件]
+    TriggerEvents --> ReturnSuccess[返回成功结果]
     
-    Rollback --> ReturnFalse5[返回 false]
-    TriggerEvents --> ReturnTrue[返回 true]
-    
-    ReturnFalse1 --> End([结束])
-    ReturnFalse2 --> End
-    ReturnFalse3 --> End
-    ReturnFalse4 --> End
-    ReturnFalse5 --> End
-    ReturnTrue --> End
+    ReturnFail --> End([结束])
+    ReturnSuccess --> End
     
     style Start fill:#e1f5e1
     style End fill:#ffe1e1
-    style Rollback fill:#ffcccc
-    style ReturnTrue fill:#d4f4dd
+    style QuickFind fill:#fff2cc
+    style ReturnSuccess fill:#d4f4dd
 ```
 
 **流程说明：**
@@ -1050,4 +1046,4 @@ flowchart LR
 
 **维护者：** NEKOPACK 团队  
 **图表工具：** Mermaid v10.x  
-**反馈渠道：** [GitHub Issues](https://github.com/CutrelyAlex/NEKOPACK-GITHUB/issues)
+**反馈渠道：** [GitHub Issues](https://github.com/CutrelyAlex/UnityEasyPack/issues)

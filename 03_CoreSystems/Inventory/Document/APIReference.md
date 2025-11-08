@@ -2351,4 +2351,4 @@ if (inventoryService.State == ServiceLifecycleState.Ready)
 ---
 
 **维护者：** NEKOPACK 团队  
-**反馈渠道：** [GitHub Issues](https://github.com/CutrelyAlex/NEKOPACK-GITHUB/issues)
+**反馈渠道：** [GitHub Issues](https://github.com/CutrelyAlex/UnityEasyPack/issues)
