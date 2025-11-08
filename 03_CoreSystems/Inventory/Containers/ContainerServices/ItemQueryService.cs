@@ -272,14 +272,19 @@ namespace EasyPack.InventorySystem
                 Parallel.For(0, slotCount, i =>
                 {
                     var slot = _slots[i];
-                    if (slot.IsOccupied && slot.Item != null &&
-                        slot.Item.Attributes != null &&
-                        slot.Item.Attributes.TryGetValue(attributeName, out var value) &&
-                        (attributeValue == null || value.Equals(attributeValue)))
+                    if (slot.IsOccupied && slot.Item != null)
                     {
-                        lock (lockObject)
+                        var entry = slot.Item.CustomData?.FirstOrDefault(e => e.Id == attributeName);
+                        if (entry != null)
                         {
-                            result.Add((i, slot.Item, slot.ItemCount));
+                            var value = entry.GetValue();
+                            if (value != null && (attributeValue == null || value.Equals(attributeValue)))
+                            {
+                                lock (lockObject)
+                                {
+                                    result.Add((i, slot.Item, slot.ItemCount));
+                                }
+                            }
                         }
                     }
                 });
@@ -290,12 +295,17 @@ namespace EasyPack.InventorySystem
                 for (int i = 0; i < slotCount; i++)
                 {
                     var slot = _slots[i];
-                    if (slot.IsOccupied && slot.Item != null &&
-                        slot.Item.Attributes != null &&
-                        slot.Item.Attributes.TryGetValue(attributeName, out var value) &&
-                        (attributeValue == null || value.Equals(attributeValue)))
+                    if (slot.IsOccupied && slot.Item != null)
                     {
-                        result.Add((i, slot.Item, slot.ItemCount));
+                        var entry = slot.Item.CustomData?.FirstOrDefault(e => e.Id == attributeName);
+                        if (entry != null)
+                        {
+                            var value = entry.GetValue();
+                            if (value != null && (attributeValue == null || value.Equals(attributeValue)))
+                            {
+                                result.Add((i, slot.Item, slot.ItemCount));
+                            }
+                        }
                     }
                 }
             }

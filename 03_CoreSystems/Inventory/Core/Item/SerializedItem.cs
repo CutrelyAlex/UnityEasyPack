@@ -13,7 +13,12 @@ namespace EasyPack.InventorySystem
         public bool IsStackable;
         public int MaxStackCount;
         public bool isContanierItem;
-        public List<CustomDataEntry> Attributes;
+
+        /// <summary>
+        /// 自定义数据列表
+        /// </summary>
+        public List<CustomDataEntry> CustomData;
+
         public List<string> ContainerIds;
     }
 }

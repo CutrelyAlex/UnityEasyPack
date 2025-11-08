@@ -667,8 +667,8 @@ public class InventorySerializationExample : MonoBehaviour
             Type = "Equipment",
             IsStackable = false
         };
-        sword.Attributes["Attack"] = 15;
-        sword.Attributes["Rarity"] = "Common";
+        sword.SetCustomData("Attack", 15);
+        sword.SetCustomData("Rarity", "Common");
         
         var potion = new Item
         {
@@ -707,8 +707,8 @@ public class InventorySerializationExample : MonoBehaviour
         var loadedSwordSlot = loadedBackpack.Slots[0];
         if (loadedSwordSlot.IsOccupied && loadedSwordSlot.Item.ID == "iron_sword")
         {
-            Debug.Log($"铁剑攻击力: {loadedSwordSlot.Item.Attributes["Attack"]}");
-            Debug.Log($"铁剑稀有度: {loadedSwordSlot.Item.Attributes["Rarity"]}");
+            Debug.Log($"铁剑攻击力: {loadedSwordSlot.Item.GetCustomData<int>("Attack")}");
+            Debug.Log($"铁剑稀有度: {loadedSwordSlot.Item.GetCustomData<string>("Rarity")}");
         }
     }
 }
@@ -734,7 +734,7 @@ public class AdvancedSerializationExample : MonoBehaviour
         equipmentSlots.ContainerCondition.Add(new AttributeCondition("Level", 10, AttributeComparisonType.GreaterThanOrEqual));
         
         var sword = new Item { ID = "legendary_sword", Name = "传奇之剑", Type = "Equipment" };
-        sword.Attributes["Level"] = 50;
+        sword.SetCustomData("Level", 50);
         equipmentSlots.AddItems(sword, 1);
         
         // 序列化（包含条件和物品属性）
@@ -751,12 +751,12 @@ public class AdvancedSerializationExample : MonoBehaviour
             Name = "史诗宝石",
             Type = "Gem"
         };
-        item.Attributes["Quality"] = "Epic";
-        item.Attributes["Power"] = 100;
+        item.SetCustomData("Quality", "Epic");
+        item.SetCustomData("Power", 100);
         
         string itemJson = serializationService.SerializeToJson(item);
         var loadedItem = serializationService.DeserializeFromJson<Item>(itemJson);
-        Debug.Log($"加载的物品: {loadedItem.Name}, 品质: {loadedItem.Attributes["Quality"]}");
+        Debug.Log($"加载的物品: {loadedItem.Name}, 品质: {loadedItem.GetCustomData<string>("Quality")}");
         
         // 3. 序列化网格容器（支持 GridItem 和 GridContainer）
         var gridBag = new GridContainer("grid_bag", "网格包", "GridBag", 5, 4);
@@ -797,56 +797,52 @@ public class AdvancedSerializationExample : MonoBehaviour
 using EasyPack.InventorySystem;
 using UnityEngine;
 using System.Collections.Generic;
-
 public class CustomConditionExample : MonoBehaviour
 {
     void Start()
     {
         var backpack = new LinerContainer("backpack", "背包", "Backpack", 20);
         
-        // 创建带属性的物品
+        // 创建带自定义数据的物品（使用新的 CustomData 系统）
         var legendaryAxe = new Item
         {
             ID = "legendary_axe",
             Name = "传奇战斧",
-            Type = "Weapon",
-            Attributes = new Dictionary<string, object>
-            {
-                { "Rarity", "Legendary" },
-                { "Level", 50 },
-                { "Damage", 120 }
-            }
+            Type = "Weapon"
         };
+        // 设置自定义数据
+        legendaryAxe.SetCustomData("Rarity", "Legendary");
+        legendaryAxe.SetCustomData("Level", 50);
+        legendaryAxe.SetCustomData("Damage", 120);
         
         var commonSword = new Item
         {
             ID = "common_sword",
             Name = "普通剑",
-            Type = "Weapon",
-            Attributes = new Dictionary<string, object>
-            {
-                { "Rarity", "Common" },
-                { "Level", 10 },
-                { "Damage", 30 }
-            }
+            Type = "Weapon"
         };
+        commonSword.SetCustomData("Rarity", "Common");
+        commonSword.SetCustomData("Level", 10);
+        commonSword.SetCustomData("Damage", 30);
         
         backpack.AddItems(legendaryAxe, 1);
         backpack.AddItems(commonSword, 1);
         
-        // 使用属性条件查询（只接受传奇品质）
-        var legendaryCondition = new AttributeCondition("Rarity", "Legendary");
+        // 自定义条件 1：检查物品稀有度
+        var legendaryCondition = new CustomItemCondition(item =>
+        {
+            string rarity = item.GetCustomData<string>("Rarity", "Common");
+            return rarity == "Legendary";
+        });
+        
         bool isLegendary = legendaryCondition.CheckCondition(legendaryAxe);
         Debug.Log($"战斧是传奇：{isLegendary}"); // True
         
-        // 自定义条件：等级 >= 40
+        // 自定义条件 2：等级 >= 40
         var highLevelCondition = new CustomItemCondition(item =>
         {
-            if (item.Attributes.TryGetValue("Level", out var level))
-            {
-                return level is int lvl && lvl >= 40;
-            }
-            return false;
+            int level = item.GetCustomData<int>("Level", 0);
+            return level >= 40;
         });
         
         bool axeMeetsLevel = highLevelCondition.CheckCondition(legendaryAxe);
@@ -858,15 +854,24 @@ public class CustomConditionExample : MonoBehaviour
         // 查询所有传奇武器
         var legendaryWeapons = backpack.FindItemsByCondition(legendaryCondition);
         Debug.Log($"找到 {legendaryWeapons.Count} 件传奇武器");
+        
+        // 组合条件：传奇 AND 等级 >= 40
+        var combinedCondition = new AllCondition(
+            legendaryCondition,
+            highLevelCondition
+        );
+        
+        var eliteWeapons = backpack.FindItemsByCondition(combinedCondition);
+        Debug.Log($"找到 {eliteWeapons.Count} 件精英武器");
     }
 }
 ```
 
-**关键要点：**
-- `Attributes` 是 `Dictionary<string, object>`，可存储任意类型的属性
-- `AttributeCondition` 用于简单的键值匹配
-- `CustomItemCondition` 支持 lambda 表达式自定义复杂逻辑
-- `AllCondition` / `AnyCondition` 可组合多个条件
+**迁移提示：**
+旧版本使用 `item.Attributes["Key"]`，新版本改用：
+- 设置：`item.SetCustomData("Key", value)`
+- 获取：`item.GetCustomData<T>("Key", defaultValue)`
+- 检查：`item.HasCustomData("Key")`
 
 ---
 

@@ -300,8 +300,8 @@ public class InventoryExample : MonoBehaviour
         var potion = CreateGameItem("health_potion", "生命药水", true, 20, "Consumable");
         var sword = CreateGameItem("iron_sword", "铁剑", false, 1, "Equipment");
         var gem = CreateGameItem("ruby_gem", "红宝石", true, 50, "Gem");
-        gem.Attributes["Quality"] = "Rare";
-        gem.Attributes["Power"] = 12.5f;
+        gem.SetCustomData("Quality", "Rare");
+        gem.SetCustomData("Power", 12.5f);
 
         bag.AddItems(potion, 15);
         bag.AddItems(sword, 1);
@@ -363,18 +363,18 @@ public class InventoryExample : MonoBehaviour
         var bag = new LinerContainer("query_demo", "查询演示包", "Backpack", 10);
 
         var ironSword = CreateGameItem("iron_sword", "铁剑", false, 1, "Weapon");
-        ironSword.Attributes["Damage"] = 12;
-        ironSword.Attributes["Material"] = "Iron";
+        ironSword.SetCustomData("Damage", 12);
+        ironSword.SetCustomData("Material", "Iron");
 
         var steelSword = CreateGameItem("steel_sword", "钢剑", false, 1, "Weapon");
-        steelSword.Attributes["Damage"] = 18;
-        steelSword.Attributes["Material"] = "Steel";
+        steelSword.SetCustomData("Damage", 18);
+        steelSword.SetCustomData("Material", "Steel");
 
         var hp = CreateGameItem("health_potion", "生命药水", true, 20, "Potion");
-        hp.Attributes["Healing"] = 50;
+        hp.SetCustomData("Healing", 50);
 
         var mp = CreateGameItem("mana_potion", "魔法药水", true, 20, "Potion");
-        mp.Attributes["Mana"] = 40;
+        mp.SetCustomData("Mana", 40);
 
         bag.AddItems(ironSword);
         bag.AddItems(steelSword);
@@ -395,7 +395,7 @@ public class InventoryExample : MonoBehaviour
         var nameLike = bag.GetItemsByName("药水");
         Debug.Log($"名称包含 '药水' 的条目数={nameLike.Count}");
 
-        var highDamage = bag.GetItemsWhere(i => i.Type == "Weapon" && i.Attributes.ContainsKey("Damage") && (int)i.Attributes["Damage"] >= 15);
+        var highDamage = bag.GetItemsWhere(i => i.Type == "Weapon" && i.GetCustomData<int>("Damage", 0) >= 15);
         Debug.Log($"高伤害武器条目数(>=15)={highDamage.Count}");
     }
     // 案例10: InventoryManager 基础（注册 / 分类 / 优先级 / 查询）
@@ -442,13 +442,13 @@ public class InventoryExample : MonoBehaviour
         mgr.SetGlobalConditionsEnabled(true);
 
         var rareSword = CreateGameItem("rare_sword", "稀有剑", false, 1, "Weapon");
-        rareSword.Attributes["Rarity"] = "Rare";
+        rareSword.SetCustomData("Rarity", "Rare");
 
         var commonSword = CreateGameItem("common_sword", "普通剑", false, 1, "Weapon");
-        commonSword.Attributes["Rarity"] = "Common";
+        commonSword.SetCustomData("Rarity", "Common");
 
         var potion = CreateGameItem("potion", "药水", true, 10, "Consumable");
-        potion.Attributes["Rarity"] = "Rare";
+        potion.SetCustomData("Rarity", "Rare");
 
         var (r1, _) = bag.AddItems(rareSword);
         var (r2, _) = bag.AddItems(commonSword);
@@ -515,7 +515,7 @@ public class InventoryExample : MonoBehaviour
 
         var apple = CreateGameItem("apple", "苹果", true, 10, "Food");
         var sword = CreateGameItem("sword", "剑", false, 1, "Weapon");
-        sword.Attributes["Material"] = "Iron";
+        sword.SetCustomData("Material", "Iron");
         var potion = CreateGameItem("potion", "药水", true, 20, "Consumable");
 
         b1.AddItems(apple, 7);
@@ -548,8 +548,8 @@ public class InventoryExample : MonoBehaviour
         chest.ContainerCondition.Add(new AttributeCondition("Level", 5, AttributeComparisonType.GreaterThanOrEqual));
 
         var gem = CreateGameItem("mystic_gem", "秘法宝石", true, 30, "Gem");
-        gem.Attributes["Level"] = 8;
-        gem.Attributes["Quality"] = "Epic";
+        gem.SetCustomData("Level", 8);
+        gem.SetCustomData("Quality", "Epic");
         chest.AddItems(gem, 12);
 
         // 从架构获取序列化服务
@@ -563,7 +563,7 @@ public class InventoryExample : MonoBehaviour
 
         // 验证条件功能仍有效
         var lowGem = CreateGameItem("low_gem", "低阶宝石", true, 30, "Gem");
-        lowGem.Attributes["Level"] = 2;
+        lowGem.SetCustomData("Level", 2);
         var (rAdd, _) = restored.AddItems(lowGem, 1);
         Debug.Log($"向反序列化容器添加低阶宝石结果={rAdd} (应 ItemConditionNotMet)");
 
@@ -572,7 +572,7 @@ public class InventoryExample : MonoBehaviour
         if (idx >= 0)
         {
             var slot = restored.Slots[idx];
-            Debug.Log($"宝石属性: Level={slot.Item.Attributes["Level"]}, Quality={slot.Item.Attributes["Quality"]}");
+            Debug.Log($"宝石属性: Level={slot.Item.GetCustomData<int>("Level", 0)}, Quality={slot.Item.GetCustomData<string>("Quality", "")}");
         }
     }
 
@@ -608,7 +608,7 @@ public class InventoryExample : MonoBehaviour
 
 
     // 辅助方法: 创建游戏物品
-    private IItem CreateGameItem(string id, string name, bool isStackable, int maxStack = 1, string type = "Default")
+    private Item CreateGameItem(string id, string name, bool isStackable, int maxStack = 1, string type = "Default")
     {
         return new Item
         {

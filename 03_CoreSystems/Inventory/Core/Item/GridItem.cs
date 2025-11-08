@@ -192,19 +192,19 @@ namespace EasyPack.InventorySystem
         {
             var clone = new GridItem
             {
-                ID = this.ID,
-                Name = this.Name,
-                Type = this.Type,
-                Description = this.Description,
-                Weight = this.Weight,
-                IsStackable = this.IsStackable,
-                MaxStackCount = this.MaxStackCount,
-                IsContainerItem = this.IsContainerItem,
-                ContainerIds = this.ContainerIds != null ? new List<string>(this.ContainerIds) : null,
-                Shape = this.Shape != null ? new List<(int x, int y)>(this.Shape) : new List<(int x, int y)> { (0, 0) },
-                CanRotate = this.CanRotate,
-                Rotation = this.Rotation,
-                Attributes = new Dictionary<string, object>(this.Attributes)
+                ID = ID,
+                Name = Name,
+                Type = Type,
+                Description = Description,
+                Weight = Weight,
+                IsStackable = IsStackable,
+                MaxStackCount = MaxStackCount,
+                IsContainerItem = IsContainerItem,
+                ContainerIds = ContainerIds != null ? new List<string>(ContainerIds) : null,
+                CustomData = CustomDataUtility.Clone(CustomData),
+                Shape = Shape != null ? new List<(int x, int y)>(Shape) : new List<(int x, int y)> { (0, 0) },
+                CanRotate = CanRotate,
+                Rotation = Rotation
             };
             return clone;
         }

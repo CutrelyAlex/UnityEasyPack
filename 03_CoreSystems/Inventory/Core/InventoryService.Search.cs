@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace EasyPack.InventorySystem
 {
@@ -299,9 +300,13 @@ namespace EasyPack.InventorySystem
             {
                 results.Clear();
                 results = SearchItemsByCondition(item =>
-                    item.Attributes != null &&
-                    item.Attributes.TryGetValue(attributeName, out var value) &&
-                    (attributeValue == null || value?.Equals(attributeValue) == true));
+                {
+                    if (item.CustomData == null) return false;
+                    var entry = item.CustomData.FirstOrDefault(e => e.Id == attributeName);
+                    if (entry == null) return false;
+                    var value = entry.GetValue();
+                    return attributeValue == null || value?.Equals(attributeValue) == true;
+                });
             }
 
             return results;

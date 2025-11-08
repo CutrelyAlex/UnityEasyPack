@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+
 namespace EasyPack.InventorySystem
 {
     public interface IItem
@@ -11,9 +13,59 @@ namespace EasyPack.InventorySystem
 
         float Weight { get; set; }
         int MaxStackCount { get; }
-        Dictionary<string, object> Attributes { get; set; }
+
+        /// <summary>自定义数据列表，支持多种类型的键值对存储</summary>
+        List<CustomDataEntry> CustomData { get; set; }
+
         IItem Clone();
     }
+
+    /// <summary>
+    /// IItem 接口的扩展方法，提供 CustomData 操作的便利方法
+    /// </summary>
+    public static class IItemExtensions
+    {
+        /// <summary>获取自定义数据值</summary>
+        /// <typeparam name="T">期望的值类型</typeparam>
+        /// <param name="item">物品实例</param>
+        /// <param name="id">数据键</param>
+        /// <param name="defaultValue">默认值</param>
+        /// <returns>找到的值或默认值</returns>
+        public static T GetCustomData<T>(this IItem item, string id, T defaultValue = default)
+        {
+            return CustomDataUtility.GetValue(item.CustomData, id, defaultValue);
+        }
+
+        /// <summary>设置自定义数据值</summary>
+        /// <param name="item">物品实例</param>
+        /// <param name="id">数据键</param>
+        /// <param name="value">要设置的值</param>
+        public static void SetCustomData(this IItem item, string id, object value)
+        {
+            item.CustomData ??= new List<CustomDataEntry>();
+
+            CustomDataUtility.SetValue(item.CustomData, id, value);
+        }
+
+        /// <summary>移除自定义数据</summary>
+        /// <param name="item">物品实例</param>
+        /// <param name="id">数据键</param>
+        /// <returns>是否成功移除</returns>
+        public static bool RemoveCustomData(this IItem item, string id)
+        {
+            return CustomDataUtility.RemoveValue(item.CustomData, id);
+        }
+
+        /// <summary>检查是否存在自定义数据</summary>
+        /// <param name="item">物品实例</param>
+        /// <param name="id">数据键</param>
+        /// <returns>是否存在</returns>
+        public static bool HasCustomData(this IItem item, string id)
+        {
+            return CustomDataUtility.HasValue(item.CustomData, id);
+        }
+    }
+
     public class Item : IItem
     {
         #region 基本属性
@@ -30,11 +82,14 @@ namespace EasyPack.InventorySystem
 
         public int MaxStackCount { get; set; } = -1; // -1代表无限堆叠
 
-        public Dictionary<string, object> Attributes { get; set; } = new Dictionary<string, object>();
+        /// <summary>
+        /// 自定义数据列表
+        /// </summary>
+        public List<CustomDataEntry> CustomData { get; set; } = new List<CustomDataEntry>();
 
 
         public bool IsContainerItem = false;
-        public List<string> ContainerIds { get; set; } // 容器类型的物品对于的ID区域
+        public List<string> ContainerIds { get; set; } // 容器类型的物品对应的ID区域
 
         #endregion
 
@@ -43,32 +98,47 @@ namespace EasyPack.InventorySystem
         {
             var clone = new Item
             {
-                ID = this.ID,
-                Name = this.Name,
-                Type = this.Type,
-                Description = this.Description,
-                Weight = this.Weight,
-                IsStackable = this.IsStackable,
-                MaxStackCount = this.MaxStackCount,
-                IsContainerItem = this.IsContainerItem
+                ID = ID,
+                Name = Name,
+                Type = Type,
+                Description = Description,
+                Weight = Weight,
+                IsStackable = IsStackable,
+                MaxStackCount = MaxStackCount,
+                IsContainerItem = IsContainerItem
             };
 
-            if (this.Attributes != null)
-            {
-                clone.Attributes = new Dictionary<string, object>();
-                foreach (var kvp in this.Attributes)
-                {
-                    clone.Attributes[kvp.Key] = kvp.Value;
-                }
-            }
+            clone.CustomData = CustomDataUtility.Clone(CustomData);
 
-            if (this.ContainerIds != null && this.ContainerIds.Count > 0)
+            if (ContainerIds != null && ContainerIds.Count > 0)
             {
-                clone.ContainerIds = new List<string>(this.ContainerIds);
+                clone.ContainerIds = new List<string>(ContainerIds);
             }
 
             return clone;
         }
+        #endregion
+
+        #region CustomData 辅助方法
+
+        /// <summary>获取自定义数据值</summary>
+        public T GetCustomData<T>(string id, T defaultValue = default) => CustomDataUtility.GetValue(CustomData, id, defaultValue);
+
+        /// <summary>设置自定义数据值</summary>
+        public void SetCustomData(string id, object value)
+        {
+            if (CustomData == null)
+                CustomData = new List<CustomDataEntry>();
+
+            CustomDataUtility.SetValue(CustomData, id, value);
+        }
+
+        /// <summary>移除自定义数据</summary>
+        public bool RemoveCustomData(string id) => CustomDataUtility.RemoveValue(CustomData, id);
+
+        /// <summary>检查是否存在自定义数据</summary>
+        public bool HasCustomData(string id) => CustomDataUtility.HasValue(CustomData, id);
+
         #endregion
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace EasyPack.InventorySystem
 {
@@ -53,14 +54,17 @@ namespace EasyPack.InventorySystem
 
         public bool CheckCondition(IItem item)
         {
-            if (item == null || item.Attributes == null)
+            if (item == null || item.CustomData == null)
                 return false;
 
+            var entry = item.CustomData.FirstOrDefault(e => e.Id == AttributeName);
             if (ComparisonType == AttributeComparisonType.Exists)
-                return item.Attributes.ContainsKey(AttributeName);
+                return entry != null;
 
-            if (!item.Attributes.TryGetValue(AttributeName, out var actualValue))
+            if (entry == null)
                 return false;
+
+            var actualValue = entry.GetValue();
 
             if (actualValue == null)
                 return AttributeValue == null;

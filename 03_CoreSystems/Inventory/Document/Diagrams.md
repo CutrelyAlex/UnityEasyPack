@@ -212,7 +212,7 @@ classDiagram
         +string Type
         +bool IsStackable
         +int MaxStackCount
-        +Dictionary~string,object~ Attributes
+        +List~CustomDataEntry~ CustomData
         +IItem Clone()
     }
     
@@ -224,9 +224,13 @@ classDiagram
         +float Weight
         +bool IsStackable
         +int MaxStackCount
-        +Dictionary~string,object~ Attributes
+        +List~CustomDataEntry~ CustomData
         +bool IsContanierItem
         +List~string~ ContainerIds
+        +GetCustomData~T~(string, T) T
+        +SetCustomData(string, object)
+        +RemoveCustomData(string) bool
+        +HasCustomData(string) bool
         +IItem Clone()
     }
     

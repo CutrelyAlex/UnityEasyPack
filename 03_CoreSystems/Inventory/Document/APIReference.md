@@ -32,6 +32,8 @@
   - [CustomItemCondition 类](#customitemcondition-类)
   - [AllCondition 类](#allcondition-类)
   - [AnyCondition 类](#anycondition-类)
+- [工具类](#工具类)
+  - [CustomDataUtility 类](#customdatautility-类)
 - [序列化类](#序列化类)
   - [ContainerJsonSerializer 类](#containerjsonserializer-类)
   - [ItemJsonSerializer 类](#itemjsonserializer-类)
@@ -335,26 +337,43 @@ var sword = new Item { IsStackable = false };
 
 ---
 
-##### `Dictionary<string, object> Attributes { get; set; }`
+##### `List<CustomDataEntry> CustomData { get; set; }`
 
-**说明：** 物品自定义属性字典，可存储任意键值对（如品质、等级、耐久等）。
+**说明：** 物品自定义数据列表，使用 EasyPack 的 CustomDataEntry 系统存储多种类型的数据。  
+支持的类型包括：int、float、bool、string、Vector2、Vector3、Color 以及自定义 JSON 序列化对象。
 
-**类型：** `Dictionary<string, object>`
+**类型：** `List<CustomDataEntry>`
 
-**默认值：** 空字典
+**默认值：** 空列表
 
 **使用示例：**
 ```csharp
-var item = new Item
+var item = new Item();
+
+// 设置自定义数据
+item.SetCustomData("Rarity", "Legendary");
+item.SetCustomData("Level", 50);
+item.SetCustomData("Durability", 100f);
+item.SetCustomData("Position", new Vector3(1, 2, 3));
+
+// 获取自定义数据
+string rarity = item.GetCustomData<string>("Rarity");
+int level = item.GetCustomData<int>("Level", defaultValue: 1);
+float durability = item.GetCustomData<float>("Durability");
+
+// 检查是否存在
+if (item.HasCustomData("Level"))
 {
-    Attributes = new Dictionary<string, object>
-    {
-        { "Rarity", "Legendary" },
-        { "Level", 50 },
-        { "Durability", 100 }
-    }
-};
+    Debug.Log("物品有等级属性");
+}
+
+// 移除自定义数据
+item.RemoveCustomData("Durability");
 ```
+
+**迁移说明：**  
+旧版本使用 `Dictionary<string, object> Attributes`，新版本改用 `List<CustomDataEntry> CustomData`。  
+如果需要访问旧数据，请使用 `GetCustomData<T>()` 和 `SetCustomData()` 方法。
 
 ---
 
@@ -382,20 +401,99 @@ var item = new Item
 
 ##### `IItem Clone()`
 
-**说明：** 创建物品的深拷贝副本。
+**说明：** 创建物品的深拷贝副本，包括所有自定义数据。
 
 **返回值：**
 - **类型：** `IItem`
-- **说明：** 返回一个新的物品实例，包含所有属性的副本
+- **说明：** 返回一个新的物品实例，包含所有属性和自定义数据的副本
 
 **使用示例：**
 ```csharp
 var originalItem = new Item { ID = "potion", Name = "药水" };
+originalItem.SetCustomData("Quality", 5);
+
 var clonedItem = originalItem.Clone();
 
 // 修改克隆不影响原物品
 clonedItem.Name = "高级药水";
 Debug.Log(originalItem.Name); // "药水"
+```
+
+---
+
+##### `T GetCustomData<T>(string id, T defaultValue = default)`
+
+**说明：** 获取指定 ID 的自定义数据值。
+
+**参数：**
+- `id` - 自定义数据的标识符
+- `defaultValue` - 如果数据不存在时返回的默认值
+
+**返回值：**
+- **类型：** `T`
+- **说明：** 返回指定类型的数据值，如果不存在或类型不匹配则返回默认值
+
+**使用示例：**
+```csharp
+int level = item.GetCustomData<int>("Level", defaultValue: 1);
+string rarity = item.GetCustomData<string>("Rarity", defaultValue: "Common");
+```
+
+---
+
+##### `void SetCustomData(string id, object value)`
+
+**说明：** 设置自定义数据值。如果 ID 已存在，则更新值；否则添加新条目。
+
+**参数：**
+- `id` - 自定义数据的标识符
+- `value` - 要存储的值（支持 int、float、bool、string、Vector2、Vector3、Color 及 JSON 序列化对象）
+
+**使用示例：**
+```csharp
+item.SetCustomData("Level", 50);
+item.SetCustomData("Rarity", "Legendary");
+item.SetCustomData("Position", new Vector3(1, 2, 3));
+```
+
+---
+
+##### `bool RemoveCustomData(string id)`
+
+**说明：** 移除指定 ID 的自定义数据。
+
+**参数：**
+- `id` - 要移除的自定义数据标识符
+
+**返回值：**
+- **类型：** `bool`
+- **说明：** 如果成功移除返回 `true`，如果数据不存在返回 `false`
+
+**使用示例：**
+```csharp
+bool removed = item.RemoveCustomData("Durability");
+```
+
+---
+
+##### `bool HasCustomData(string id)`
+
+**说明：** 检查是否存在指定 ID 的自定义数据。
+
+**参数：**
+- `id` - 要检查的自定义数据标识符
+
+**返回值：**
+- **类型：** `bool`
+- **说明：** 如果存在返回 `true`，否则返回 `false`
+
+**使用示例：**
+```csharp
+if (item.HasCustomData("Level"))
+{
+    int level = item.GetCustomData<int>("Level");
+    Debug.Log($"物品等级: {level}");
+}
 ```
 
 ---
@@ -1738,8 +1836,8 @@ var isLegendary = legendaryCondition.CheckCondition(item);
 ```csharp
 var highLevelCondition = new CustomItemCondition(item =>
 {
-    return item.Attributes.TryGetValue("Level", out var level) &&
-           level is int lvl && lvl >= 50;
+    int level = item.GetCustomData<int>("Level", 0);
+    return level >= 50;
 });
 
 var isHighLevel = highLevelCondition.CheckCondition(item);
@@ -1812,6 +1910,164 @@ var anyCondition = new AnyCondition(
 
 // 接受武器或护甲
 ```
+
+---
+
+## 工具类
+
+### CustomDataUtility 类
+
+**命名空间：** `EasyPack`
+
+**说明：**  
+CustomData 工具类，提供 `List<CustomDataEntry>` 的常用操作方法。所有方法均为静态方法，可直接调用。
+
+**特性：**
+- 统一的数据访问接口
+- 类型安全的泛型方法
+- 支持批量操作
+- 提供深拷贝功能
+
+---
+
+#### 主要方法
+
+##### `T GetValue<T>(List<CustomDataEntry> entries, string id, T defaultValue = default)`
+
+**说明：** 获取自定义数据值，如果不存在则返回默认值。
+
+**参数：**
+- `entries` - CustomData 列表
+- `id` - 数据键
+- `defaultValue` - 默认值
+
+**返回值：** 找到的值或默认值
+
+**使用示例：**
+```csharp
+var entries = new List<CustomDataEntry>();
+int level = CustomDataUtility.GetValue(entries, "Level", 1);
+```
+
+---
+
+##### `bool TryGetValue<T>(IEnumerable<CustomDataEntry> entries, string id, out T value)`
+
+**说明：** 尝试获取自定义数据值。
+
+**参数：**
+- `entries` - CustomData 列表
+- `id` - 数据键
+- `value` - 输出值
+
+**返回值：** 如果找到并成功转换返回 true，否则返回 false
+
+---
+
+##### `void SetValue(List<CustomDataEntry> entries, string id, object value)`
+
+**说明：** 设置自定义数据值（如果已存在则更新，不存在则添加）。
+
+**参数：**
+- `entries` - CustomData 列表
+- `id` - 数据键
+- `value` - 数据值
+
+---
+
+##### `bool RemoveValue(List<CustomDataEntry> entries, string id)`
+
+**说明：** 移除自定义数据。
+
+**参数：**
+- `entries` - CustomData 列表
+- `id` - 数据键
+
+**返回值：** 如果移除成功返回 true，否则返回 false
+
+---
+
+##### `bool HasValue(List<CustomDataEntry> entries, string id)`
+
+**说明：** 检查是否存在指定的自定义数据。
+
+**参数：**
+- `entries` - CustomData 列表
+- `id` - 数据键
+
+**返回值：** 如果存在返回 true，否则返回 false
+
+---
+
+##### `List<CustomDataEntry> Clone(List<CustomDataEntry> source)`
+
+**说明：** 深拷贝 CustomData 列表。
+
+**参数：**
+- `source` - 源列表
+
+**返回值：** 拷贝后的新列表
+
+**使用示例：**
+```csharp
+var original = new List<CustomDataEntry>();
+var cloned = CustomDataUtility.Clone(original);
+```
+
+---
+
+##### `void SetValues(List<CustomDataEntry> entries, Dictionary<string, object> values)`
+
+**说明：** 批量设置多个自定义数据。
+
+**参数：**
+- `entries` - CustomData 列表
+- `values` - 要设置的键值对
+
+**使用示例：**
+```csharp
+var entries = new List<CustomDataEntry>();
+CustomDataUtility.SetValues(entries, new Dictionary<string, object>
+{
+    { "Level", 10 },
+    { "Rarity", "Rare" },
+    { "Durability", 85f }
+});
+```
+
+---
+
+##### `IEnumerable<string> GetKeys(List<CustomDataEntry> entries)`
+
+**说明：** 获取所有数据的键。
+
+**参数：**
+- `entries` - CustomData 列表
+
+**返回值：** 键的集合
+
+---
+
+##### `List<CustomDataEntry> ToEntries(Dictionary<string, object> dict, ICustomDataSerializer fallbackSerializer = null)`
+
+**说明：** 将字典转换为 CustomDataEntry 列表。
+
+**参数：**
+- `dict` - 源字典
+- `fallbackSerializer` - 可选的自定义序列化器
+
+**返回值：** CustomDataEntry 列表
+
+---
+
+##### `Dictionary<string, object> ToDictionary(IEnumerable<CustomDataEntry> entries)`
+
+**说明：** 将 CustomDataEntry 列表转换为字典。
+
+**参数：**
+- `entries` - CustomDataEntry 列表
+
+**返回值：** 字典
 
 ---
 

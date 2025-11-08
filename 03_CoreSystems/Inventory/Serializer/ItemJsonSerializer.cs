@@ -6,6 +6,7 @@ namespace EasyPack.InventorySystem
 {
     /// <summary>
     /// Item类型的JSON序列化器
+    /// 直接使用 CustomDataEntry，无需中间转换
     /// </summary>
     public class ItemJsonSerializer : JsonSerializerBase<Item>
     {
@@ -23,7 +24,9 @@ namespace EasyPack.InventorySystem
                 IsStackable = obj.IsStackable,
                 MaxStackCount = obj.MaxStackCount,
                 isContanierItem = obj.IsContainerItem,
-                Attributes = CustomDataUtility.ToEntries(obj.Attributes),
+                CustomData = obj.CustomData != null && obj.CustomData.Count > 0
+                    ? new List<CustomDataEntry>(obj.CustomData)
+                    : null,
                 ContainerIds = (obj.IsContainerItem && obj.ContainerIds != null && obj.ContainerIds.Count > 0)
                     ? new List<string>(obj.ContainerIds)
                     : null
@@ -61,14 +64,14 @@ namespace EasyPack.InventorySystem
                 IsContainerItem = dto.isContanierItem,
             };
 
-            // 反序列化自定义属性
-            if (dto.Attributes != null && dto.Attributes.Count > 0)
+            // 反序列化 CustomData
+            if (dto.CustomData != null && dto.CustomData.Count > 0)
             {
-                item.Attributes = CustomDataUtility.ToDictionary(dto.Attributes);
+                item.CustomData = new List<CustomDataEntry>(dto.CustomData);
             }
             else
             {
-                item.Attributes = new Dictionary<string, object>();
+                item.CustomData = new List<CustomDataEntry>();
             }
 
             // 反序列化容器ID列表

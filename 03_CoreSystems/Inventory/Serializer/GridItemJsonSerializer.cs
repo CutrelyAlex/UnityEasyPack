@@ -18,7 +18,10 @@ namespace EasyPack.InventorySystem
         public bool IsStackable;
         public float Weight;
         public bool isContanierItem;
-        public List<CustomDataEntry> Attributes;
+
+        /// <summary>自定义数据列表</summary>
+        public List<CustomDataEntry> CustomData;
+
         public List<string> ContainerIds;
 
         // GridItem 特有属性
@@ -56,7 +59,10 @@ namespace EasyPack.InventorySystem
                 IsStackable = item.IsStackable,
                 Weight = item.Weight,
                 isContanierItem = item.IsContainerItem,
-                Attributes = CustomDataUtility.ToEntries(item.Attributes),
+
+                CustomData = item.CustomData != null && item.CustomData.Count > 0
+                    ? new List<CustomDataEntry>(item.CustomData)
+                    : null,
                 ContainerIds = (item.IsContainerItem && item.ContainerIds != null && item.ContainerIds.Count > 0)
                     ? new List<string>(item.ContainerIds)
                     : null,
@@ -104,14 +110,14 @@ namespace EasyPack.InventorySystem
                 Rotation = (RotationAngle)dto.Rotation
             };
 
-            // 反序列化自定义属性
-            if (dto.Attributes != null && dto.Attributes.Count > 0)
+            // 反序列化 CustomData
+            if (dto.CustomData != null && dto.CustomData.Count > 0)
             {
-                item.Attributes = CustomDataUtility.ToDictionary(dto.Attributes);
+                item.CustomData = new List<CustomDataEntry>(dto.CustomData);
             }
             else
             {
-                item.Attributes = new Dictionary<string, object>();
+                item.CustomData = new List<CustomDataEntry>();
             }
 
             // 反序列化容器ID列表
