@@ -9,8 +9,14 @@ using UnityEngine;
 /// </summary>
 public class InventoryExample : MonoBehaviour
 {
+    private IInventoryService _inventoryService;
+
     private async void Start()
     {
+        // 初始化 InventoryService
+        _inventoryService = await EasyPackArchitecture.GetInventoryServiceAsync();
+        Debug.Log($"InventoryService 初始化完成，状态: {_inventoryService.State}");
+
         // 测试
         // Test();
         // 启动实际使用案例展示
@@ -49,7 +55,7 @@ public class InventoryExample : MonoBehaviour
         // 新增扩展示例（源于测试脚本中已有但示例未覆盖的功能）
         ShowOrganizeInventory();                  // 案例8: OrganizeInventory 合并+排序
         ShowAdvancedQueriesAndStatistics();       // 案例9: 各类查询与统计
-        await ShowInventoryManagerBasics();             // 案例10: 容器注册/分类/优先级
+        ShowInventoryManagerBasics();             // 案例10: 容器注册/分类/优先级
         ShowGlobalConditionsDemo();               // 案例11: 全局条件启用/禁用
         ShowCrossContainerAdvancedOps();          // 案例12: Transfer / AutoMove / Batch / Distribute
         ShowGlobalSearchDemo();                   // 案例13: 全局搜索与统计
@@ -399,26 +405,24 @@ public class InventoryExample : MonoBehaviour
         Debug.Log($"高伤害武器条目数(>=15)={highDamage.Count}");
     }
     // 案例10: InventoryManager 基础（注册 / 分类 / 优先级 / 查询）
-    private async Task ShowInventoryManagerBasics()
+    private void ShowInventoryManagerBasics()
     {
         Debug.Log("案例10: InventoryManager 注册 / 分类 / 优先级");
-        var mgr = new InventoryService();
-        await mgr.InitializeAsync();
         var bag1 = new LinerContainer("player_bag1", "玩家背包1", "Backpack", 10);
         var bag2 = new LinerContainer("player_bag2", "玩家背包2", "Backpack", 15);
         var chest = new LinerContainer("home_chest", "家用储物箱", "Storage", 30);
 
-        mgr.RegisterContainer(bag1, priority: 100, category: "Player");
-        mgr.RegisterContainer(bag2, priority: 80, category: "Player");
-        mgr.RegisterContainer(chest, priority: 20, category: "Home");
+        _inventoryService.RegisterContainer(bag1, priority: 100, category: "Player");
+        _inventoryService.RegisterContainer(bag2, priority: 80, category: "Player");
+        _inventoryService.RegisterContainer(chest, priority: 20, category: "Home");
 
-        var byType = mgr.GetContainersByType("Backpack");
+        var byType = _inventoryService.GetContainersByType("Backpack");
         Debug.Log($"类型=Backpack 数量={byType.Count}");
 
-        var byCat = mgr.GetContainersByCategory("Player");
+        var byCat = _inventoryService.GetContainersByCategory("Player");
         Debug.Log($"分类=Player 数量={byCat.Count}");
 
-        var ordered = mgr.GetContainersByPriority();
+        var ordered = _inventoryService.GetContainersByPriority();
         Debug.Log($"优先级最高={ordered[0].Name}");
     }
 
@@ -426,21 +430,20 @@ public class InventoryExample : MonoBehaviour
     private void ShowGlobalConditionsDemo()
     {
         Debug.Log("案例11: 全局物品条件");
-        var mgr = new InventoryService();
 
         var bag = new LinerContainer("gcond_bag", "全局条件背包", "Backpack", 8);
         var chest = new LinerContainer("gcond_chest", "全局条件箱", "Storage", 8);
-        mgr.RegisterContainer(bag);
-        mgr.RegisterContainer(chest);
+        _inventoryService.RegisterContainer(bag);
+        _inventoryService.RegisterContainer(chest);
 
         // 添加全局条件：只允许 Weapon 且 属性 Rarity == Rare
         var typeCond = new ItemTypeCondition("Weapon");
         var rarityCond = new AttributeCondition("Rarity", "Rare");
-        mgr.AddGlobalItemCondition(typeCond);
-        mgr.AddGlobalItemCondition(rarityCond);
+        _inventoryService.AddGlobalItemCondition(typeCond);
+        _inventoryService.AddGlobalItemCondition(rarityCond);
 
         // 启用
-        mgr.SetGlobalConditionsEnabled(true);
+        _inventoryService.SetGlobalConditionsEnabled(true);
 
         var rareSword = CreateGameItem("rare_sword", "稀有剑", false, 1, "Weapon");
         rareSword.SetCustomData("Rarity", "Rare");
@@ -460,7 +463,7 @@ public class InventoryExample : MonoBehaviour
         Debug.Log($"添加药水结果={r3} (应 ItemConditionNotMet)");
 
         // 关闭全局条件再试
-        mgr.SetGlobalConditionsEnabled(false);
+        _inventoryService.SetGlobalConditionsEnabled(false);
         var (r4, _) = bag.AddItems(potion);
         Debug.Log($"关闭后添加药水结果={r4} (应 Success)");
     }
@@ -468,23 +471,22 @@ public class InventoryExample : MonoBehaviour
     private void ShowCrossContainerAdvancedOps()
     {
         Debug.Log("案例12: 跨容器高级操作");
-        var mgr = new InventoryService();
         var src = new LinerContainer("src_bag", "源包", "Backpack", 12);
         var dst = new LinerContainer("dst_bag", "目标包", "Backpack", 12);
         var extra = new LinerContainer("extra_bag", "额外包", "Backpack", 12);
-        mgr.RegisterContainer(src);
-        mgr.RegisterContainer(dst);
-        mgr.RegisterContainer(extra);
+        _inventoryService.RegisterContainer(src);
+        _inventoryService.RegisterContainer(dst);
+        _inventoryService.RegisterContainer(extra);
 
         var apple = CreateGameItem("apple", "苹果", true, 10, "Food");
         src.AddItems(apple, 23); // 10 + 10 + 3
 
         // Transfer 指定数量
-        var (trRes, movedCount) = mgr.TransferItems("apple", 8, "src_bag", "dst_bag");
+        var (trRes, movedCount) = _inventoryService.TransferItems("apple", 8, "src_bag", "dst_bag");
         Debug.Log($"Transfer 8苹果 结果={trRes} 实际移动={movedCount}");
 
         // AutoMove 剩余全部
-        var (autoRes, autoCount) = mgr.AutoMoveItem("apple", "src_bag", "dst_bag");
+        var (autoRes, autoCount) = _inventoryService.AutoMoveItem("apple", "src_bag", "dst_bag");
         Debug.Log($"AutoMove 剩余苹果 结果={autoRes} 移动={autoCount}");
 
         // BatchMove （构造一个移动列表 - 这里移动 dst 的第0槽到 extra）
@@ -493,12 +495,12 @@ public class InventoryExample : MonoBehaviour
             new("dst_bag", 0, "extra_bag"),
             new("dst_bag", 1, "extra_bag")
         };
-        var batchResults = mgr.BatchMoveItems(batch);
+        var batchResults = _inventoryService.BatchMoveItems(batch);
         Debug.Log($"BatchMove 条目数={batchResults.Count}");
 
         // Distribute 分发（把 125 个苹果按顺序分配回三个容器）
         var distItem = CreateGameItem("apple", "苹果", true, 10, "Food");
-        var distribution = mgr.DistributeItems(distItem, 125, new List<string> { "src_bag", "dst_bag", "extra_bag" });
+        var distribution = _inventoryService.DistributeItems(distItem, 125, new List<string> { "src_bag", "dst_bag", "extra_bag" });
         Debug.Log($"分发苹果结果: {string.Join(";", distribution)}");
     }
 
@@ -506,13 +508,12 @@ public class InventoryExample : MonoBehaviour
     private void ShowGlobalSearchDemo()
     {
         Debug.Log("案例13: 全局搜索");
-        var mgr = new InventoryService();
         var b1 = new LinerContainer("gs_b1", "包1", "Backpack", 10);
         var b2 = new LinerContainer("gs_b2", "包2", "Backpack", 10);
         var eq = new LinerContainer("gs_equip", "装备栏", "Equipment", 6);
-        mgr.RegisterContainer(b1);
-        mgr.RegisterContainer(b2);
-        mgr.RegisterContainer(eq);
+        _inventoryService.RegisterContainer(b1);
+        _inventoryService.RegisterContainer(b2);
+        _inventoryService.RegisterContainer(eq);
 
         var apple = CreateGameItem("apple", "苹果", true, 10, "Food");
         var sword = CreateGameItem("sword", "剑", false, 1, "Weapon");
@@ -524,19 +525,19 @@ public class InventoryExample : MonoBehaviour
         b1.AddItems(potion, 5);
         eq.AddItems(sword);
 
-        var applePositions = mgr.FindItemGlobally("apple");
-        Debug.Log($"全局找到苹果位置条数={applePositions.Count} 全局数量={mgr.GetGlobalItemCount("apple")}");
+        var applePositions = _inventoryService.FindItemGlobally("apple");
+        Debug.Log($"全局找到苹果位置条数={applePositions.Count} 全局数量={_inventoryService.GetGlobalItemCount("apple")}");
 
-        var containersHavingSword = mgr.FindContainersWithItem("sword");
+        var containersHavingSword = _inventoryService.FindContainersWithItem("sword");
         Debug.Log($"持有剑的容器数={containersHavingSword.Count}");
 
-        var typeSearch = mgr.SearchItemsByType("Weapon");
+        var typeSearch = _inventoryService.SearchItemsByType("Weapon");
         Debug.Log($"按类型Weapon搜索数={typeSearch.Count}");
 
-        var nameSearch = mgr.SearchItemsByName("药水");
+        var nameSearch = _inventoryService.SearchItemsByName("药水");
         Debug.Log($"名称包含'药水'={nameSearch.Count}");
 
-        var attrSearch = mgr.SearchItemsByAttribute("Material", "Iron");
+        var attrSearch = _inventoryService.SearchItemsByAttribute("Material", "Iron");
         Debug.Log($"属性 Material=Iron 条目={attrSearch.Count}");
     }
 
