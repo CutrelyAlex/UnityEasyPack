@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 using EasyPack.GamePropertySystem;
 
@@ -73,7 +74,7 @@ namespace EasyPack
                     SerializationErrorCode.DeserializationFailed);
 
             var manager = new GamePropertyService();
-            manager.InitializeAsync().Wait();
+            Task.Run(async () => await manager.InitializeAsync()).Wait();
 
             if (dto.Properties != null)
             {

@@ -49,7 +49,7 @@ public class InventoryExample : MonoBehaviour
         // 新增扩展示例（源于测试脚本中已有但示例未覆盖的功能）
         ShowOrganizeInventory();                  // 案例8: OrganizeInventory 合并+排序
         ShowAdvancedQueriesAndStatistics();       // 案例9: 各类查询与统计
-        ShowInventoryManagerBasics();             // 案例10: 容器注册/分类/优先级
+        await ShowInventoryManagerBasics();             // 案例10: 容器注册/分类/优先级
         ShowGlobalConditionsDemo();               // 案例11: 全局条件启用/禁用
         ShowCrossContainerAdvancedOps();          // 案例12: Transfer / AutoMove / Batch / Distribute
         ShowGlobalSearchDemo();                   // 案例13: 全局搜索与统计
@@ -399,10 +399,11 @@ public class InventoryExample : MonoBehaviour
         Debug.Log($"高伤害武器条目数(>=15)={highDamage.Count}");
     }
     // 案例10: InventoryManager 基础（注册 / 分类 / 优先级 / 查询）
-    private void ShowInventoryManagerBasics()
+    private async Task ShowInventoryManagerBasics()
     {
         Debug.Log("案例10: InventoryManager 注册 / 分类 / 优先级");
         var mgr = new InventoryService();
+        await mgr.InitializeAsync();
         var bag1 = new LinerContainer("player_bag1", "玩家背包1", "Backpack", 10);
         var bag2 = new LinerContainer("player_bag2", "玩家背包2", "Backpack", 15);
         var chest = new LinerContainer("home_chest", "家用储物箱", "Storage", 30);
