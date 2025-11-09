@@ -1,6 +1,6 @@
 # Buff 系统 API 参考文档
 
-**适用 EasyPack 版本：** EasyPack v1.6.2  
+**适用 EasyPack 版本：** EasyPack v1.7.0  
 **最后更新：** 2025-11-04
 
 ## 目录
@@ -239,6 +239,142 @@ public void ReduceStack(int amount = 1)
 
 ---
 
+### Buff
+
+**命名空间：** `EasyPack.BuffSystem`  
+**继承：** `object`
+
+Buff 实例，表示一个应用到目标对象的增益或减益效果。包含生命周期管理、堆叠控制和事件回调机制。
+
+#### 属性
+
+##### BuffData
+```csharp
+public BuffData BuffData { get; set; }
+```
+
+获取或设置 Buff 的配置数据。
+
+**类型：** `BuffData`  
+**说明：** 包含 Buff 的静态配置信息
+
+##### Creator
+```csharp
+public GameObject Creator
+```
+
+获取或设置创建此 Buff 的游戏对象。
+
+**类型：** `GameObject`  
+**说明：** 通常是施法者或技能来源
+
+##### Target
+```csharp
+public GameObject Target
+```
+
+获取或设置此 Buff 应用的目标游戏对象。
+
+**类型：** `GameObject`  
+**说明：** Buff 效果作用的对象
+
+##### DurationTimer
+```csharp
+public float DurationTimer
+```
+
+获取或设置持续时间计时器（秒）。
+
+**类型：** `float`  
+**默认值：** `BuffData.Duration`  
+**说明：** 
+- `-1` 表示永久 Buff
+- `> 0` 表示剩余时间
+- `<= 0` 会触发自动移除
+
+##### TriggerTimer
+```csharp
+public float TriggerTimer
+```
+
+获取或设置触发间隔计时器（秒）。
+
+**类型：** `float`  
+**说明：** 用于控制周期性触发的时间间隔
+
+##### CurrentStacks
+```csharp
+public int CurrentStacks { get; set; }
+```
+
+获取或设置当前堆叠层数。
+
+**类型：** `int`  
+**默认值：** `1`  
+**说明：** 受 `BuffData.MaxStacks` 限制
+
+##### OnCreate
+```csharp
+public Action<Buff> OnCreate { get; set; }
+```
+
+Buff 创建时的回调事件。
+
+**类型：** `Action<Buff>`  
+**说明：** 创建后立即触发
+
+##### OnRemove
+```csharp
+public Action<Buff> OnRemove { get; set; }
+```
+
+Buff 移除时的回调事件。
+
+**类型：** `Action<Buff>`  
+**说明：** 移除前触发
+
+##### OnAddStack
+```csharp
+public Action<Buff> OnAddStack { get; set; }
+```
+
+Buff 堆叠层数增加时的回调事件。
+
+**类型：** `Action<Buff>`  
+**说明：** 堆叠增加后触发
+
+##### OnReduceStack
+```csharp
+public Action<Buff> OnReduceStack { get; set; }
+```
+
+Buff 堆叠层数减少时的回调事件。
+
+**类型：** `Action<Buff>`  
+**说明：** 堆叠减少后触发（堆叠 > 0 时）
+
+##### OnUpdate
+```csharp
+public Action<Buff> OnUpdate { get; set; }
+```
+
+Buff 每帧更新时的回调事件。
+
+**类型：** `Action<Buff>`  
+**说明：** 每帧调用
+
+##### OnTrigger
+```csharp
+public Action<Buff> OnTrigger { get; set; }
+```
+
+Buff 定时触发时的回调事件。
+
+**类型：** `Action<Buff>`  
+**说明：** 按 `BuffData.TriggerInterval` 间隔触发
+
+---
+
 ### BuffData
 
 **命名空间：** `EasyPack.BuffSystem`  
@@ -468,6 +604,170 @@ Buff 模块列表。
 **说明：** 定义 Buff 的具体行为，按 `Priority` 排序执行
 
 ---
+
+---
+
+### IBuffService
+
+**命名空间：** `EasyPack.BuffSystem`  
+**继承：** `IService`
+
+Buff系统服务接口，定义Buff系统的核心操作契约。继承IService以集成到EasyPack架构中。
+
+#### 方法
+
+##### CreateBuff
+```csharp
+Buff CreateBuff(BuffData buffData, GameObject creator, GameObject target)
+```
+
+创建并添加新的 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `buffData` | `BuffData` | Buff 配置数据 |
+| `creator` | `GameObject` | 创建 Buff 的游戏对象 |
+| `target` | `GameObject` | Buff 应用的目标对象 |
+
+**返回值：** `Buff` - 创建或更新的 Buff 实例
+
+##### Update
+```csharp
+void Update(float deltaTime)
+```
+
+更新所有 Buff（需要在游戏循环中调用）。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `deltaTime` | `float` | 时间增量 |
+
+##### RemoveBuff
+```csharp
+void RemoveBuff(Buff buff)
+```
+
+移除单个Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `buff` | `Buff` | 要移除的 Buff 实例 |
+
+##### RemoveBuffByID
+```csharp
+void RemoveBuffByID(object target, string buffID)
+```
+
+根据 ID 移除目标对象上的 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `target` | `object` | 目标对象 |
+| `buffID` | `string` | Buff 的 ID |
+
+##### RemoveAllBuffs
+```csharp
+void RemoveAllBuffs(object target)
+```
+
+移除目标对象上的所有 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `target` | `object` | 目标对象 |
+
+##### RemoveBuffsByTag
+```csharp
+void RemoveBuffsByTag(object target, string tag)
+```
+
+根据标签移除 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `target` | `object` | 目标对象 |
+| `tag` | `string` | 标签名 |
+
+##### RemoveBuffsByLayer
+```csharp
+void RemoveBuffsByLayer(object target, string layer)
+```
+
+根据层级移除 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `target` | `object` | 目标对象 |
+| `layer` | `string` | 层级名 |
+
+##### ContainsBuff
+```csharp
+bool ContainsBuff(object target, string buffID)
+```
+
+检查目标对象是否拥有指定 ID 的 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `target` | `object` | 目标对象 |
+| `buffID` | `string` | Buff 的 ID |
+
+**返回值：** `bool` - 拥有返回 true，否则返回 false
+
+##### GetBuff
+```csharp
+Buff GetBuff(object target, string buffID)
+```
+
+获取目标对象上指定 ID 的 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `target` | `object` | 目标对象 |
+| `buffID` | `string` | Buff 的 ID |
+
+**返回值：** `Buff` - Buff 实例，不存在返回 null
+
+##### GetTargetBuffs
+```csharp
+List<Buff> GetTargetBuffs(object target)
+```
+
+获取目标对象上的所有 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `target` | `object` | 目标对象 |
+
+**返回值：** `List<Buff>` - Buff 列表
+
+##### GetBuffsByTag
+```csharp
+List<Buff> GetBuffsByTag(object target, string tag)
+```
+
+根据标签获取 Buff 列表。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `target` | `object` | 目标对象 |
+| `tag` | `string` | 标签名 |
+
+**返回值：** `List<Buff>` - 匹配的 Buff 列表
+
+##### GetBuffsByLayer
+```csharp
+List<Buff> GetBuffsByLayer(object target, string layer)
+```
+
+根据层级获取 Buff 列表。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `target` | `object` | 目标对象 |
+| `layer` | `string` | 层级名 |
+
+**返回值：** `List<Buff>` - 匹配的 Buff 列表
 
 ---
 
@@ -816,150 +1116,6 @@ public bool ContainsBuffWithID(string buffID)
 | `buffID` | `string` | Buff 的 ID |
 
 **返回值：** `bool` - 存在返回 `true`，否则返回 `false`
-
----
-
----
-
-### BuffModule
-
-**命名空间：** `EasyPack.BuffSystem`  
-**继承：** `object`  
-**类型：** 抽象类
-
-定义 Buff 的具体行为模块，通过回调系统响应生命周期事件。
-
-#### 构造函数
-
-```csharp
-public BuffModule()
-```
-
-创建一个新的 BuffModule 实例。
-
----
-
-#### 属性
-
-##### Priority
-```csharp
-public int Priority { get; set; }
-```
-
-模块执行优先级。
-
-**类型：** `int`  
-**默认值：** `0`  
-**说明：** 数值越大优先级越高，执行越早
-
----
-
-##### TriggerCondition
-```csharp
-public Func<Buff, bool> TriggerCondition { get; set; }
-```
-
-触发条件检查函数。
-
-**类型：** `Func<Buff, bool>`  
-**默认值：** `null`  
-**说明：** 
-- 返回 `true` 时模块才会执行
-- `null` 表示无条件执行
-
----
-
-#### 方法
-
-##### RegisterCallback
-```csharp
-protected void RegisterCallback(BuffCallBackType callbackType, Action<Buff, object[]> callback)
-```
-
-注册生命周期回调。
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `callbackType` | `BuffCallBackType` | 回调类型枚举 |
-| `callback` | `Action<Buff, object[]>` | 回调函数 |
-
-**可用回调类型：**
-- `BuffCallBackType.OnCreate` - Buff 创建时
-- `BuffCallBackType.OnTick` - 周期触发时
-- `BuffCallBackType.OnUpdate` - 每帧更新时
-- `BuffCallBackType.OnAddStack` - 堆叠增加时
-- `BuffCallBackType.OnReduceStack` - 堆叠减少时
-- `BuffCallBackType.OnRemove` - Buff 移除时
-- `BuffCallBackType.Custom` - 自定义事件
-
-**使用示例：**
-```csharp
-public class MyModule : BuffModule
-{
-    public MyModule()
-    {
-        RegisterCallback(BuffCallBackType.OnCreate, OnCreate);
-        RegisterCallback(BuffCallBackType.OnTick, OnTick);
-    }
-
-    private void OnCreate(Buff buff, object[] parameters)
-    {
-        Debug.Log("Buff 创建");
-    }
-
-    private void OnTick(Buff buff, object[] parameters)
-    {
-        Debug.Log("周期触发");
-    }
-}
-```
-
----
-
-##### RegisterCallback (自定义事件)
-```csharp
-protected void RegisterCallback(string customEventName, Action<Buff, object[]> callback)
-```
-
-注册自定义事件回调。
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `customEventName` | `string` | 自定义事件名称 |
-| `callback` | `Action<Buff, object[]>` | 回调函数 |
-
-**使用示例：**
-```csharp
-RegisterCallback("OnCriticalHit", OnCriticalHit);
-
-private void OnCriticalHit(Buff buff, object[] parameters)
-{
-    float damage = (float)parameters[0];
-    Debug.Log($"暴击伤害: {damage}");
-}
-```
-
----
-
-##### Execute
-```csharp
-public void Execute(Buff buff, BuffCallBackType callbackType, string customEventName = null, params object[] parameters)
-```
-
-执行模块的回调函数。
-
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `buff` | `Buff` | - | 触发的 Buff 实例 |
-| `callbackType` | `BuffCallBackType` | - | 回调类型 |
-| `customEventName` | `string` | `null` | 自定义事件名称（仅 Custom 类型时有效） |
-| `parameters` | `object[]` | 空数组 | 传递给回调的参数 |
-
-**说明：** 
-- 自动检查 `TriggerCondition`
-- 仅在条件满足时执行
-
----
 
 ---
 

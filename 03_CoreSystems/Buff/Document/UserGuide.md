@@ -1,6 +1,6 @@
 # Buff 系统用户使用指南
 
-**适用 EasyPack 版本：** EasyPack v1.6.2  
+**适用 EasyPack 版本：** EasyPack v1.7.0  
 **最后更新：** 2025-11-04
 
 ## 目录
