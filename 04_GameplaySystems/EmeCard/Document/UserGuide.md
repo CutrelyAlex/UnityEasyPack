@@ -25,6 +25,7 @@
   - [进阶用法](#进阶用法)
     - [递归选择](#递归选择)
     - [复杂规则组合](#复杂规则组合)
+    - [内置效果方法](#内置效果方法)
     - [自定义效果](#自定义效果)
   - [作用域控制: 容器与选择详解](#作用域控制-容器与选择详解)
     - [维度1: 容器位置 — OwnerHops()](#维度1-容器位置--ownerhops)
@@ -643,6 +644,171 @@ public class ComplexRulesExample : MonoBehaviour
         Debug.Log($"交易后 - 金币: {player.Children.Count(c => c.Id == "金币")}, 宝石: {player.Children.Count(c => c.Id == "宝石")}");
     }
 }
+```
+
+---
+
+### 内置效果方法
+
+`CardRuleBuilder` 提供了丰富的内置效果方法，可以满足大部分游戏逻辑需求。这些方法分为以下几类：
+
+#### 创建与移除
+
+##### DoCreate(string cardId, int count = 1)
+创建指定数量的卡牌实例。
+
+```csharp
+// 创建1个"金币"卡牌
+.DoCreate("金币", 1)
+
+// 创建5个"金币"卡牌
+.DoCreate("金币", 5)
+```
+
+##### DoRemove(IRuleEffect.RemoveMode mode, SelectionRoot root, TargetScope scope, params ICardSelector[] selectors)
+移除符合条件的卡牌。支持多种移除模式和选择范围。
+
+```csharp
+// 从匹配的卡牌中移除1张
+.DoRemove(RuleEffect.RemoveMode.One, SelectionRoot.Matched, TargetScope.Matched)
+
+// 从容器子卡中移除所有带"临时"标签的卡牌
+.DoRemove(RuleEffect.RemoveMode.All, SelectionRoot.Container, TargetScope.Children, 
+    new TagSelector("临时"))
+```
+
+##### DoRemoveById(string id, int? take = null)
+按ID移除卡牌。
+
+```csharp
+// 移除1张ID为"木材"的卡牌
+.DoRemoveById("木材", 1)
+
+// 移除所有ID为"木材"的卡牌
+.DoRemoveById("木材")
+```
+
+##### DoRemoveByTag(string tag, int? take = null)
+按标签移除卡牌。
+
+```csharp
+// 移除1张带"消耗品"标签的卡牌
+.DoRemoveByTag("消耗品", 1)
+
+// 移除所有带"临时"标签的卡牌
+.DoRemoveByTag("临时")
+```
+
+##### DoRemoveInChildById(string id, int? take = null)
+在子卡牌中按ID移除。
+
+##### DoRemoveInChildByTag(string tag, int? take = null)
+在子卡牌中按标签移除。
+
+#### 属性修改
+
+##### DoModify(IRuleEffect.ModifyMode mode, string propertyId, object value)
+修改卡牌属性值。
+
+```csharp
+// 设置属性值为固定值
+.DoModify(RuleEffect.ModifyMode.Set, "Health", 100)
+
+// 增加属性值
+.DoModify(RuleEffect.ModifyMode.Add, "Gold", 50)
+
+// 属性值乘以系数
+.DoModify(RuleEffect.ModifyMode.Multiply, "Damage", 1.5f)
+```
+
+##### DoModifyMatched(string propertyId, object value, RuleEffect.ModifyMode mode = RuleEffect.ModifyMode.Set)
+修改匹配卡牌的属性。
+
+##### DoModifyTag(string tag, string propertyId, object value, RuleEffect.ModifyMode mode = RuleEffect.ModifyMode.Set, int? take = null)
+修改带指定标签卡牌的属性。
+
+#### 标签操作
+
+##### DoAddTag(string tag)
+为匹配的卡牌添加标签。
+
+```csharp
+// 为匹配的卡牌添加"已使用"标签
+.DoAddTag("已使用")
+```
+
+##### DoAddTagToMatched(string tag)
+为匹配的卡牌添加标签（同DoAddTag）。
+
+##### DoAddTagToSource(string tag)
+为事件源卡牌添加标签。
+
+##### DoAddTagToContainer(string tag)
+为容器卡牌添加标签。
+
+##### DoAddTagToTag(string targetTag, string newTag, int? take = null)
+为带指定标签的卡牌添加新标签。
+
+##### DoAddTagToId(string targetId, string newTag, int? take = null)
+为指定ID的卡牌添加标签。
+
+##### DoRemoveTagFromSource(string tag)
+从事件源卡牌移除标签。
+
+##### DoRemoveTagFromContainer(string tag)
+从容器卡牌移除标签。
+
+#### 自定义执行
+
+##### DoInvoke(Action<CardRuleContext, IReadOnlyList<Card>> action)
+执行自定义逻辑。这是实现复杂效果的主要方式。
+
+```csharp
+.DoInvoke((ctx, matched) => {
+    // ctx: 规则上下文，包含事件源、容器等信息
+    // matched: 匹配的卡牌列表
+    
+    Debug.Log($"规则触发，匹配到{matched.Count}张卡牌");
+    
+    // 执行自定义游戏逻辑
+    foreach (var card in matched) {
+        // 处理每张匹配的卡牌
+    }
+})
+```
+
+##### Do(IRuleEffect effect)
+执行单个自定义效果实例。
+
+##### Do(params IRuleEffect[] effects)
+执行多个自定义效果实例。
+
+##### Do(IEnumerable<IRuleEffect> effects)
+执行效果集合。
+
+#### 使用建议
+
+1. **优先使用内置方法**: 对于常见操作（如创建、移除、属性修改），优先使用内置的Do***方法。
+
+2. **组合使用**: 一个规则可以包含多个效果，按添加顺序执行。
+
+3. **性能考虑**: 复杂的DoInvoke逻辑会影响规则执行性能，建议将重逻辑移到外部系统。
+
+4. **调试技巧**: 使用DoInvoke添加日志输出，帮助调试规则执行流程。
+
+```csharp
+// 示例：完整的规则，包含多种效果
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .NeedTag("技能卡", 1)
+    .DoRemoveByTag("消耗品", 1)  // 移除消耗品
+    .DoModify(RuleEffect.ModifyMode.Add, "经验值", 10)  // 增加经验
+    .DoAddTag("已使用")  // 标记为已使用
+    .DoInvoke((ctx, matched) => {
+        Debug.Log($"技能 {ctx.Source.Name} 已释放");
+        // 触发其他游戏系统...
+    })
+);
 ```
 
 ---

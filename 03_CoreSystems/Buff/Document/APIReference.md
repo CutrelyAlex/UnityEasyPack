@@ -21,10 +21,6 @@
 
 ---
 
-## 核心类
-
----
-
 ### BuffModule
 
 **命名空间：** `EasyPack.BuffSystem`  
@@ -763,6 +759,66 @@ public void Update(float deltaTime)
 
 ---
 
+##### GetAllBuffsByID
+```csharp
+public List<Buff> GetAllBuffsByID(string buffID)
+```
+
+获取全局所有指定 ID 的 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `buffID` | `string` | Buff 的 ID |
+
+**返回值：** `List<Buff>` - Buff 列表
+
+---
+
+##### GetAllBuffsByTag
+```csharp
+public List<Buff> GetAllBuffsByTag(string tag)
+```
+
+获取全局所有带有指定标签的 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `tag` | `string` | 标签名称 |
+
+**返回值：** `List<Buff>` - Buff 列表
+
+---
+
+##### GetAllBuffsByLayer
+```csharp
+public List<Buff> GetAllBuffsByLayer(string layer)
+```
+
+获取全局所有带有指定层级的 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `layer` | `string` | 层级名称 |
+
+**返回值：** `List<Buff>` - Buff 列表
+
+---
+
+##### ContainsBuffWithID
+```csharp
+public bool ContainsBuffWithID(string buffID)
+```
+
+检查全局是否有指定 ID 的 Buff。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `buffID` | `string` | Buff 的 ID |
+
+**返回值：** `bool` - 存在返回 `true`，否则返回 `false`
+
+---
+
 ---
 
 ### BuffModule
@@ -1004,6 +1060,7 @@ Buff 回调类型。
 | `OnAddStack` | 堆叠增加时触发 |
 | `OnReduceStack` | 堆叠减少时触发 |
 | `OnRemove` | Buff 移除时触发 |
+| `Condition` | 条件触发 |
 | `Custom` | 自定义事件触发 |
 
 ---
