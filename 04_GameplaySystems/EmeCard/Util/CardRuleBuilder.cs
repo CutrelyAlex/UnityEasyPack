@@ -422,7 +422,7 @@ namespace EasyPack.EmeCardSystem
         {
             return DoInvoke((ctx, matched) =>
             {
-                object newData = data == null ? ctx : data.Invoke(ctx);
+                object newData = data == null ? ctx.Event.Data : data.Invoke(ctx);
                 if (haveSource)
                 {
                     ctx.Source.Custom(eventId, newData);
