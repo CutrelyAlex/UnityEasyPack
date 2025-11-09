@@ -225,7 +225,7 @@ classDiagram
         +bool IsStackable
         +int MaxStackCount
         +List~CustomDataEntry~ CustomData
-        +bool IsContanierItem
+        +bool IsContainerItem
         +List~string~ ContainerIds
         +GetCustomData~T~(string, T) T
         +SetCustomData(string, object)
@@ -268,8 +268,7 @@ classDiagram
         +IReadOnlyList~ISlot~ Slots
         +AddItems(IItem, int) (AddItemResult, int)
         +RemoveItems(string, int) (RemoveItemResult, int)
-        +BeginBatch()
-        +EndBatch()
+        +AddItemsBatch(List<(IItem, int)>) List<(IItem, AddItemResult, int, int)>
     }
     
     class LinerContainer {
@@ -283,9 +282,13 @@ classDiagram
         +bool IsGrid = true
         +int GridWidth
         +int GridHeight
-        +AddItemsAtPosition(IItem, int, int, int) (AddItemResult, int)
+        +AddItemAt(IItem, int, int, int) (AddItemResult, int)
         +GetItemAt(int, int) IItem
-        +MoveItemToPosition(int, int, int, int) bool
+        +TryRotateItemAt(int, int) bool
+        +CanPlaceAt(int, int, int, int, int) bool
+        +CanPlaceGridItem(GridItem, int, int) bool
+        +CoordToIndex(int, int) int
+        +IndexToCoord(int) (int, int)
     }
     
     class Slot {
@@ -354,8 +357,9 @@ classDiagram
     }
     
     class AttributeCondition {
-        +string AttributeKey
+        +string AttributeName
         +object AttributeValue
+        +AttributeComparisonType ComparisonType
         +CheckCondition(IItem) bool
         +ToDto() SerializedCondition
     }
@@ -475,7 +479,7 @@ flowchart TD
 ### 跨容器转移流程图
 
 **说明：**  
-展示 `InventoryManager.TransferItems()` 的执行流程。
+展示 `InventoryService.TransferItems()` 的执行流程。
 
 ```mermaid
 flowchart TD
@@ -803,27 +807,30 @@ sequenceDiagram
     Service->>Service: 注册容器
     Service-->>-User: true
     
-    User->>+Service: TransferItems("backpack", 0, "warehouse", "iron_ore", 50)
+    User->>+Service: TransferItems("iron_ore", 50, "backpack", "warehouse")
     Service->>Service: GetContainer("backpack")
     Service->>Service: GetContainer("warehouse")
     
-    Service->>+Backpack: HasItem("iron_ore", 50)
-    Backpack-->>-Service: true
-    
+    Service->>Service: QuickFindItem(Backpack, "iron_ore", 50)
+    Service->>+Backpack: FindSlotIndices("iron_ore")
+    Backpack-->>-Service: List<int> slotIndices
     Service->>+Backpack: GetItemReference("iron_ore")
-    Backpack-->>-Service: item 引用
+    Backpack-->>-Service: IItem item
+    Service->>Service: 计算总数量并验证
     
-    Service->>+Backpack: RemoveItems("iron_ore", 50)
-    Backpack->>Backpack: 移除物品
-    Backpack-->>-Service: (Success, 50)
-    
+    Service->>Service: ValidateGlobalItemConditions(item)
     Service->>+Warehouse: AddItems(item, 50)
     Warehouse->>Warehouse: 添加物品
-    Warehouse-->>-Service: (Success, 50)
+    Warehouse-->>-Service: (AddItemResult.Success, 50)
     
+    Service->>+Backpack: RemoveItem("iron_ore", 50)
+    Backpack->>Backpack: 移除物品
+    Backpack-->>-Service: RemoveItemResult.Success
+    
+    Service->>Service: OnItemsTransferred("backpack", "warehouse", "iron_ore", 50)
     Service-->>-User: (MoveResult.Success, 50)
     
-    Note over Service: 如果添加失败，会回滚到源容器
+    Note over Service: 如果添加失败，不会移除源容器中的物品
 ```
 
 **时序说明：**
@@ -832,16 +839,19 @@ sequenceDiagram
    - 注册背包和仓库到服务
    - 设置优先级（背包优先级更高）
    - 支持分类标签
-2. **转移操作**（8-20）：
+2. **转移操作**（8-21）：
    - 验证源容器和目标容器存在
-   - 从源容器移除物品
-   - 添加到目标容器
+   - 使用 QuickFindItem 查找物品（内部调用 FindSlotIndices 和 GetItemReference）
+   - 验证全局物品条件
+   - 先添加到目标容器
+   - 如果添加成功，再从源容器移除物品
+   - 触发转移事件
    - 返回转移结果和实际转移数量
-   - 失败时自动回滚
+   - 如果添加失败，不会移除源容器中的物品（不会回滚，因为添加失败就不会移除）
 
 **优势：**
 - `InventoryService` 实现 `IService` 接口，集成到 EasyPack 架构
-- 自动处理回滚，确保数据一致性
+- 先添加后移除的顺序确保数据一致性（如果添加失败，不会移除源容器中的物品）
 - 支持全局物品搜索和跨容器操作
 
 ---
@@ -1025,7 +1035,7 @@ flowchart LR
    - 存储到槽位（内存）
    - 更新缓存索引
 6. **查询阶段**：
-   - 缓存加速查询（如 `FindItemSlotIndex()`）
+   - 缓存加速查询（如 `FindFirstSlotIndex()`）
    - 直接从槽位读取
 7. **序列化**：
    - 保存到 JSON 文件

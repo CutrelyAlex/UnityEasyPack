@@ -377,7 +377,7 @@ item.RemoveCustomData("Durability");
 
 ---
 
-##### `bool IsContanierItem { get; set; }`
+##### `bool IsContainerItem { get; set; }`
 
 **说明：** 标记该物品是否为容器类物品（如背包、箱子）。
 
@@ -718,16 +718,41 @@ Debug.Log($"药水总数：{potionCount}");
 
 ---
 
-##### `bool HasItem(string itemId, int count = 1)`
+##### `bool HasItem(string itemId)`
 
-**说明：** 检查容器中是否有指定数量的物品。
+**说明：** 检查容器中是否包含指定物品。
 
 **参数：**
 
 | 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
 |--------|------|----------|------|--------|
 | `itemId` | `string` | 必填 | 物品 ID | - |
-| `count` | `int` | 可选 | 检查的数量 | `1` |
+
+**返回值：**
+- **类型：** `bool`
+- **说明：** `true` 表示存在，`false` 表示不存在
+
+**使用示例：**
+
+```csharp
+if (container.HasItem("gold_coin"))
+{
+    Debug.Log("有金币");
+}
+```
+
+---
+
+##### `bool HasEnoughItems(string itemId, int requiredCount)`
+
+**说明：** 检查容器中是否有足够数量的物品。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `itemId` | `string` | 必填 | 物品 ID | - |
+| `requiredCount` | `int` | 必填 | 需要的数量 | - |
 
 **返回值：**
 - **类型：** `bool`
@@ -736,7 +761,7 @@ Debug.Log($"药水总数：{potionCount}");
 **使用示例：**
 
 ```csharp
-if (container.HasItem("gold_coin", 100))
+if (container.HasEnoughItems("gold_coin", 100))
 {
     Debug.Log("金币足够");
 }
@@ -744,7 +769,7 @@ if (container.HasItem("gold_coin", 100))
 
 ---
 
-##### `int FindItemSlotIndex(string itemId)`
+##### `int FindFirstSlotIndex(string itemId)`
 
 **说明：** 查找指定物品所在的第一个槽位索引。
 
@@ -761,7 +786,7 @@ if (container.HasItem("gold_coin", 100))
 **使用示例：**
 
 ```csharp
-int slotIndex = container.FindItemSlotIndex("potion");
+int slotIndex = container.FindFirstSlotIndex("potion");
 if (slotIndex >= 0)
 {
     Debug.Log($"药水在槽位 {slotIndex}");
@@ -770,7 +795,7 @@ if (slotIndex >= 0)
 
 ---
 
-##### `List<int> FindAllItemSlotIndices(string itemId)`
+##### `List<int> FindSlotIndices(string itemId)`
 
 **说明：** 查找指定物品在容器中的所有槽位索引。
 
@@ -784,25 +809,16 @@ if (slotIndex >= 0)
 - **类型：** `List<int>`
 - **说明：** 包含所有槽位索引的列表，未找到时返回空列表
 
----
+**使用示例：**
 
-##### `IItem GetItemReference(string itemId)`
-
-**说明：** 获取指定物品的引用（任意一个槽位中的实例）。
-
-**参数：**
-
-| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
-|--------|------|----------|------|--------|
-| `itemId` | `string` | 必填 | 物品 ID | - |
-
-**返回值：**
-- **类型：** `IItem`
-- **说明：** 物品引用，未找到时返回 `null`
+```csharp
+var slotIndices = container.FindSlotIndices("potion");
+Debug.Log($"药水在 {slotIndices.Count} 个槽位中");
+```
 
 ---
 
-##### `void ClearContainer()`
+##### `void ClearAllSlots()`
 
 **说明：** 清空容器中的所有物品。
 
@@ -811,55 +827,229 @@ if (slotIndex >= 0)
 **使用示例：**
 
 ```csharp
-container.ClearContainer();
+container.ClearAllSlots();
 Debug.Log($"清空后槽位数：{container.UsedSlots}"); // 0
 ```
 
 ---
 
-##### `void BeginBatch()`
+##### `List<(IItem item, AddItemResult result, int addedCount, int exceededCount)> AddItemsBatch(List<(IItem item, int count)> itemsToAdd)`
 
-**说明：** 开启批处理模式，延迟事件触发和缓存更新。
-
-**使用示例：**
-
-```csharp
-container.BeginBatch();
-for (int i = 0; i < 100; i++)
-{
-    container.AddItems(item, 1);
-}
-container.EndBatch(); // 一次性触发所有事件
-```
-
----
-
-##### `void EndBatch()`
-
-**说明：** 结束批处理模式，触发所有累积的事件和缓存更新。
-
----
-
-##### `List<IItem> FindItemsByCondition(IItemCondition condition)`
-
-**说明：** 查找满足指定条件的所有物品。
+**说明：** 批量添加多种物品到容器，自动处理批处理模式以减少事件触发。
 
 **参数：**
 
 | 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
 |--------|------|----------|------|--------|
-| `condition` | `IItemCondition` | 必填 | 物品条件 | - |
+| `itemsToAdd` | `List<(IItem item, int count)>` | 必填 | 要添加的物品和数量列表 | - |
 
 **返回值：**
-- **类型：** `List<IItem>`
-- **说明：** 满足条件的物品列表（去重）
+- **类型：** `List<(IItem item, AddItemResult result, int addedCount, int exceededCount)>`
+- **说明：** 每个物品的添加结果，包含结果状态、实际添加数量和超出数量
 
 **使用示例：**
 
 ```csharp
+var itemsToAdd = new List<(IItem item, int count)>
+{
+    (new Item { ID = "wood", Name = "木材" }, 100),
+    (new Item { ID = "stone", Name = "石料" }, 50)
+};
+
+var results = container.AddItemsBatch(itemsToAdd);
+foreach (var (item, result, addedCount, exceededCount) in results)
+{
+    Debug.Log($"{item.Name}: {result}, 添加了 {addedCount} 个，超出 {exceededCount} 个");
+}
+```
+
+---
+
+##### `List<(int slotIndex, IItem item, int count)> GetItemsWhere(Func<IItem, bool> condition)`
+
+**说明：** 查找满足指定条件的所有物品（使用 lambda 表达式）。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `condition` | `Func<IItem, bool>` | 必填 | 物品条件函数 | - |
+
+**返回值：**
+- **类型：** `List<(int slotIndex, IItem item, int count)>`
+- **说明：** 满足条件的物品列表，包含槽位索引、物品引用和数量
+
+**使用示例：**
+
+```csharp
+// 使用条件对象
 var weaponCondition = new ItemTypeCondition("Weapon");
-var weapons = container.FindItemsByCondition(weaponCondition);
+var weapons = container.GetItemsWhere(item => weaponCondition.CheckCondition(item));
 Debug.Log($"找到 {weapons.Count} 件武器");
+
+// 或直接使用 lambda
+var highLevelWeapons = container.GetItemsWhere(item => 
+    item.Type == "Weapon" && item.GetCustomData<int>("Level", 0) >= 50);
+```
+
+---
+
+##### `List<(int slotIndex, IItem item, int count)> GetItemsByType(string itemType)`
+
+**说明：** 获取指定类型的所有物品。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `itemType` | `string` | 必填 | 物品类型 | - |
+
+**返回值：**
+- **类型：** `List<(int slotIndex, IItem item, int count)>`
+- **说明：** 指定类型的所有物品列表，包含槽位索引、物品引用和数量
+
+**使用示例：**
+
+```csharp
+var weapons = container.GetItemsByType("Weapon");
+Debug.Log($"找到 {weapons.Count} 件武器");
+```
+
+---
+
+##### `List<(int slotIndex, IItem item, int count)> GetItemsByAttribute(string attributeName, object attributeValue)`
+
+**说明：** 获取具有指定属性值的所有物品。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `attributeName` | `string` | 必填 | 属性名称 | - |
+| `attributeValue` | `object` | 必填 | 属性值 | - |
+
+**返回值：**
+- **类型：** `List<(int slotIndex, IItem item, int count)>`
+- **说明：** 符合条件的物品列表，包含槽位索引、物品引用和数量
+
+**使用示例：**
+
+```csharp
+var ironItems = container.GetItemsByAttribute("Material", "Iron");
+Debug.Log($"找到 {ironItems.Count} 件铁质物品");
+```
+
+---
+
+##### `List<(int slotIndex, IItem item, int count)> GetItemsByName(string namePattern)`
+
+**说明：** 获取名称包含指定模式的所有物品。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `namePattern` | `string` | 必填 | 名称模式（子字符串） | - |
+
+**返回值：**
+- **类型：** `List<(int slotIndex, IItem item, int count)>`
+- **说明：** 符合条件的物品列表，包含槽位索引、物品引用和数量
+
+**使用示例：**
+
+```csharp
+var potions = container.GetItemsByName("药水");
+Debug.Log($"找到 {potions.Count} 个药水类物品");
+```
+
+---
+
+##### `Dictionary<string, int> GetAllItemCountsDict()`
+
+**说明：** 获取容器中所有物品的计数字典。
+
+**返回值：**
+- **类型：** `Dictionary<string, int>`
+- **说明：** 物品 ID 和数量的字典
+
+**使用示例：**
+
+```csharp
+var counts = container.GetAllItemCountsDict();
+foreach (var kvp in counts)
+{
+    Debug.Log($"{kvp.Key}: {kvp.Value}");
+}
+```
+
+---
+
+##### `List<(int slotIndex, IItem item, int count)> GetAllItems()`
+
+**说明：** 获取容器中所有物品的列表。
+
+**返回值：**
+- **类型：** `List<(int slotIndex, IItem item, int count)>`
+- **说明：** 所有物品列表，包含槽位索引、物品引用和数量
+
+**使用示例：**
+
+```csharp
+var allItems = container.GetAllItems();
+Debug.Log($"容器中共有 {allItems.Count} 个物品槽位被占用");
+```
+
+---
+
+##### `int GetUniqueItemCount()`
+
+**说明：** 获取容器中不同物品的种类数量。
+
+**返回值：**
+- **类型：** `int`
+- **说明：** 不同物品的种类数量
+
+**使用示例：**
+
+```csharp
+int uniqueCount = container.GetUniqueItemCount();
+Debug.Log($"容器中有 {uniqueCount} 种不同的物品");
+```
+
+---
+
+##### `bool IsEmpty()`
+
+**说明：** 检查容器是否为空。
+
+**返回值：**
+- **类型：** `bool`
+- **说明：** `true` 表示容器为空，`false` 表示有物品
+
+**使用示例：**
+
+```csharp
+if (container.IsEmpty())
+{
+    Debug.Log("容器是空的");
+}
+```
+
+---
+
+##### `float GetTotalWeight()`
+
+**说明：** 获取容器中所有物品的总重量。
+
+**返回值：**
+- **类型：** `float`
+- **说明：** 所有物品的总重量
+
+**使用示例：**
+
+```csharp
+float totalWeight = container.GetTotalWeight();
+Debug.Log($"容器总重量：{totalWeight}");
 ```
 
 ---
@@ -986,7 +1176,7 @@ var backpack = new LinerContainer("player_backpack", "背包", "Backpack", 20);
 var backpack = new LinerContainer("bp", "背包", "Backpack", 10);
 var warehouse = new LinerContainer("wh", "仓库", "Storage", 50);
 
-int slotIndex = backpack.FindItemSlotIndex("iron_ore");
+int slotIndex = backpack.FindFirstSlotIndex("iron_ore");
 bool success = backpack.MoveItemToContainer(slotIndex, warehouse);
 ```
 
@@ -1098,7 +1288,7 @@ var gridBackpack = new GridContainer("grid_bp", "网格背包", "GridBackpack", 
 
 #### 方法
 
-##### `(AddItemResult result, int addedCount) AddItemsAtPosition(IItem item, int count, int x, int y)`
+##### `(AddItemResult result, int addedCount) AddItemAt(IItem item, int x, int y, int count = 1)`
 
 **说明：** 在指定网格位置添加物品。
 
@@ -1107,9 +1297,9 @@ var gridBackpack = new GridContainer("grid_bp", "网格背包", "GridBackpack", 
 | 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
 |--------|------|----------|------|--------|
 | `item` | `IItem` | 必填 | 要添加的物品（需是 GridItem） | - |
-| `count` | `int` | 必填 | 添加数量 | - |
 | `x` | `int` | 必填 | 网格 X 坐标（列） | - |
 | `y` | `int` | 必填 | 网格 Y 坐标（行） | - |
+| `count` | `int` | 可选 | 添加数量（对于网格物品通常为 1） | `1` |
 
 **返回值：**
 - **类型：** `(AddItemResult result, int addedCount)`
@@ -1122,11 +1312,10 @@ var gridItem = new GridItem
 {
     ID = "armor",
     Name = "盔甲",
-    GridWidth = 2,
-    GridHeight = 2
+    Shape = GridItem.CreateRectangleShape(2, 2)
 };
 
-var (result, count) = gridContainer.AddItemsAtPosition(gridItem, 1, 0, 0);
+var (result, count) = gridContainer.AddItemAt(gridItem, 0, 0, 1);
 if (result == AddItemResult.Success)
 {
     Debug.Log("盔甲放置在 (0,0)");
@@ -1152,28 +1341,36 @@ if (result == AddItemResult.Success)
 
 ---
 
-##### `bool MoveItemToPosition(int sourceX, int sourceY, int targetX, int targetY)`
+##### `bool TryRotateItemAt(int x, int y)`
 
-**说明：** 将物品从源位置移动到目标位置。
+**说明：** 尝试旋转指定位置的物品（如果物品支持旋转）。
 
 **参数：**
 
 | 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
 |--------|------|----------|------|--------|
-| `sourceX` | `int` | 必填 | 源 X 坐标 | - |
-| `sourceY` | `int` | 必填 | 源 Y 坐标 | - |
-| `targetX` | `int` | 必填 | 目标 X 坐标 | - |
-| `targetY` | `int` | 必填 | 目标 Y 坐标 | - |
+| `x` | `int` | 必填 | X 坐标 | - |
+| `y` | `int` | 必填 | Y 坐标 | - |
 
 **返回值：**
 - **类型：** `bool`
-- **说明：** 移动是否成功
+- **说明：** 旋转是否成功（物品支持旋转且旋转后可以放置）
+
+**使用示例：**
+
+```csharp
+bool success = gridContainer.TryRotateItemAt(0, 0);
+if (success)
+{
+    Debug.Log("物品旋转成功");
+}
+```
 
 ---
 
-##### `bool IsPositionAvailable(int x, int y, int width, int height)`
+##### `bool CanPlaceAt(int x, int y, int width, int height, int excludeIndex = -1)`
 
-**说明：** 检查指定区域是否可用（未被占用且不超出边界）。
+**说明：** 检查指定区域是否可以放置物品（未被占用且不超出边界）。
 
 **参数：**
 
@@ -1183,6 +1380,7 @@ if (result == AddItemResult.Success)
 | `y` | `int` | 必填 | Y 坐标 | - |
 | `width` | `int` | 必填 | 宽度 | - |
 | `height` | `int` | 必填 | 高度 | - |
+| `excludeIndex` | `int` | 可选 | 排除的槽位索引（用于移动物品时） | `-1` |
 
 **返回值：**
 - **类型：** `bool`
@@ -1191,10 +1389,91 @@ if (result == AddItemResult.Success)
 **使用示例：**
 
 ```csharp
-if (gridContainer.IsPositionAvailable(2, 2, 2, 2))
+if (gridContainer.CanPlaceAt(2, 2, 2, 2))
 {
     Debug.Log("位置 (2,2) 可放置 2x2 物品");
 }
+```
+
+---
+
+##### `bool CanPlaceGridItem(GridItem gridItem, int slotIndex, int excludeIndex = -1)`
+
+**说明：** 检查指定位置是否可以放置网格物品（支持任意形状）。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `gridItem` | `GridItem` | 必填 | 要放置的网格物品 | - |
+| `slotIndex` | `int` | 必填 | 放置的起始槽位索引 | - |
+| `excludeIndex` | `int` | 可选 | 排除的槽位索引（用于移动物品时） | `-1` |
+
+**返回值：**
+- **类型：** `bool`
+- **说明：** `true` 表示可以放置，`false` 表示被占用或越界
+
+**使用示例：**
+
+```csharp
+var gridItem = new GridItem { Shape = GridItem.CreateRectangleShape(2, 2) };
+int slotIndex = gridContainer.CoordToIndex(2, 2);
+if (gridContainer.CanPlaceGridItem(gridItem, slotIndex))
+{
+    Debug.Log("可以放置网格物品");
+}
+```
+
+**注意：** GridContainer 没有 `MoveItemToPosition` 方法。如需移动物品，需要先使用 `RemoveItem` 移除，再在新位置使用 `AddItemAt` 添加。
+
+---
+
+##### `int CoordToIndex(int x, int y)`
+
+**说明：** 将二维坐标转换为一维索引。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `x` | `int` | 必填 | X 坐标（列） | - |
+| `y` | `int` | 必填 | Y 坐标（行） | - |
+
+**返回值：**
+- **类型：** `int`
+- **说明：** 一维索引，坐标无效时返回 `-1`
+
+**使用示例：**
+
+```csharp
+int index = gridContainer.CoordToIndex(2, 3);
+if (index >= 0)
+{
+    Debug.Log($"坐标 (2,3) 对应索引 {index}");
+}
+```
+
+---
+
+##### `(int x, int y) IndexToCoord(int index)`
+
+**说明：** 将一维索引转换为二维坐标。
+
+**参数：**
+
+| 参数名 | 类型 | 必填/可选 | 说明 | 默认值 |
+|--------|------|----------|------|--------|
+| `index` | `int` | 必填 | 一维索引 | - |
+
+**返回值：**
+- **类型：** `(int x, int y)`
+- **说明：** 二维坐标，索引无效时返回 `(-1, -1)`
+
+**使用示例：**
+
+```csharp
+var (x, y) = gridContainer.IndexToCoord(10);
+Debug.Log($"索引 10 对应坐标 ({x},{y})");
 ```
 
 ---
@@ -1627,9 +1906,9 @@ Debug.Log($"所有容器中的金币总数：{totalGold}");
 
 ---
 
-##### `bool DistributeItems(IItem item, int totalCount, string[] targetContainerIds)`
+##### `Dictionary<string, int> DistributeItems(IItem item, int totalCount, List<string> targetContainerIds)`
 
-**说明：** 将物品分配到多个容器中（尽量平均分配）。
+**说明：** 将物品分配到多个容器中（按优先级和剩余空间分配）。
 
 **参数：**
 
@@ -1637,11 +1916,22 @@ Debug.Log($"所有容器中的金币总数：{totalGold}");
 |--------|------|----------|------|--------|
 | `item` | `IItem` | 必填 | 要分配的物品 | - |
 | `totalCount` | `int` | 必填 | 总数量 | - |
-| `targetContainerIds` | `string[]` | 必填 | 目标容器 ID 数组 | - |
+| `targetContainerIds` | `List<string>` | 必填 | 目标容器 ID 列表 | - |
 
 **返回值：**
-- **类型：** `bool`
-- **说明：** 分配是否成功
+- **类型：** `Dictionary<string, int>`
+- **说明：** 分配结果，键为容器 ID，值为分配到的数量
+
+**使用示例：**
+
+```csharp
+var coinItem = new Item { ID = "coin", Name = "金币", IsStackable = true };
+var distribution = inventoryService.DistributeItems(coinItem, 100, new List<string> { "bp1", "bp2" });
+foreach (var kvp in distribution)
+{
+    Debug.Log($"容器 {kvp.Key} 分配到 {kvp.Value} 个金币");
+}
+```
 
 ---
 
@@ -2212,7 +2502,7 @@ string json = serializationService.SerializeToJson(item);
 - 基本属性（ID、Name、Type、Description、Weight）
 - 堆叠设置（IsStackable、MaxStackCount）
 - 容器物品标记（IsContainerItem、ContainerIds）
-- 自定义属性（Attributes，使用 CustomDataUtility 转换）
+- 自定义属性（CustomData，使用 CustomDataUtility 转换）
 
 ---
 
