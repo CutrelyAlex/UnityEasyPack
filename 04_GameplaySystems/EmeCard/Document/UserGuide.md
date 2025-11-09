@@ -1,46 +1,84 @@
 # EmeCard 系统 - 用户使用指南
 
-**适用EasyPack版本：** EasyPack v1.5.30  
-**最后更新：** 2025-10-26
+**适用 EasyPack 版本:** EasyPack v1.7.0  
+**最后更新:** 2025-11-09
 
 ---
 
 ## 目录
 
-1. [概述](#概述)
-2. [快速开始](#快速开始)
-3. [常见场景](#常见场景)
-4. [进阶用法](#进阶用法)
-5. [故障排查](#故障排查)
-6. [术语表](#术语表)
+- [EmeCard 系统 - 用户使用指南](#emecard-系统---用户使用指南)
+  - [目录](#目录)
+  - [概述](#概述)
+    - [核心特性](#核心特性)
+    - [适用场景](#适用场景)
+    - [系统架构](#系统架构)
+  - [快速开始](#快速开始)
+    - [前置条件](#前置条件)
+    - [第一个示例](#第一个示例)
+  - [常见场景](#常见场景)
+    - [场景1: 初始化工厂和引擎](#场景1-初始化工厂和引擎)
+    - [场景2: 创建卡牌模板](#场景2-创建卡牌模板)
+    - [场景3: 搭建游戏世界](#场景3-搭建游戏世界)
+    - [场景4: 注册简单规则](#场景4-注册简单规则)
+    - [场景5: 演示事件驱动](#场景5-演示事件驱动)
+  - [进阶用法](#进阶用法)
+    - [递归选择](#递归选择)
+    - [复杂规则组合](#复杂规则组合)
+    - [自定义效果](#自定义效果)
+  - [作用域控制: 容器与选择详解](#作用域控制-容器与选择详解)
+    - [维度1: 容器位置 — OwnerHops()](#维度1-容器位置--ownerhops)
+    - [维度2: 选择范围 — SelectionRoot 与 TargetScope](#维度2-选择范围--selectionroot-与-targetscope)
+    - [维度3: 前置条件 — When\*\*\* 方法](#维度3-前置条件--when-方法)
+    - [典型应用模式](#典型应用模式)
+  - [故障排查](#故障排查)
+    - [问题1: 规则不生效](#问题1-规则不生效)
+    - [问题2: 卡牌没有被创建](#问题2-卡牌没有被创建)
+    - [问题3: 递归选择找不到卡牌](#问题3-递归选择找不到卡牌)
+    - [问题4: 固有子卡无法移除](#问题4-固有子卡无法移除)
+  - [术语表](#术语表)
+    - [核心概念](#核心概念)
+    - [事件类型](#事件类型)
+    - [规则组件](#规则组件)
+    - [选择系统](#选择系统)
+    - [卡牌结构](#卡牌结构)
+    - [策略配置](#策略配置)
 
 ---
 
 ## 概述
 
-### 系统简介
-
-**EmeCard** 是一个基于数据驱动的规则引擎系统，专为 Unity 游戏开发设计。它通过**卡牌**（Card）作为通用容器，将游戏中的实体、属性、行为统一建模，并通过**事件-规则-效果**的机制实现灵活的游戏逻辑。
+**EmeCard 系统** 是一个基于卡牌树形结构和事件驱动的游戏逻辑框架。它将游戏世界建模为卡牌的层次结构,通过规则引擎响应事件并执行效果。
 
 ### 核心特性
 
-- **🎯 数据驱动**：通过 `CardData` 定义静态配置，通过 `Card` 实例管理运行时状态
-- **🔄 事件驱动**：基于事件触发规则，支持 `Tick`、`Use`、`Custom` 等多种事件类型
-- **🧩 规则引擎**：通过 `CardRule` 定义"条件-效果"逻辑，支持复杂的匹配与执行策略
-- **🌲 层次结构**：卡牌可持有子卡牌，形成树状结构，支持递归查询与操作
-- **🏷️ 标签系统**：灵活的标签匹配机制，用于规则筛选与分类
-- **⚡ 性能优化**：延迟事件队列、批量处理、引用计数，避免死循环
-- **🔌 可扩展**：通过 `IRuleRequirement`、`IRuleEffect` 接口自定义规则组件
+- **树形结构**: 卡牌可以持有子卡牌,构建层次化的游戏世界
+- **事件驱动**: 通过 `Use`、`Tick`、`Custom` 等事件触发规则
+- **数据驱动**: 规则由 `CardRule` 对象定义,支持序列化
+- **流式API**: 使用 `CardRuleBuilder` 快速构建规则
+- **属性系统**: 集成 GamePropertySystem,支持修饰符
+- **标签系统**: 通过标签灵活过滤和匹配卡牌
 
 ### 适用场景
 
-| 场景 | 说明 | 示例 |
-|------|------|------|
-| **卡牌游戏** | 卡牌效果、组合技、Buff/Debuff | 卡牌对战 |
-| **合成系统** | 配方匹配、材料消耗 | 需要"木棍+火"才能合成火把 |
-| **Roguelike** | 遗物、事件、随机效果 | 每次进房间触发遗物效果 |
-| **策略游戏** | 单位技能、地形效果 | 草地上的单位每回合恢复生命 |
-| **模拟经营** | 资源管理、建筑升级 | 仓库满时自动触发出售 |
+- **卡牌游戏**: 牌库、手牌、场上单位的管理和交互
+- **物品系统**: 背包、装备、消耗品的层级管理
+- **技能系统**: 技能树、Buff/Debuff、状态效果
+- **剧情系统**: 任务、对话、事件的触发与流转
+- **模拟经营**: 资源、建筑、单位的生产与消耗
+
+### 系统架构
+
+```
+CardEngine (引擎)
+    ├─ CardFactory (工厂) - 注册卡牌构造函数
+    ├─ CardRule (规则) - 定义触发条件和效果
+    └─ Card (卡牌实例)
+        ├─ CardData (静态数据)
+        ├─ Properties (属性列表)
+        ├─ Tags (标签集合)
+        └─ Children (子卡牌)
+```
 
 ---
 
@@ -48,732 +86,1100 @@
 
 ### 前置条件
 
-- **Unity 版本**：Unity 2021.3 或更高版本
-- **依赖系统**：需要 `EasyPack.GamePropertySystem`（用于数值属性管理）
+- Unity 2021.3 或更高版本
+- 已导入 EasyPack 包
+- 了解 C# 基础语法
 
-### 安装步骤
+### 第一个示例
 
-1. **导入 EmeCard 系统**  
-   将 `Assets/EasyPack/04_GameplaySystems/EmeCard/` 文件夹复制到项目中
-
-2. **添加命名空间引用**  
-   在脚本文件顶部添加：
-   ```csharp
-   using EasyPack.EmeCardSystem;
-   using EasyPack.GamePropertySystem; // 如果需要使用属性
-   ```
-
-3. **检查依赖**  
-   确保 `GamePropertySystem` 已正确导入
-
-### 第一示例
-
-以下示例演示如何创建一个简单的合成系统：使用"制作"工具消耗"树木"生成"木棍"。
+创建一个简单的卡牌系统,实现"使用工具消耗木材创建木棍"的逻辑:
 
 ```csharp
 using UnityEngine;
 using EasyPack.EmeCardSystem;
 using EasyPack.GamePropertySystem;
-using System.Collections.Generic;
 
-public class QuickStartExample : MonoBehaviour
+public class FirstExample : MonoBehaviour
 {
-    void Start()
+    private void Start()
     {
         // 1. 创建工厂和引擎
         var factory = new CardFactory();
         var engine = new CardEngine(factory);
-
-        // 2. 注册卡牌模板
-        factory.Register("世界", () => 
-            new Card(new CardData("世界", "世界", "", CardCategory.Object), "世界"));
-        factory.Register("玩家", () => 
-            new Card(new CardData("玩家", "玩家", "", CardCategory.Object), "玩家"));
-        factory.Register("树木", () => 
-            new Card(new CardData("树木", "树木", "", CardCategory.Object), "树木"));
-        factory.Register("木棍", () => 
-            new Card(new CardData("木棍", "木棍", "", CardCategory.Object), "木棍"));
-        factory.Register("制作", () => 
-            new Card(new CardData("制作", "制作", "", CardCategory.Action), "制作"));
-
-        // 3. 搭建游戏世界
-        var world = engine.CreateCard("世界");
-        var player = engine.CreateCard("玩家");
-        var tree = engine.CreateCard("树木");
-        var make = engine.CreateCard("制作");
         
+        // 2. 注册卡牌模板
+        factory.Register("工具", () => new Card(
+            new CardData("工具", "制作工具", "", CardCategory.Object, new[] { "制作" })
+        ));
+        
+        factory.Register("木材", () => new Card(
+            new CardData("木材", "木材", "", CardCategory.Object)
+        ));
+        
+        factory.Register("木棍", () => new Card(
+            new CardData("木棍", "木棍", "", CardCategory.Object)
+        ));
+        
+        // 3. 创建世界容器和卡牌
+        var world = new Card(new CardData("世界", "游戏世界"));
+        engine.AddCard(world);
+        
+        var player = engine.CreateCard("工具");
         world.AddChild(player);
-        world.AddChild(tree);
-        world.AddChild(make);
-
-        // 4. 注册规则：使用制作工具时，如果有玩家和树木，消耗树木创建木棍
+        
+        var wood = engine.CreateCard("木材");
+        world.AddChild(wood);
+        
+        // 4. 注册规则: 使用制作工具消耗木材创建木棍
         engine.RegisterRule(b => b
-            .On(CardEventType.Use)               // 监听 Use 事件
-            .When(ctx => ctx.Source.HasTag("制作"))  // 要求触发源是"制作"工具
-            .NeedTag("玩家")                      // 要求容器中有"玩家"
-            .NeedId("树木")                       // 要求容器中有"树木"
-            .DoRemoveById("树木", take: 1)       // 移除 1 个"树木"
-            .DoCreate("木棍")                     // 创建 1 个"木棍"
+            .On(CardEventType.Use)
+            .WhenSourceHasTag("制作")
+            .NeedTag("玩家", 1)
+            .NeedId("木材", 1)
+            .DoRemoveById("木材", take: 1)
+            .DoCreate("木棍", 1)
         );
-
+        
         // 5. 触发事件
-        Debug.Log("初始状态：");
-        PrintChildren(world);
-        // 输出: 玩家, 树木, 制作
-
-        make.Use();       // 触发制作工具的 Use 事件
-        engine.Pump();    // 处理事件队列
-
-        Debug.Log("制作后：");
-        PrintChildren(world);
-        // 输出: 玩家, 木棍, 制作 (树木被消耗)
-    }
-
-    void PrintChildren(Card parent)
-    {
-        Debug.Log($"{parent.Id}: {string.Join(", ", System.Linq.Enumerable.Select(parent.Children, c => c.Id))}");
+        Debug.Log($"使用前: 木材={world.Children.Count(c => c.Id == "木材")}, 木棍={world.Children.Count(c => c.Id == "木棍")}");
+        
+        player.Use();
+        engine.Pump();
+        
+        Debug.Log($"使用后: 木材={world.Children.Count(c => c.Id == "木材")}, 木棍={world.Children.Count(c => c.Id == "木棍")}");
     }
 }
 ```
 
-**预期输出**：
+**预期输出:**
 ```
-初始状态：
-世界: 玩家, 树木, 制作
-
-制作后：
-世界: 玩家, 木棍, 制作
+使用前: 木材=1, 木棍=0
+使用后: 木材=0, 木棍=1
 ```
 
 ---
 
 ## 常见场景
 
-### 场景 1：基础卡牌创建与标签管理
+### 场景1: 初始化工厂和引擎
 
-**使用场景**：创建带有标签的卡牌，用于后续规则匹配。
-
-```csharp
-using UnityEngine;
-using EasyPack.EmeCardSystem;
-
-public class BasicCardExample : MonoBehaviour
-{
-    void Start()
-    {
-        // 创建卡牌数据
-        var weaponData = new CardData(
-            id: "sword",
-            name: "铁剑",
-            desc: "一把普通的铁剑",
-            category: CardCategory.Object,
-            defaultTags: new[] { "武器", "近战" }
-        );
-
-        // 创建卡牌实例（不带属性）
-        var sword = new Card(weaponData, "锋利"); // 额外添加"锋利"标签
-
-        // 查询标签
-        Debug.Log($"是否是武器：{sword.HasTag("武器")}");       // True
-        Debug.Log($"是否锋利：{sword.HasTag("锋利")}");         // True
-        Debug.Log($"所有标签：{string.Join(", ", sword.Tags)}"); // 武器, 近战, 锋利
-
-        // 动态添加/移除标签
-        sword.AddTag("附魔");
-        sword.RemoveTag("锋利");
-        Debug.Log($"更新后标签：{string.Join(", ", sword.Tags)}"); // 武器, 近战, 附魔
-    }
-}
-```
-
----
-
-### 场景 2：层次结构与持有关系
-
-**使用场景**：构建游戏世界树，玩家持有物品，房间包含敌人。
+基于 `EmeCardExample.ShowFactoryAndEngineInitialization()`:
 
 ```csharp
 using UnityEngine;
 using EasyPack.EmeCardSystem;
 
-public class HierarchyExample : MonoBehaviour
+public class FactoryInitExample : MonoBehaviour
 {
-    void Start()
+    private CardEngine _engine;
+    private CardFactory _factory;
+    
+    private void Start()
     {
-        var factory = new CardFactory();
-        var engine = new CardEngine(factory);
-
-        // 注册卡牌
-        factory.Register("玩家", () => new Card(new CardData("玩家", "玩家"), "玩家"));
-        factory.Register("背包", () => new Card(new CardData("背包", "背包"), "背包"));
-        factory.Register("金币", () => new Card(new CardData("金币", "金币"), "金币"));
-        factory.Register("药水", () => new Card(new CardData("药水", "药水"), "药水"));
-
-        // 创建层次结构
-        var player = engine.CreateCard("玩家");
-        var bag = engine.CreateCard("背包");
-        player.AddChild(bag, intrinsic: true); // 背包是"固有子卡"，无法被规则移除
-
-        var coin1 = engine.CreateCard("金币");
-        var coin2 = engine.CreateCard("金币");
-        var potion = engine.CreateCard("药水");
-        bag.AddChild(coin1);
-        bag.AddChild(coin2);
-        bag.AddChild(potion);
-
-        // 查询层次结构
-        Debug.Log($"玩家的子卡数量：{player.ChildrenCount}");          // 1
-        Debug.Log($"背包的子卡数量：{bag.ChildrenCount}");             // 3
-        Debug.Log($"金币的持有者：{coin1.Owner.Id}");                  // 背包
-        Debug.Log($"背包是否为固有：{player.IsIntrinsic(bag)}");       // True
-
-        // 尝试移除固有子卡（失败）
-        bool removed = player.RemoveChild(bag, force: false);
-        Debug.Log($"移除背包（非强制）：{removed}");                    // False
-
-        // 强制移除固有子卡（成功）
-        removed = player.RemoveChild(bag, force: true);
-        Debug.Log($"移除背包（强制）：{removed}");                      // True
+        // 创建工厂
+        _factory = new CardFactory();
+        
+        // 创建引擎并关联工厂
+        _engine = new CardEngine(_factory);
+        
+        // 验证关联
+        Debug.Log($"工厂的引擎引用: {_factory.Owner != null}"); // True
+        Debug.Log($"引擎的工厂引用: {_engine.CardFactory != null}"); // True
     }
 }
 ```
 
----
-
-### 场景 3：规则匹配与效果执行
-
-**使用场景**：实现"燃烧"效果：每次 Tick 时，所有带"可燃烧"标签的卡牌转换为"灰烬"。
-
-```csharp
-using UnityEngine;
-using EasyPack.EmeCardSystem;
-
-public class BurnRuleExample : MonoBehaviour
-{
-    void Start()
-    {
-        var factory = new CardFactory();
-        var engine = new CardEngine(factory);
-
-        factory.Register("森林", () => new Card(new CardData("森林", "森林"), "森林"));
-        factory.Register("树木", () => new Card(new CardData("树木", "树木"), "树木", "可燃烧"));
-        factory.Register("灰烬", () => new Card(new CardData("灰烬", "灰烬"), "灰烬"));
-
-        var forest = engine.CreateCard("森林");
-        var tree1 = engine.CreateCard("树木");
-        var tree2 = engine.CreateCard("树木");
-        forest.AddChild(tree1);
-        forest.AddChild(tree2);
-
-        // 注册燃烧规则
-        engine.RegisterRule(b => b
-            .On(CardEventType.Tick)                   // 监听 Tick 事件
-            .NeedTag("可燃烧", minCount: 1, maxMatched: 0) // 需要至少 1 个可燃烧物，返回所有匹配
-            .DoRemoveByTag("可燃烧")                  // 移除所有可燃烧物
-            .DoInvoke((ctx, matched) =>               // 为每个匹配创建灰烬
-            {
-                foreach (var _ in matched)
-                    ctx.Container.AddChild(ctx.Factory.Owner.CreateCard("灰烬"));
-                Debug.Log($"燃烧了 {matched.Count} 个物体");
-            })
-        );
-
-        Debug.Log($"燃烧前：{string.Join(", ", System.Linq.Enumerable.Select(forest.Children, c => c.Id))}");
-        // 输出: 树木, 树木
-
-        forest.Tick(1f);
-        engine.Pump();
-
-        Debug.Log($"燃烧后：{string.Join(", ", System.Linq.Enumerable.Select(forest.Children, c => c.Id))}");
-        // 输出: 灰烬, 灰烬
-    }
-}
-```
+**说明:**
+- `CardFactory` 负责注册和创建卡牌实例
+- `CardEngine` 管理卡牌实例、规则和事件队列
+- 两者通过 `Owner` 属性相互引用
 
 ---
 
-### 场景 4：递归选择与深度限制
+### 场景2: 创建卡牌模板
 
-**使用场景**：在整个世界树中查找所有"玩家"卡牌，无论层级深度。
-
-```csharp
-using UnityEngine;
-using EasyPack.EmeCardSystem;
-using System.Linq;
-
-public class RecursiveSelectionExample : MonoBehaviour
-{
-    void Start()
-    {
-        var factory = new CardFactory();
-        var engine = new CardEngine(factory);
-
-        factory.Register("世界", () => new Card(new CardData("世界", "世界"), "世界"));
-        factory.Register("区域", () => new Card(new CardData("区域", "区域"), "区域"));
-        factory.Register("玩家", () => new Card(new CardData("玩家", "玩家"), "玩家"));
-
-        var world = engine.CreateCard("世界");
-        var area1 = engine.CreateCard("区域");
-        var area2 = engine.CreateCard("区域");
-        world.AddChild(area1);
-        world.AddChild(area2);
-
-        var player1 = engine.CreateCard("玩家");
-        var player2 = engine.CreateCard("玩家");
-        var player3 = engine.CreateCard("玩家");
-        area1.AddChild(player1);
-        area2.AddChild(player2);
-        area2.AddChild(player3);
-
-        // 注册规则：递归查找所有玩家
-        engine.RegisterRule(b => b
-            .On(CardEventType.Custom, "统计玩家")
-            .AtRoot()                               // 以根容器为锚点
-            .NeedTagRecursive("玩家", minCount: 1, maxMatched: 0) // 递归查找所有玩家
-            .DoInvoke((ctx, matched) =>
-            {
-                Debug.Log($"在整个世界树中发现 {matched.Count} 个玩家");
-                foreach (var p in matched)
-                    Debug.Log($"  - {p.Id} (Owner: {p.Owner.Id})");
-            })
-        );
-
-        world.Custom("统计玩家");
-        engine.Pump();
-        // 输出: 在整个世界树中发现 3 个玩家
-        //       - 玩家 (Owner: 区域)
-        //       - 玩家 (Owner: 区域)
-        //       - 玩家 (Owner: 区域)
-    }
-}
-```
-
----
-
-### 场景 5：属性修改与 GameProperty 集成
-
-**使用场景**：实现 Buff 系统，玩家获得"力量药水"标签时，攻击力 +10。
+基于 `EmeCardExample.ShowCardTemplateCreation()`:
 
 ```csharp
 using UnityEngine;
 using EasyPack.EmeCardSystem;
 using EasyPack.GamePropertySystem;
-using System.Collections.Generic;
 
-public class PropertyModificationExample : MonoBehaviour
+public class CardTemplateExample : MonoBehaviour
 {
-    void Start()
+    private void Start()
+    {
+        var factory = new CardFactory();
+        
+        // 1. 简单模板: 仅静态数据
+        factory.Register("金币", () => new Card(
+            new CardData("金币", "金币", "游戏货币", CardCategory.Object)
+        ));
+        
+        // 2. 带标签的模板
+        factory.Register("玩家", () => new Card(
+            new CardData("玩家", "玩家", "", CardCategory.Object, 
+                        defaultTags: new[] { "玩家", "角色" })
+        ));
+        
+        // 3. 带属性的模板
+        factory.Register("英雄", () => 
+        {
+            var data = new CardData("英雄", "勇者", "", CardCategory.Object);
+            var properties = new List<GameProperty>
+            {
+                new GameProperty("生命值", 100f),
+                new GameProperty("攻击力", 20f),
+                new GameProperty("防御力", 10f)
+            };
+            return new Card(data, properties);
+        });
+        
+        // 4. 带固有子卡的模板
+        factory.Register("战士", () =>
+        {
+            var warrior = new Card(new CardData("战士", "战士"));
+            var sword = new Card(new CardData("剑", "铁剑", "", CardCategory.Object, new[] { "武器" }));
+            warrior.AddChild(sword, intrinsic: true); // 固有装备
+            return warrior;
+        });
+        
+        // 测试创建
+        var engine = new CardEngine(factory);
+        var coin = engine.CreateCard("金币");
+        var hero = engine.CreateCard("英雄");
+        var warrior = engine.CreateCard("战士");
+        
+        Debug.Log($"金币名称: {coin.Name}");
+        Debug.Log($"英雄属性: {hero.Properties.Count}");
+        Debug.Log($"战士装备: {warrior.Intrinsics.Count}");
+    }
+}
+```
+
+**关键点:**
+- 使用 `factory.Register()` 注册构造函数
+- 模板可以包含属性、标签、固有子卡
+- 通过 `engine.CreateCard()` 实例化
+
+---
+
+### 场景3: 搭建游戏世界
+
+基于 `EmeCardExample.ShowWorldSetup()`:
+
+```csharp
+using UnityEngine;
+using EasyPack.EmeCardSystem;
+
+public class WorldSetupExample : MonoBehaviour
+{
+    private void Start()
     {
         var factory = new CardFactory();
         var engine = new CardEngine(factory);
-
-        // 注册带属性的玩家
-        factory.Register("玩家", () => new Card(
-            new CardData("玩家", "玩家"),
-            new List<GameProperty> { new GameProperty("攻击力", 50f) },
-            "玩家"
-        ));
-
+        
+        // 注册模板
+        factory.Register("世界", () => new Card(new CardData("世界", "游戏世界")));
+        factory.Register("玩家", () => new Card(new CardData("玩家", "玩家", "", 
+            CardCategory.Object, new[] { "玩家" })));
+        factory.Register("金币", () => new Card(new CardData("金币", "金币")));
+        factory.Register("宝石", () => new Card(new CardData("宝石", "宝石")));
+        
+        // 创建世界根节点
+        var world = engine.CreateCard("世界");
+        
+        // 创建玩家并添加到世界
         var player = engine.CreateCard("玩家");
-        Debug.Log($"初始攻击力：{player.GetProperty("攻击力").GetValue()}"); // 50
-
-        // 注册规则：添加"力量药水"标签时，攻击力 +10
-        engine.RegisterRule(b => b
-            .On(CardEventType.Custom, "使用药水")
-            .WhenSourceHasTag("玩家")
-            .DoModifyMatched("攻击力", 10f, ModifyPropertyEffect.Mode.AddToBase)
-            .DoInvoke((ctx, matched) =>
-            {
-                var atk = ctx.Source.GetProperty("攻击力").GetValue();
-                Debug.Log($"使用力量药水后，攻击力：{atk}");
-            })
-        );
-
-        player.Custom("使用药水");
-        engine.Pump();
-        // 输出: 使用力量药水后，攻击力：60
+        world.AddChild(player);
+        
+        // 创建资源并添加到世界
+        for (int i = 0; i < 5; i++)
+        {
+            var coin = engine.CreateCard("金币");
+            world.AddChild(coin);
+        }
+        
+        for (int i = 0; i < 3; i++)
+        {
+            var gem = engine.CreateCard("宝石");
+            world.AddChild(gem);
+        }
+        
+        // 显示层次结构
+        DisplayCardHierarchy(world, "游戏世界结构");
+    }
+    
+    private void DisplayCardHierarchy(Card root, string title)
+    {
+        Debug.Log($"===== {title} =====");
+        DisplayCardRecursive(root, 0);
+    }
+    
+    private void DisplayCardRecursive(Card card, int depth)
+    {
+        string indent = new string(' ', depth * 2);
+        Debug.Log($"{indent}- {card.Name} (ID:{card.Id}, Index:{card.Index})");
+        foreach (var child in card.Children)
+        {
+            DisplayCardRecursive(child, depth + 1);
+        }
     }
 }
+```
+
+**预期输出:**
+```
+===== 游戏世界结构 =====
+- 游戏世界 (ID:世界, Index:0)
+  - 玩家 (ID:玩家, Index:1)
+  - 金币 (ID:金币, Index:2)
+  - 金币 (ID:金币, Index:3)
+  - 金币 (ID:金币, Index:4)
+  - 金币 (ID:金币, Index:5)
+  - 金币 (ID:金币, Index:6)
+  - 宝石 (ID:宝石, Index:7)
+  - 宝石 (ID:宝石, Index:8)
+  - 宝石 (ID:宝石, Index:9)
+```
+
+---
+
+### 场景4: 注册简单规则
+
+基于 `EmeCardExample.ShowSimpleRuleRegistration()`:
+
+```csharp
+using UnityEngine;
+using EasyPack.EmeCardSystem;
+
+public class SimpleRuleExample : MonoBehaviour
+{
+    private void Start()
+    {
+        var factory = new CardFactory();
+        var engine = new CardEngine(factory);
+        
+        // 注册模板
+        factory.Register("玩家", () => new Card(new CardData("玩家", "玩家", "", 
+            CardCategory.Object, new[] { "玩家" })));
+        factory.Register("金币", () => new Card(new CardData("金币", "金币")));
+        factory.Register("宝箱", () => new Card(new CardData("宝箱", "宝箱", "", 
+            CardCategory.Object, new[] { "可用" })));
+        
+        // 创建世界
+        var world = new Card(new CardData("世界", "游戏世界"));
+        engine.AddCard(world);
+        
+        var player = engine.CreateCard("玩家");
+        world.AddChild(player);
+        
+        var chest = engine.CreateCard("宝箱");
+        world.AddChild(chest);
+        
+        // 规则1: 使用宝箱创建5个金币
+        engine.RegisterRule(b => b
+            .On(CardEventType.Use)
+            .WhenSourceHasTag("可用")
+            .NeedTag("玩家", 1)
+            .DoCreate("金币", 5)
+            .PrintContext()
+        );
+        
+        Debug.Log($"使用前金币数量: {world.Children.Count(c => c.Id == "金币")}");
+        
+        chest.Use();
+        engine.Pump();
+        
+        Debug.Log($"使用后金币数量: {world.Children.Count(c => c.Id == "金币")}");
+    }
+}
+```
+
+**预期输出:**
+```
+使用前金币数量: 0
+使用后金币数量: 5
+```
+
+---
+
+### 场景5: 演示事件驱动
+
+基于 `EmeCardExample.ShowEventDrivenSystem()`:
+
+```csharp
+using UnityEngine;
+using EasyPack.EmeCardSystem;
+using EasyPack.GamePropertySystem;
+
+public class EventDrivenExample : MonoBehaviour
+{
+    private void Start()
+    {
+        var factory = new CardFactory();
+        var engine = new CardEngine(factory);
+        
+        // 注册模板
+        factory.Register("火把", () =>
+        {
+            var torch = new Card(new CardData("火把", "火把", "", 
+                CardCategory.Object, new[] { "火把" }));
+            torch.Properties.Add(new GameProperty("燃烧时间", 0f));
+            return torch;
+        });
+        
+        // 创建世界和火把
+        var world = new Card(new CardData("世界", "游戏世界"));
+        engine.AddCard(world);
+        
+        var torch = engine.CreateCard("火把");
+        world.AddChild(torch);
+        
+        // 规则1: Tick事件增加燃烧时间
+        engine.RegisterRule(b => b
+            .On(CardEventType.Tick)
+            .NeedTag("火把", 1)
+            .DoInvoke((ctx, matched) =>
+            {
+                var deltaTime = ctx.DeltaTime;
+                foreach (var card in matched)
+                {
+                    var burnTime = card.GetProperty("燃烧时间");
+                    burnTime.SetBaseValue(burnTime.GetBaseValue() + deltaTime);
+                    Debug.Log($"{card.Name} 燃烧时间: {burnTime.GetBaseValue():F2}秒");
+                }
+            })
+        );
+        
+        // 规则2: 燃烧时间>=5秒时移除火把
+        engine.RegisterRule(b => b
+            .On(CardEventType.Tick)
+            .WhenWithCards(ctx =>
+            {
+                var burnedTorches = ctx.Container.Children
+                    .Where(c => c.HasTag("火把") && 
+                               c.GetProperty("燃烧时间").GetBaseValue() >= 5f)
+                    .ToList();
+                return (burnedTorches.Count > 0, burnedTorches);
+            })
+            .DoInvoke((ctx, matched) =>
+            {
+                foreach (var card in matched)
+                {
+                    Debug.Log($"{card.Name} 已燃尽,将被移除");
+                    ctx.Container.RemoveChild(card);
+                }
+            })
+        );
+        
+        // 模拟6次Tick
+        for (int i = 0; i < 6; i++)
+        {
+            torch.Tick(1f);
+            engine.Pump();
+        }
+        
+        Debug.Log($"最终世界子卡数量: {world.Children.Count}");
+    }
+}
+```
+
+**预期输出:**
+```
+火把 燃烧时间: 1.00秒
+火把 燃烧时间: 2.00秒
+火把 燃烧时间: 3.00秒
+火把 燃烧时间: 4.00秒
+火把 燃烧时间: 5.00秒
+火把 已燃尽,将被移除
+最终世界子卡数量: 0
 ```
 
 ---
 
 ## 进阶用法
 
-### 1. 自定义规则组件
+### 递归选择
 
-实现自定义的 `IRuleRequirement` 和 `IRuleEffect`：
+基于 `EmeCardExample.ShowRecursiveSelection()`:
+
+```csharp
+using UnityEngine;
+using EasyPack.EmeCardSystem;
+
+public class RecursiveSelectionExample : MonoBehaviour
+{
+    private void Start()
+    {
+        var factory = new CardFactory();
+        var engine = new CardEngine(factory);
+        
+        // 注册模板
+        factory.Register("容器", () => new Card(new CardData("容器", "容器")));
+        factory.Register("金币", () => new Card(new CardData("金币", "金币")));
+        
+        // 创建嵌套结构
+        var root = engine.CreateCard("容器");
+        var level1 = engine.CreateCard("容器");
+        var level2 = engine.CreateCard("容器");
+        
+        root.AddChild(level1);
+        level1.AddChild(level2);
+        
+        // 在各层添加金币
+        root.AddChild(engine.CreateCard("金币"));
+        level1.AddChild(engine.CreateCard("金币"));
+        level2.AddChild(engine.CreateCard("金币"));
+        
+        // 规则: 递归查找所有金币(深度限制为2)
+        engine.RegisterRule(b => b
+            .On(CardEventType.Use)
+            .AtSelf()
+            .NeedIdRecursive("金币", minCount: 1, maxDepth: 2)
+            .DoInvoke((ctx, matched) =>
+            {
+                Debug.Log($"递归找到 {matched.Count} 个金币");
+                foreach (var coin in matched)
+                {
+                    Debug.Log($"- 金币所在层级: {GetDepth(coin, root)}");
+                }
+            })
+        );
+        
+        root.Use();
+        engine.Pump();
+    }
+    
+    private int GetDepth(Card card, Card root)
+    {
+        int depth = 0;
+        var current = card.Owner;
+        while (current != null && current != root)
+        {
+            depth++;
+            current = current.Owner;
+        }
+        return depth;
+    }
+}
+```
+
+---
+
+### 复杂规则组合
+
+基于 `EmeCardExample.ShowComplexRules()`:
+
+```csharp
+using UnityEngine;
+using EasyPack.EmeCardSystem;
+
+public class ComplexRulesExample : MonoBehaviour
+{
+    private void Start()
+    {
+        var factory = new CardFactory();
+        var engine = new CardEngine(factory);
+        
+        // 注册模板
+        factory.Register("玩家", () => new Card(new CardData("玩家", "玩家", "", 
+            CardCategory.Object, new[] { "玩家" })));
+        factory.Register("金币", () => new Card(new CardData("金币", "金币")));
+        factory.Register("宝石", () => new Card(new CardData("宝石", "宝石")));
+        factory.Register("商人", () => new Card(new CardData("商人", "商人", "", 
+            CardCategory.Object, new[] { "可用", "商人" })));
+        
+        // 创建世界
+        var world = new Card(new CardData("世界", "游戏世界"));
+        engine.AddCard(world);
+        
+        var player = engine.CreateCard("玩家");
+        world.AddChild(player);
+        
+        // 添加10个金币到玩家
+        for (int i = 0; i < 10; i++)
+        {
+            var coin = engine.CreateCard("金币");
+            player.AddChild(coin);
+        }
+        
+        var merchant = engine.CreateCard("商人");
+        world.AddChild(merchant);
+        
+        // 规则: 使用商人,消耗5个金币换1个宝石
+        engine.RegisterRule(b => b
+            .On(CardEventType.Use)
+            .WhenSourceHasTag("商人")
+            .NeedTag("玩家", 1)
+            .NeedSourceId("金币", 5) // 需要玩家有5个金币
+            .DoInvoke((ctx, matched) =>
+            {
+                // 找到玩家
+                var player = matched.FirstOrDefault(c => c.HasTag("玩家"));
+                if (player != null)
+                {
+                    // 移除5个金币
+                    var coins = player.Children.Where(c => c.Id == "金币").Take(5).ToList();
+                    foreach (var coin in coins)
+                    {
+                        player.RemoveChild(coin);
+                    }
+                    
+                    // 添加1个宝石
+                    var gem = ctx.Factory.Create("宝石");
+                    player.AddChild(gem);
+                    
+                    Debug.Log($"交易成功! 玩家现有金币: {player.Children.Count(c => c.Id == "金币")}, 宝石: {player.Children.Count(c => c.Id == "宝石")}");
+                }
+            })
+        );
+        
+        Debug.Log($"交易前 - 金币: {player.Children.Count(c => c.Id == "金币")}, 宝石: {player.Children.Count(c => c.Id == "宝石")}");
+        
+        merchant.Use();
+        engine.Pump();
+        
+        Debug.Log($"交易后 - 金币: {player.Children.Count(c => c.Id == "金币")}, 宝石: {player.Children.Count(c => c.Id == "宝石")}");
+    }
+}
+```
+
+---
+
+### 自定义效果
+
+创建自定义效果类:
 
 ```csharp
 using System.Collections.Generic;
 using EasyPack.EmeCardSystem;
+using UnityEngine;
 
-// 自定义要求：检查容器子卡总数是否超过阈值
-public class ChildCountRequirement : IRuleRequirement
+/// <summary>
+/// 自定义效果: 日志输出
+/// </summary>
+public class LogEffect : IRuleEffect
 {
-    public int MinCount { get; set; } = 1;
-    public int MaxCount { get; set; } = int.MaxValue;
-
-    public bool TryMatch(CardRuleContext ctx, out List<Card> matched)
+    private string _message;
+    
+    public LogEffect(string message)
     {
-        matched = new List<Card>();
-        int count = ctx.Container?.ChildrenCount ?? 0;
-        return count >= MinCount && count <= MaxCount;
+        _message = message;
     }
-}
-
-// 自定义效果：播放音效
-public class PlaySoundEffect : IRuleEffect
-{
-    public string SoundName { get; set; }
-
+    
     public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
     {
-        // 伪代码：播放音效
-        UnityEngine.Debug.Log($"播放音效：{SoundName}");
-        // AudioManager.Play(SoundName);
+        Debug.Log($"[LogEffect] {_message}");
+        Debug.Log($"  触发源: {ctx.Source.Name}");
+        Debug.Log($"  容器: {ctx.Container.Name}");
+        Debug.Log($"  匹配数量: {matched.Count}");
     }
 }
 
 // 使用示例
-public class CustomComponentExample : MonoBehaviour
+public class CustomEffectExample : MonoBehaviour
 {
-    void Start()
+    private void Start()
     {
-        var engine = new CardEngine(new CardFactory());
+        var factory = new CardFactory();
+        var engine = new CardEngine(factory);
+        
+        factory.Register("测试卡", () => new Card(new CardData("测试卡", "测试卡", "", 
+            CardCategory.Object, new[] { "测试" })));
+        
+        var world = new Card(new CardData("世界", "游戏世界"));
+        engine.AddCard(world);
+        
+        var card = engine.CreateCard("测试卡");
+        world.AddChild(card);
+        
+        // 使用自定义效果
         engine.RegisterRule(b => b
             .On(CardEventType.Use)
-            .AddRequirement(new ChildCountRequirement { MinCount = 5, MaxCount = 10 })
-            .Do(new PlaySoundEffect { SoundName = "success.wav" })
+            .NeedTag("测试", 1)
+            .Do(new LogEffect("规则被触发"))
         );
+        
+        card.Use();
+        engine.Pump();
     }
 }
 ```
 
 ---
 
-### 2. 规则优先级与执行顺序
+## 作用域控制: 容器与选择详解
 
-控制规则的执行顺序：
+在 EmeCard 系统中，**作用域（Scope）** 决定了规则"在哪里"寻找符合条件的卡牌。`CardRuleBuilder` 通过三个维度来精确控制作用域：
+
+### 维度1: 容器位置 — OwnerHops()
+
+`OwnerHops()` 方法决定**以哪张卡作为搜索的容器**。
+
+| 方法 | OwnerHops 值 | 容器 | 说明 |
+|------|-------------|------|------|
+| `AtSelf()` | 0 | 事件源本身 | 规则作用在事件源卡上 |
+| `AtParent()` | 1 | 事件源的父卡 | 向上跳一层作为容器 |
+| `AtRoot()` | -1 | 树的根节点 | 总是以树根作为容器 |
+| `OwnerHops(N)` | N > 1 | 向上第N层 | 向上跳N层作为容器 |
+
+**示例对比:**
 
 ```csharp
-var engine = new CardEngine(new CardFactory());
+var factory = new CardFactory();
+var engine = new CardEngine(factory);
 
-// 设置引擎为优先级模式
-engine.Policy.RuleSelection = RuleSelectionMode.Priority;
+// 搭建卡牌树
+var world = engine.CreateCard("世界");
+engine.AddCard(world);
 
-// 高优先级规则（Priority 值越小越优先）
+var kingdom = engine.CreateCard("王国");
+world.AddChild(kingdom);
+
+var player = engine.CreateCard("玩家");
+kingdom.AddChild(player);
+
+var gold = engine.CreateCard("金币");
+player.AddChild(gold);
+
+// 从 gold 发出 Use 事件
+// gold.Owner = player
+// player.Owner = kingdom
+// kingdom.Owner = world
+
+// 规则A: AtSelf() - 容器是 gold 本身
 engine.RegisterRule(b => b
-    .On(CardEventType.Tick)
-    .Priority(1)  // 最高优先级
-    .DoInvoke((ctx, m) => Debug.Log("规则 1：最先执行"))
+    .On(CardEventType.Use)
+    .AtSelf()
+    .NeedId("金币", 1) // ✓ 找到: gold 本身
+    .DoInvoke((ctx, matched) => Debug.Log($"AtSelf: 在 {ctx.Container.Name} 中找到"))
 );
 
+// 规则B: AtParent() - 容器是 player (gold 的父卡)
 engine.RegisterRule(b => b
-    .On(CardEventType.Tick)
-    .Priority(5)  // 中等优先级
-    .DoInvoke((ctx, m) => Debug.Log("规则 2：第二执行"))
+    .On(CardEventType.Use)
+    .AtParent()
+    .NeedId("玩家", 1) // ✓ 找到: player
+    .DoInvoke((ctx, matched) => Debug.Log($"AtParent: 在 {ctx.Container.Name} 中找到"))
 );
 
+// 规则C: AtRoot() - 容器是 world (树根)
 engine.RegisterRule(b => b
-    .On(CardEventType.Tick)
-    .Priority(10) // 低优先级
-    .DoInvoke((ctx, m) => Debug.Log("规则 3：最后执行"))
+    .On(CardEventType.Use)
+    .AtRoot()
+    .NeedId("世界", 1) // ✓ 找到: world
+    .DoInvoke((ctx, matched) => Debug.Log($"AtRoot: 在 {ctx.Container.Name} 中找到"))
 );
 
-// 输出顺序: 规则 1 → 规则 2 → 规则 3
+// 规则D: OwnerHops(2) - 容器是 kingdom (向上跳2层)
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .OwnerHops(2)
+    .NeedId("王国", 1) // ✓ 找到: kingdom
+    .DoInvoke((ctx, matched) => Debug.Log($"OwnerHops(2): 在 {ctx.Container.Name} 中找到"))
+);
+
+gold.Use();
+engine.Pump();
 ```
 
 ---
 
-### 3. 延迟事件与批量处理
+### 维度2: 选择范围 — SelectionRoot 与 TargetScope
 
-理解事件处理的深度机制：
+确定容器后，需要指定**从容器内搜索什么**。这通过 `Need()` 方法的参数控制：
+
+| SelectionRoot | TargetScope | 说明 |
+|---------------|------------|------|
+| `SelectionRoot.Container` | `TargetScope.Children` | 仅搜索容器的直接子卡 |
+| `SelectionRoot.Container` | `TargetScope.Descendants` | 递归搜索容器的所有后代 |
+| `SelectionRoot.Container` | `TargetScope.Matched` | 仅在已匹配的卡上操作 |
+| `SelectionRoot.Source` | `TargetScope.Children` | 搜索事件源的直接子卡（忽略容器） |
+| `SelectionRoot.Source` | `TargetScope.Descendants` | 递归搜索事件源的所有后代 |
+
+**便捷方法对应关系:**
 
 ```csharp
-var engine = new CardEngine(new CardFactory());
-var root = engine.CreateCard("根");
-var child = engine.CreateCard("子");
-root.AddChild(child);
+// 容器的直接子卡
+NeedTag(tag)           // 等价于 Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByTag, tag, ...)
+NeedId(id)             // 等价于 Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ById, id, ...)
+NeedCategory(category) // 等价于 Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByCategory, ...)
 
-// 注册规则：Use 事件触发新的 Custom 事件
+// 容器的所有后代（递归）
+NeedTagRecursive(tag, minCount, maxMatched, maxDepth)           // 检查 Descendants
+NeedIdRecursive(id, minCount, maxMatched, maxDepth)             // 检查 Descendants
+NeedCategoryRecursive(category, minCount, maxMatched, maxDepth) // 检查 Descendants
+
+// 事件源的直接子卡（忽略OwnerHops）
+NeedSourceTag(tag)     // SelectionRoot.Source, TargetScope.Children
+NeedSourceId(id)       // SelectionRoot.Source, TargetScope.Children
+
+// 事件源的所有后代（忽略OwnerHops）
+NeedSourceTagRecursive(tag, minCount, maxMatched, maxDepth)     // SelectionRoot.Source, TargetScope.Descendants
+```
+
+**示例对比:**
+
+```csharp
+var factory = new CardFactory();
+var engine = new CardEngine(factory);
+
+var world = engine.CreateCard("世界");
+engine.AddCard(world);
+
+var kingdom = engine.CreateCard("王国");
+world.AddChild(kingdom);
+
+var gold1 = engine.CreateCard("金币");
+kingdom.AddChild(gold1);
+
+var gold2 = engine.CreateCard("金币");
+kingdom.AddChild(gold2);
+
+// 深层结构
+var vault = engine.CreateCard("金库");
+kingdom.AddChild(vault);
+
+var gold3 = engine.CreateCard("金币");
+vault.AddChild(gold3);
+
+// 规则A: 搜索直接子卡
 engine.RegisterRule(b => b
     .On(CardEventType.Use)
-    .DoInvoke((ctx, m) =>
+    .AtSelf()
+    .NeedId("金币", minCount: 1)  // 仅 gold1, gold2 (直接子卡)
+    .DoInvoke((ctx, matched) => 
+        Debug.Log($"直接子卡: 找到 {matched.Count} 个金币"))
+);
+
+// 规则B: 递归搜索所有后代
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .AtSelf()
+    .NeedIdRecursive("金币", minCount: 1)  // gold1, gold2, gold3 (所有后代)
+    .DoInvoke((ctx, matched) => 
+        Debug.Log($"所有后代: 找到 {matched.Count} 个金币"))
+);
+
+// 规则C: 限制递归深度
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .AtSelf()
+    .NeedIdRecursive("金币", minCount: 1, maxDepth: 1)  // 仅 gold1, gold2 (深度1以内)
+    .DoInvoke((ctx, matched) => 
+        Debug.Log($"深度限制: 找到 {matched.Count} 个金币"))
+);
+
+kingdom.Use();
+engine.Pump();
+```
+
+---
+
+### 维度3: 前置条件 — When*** 方法
+
+`When***` 方法在规则触发前进行**条件检查**，决定规则是否执行（独立于搜索结果）。
+
+| 方法 | 检查条件 | 说明 |
+|------|---------|------|
+| `WhenSourceHasTag(tag)` | 事件源有标签 | `ctx.Source.HasTag(tag)` |
+| `WhenSourceNotHasTag(tag)` | 事件源无标签 | `!(ctx.Source.HasTag(tag))` |
+| `WhenSourceId(id)` | 事件源 ID 匹配 | `ctx.Source.Id == id` |
+| `WhenSourceCategory(cat)` | 事件源类别匹配 | `ctx.Source.Category == cat` |
+| `WhenContainerHasTag(tag)` | 容器有标签 | `ctx.Container.HasTag(tag)` |
+| `WhenContainerNotHasTag(tag)` | 容器无标签 | `!(ctx.Container.HasTag(tag))` |
+| `WhenEventDataIs<T>()` | 事件数据类型 | `ctx.Event.Data is T` |
+| `WhenEventDataNotNull()` | 事件有数据 | `ctx.Event.Data != null` |
+| `When(predicate)` | 自定义条件 | 自定义委托判断 |
+
+**示例对比:**
+
+```csharp
+var factory = new CardFactory();
+var engine = new CardEngine(factory);
+
+var world = engine.CreateCard("世界");
+engine.AddCard(world);
+
+// 创建具有不同标签的卡牌
+var warrior = engine.CreateCard("战士");
+warrior.Data.Tags.Add("战士");
+warrior.Data.Tags.Add("单位");
+world.AddChild(warrior);
+
+var mage = engine.CreateCard("法师");
+mage.Data.Tags.Add("法师");
+mage.Data.Tags.Add("单位");
+world.AddChild(mage);
+
+var spell = engine.CreateCard("法术");
+spell.Data.Tags.Add("法术");
+spell.Data.Tags.Add("技能");
+world.AddChild(spell);
+
+// 规则A: WhenSourceHasTag - 仅战士触发
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .WhenSourceHasTag("战士")     // <-- 前置条件
+    .NeedTag("单位", minCount: 1)
+    .DoInvoke((ctx, matched) => 
+        Debug.Log($"战士规则触发"))
+);
+
+// 规则B: WhenSourceNotHasTag - 非法术触发
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .WhenSourceNotHasTag("法术")  // <-- 前置条件
+    .NeedTag("技能", minCount: 1)
+    .DoInvoke((ctx, matched) => 
+        Debug.Log($"非法术规则触发"))
+);
+
+// 规则C: When 自定义条件
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .When(ctx => ctx.Source.Children.Count > 0)  // <-- 自定义条件
+    .DoInvoke((ctx, matched) => 
+        Debug.Log($"有子卡的卡牌使用"))
+);
+
+Debug.Log("=== 战士使用 ===");
+warrior.Use();
+engine.Pump(); // 规则A 执行 ✓，规则B 执行 ✓，规则C 执行 ✓
+
+Debug.Log("=== 法术使用 ===");
+spell.Use();
+engine.Pump(); // 规则A 不执行 ✗，规则B 不执行 ✗，规则C 执行 ✓
+```
+
+---
+
+### 典型应用模式
+
+| 场景 | 容器 | 搜索范围 | 前置条件 | 示例代码 |
+|------|------|---------|---------|---------|
+| **自身效果** | `AtSelf()` | (无需) | `WhenSourceHasTag(...)` | `AtSelf().When(...).DoInvoke(...)` |
+| **直接子卡** | `AtParent()` | `NeedTag()` | `WhenContainerHasTag(...)` | `AtParent().NeedTag().When(...)` |
+| **递归搜索** | `AtRoot()` | `NeedIdRecursive(..., maxDepth: 2)` | — | `AtRoot().NeedIdRecursive(..., maxDepth: 2)` |
+| **源卡的子树** | — | `NeedSourceTagRecursive()` | `WhenSourceHasTag(...)` | `NeedSourceTagRecursive().When(...)` |
+| **有限递归** | `AtParent()` | `NeedIdRecursive(..., maxDepth: 1)` | — | `AtParent().NeedIdRecursive(..., maxDepth: 1)` |
+
+**实战示例 - 施法者释放法术触发 Buff:**
+
+```csharp
+// 场景: 当有"法师"标签的卡牌使用"法术"标签的卡牌时，
+//      会触发所有直接子卡中带"被动效果"标签的卡牌
+
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .WhenSourceHasTag("法术")              // 前置条件: 事件源是法术
+    .AtParent()                             // 容器: 法术的持有者（施法者）
+    .NeedTag("被动效果", minCount: 1)      // 搜索: 施法者直接子卡中的被动效果
+    .DoInvoke((ctx, matched) =>
     {
-        Debug.Log("收到 Use 事件，触发 Custom 事件");
-        ctx.Source.Custom("递归事件");
+        foreach (var buff in matched)
+        {
+            Debug.Log($"施法者 {ctx.Container.Name} 的 {buff.Name} 被触发");
+        }
     })
 );
 
-engine.RegisterRule(b => b
-    .On(CardEventType.Custom, "递归事件")
-    .DoInvoke((ctx, m) => Debug.Log("收到 Custom 事件"))
-);
+// 使用示例
+var mage = engine.CreateCard("法师");
+mage.Data.Tags.Add("法师");
+engine.AddCard(mage);
 
-root.Use();
-engine.Pump();
+var flame = engine.CreateCard("火焰术");
+flame.Data.Tags.Add("法术");
+mage.AddChild(flame);
 
-// 输出:
-// 收到 Use 事件，触发 Custom 事件
-// 收到 Custom 事件
-```
+var haste = engine.CreateCard("急速");
+haste.Data.Tags.Add("被动效果");
+mage.AddChild(haste);
 
-**关键机制**：
-- 在规则执行过程中（`_processingDepth > 0`）触发的新事件会进入**延迟队列**
-- 主队列处理完毕后，延迟队列的事件会被批量移入主队列
-- 避免了事件处理过程中队列被修改导致的迭代器失效
-
----
-
-### 4. 性能优化建议
-
-#### 4.1 限制递归深度
-
-```csharp
-// ❌ 不推荐：无限递归深度
-engine.RegisterRule(b => b
-    .On(CardEventType.Tick)
-    .NeedTagRecursive("目标", maxDepth: null) // 可能遍历整个树
-);
-
-// ✅ 推荐：限制深度
-engine.RegisterRule(b => b
-    .On(CardEventType.Tick)
-    .MaxDepth(3)                              // 仅递归 3 层
-    .NeedTagRecursive("目标", maxDepth: 3)
-);
-```
-
-#### 4.2 使用 Take 限制匹配数量
-
-```csharp
-// ❌ 不推荐：处理所有匹配
-engine.RegisterRule(b => b
-    .On(CardEventType.Use)
-    .NeedTag("敌人", maxMatched: 0)           // 返回所有匹配
-    .DoRemoveByTag("敌人")                    // 移除所有敌人
-);
-
-// ✅ 推荐：限制数量
-engine.RegisterRule(b => b
-    .On(CardEventType.Use)
-    .NeedTag("敌人", maxMatched: 5)           // 最多返回 5 个
-    .DoRemoveByTag("敌人", take: 5)          // 最多移除 5 个
-);
-```
-
-#### 4.3 避免死循环
-
-```csharp
-// ❌ 危险：可能导致死循环
-engine.RegisterRule(b => b
-    .On(CardEventType.Custom, "事件A")
-    .DoInvoke((ctx, m) => ctx.Source.Custom("事件B"))
-);
-
-engine.RegisterRule(b => b
-    .On(CardEventType.Custom, "事件B")
-    .DoInvoke((ctx, m) => ctx.Source.Custom("事件A")) // 会触发事件A
-);
-
-// ✅ 安全：使用 StopPropagation 中断传播
-engine.RegisterRule(b => b
-    .On(CardEventType.Custom, "事件A")
-    .DoInvoke((ctx, m) => ctx.Source.Custom("事件B"))
-    .StopPropagation() // 执行后中止后续规则
-);
+flame.Use();
+engine.Pump(); // 输出: 施法者 法师 的 急速 被触发
 ```
 
 ---
 
 ## 故障排查
 
-### 常见问题
+### 问题1: 规则不生效
 
-#### 问题 1：编译错误 - 找不到类型 `CardEngine`
+**症状:** 触发事件后规则没有执行
 
-**症状**：  
-```
-The type or namespace name 'CardEngine' could not be found
-```
+**可能原因:**
+1. 忘记调用 `engine.Pump()`
+2. 条件要求不满足
+3. 事件类型不匹配
 
-**原因**：缺少命名空间引用
-
-**解决方法**：  
-在文件头部添加：
+**解决方法:**
 ```csharp
-using EasyPack.EmeCardSystem;
+// 1. 确保调用 Pump
+card.Use();
+engine.Pump(); // 必须调用
+
+// 2. 使用 PrintContext 调试
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .NeedTag("玩家", 1)
+    .PrintContext() // 输出上下文信息
+    .DoCreate("金币")
+);
+
+// 3. 检查事件类型
+card.Use(); // 触发 CardEventType.Use
+// 而不是 card.Tick() 或 card.Custom()
 ```
 
 ---
 
-#### 问题 2：规则没有触发
+### 问题2: 卡牌没有被创建
 
-**症状**：触发事件后，规则效果没有执行
+**症状:** `DoCreate` 效果执行后找不到新卡牌
 
-**排查步骤**：
-1. **检查事件类型是否匹配**
-   ```csharp
-   // 规则监听 Use 事件
-   engine.RegisterRule(b => b.On(CardEventType.Use) ...);
-   
-   // 但触发的是 Tick 事件
-   card.Tick(1f); // ❌ 不匹配
-   card.Use();    // ✅ 匹配
-   ```
+**可能原因:**
+1. 卡牌ID未在工厂注册
+2. 新卡牌被添加到了其他容器
 
-2. **检查 CustomId 是否匹配**
-   ```csharp
-   // 规则监听特定 Custom 事件
-   engine.RegisterRule(b => b.On(CardEventType.Custom, "攻击") ...);
-   
-   // 但触发的是其他 ID
-   card.Custom("防御"); // ❌ 不匹配
-   card.Custom("攻击"); // ✅ 匹配
-   ```
+**解决方法:**
+```csharp
+// 1. 确保注册模板
+factory.Register("金币", () => new Card(new CardData("金币", "金币")));
 
-3. **检查条件是否满足**
-   ```csharp
-   // 规则要求容器中有"玩家"标签
-   engine.RegisterRule(b => b.NeedTag("玩家") ...);
-   
-   // 但容器中没有"玩家"
-   container.AddChild(new Card(...)); // 确保添加了带"玩家"标签的卡
-   ```
+// 2. 确认创建位置
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .AtParent() // 新卡牌会被添加到父级容器
+    .DoCreate("金币")
+);
 
-4. **确认已调用 `engine.Pump()`**
-   ```csharp
-   card.Use();
-   // ❌ 缺少 Pump，事件在队列中未处理
-   
-   card.Use();
-   engine.Pump(); // ✅ 正确
-   ```
+// 3. 检查容器
+Debug.Log($"容器子卡数量: {container.Children.Count}");
+```
 
 ---
 
-#### 问题 3：无法移除固有子卡
+### 问题3: 递归选择找不到卡牌
 
-**症状**：
+**症状:** `NeedIdRecursive` 返回空结果
+
+**可能原因:**
+1. `MaxDepth` 设置过小
+2. 卡牌不在预期的层级
+
+**解决方法:**
 ```csharp
-bool removed = parent.RemoveChild(child); // 返回 false
+// 1. 增加递归深度
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .NeedIdRecursive("金币", minCount: 1, maxDepth: 10) // 增加深度
+    .DoInvoke((ctx, matched) =>
+    {
+        Debug.Log($"找到 {matched.Count} 个金币");
+    })
+);
+
+// 2. 使用无限深度
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .NeedIdRecursive("金币", minCount: 1, maxDepth: null) // 无限深度
+    .DoInvoke((ctx, matched) => { })
+);
 ```
 
-**原因**：子卡被标记为固有（`intrinsic`），普通 `RemoveChild` 无法移除
+---
 
-**解决方法**：
+### 问题4: 固有子卡无法移除
+
+**症状:** `RemoveChild` 返回 `false`
+
+**可能原因:** 子卡是固有子卡 (`intrinsic=true`)
+
+**解决方法:**
 ```csharp
-// 方法 1：强制移除
+// 1. 检查是否固有
+if (parent.IsIntrinsic(child))
+{
+    Debug.Log("这是固有子卡,需要 force=true 才能移除");
+}
+
+// 2. 强制移除
 parent.RemoveChild(child, force: true);
 
-// 方法 2：不使用 intrinsic 标记
-parent.AddChild(child, intrinsic: false);
+// 3. 避免在规则中移除固有子卡
+engine.RegisterRule(b => b
+    .On(CardEventType.Use)
+    .DoRemoveById("武器", take: 1) // 不会移除固有子卡
+);
 ```
-
----
-
-#### 问题 4：事件处理超过最大限制
-
-**原因**：规则之间形成循环触发
-
-**解决方法**：
-1. **检查规则逻辑**，避免 A 触发 B，B 触发 A
-2. **使用 `StopPropagation()`** 中断传播
-3. **添加条件判断**，防止重复触发
-   ```csharp
-   engine.RegisterRule(b => b
-       .On(CardEventType.Custom, "循环")
-       .When(ctx => !ctx.Source.HasTag("已处理")) // 防止重复
-       .DoAddTagToSource("已处理")
-       .DoInvoke((ctx, m) => ctx.Source.Custom("循环"))
-   );
-   ```
-
----
-
-#### 问题 5：属性修改不生效
-
-**症状**：调用 `DoModifyMatched` 后属性值没有变化
-
-**排查步骤**：
-1. **确认卡牌有该属性**
-   ```csharp
-   var prop = card.GetProperty("攻击力");
-   if (prop == null)
-       Debug.LogError("卡牌没有'攻击力'属性");
-   ```
-
-2. **检查属性名是否正确**（区分大小写）
-   ```csharp
-   DoModifyMatched("攻击力", 10f) // ✅ 正确
-   DoModifyMatched("攻击", 10f)   // ❌ 属性名不匹配
-   ```
-
-3. **验证 Scope 和匹配结果**
-   ```csharp
-   .DoModify("攻击力", 10f, scope: TargetScope.Matched) // 作用于匹配结果
-   .DoInvoke((ctx, matched) => Debug.Log($"匹配数量：{matched.Count}"))
-   ```
-
----
-
-### FAQ 更新记录
-
-*本节持续更新，记录用户反馈的新问题。*
-
-#### 问题 X：（待补充）
-*如遇到未列出的问题，请提交 GitHub Issue 或联系维护团队。*
 
 ---
 
 ## 术语表
 
-### 核心术语（中英文对照）
+### 核心概念
 
-| 中文 | 英文 | 说明 |
+| 术语 | 英文 | 说明 |
 |------|------|------|
-| **卡牌** | Card | 系统的基本单元，可表示实体、属性、行为等 |
-| **卡牌数据** | CardData | 卡牌的静态配置（ID、名称、描述、默认标签等） |
-| **卡牌引擎** | CardEngine | 管理卡牌实例、规则注册、事件分发的核心引擎 |
-| **卡牌工厂** | CardFactory | 根据 ID 创建卡牌实例的工厂 |
-| **规则** | CardRule | 定义"触发条件-效果"的逻辑单元 |
-| **要求项** | IRuleRequirement | 规则的匹配条件（如"需要有玩家"） |
-| **效果** | IRuleEffect | 规则执行的结果（如"移除卡牌"、"创建卡牌"） |
-| **事件** | CardEvent | 触发规则的载体，包含类型、ID、数据 |
-| **标签** | Tag | 字符串标识，用于分类和匹配（大小写敏感） |
-| **持有者** | Owner | 当前卡牌的父卡（卡牌树中的父节点） |
-| **子卡牌** | Children | 当前卡牌持有的子卡列表 |
-| **固有子卡** | Intrinsic Child | 不可被规则消耗或移除的特殊子卡 |
-| **容器** | Container | 规则执行的上下文容器（由 `OwnerHops` 决定） |
-| **触发源** | Source | 触发事件的卡牌 |
-| **匹配集** | Matched | 规则匹配阶段返回的卡牌集合 |
-| **选择范围** | TargetScope | 目标选择的作用域（Children/Descendants/Matched） |
-| **过滤模式** | CardFilterMode | 筛选卡牌的方式（ByTag/ById/ByCategory/None） |
-| **优先级** | Priority | 规则执行的优先级（数值越小越优先） |
-| **递归深度** | MaxDepth | 递归查询时的最大层数限制 |
+| **卡牌** | Card | 系统的基本单元,可持有子卡、属性、标签 |
+| **卡牌数据** | CardData | 卡牌的静态配置(ID/名称/描述等) |
+| **工厂** | CardFactory | 负责注册和创建卡牌实例 |
+| **引擎** | CardEngine | 管理卡牌、规则和事件队列 |
+| **规则** | CardRule | 定义事件触发条件和效果 |
+| **上下文** | CardRuleContext | 规则执行时的环境信息 |
 
 ### 事件类型
 
-| 事件类型 | 说明 | 触发方式 |
-|---------|------|---------|
-| **AddedToOwner** | 卡牌被添加到持有者时触发 | `owner.AddChild(card)` |
-| **RemovedFromOwner** | 卡牌从持有者移除时触发 | `owner.RemoveChild(card)` |
-| **Tick** | 定时/帧更新事件 | `card.Tick(deltaTime)` |
-| **Use** | 主动使用事件 | `card.Use()` |
-| **Custom** | 自定义事件 | `card.Custom(id, data)` |
-
-### 卡牌类别
-
-| 类别 | 说明 | 示例 |
+| 术语 | 英文 | 说明 |
 |------|------|------|
-| **Object** | 物品/实体类 | 玩家、敌人、道具 |
-| **Attribute** | 属性/状态类 | Buff、Debuff、标记 |
-| **Action** | 行为/动作类 | 技能、制作工具 |
-| **Environment** | 环境类 | 地形、天气 |
+| **添加到持有者** | AddedToOwner | 卡牌成为子卡时触发 |
+| **从持有者移除** | RemovedFromOwner | 卡牌从持有者移除时触发 |
+| **按时事件** | Tick | 时间驱动的事件 |
+| **使用事件** | Use | 主动使用卡牌时触发 |
+| **自定义事件** | Custom | 用户自定义的事件类型 |
+
+### 规则组件
+
+| 术语 | 英文 | 说明 |
+|------|------|------|
+| **要求项** | Requirement | 规则匹配的前置条件 |
+| **效果** | Effect | 规则生效时执行的操作 |
+| **触发器** | Trigger | 事件类型,决定何时检查规则 |
+| **优先级** | Priority | 规则执行顺序(数值越小越优先) |
+
+### 选择系统
+
+| 术语 | 英文 | 说明 |
+|------|------|------|
+| **选择根** | SelectionRoot | 选择起点(容器/源卡) |
+| **选择范围** | TargetScope | 选择范围(子卡/后代/匹配结果) |
+| **过滤模式** | CardFilterMode | 过滤方式(按ID/标签/类别) |
+| **递归深度** | MaxDepth | 向下搜索的最大层数 |
+
+### 卡牌结构
+
+| 术语 | 英文 | 说明 |
+|------|------|------|
+| **持有者** | Owner | 当前卡牌的父卡牌 |
+| **子卡** | Children | 当前卡牌持有的子卡牌列表 |
+| **固有子卡** | Intrinsic | 不可被规则移除的特殊子卡 |
+| **属性** | Property | 数值属性(集成GamePropertySystem) |
+| **标签** | Tag | 用于过滤和匹配的字符串标记 |
+
+### 策略配置
+
+| 术语 | 英文 | 说明 |
+|------|------|------|
+| **去重匹配** | DistinctMatched | 是否对匹配结果去重 |
+| **中止传播** | StopEventOnSuccess | 规则成功后是否停止处理其他规则 |
+| **规则选择模式** | RuleSelectionMode | 按注册顺序或优先级执行 |
 
 ---
 
-**维护者**：NEKOPACK 团队  
-**联系方式**：提交 GitHub Issue 或 Pull Request  
-**许可证**：遵循项目主许可证
+**相关文档:**
+
+- [API 参考文档](./APIReference.md)
+- [Mermaid 图集](./Diagrams.md)

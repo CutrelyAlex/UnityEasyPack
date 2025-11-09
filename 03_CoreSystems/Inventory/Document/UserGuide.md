@@ -358,7 +358,7 @@ public class ItemTransferExample : MonoBehaviour
         Debug.Log($"背包铁矿石数量：{backpack.GetItemTotalCount("iron_ore")}");
         
         // 方法 1：使用 MoveItemToContainer 从槽位转移
-        int slotIndex = backpack.FindItemSlotIndex("iron_ore");
+        int slotIndex = backpack.FindFirstSlotIndex("iron_ore");
         if (slotIndex >= 0 && backpack is LinerContainer linerBackpack)
         {
             bool success = linerBackpack.MoveItemToContainer(slotIndex, warehouse);
@@ -487,7 +487,7 @@ public class GridContainerExample : MonoBehaviour
         };
         
         // 尝试在 (0, 0) 位置放置盔甲
-        var (result, addedCount) = gridBackpack.AddItemsAtPosition(armor, 1, 0, 0);
+        var (result, addedCount) = gridBackpack.AddItemAt(armor, 0, 0, 1);
         
         if (result == AddItemResult.Success)
         {
@@ -511,7 +511,7 @@ public class GridContainerExample : MonoBehaviour
         };
         
         // 在 (3, 0) 放置戒指
-        gridBackpack.AddItemsAtPosition(ring, 1, 3, 0);
+        gridBackpack.AddItemAt(ring, 3, 0, 1);
         
         // 场景 3：创建 L 形物品（任意形状）
         var lShapedItem = new GridItem
@@ -528,7 +528,7 @@ public class GridContainerExample : MonoBehaviour
         };
         
         // 在 (0, 2) 放置 L 形物品
-        gridBackpack.AddItemsAtPosition(lShapedItem, 1, 0, 2);
+        gridBackpack.AddItemAt(lShapedItem, 0, 2, 1);
         
         // 场景 4：支持旋转的物品
         var rotatableItem = new GridItem
@@ -545,9 +545,9 @@ public class GridContainerExample : MonoBehaviour
         rotatableItem.Rotate();
         Debug.Log($"旋转后的宽度：{rotatableItem.ActualWidth}，高度：{rotatableItem.ActualHeight}");
         
-        // 移动物品到新位置
-        bool moveSuccess = gridBackpack.MoveItemToPosition(0, 0, 2, 2);
-        Debug.Log($"盔甲移动到 (2,2)：{moveSuccess}");
+        // 注意：GridContainer 没有 MoveItemToPosition 方法
+        // 如需移动物品，需要先移除再在新位置添加
+        Debug.Log("如需移动物品，请先使用 RemoveItem 移除，再在新位置使用 AddItemAt 添加");
     }
 }
 ```
@@ -560,7 +560,7 @@ public class GridContainerExample : MonoBehaviour
 - `ActualWidth` 和 `ActualHeight` 自动计算当前旋转后的实际占用空间
 
 **性能优化建议：**
-- 批量操作时使用 `BeginBatch()` / `EndBatch()` 减少事件触发
+- 批量添加物品时使用 `AddItemsBatch()` 方法减少事件触发
 - 对于复杂形状的物品，创建时预计算好形状坐标列表，避免运行时动态创建
 
 ---
@@ -572,18 +572,20 @@ public class GridContainerExample : MonoBehaviour
 **代码示例：**
 
 ```csharp
+using EasyPack;
 using EasyPack.InventorySystem;
-using UnityEngine;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using UnityEngine;
 
 public class BatchOperationsExample : MonoBehaviour
 {
-    void Start()
+    async void Start()
     {
         var warehouse = new LinerContainer("warehouse", "仓库", "Storage", 100);
         
         // 创建大量物品
-        var materials = new List<(Item item, int count)>
+        var materials = new List<(IItem item, int count)>
         {
             (new Item { ID = "wood", Name = "木材", IsStackable = true }, 500),
             (new Item { ID = "stone", Name = "石料", IsStackable = true }, 300),
@@ -591,31 +593,27 @@ public class BatchOperationsExample : MonoBehaviour
             (new Item { ID = "gold", Name = "金矿", IsStackable = true }, 50)
         };
         
-        // 开启批处理模式
-        warehouse.BeginBatch();
-        
-        foreach (var (item, count) in materials)
-        {
-            warehouse.AddItems(item, count);
-        }
-        
-        // 结束批处理，一次性触发所有事件
-        warehouse.EndBatch();
+        // 使用 AddItemsBatch 方法批量添加物品（自动处理批处理模式）
+        var batchResults = warehouse.AddItemsBatch(materials);
         
         Debug.Log($"批量添加完成，仓库已用槽位：{warehouse.UsedSlots}");
+        foreach (var (item, result, addedCount, exceededCount) in batchResults)
+        {
+            Debug.Log($"{item.Name}: {result}, 添加了 {addedCount} 个，超出 {exceededCount} 个");
+        }
         
         // 批量分配物品到多个容器
-        var inventoryManager = new InventoryManager();
+        var inventoryService = await EasyPackArchitecture.GetInventoryServiceAsync();
         var backpack1 = new LinerContainer("bp1", "背包1", "Backpack", 10);
         var backpack2 = new LinerContainer("bp2", "背包2", "Backpack", 10);
         
-        inventoryManager.RegisterContainer(backpack1);
-        inventoryManager.RegisterContainer(backpack2);
+        inventoryService.RegisterContainer(backpack1);
+        inventoryService.RegisterContainer(backpack2);
         
         var coinItem = new Item { ID = "coin", Name = "金币", IsStackable = true };
         
-        // 分配 100 个金币到所有容器（平均分配）
-        inventoryManager.DistributeItems(coinItem, 100, new[] { "bp1", "bp2" });
+        // 分配 100 个金币到所有容器（按优先级分配）
+        var distribution = inventoryService.DistributeItems(coinItem, 100, new List<string> { "bp1", "bp2" });
         
         Debug.Log($"背包1 金币：{backpack1.GetItemTotalCount("coin")}");
         Debug.Log($"背包2 金币：{backpack2.GetItemTotalCount("coin")}");
@@ -624,9 +622,9 @@ public class BatchOperationsExample : MonoBehaviour
 ```
 
 **性能优化建议：**
-- 添加 > 10 个物品时建议使用批处理
-- 批处理会延迟事件触发，UI 刷新在 `EndBatch()` 后统一处理
-- `DistributeItems()` 可根据容器剩余空间自动分配
+- 添加多个物品时建议使用 `AddItemsBatch()` 方法
+- 批处理会延迟事件触发，UI 刷新在批量操作完成后统一处理
+- `DistributeItems()` 可根据容器优先级和剩余空间自动分配
 
 ---
 
@@ -766,7 +764,7 @@ public class AdvancedSerializationExample : MonoBehaviour
             Shape = GridItem.CreateRectangleShape(2, 2)
         };
         
-        gridBag.AddItemsAtPosition(armor, 1, 0, 0);
+        gridBag.AddItemAt(armor, 0, 0, 1);
         
         string gridJson = serializationService.SerializeToJson(gridBag);
         var loadedGrid = serializationService.DeserializeFromJson<Container>(gridJson);
@@ -850,7 +848,7 @@ public class CustomConditionExample : MonoBehaviour
         Debug.Log($"剑满足等级要求：{swordMeetsLevel}"); // False
         
         // 查询所有传奇武器
-        var legendaryWeapons = backpack.FindItemsByCondition(legendaryCondition);
+        var legendaryWeapons = backpack.GetItemsWhere(item => legendaryCondition.CheckCondition(item));
         Debug.Log($"找到 {legendaryWeapons.Count} 件传奇武器");
         
         // 组合条件：传奇 AND 等级 >= 40
@@ -859,7 +857,7 @@ public class CustomConditionExample : MonoBehaviour
             highLevelCondition
         );
         
-        var eliteWeapons = backpack.FindItemsByCondition(combinedCondition);
+        var eliteWeapons = backpack.GetItemsWhere(item => combinedCondition.CheckCondition(item));
         Debug.Log($"找到 {eliteWeapons.Count} 件精英武器");
     }
 }
@@ -912,14 +910,13 @@ The type or namespace name 'Container' could not be found (are you missing a usi
 **原因：** 每次 `AddItems()` 都会触发事件和缓存更新
 
 **解决方法：**
-1. 使用批处理模式：
+1. 使用批量添加方法：
    ```csharp
-   container.BeginBatch();
-   // 批量添加物品
-   container.EndBatch();
+   var itemsToAdd = new List<(IItem item, int count)> { ... };
+   container.AddItemsBatch(itemsToAdd);
    ```
 2. 禁用不需要的事件监听
-3. 使用 `InventoryManager.DistributeItems()` 代替循环添加
+3. 使用 `InventoryService.DistributeItems()` 代替循环添加
 
 ---
 
@@ -932,28 +929,32 @@ The type or namespace name 'Container' could not be found (are you missing a usi
 **解决方法：**
 1. 使用统一序列化服务：
    ```csharp
+   // 从架构获取序列化服务
+   var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+   
    // 序列化
-   string json = SerializationServiceManager.SerializeToJson(container);
+   string json = serializationService.SerializeToJson(container);
    
    // 反序列化
-   var loaded = SerializationServiceManager.DeserializeFromJson<Container>(json);
+   var loaded = serializationService.DeserializeFromJson<Container>(json);
    ```
 2. 确保自定义条件实现 `ISerializableCondition` 接口
-3. 检查物品 `Attributes` 中的值类型是否支持 JSON 序列化
-4. 使用 `ConditionTypeRegistry.Register()` 注册自定义条件类型
+3. 检查物品 `CustomData` 中的值类型是否支持 JSON 序列化（不再使用 `Attributes`）
+4. 序列化器会在 `InventoryService` 初始化时自动注册，无需手动注册
 
 ---
 
 #### 问题 5：网格容器放置失败 - 无法放置物品
 
-**症状：** `AddItemsAtPosition()` 返回失败
+**症状：** `AddItemAt()` 返回失败
 
 **原因：** 目标位置被占用或超出边界
 
 **解决方法：**
-1. 使用 `IsPositionAvailable(x, y, width, height)` 预先检查位置
-2. 确认物品的 `GridWidth` 和 `GridHeight` 正确设置
-3. 检查坐标是否超出容器边界：`x + width <= GridWidth`
+1. 使用 `CanPlaceGridItem(gridItem, slotIndex)` 预先检查位置（需要先将坐标转换为槽位索引）
+2. 确认物品的 `Shape` 正确设置（使用 `GridItem.CreateRectangleShape(width, height)` 或自定义形状）
+3. 检查坐标是否超出容器边界：`x < GridWidth && y < GridHeight`
+4. 对于网格物品，确保使用 `GridItem` 类型而不是普通 `Item`
 
 ---
 
@@ -1023,12 +1024,12 @@ var results = inventoryService.FindItemGlobally("health_potion");
 ---
 
 ### 批处理（Batch Processing）
-延迟事件触发和缓存更新，提升批量操作性能。通过 `BeginBatch()` / `EndBatch()` 使用。
+延迟事件触发和缓存更新，提升批量操作性能。通过 `AddItemsBatch()` 方法使用，内部自动处理批处理逻辑。
 
 ---
 
 ### 网格物品（Grid Item）
-占据多个格子的物品（如 2x2 的盔甲），仅用于 `GridContainer`。继承自 `Item` 并添加 `GridWidth` 和 `GridHeight` 属性。
+占据多个格子的物品（如 2x2 的盔甲），仅用于 `GridContainer`。继承自 `Item` 并添加 `Shape`、`CanRotate`、`Rotation` 等属性，通过 `Shape` 列表定义物品占用的格子坐标。
 
 ---
 
@@ -1077,13 +1078,13 @@ warehouse.AddItems(itemRef, count);
 
 **推荐做法：**
 ```csharp
-// ✅ 推荐：批处理减少事件触发
-container.BeginBatch();
+// ✅ 推荐：使用 AddItemsBatch 批量添加
+var itemsToAdd = new List<(IItem item, int count)>();
 foreach (var item in items)
 {
-    container.AddItems(item, 1);
+    itemsToAdd.Add((item, 1));
 }
-container.EndBatch();
+container.AddItemsBatch(itemsToAdd);
 ```
 
 **不推荐做法：**
@@ -1101,21 +1102,16 @@ foreach (var item in items)
 
 **推荐做法：**
 ```csharp
-// ✅ 推荐：使用统一序列化服务
-string json = SerializationServiceManager.SerializeToJson(container);
-var loaded = SerializationServiceManager.DeserializeFromJson<Container>(json);
-
-// 注册自定义条件类型
-void Awake()
-{
-    ConditionTypeRegistry.Register<MyCustomCondition>("MyCondition");
-}
+// ✅ 推荐：使用统一序列化服务（通过 EasyPack 架构）
+var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+string json = serializationService.SerializeToJson(container);
+var loaded = serializationService.DeserializeFromJson<Container>(json);
 ```
 
 **不推荐做法：**
 ```csharp
-// ❌ 不推荐：使用已弃用的序列化器
-string json = ContainerJsonSerializer.ToJson(container); // 已弃用
+// ❌ 不推荐：直接使用序列化器（序列化器会自动注册，无需手动调用）
+// string json = ContainerJsonSerializer.ToJson(container); // 不应直接使用
 ```
 
 ---
