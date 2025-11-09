@@ -1,6 +1,6 @@
 # GameProperty 系统 Mermaid 图集文档
 
-**适用 EasyPack 版本：** EasyPack v1.6.0  
+**适用 EasyPack 版本：** EasyPack v1.7.0  
 **最后更新：** 2025-11-04
 
 ---

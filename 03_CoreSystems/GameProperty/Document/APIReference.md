@@ -1,6 +1,6 @@
 # GameProperty 系统 API 参考文档
 
-**适用 EasyPack 版本：** EasyPack v1.6.0  
+**适用 EasyPack 版本：** EasyPack v1.7.0  
 **最后更新：** 2025-11-04
 
 ---
@@ -9,8 +9,12 @@
 
 - [核心类](#核心类)
   - [GameProperty 类](#gameproperty-类)
+  - [IGamePropertyService 接口](#igamepropertyservice-接口)
+  - [GamePropertyService 类](#gamepropertyservice-类)
   - [GamePropertyManager 类](#gamepropertymanager-类)
   - [PropertyMetadata 类](#propertymetadata-类)
+  - [OperationResult 类](#operationresult-类)
+  - [PropertyDependencyManager 类](#propertydependencymanager-类)
 - [修饰符类](#修饰符类)
   - [IModifier 接口](#imodifier-接口)
   - [FloatModifier 类](#floatmodifier-类)
@@ -230,8 +234,8 @@ var weaponBonus = new FloatModifier(ModifierType.Add, 100, 20f);
 attack.AddModifier(weaponBonus);
 
 // 添加百分比修饰符
-var buffBonus = new FloatModifier(ModifierType.Mul, 100, 1.5f);
-attack.AddModifier(buffBonus);
+var ValueBonus = new FloatModifier(ModifierType.Mul, 100, 1.5f);
+attack.AddModifier(ValueBonus);
 
 Debug.Log(attack.GetValue()); // 输出: 105 ((50 + 20) × 1.5)
 ```
@@ -298,6 +302,136 @@ Debug.Log(attack.GetValue()); // 输出: 105
 attack.ClearModifiers();
 Debug.Log(attack.GetValue()); // 输出: 50
 Debug.Log(attack.Modifiers.Count); // 输出: 0
+```
+
+##### AddModifiers(IEnumerable<IModifier> modifiers)
+
+```csharp
+public void AddModifiers(IEnumerable<IModifier> modifiers)
+```
+
+批量添加多个修饰符。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `modifiers` | `IEnumerable<IModifier>` | 要添加的修饰符集合 |
+
+**返回值：** 无
+
+**副作用：**
+- 标记属性为脏状态
+- 触发 `OnDirty` 回调
+
+**示例：**
+```csharp
+var attack = new GameProperty("attack", 50f);
+var modifiers = new List<IModifier>
+{
+    new FloatModifier(ModifierType.Add, 100, 20f),
+    new FloatModifier(ModifierType.Mul, 100, 1.2f)
+};
+
+attack.AddModifiers(modifiers);
+Debug.Log(attack.GetValue()); // 输出: 84 ((50 + 20) × 1.2)
+```
+
+##### RemoveModifiers(IEnumerable<IModifier> modifiers)
+
+```csharp
+public void RemoveModifiers(IEnumerable<IModifier> modifiers)
+```
+
+批量移除多个修饰符。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `modifiers` | `IEnumerable<IModifier>` | 要移除的修饰符集合 |
+
+**返回值：** 无
+
+**副作用：**
+- 标记属性为脏状态
+- 触发 `OnDirty` 回调
+
+**示例：**
+```csharp
+var attack = new GameProperty("attack", 50f);
+var mod1 = new FloatModifier(ModifierType.Add, 100, 20f);
+var mod2 = new FloatModifier(ModifierType.Mul, 100, 1.2f);
+
+attack.AddModifiers(new[] { mod1, mod2 });
+Debug.Log(attack.GetValue()); // 输出: 84
+
+attack.RemoveModifiers(new[] { mod1 });
+Debug.Log(attack.GetValue()); // 输出: 60 (50 × 1.2)
+```
+
+##### HasNonClampRangeModifiers()
+
+```csharp
+public bool HasNonClampRangeModifiers()
+```
+
+检查是否存在非夹具范围修饰符。
+
+**返回值：** `bool` - 存在返回 `true`，否则返回 `false`
+
+**说明：**
+- 用于优化计算逻辑
+- 夹具修饰符会限制值的范围
+
+**示例：**
+```csharp
+var health = new GameProperty("health", 100f);
+health.AddModifier(new RangeModifier(ModifierType.Clamp, 100, 0f, 200f)); // 夹具修饰符
+
+Debug.Log(health.HasNonClampRangeModifiers()); // 输出: False
+```
+
+##### ContainModifierOfType(ModifierType type)
+
+```csharp
+public bool ContainModifierOfType(ModifierType type)
+```
+
+检查是否包含指定类型的修饰符。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `type` | `ModifierType` | 要检查的修饰符类型 |
+
+**返回值：** `bool` - 包含返回 `true`，否则返回 `false`
+
+**示例：**
+```csharp
+var attack = new GameProperty("attack", 50f);
+attack.AddModifier(new FloatModifier(ModifierType.Add, 100, 20f));
+
+Debug.Log(attack.ContainModifierOfType(ModifierType.Add)); // 输出: True
+Debug.Log(attack.ContainModifierOfType(ModifierType.Mul)); // 输出: False
+```
+
+##### GetModifierCountOfType(ModifierType type)
+
+```csharp
+public int GetModifierCountOfType(ModifierType type)
+```
+
+获取指定类型修饰符的数量。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `type` | `ModifierType` | 要统计的修饰符类型 |
+
+**返回值：** `int` - 指定类型修饰符的数量
+
+**示例：**
+```csharp
+var attack = new GameProperty("attack", 50f);
+attack.AddModifier(new FloatModifier(ModifierType.Add, 100, 20f));
+attack.AddModifier(new FloatModifier(ModifierType.Add, 100, 10f));
+
+Debug.Log(attack.GetModifierCountOfType(ModifierType.Add)); // 输出: 2
 ```
 
 #### 依赖系统方法
@@ -576,9 +710,344 @@ health.NotifyIfChanged();
 // 输出: 生命值: 100 -> 80
 ```
 
+##### MakeDirty()
+
+```csharp
+public void MakeDirty()
+```
+
+手动标记属性为脏状态。
+
+**返回值：** 无
+
+**副作用：**
+- 触发 `OnDirty` 回调
+- 下次 `GetValue()` 时会重新计算
+- 不会立即触发 `OnValueChanged` 事件
+
+**说明：**
+- 强制属性在下次访问时重新计算
+- 适合批量修改后的统一更新
+
+**示例：**
+```csharp
+var attack = new GameProperty("attack", 50f);
+
+attack.OnDirty(() => Debug.Log("属性变脏"));
+attack.OnValueChanged += (old, newVal) => Debug.Log($"值变化: {old} -> {newVal}");
+
+attack.MakeDirty();
+// 输出: 属性变脏
+// 此时不会触发 OnValueChanged
+
+float value = attack.GetValue();
+// 触发 OnValueChanged (如果值确实变化)
+```
+
+##### RemoveOnDirty(Action action)
+
+```csharp
+public void RemoveOnDirty(Action action)
+```
+
+移除指定的脏标记回调函数。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `action` | `Action` | 要移除的回调函数 |
+
+**返回值：** 无
+
+**说明：**
+- 移除通过 `OnDirty()` 注册的回调
+- 必须传入相同的委托实例才能正确移除
+
+**示例：**
+```csharp
+var attack = new GameProperty("attack", 50f);
+
+void OnAttackDirty() => Debug.Log("攻击力变脏");
+attack.OnDirty(OnAttackDirty);
+
+attack.MakeDirty(); // 输出: 攻击力变脏
+
+attack.RemoveOnDirty(OnAttackDirty);
+attack.MakeDirty(); // 不再输出
+```
+
 ---
 
-### GamePropertyManager 类
+### IGamePropertyService 接口
+
+游戏属性服务接口，定义了属性管理的核心契约。
+
+**命名空间：** `EasyPack.GamePropertySystem`  
+**继承：** `IService`
+
+#### 方法
+
+##### Register(GameProperty property, string category = "Default", PropertyMetadata metadata = null)
+
+注册单个游戏属性到管理器中。
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `property` | `GameProperty` | - | 要注册的属性实例 |
+| `category` | `string` | `"Default"` | 属性所属的分类 |
+| `metadata` | `PropertyMetadata` | `null` | 属性的元数据信息 |
+
+**返回值：** 无
+
+**说明：**
+- 如果属性已存在，会更新其分类和元数据
+- 分类支持层级结构，如 "Character.Vital"
+
+**示例：**
+```csharp
+var health = new GameProperty("health", 100f);
+var metadata = new PropertyMetadata { Description = "生命值" };
+
+await _propertyService.Register(health, "Character.Vital", metadata);
+```
+
+##### RegisterRange(IEnumerable<GameProperty> properties, string category = "Default")
+
+批量注册多个游戏属性。
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `properties` | `IEnumerable<GameProperty>` | - | 要注册的属性集合 |
+| `category` | `string` | `"Default"` | 属性所属的分类 |
+
+**返回值：** 无
+
+**说明：**
+- 批量操作，性能优于多次调用 `Register`
+- 所有属性使用相同的分类
+
+**示例：**
+```csharp
+var properties = new List<GameProperty>
+{
+    new GameProperty("strength", 10f),
+    new GameProperty("agility", 8f),
+    new GameProperty("intelligence", 12f)
+};
+
+await _propertyService.RegisterRange(properties, "Character.Attributes");
+```
+
+##### Get(string id)
+
+根据 ID 获取游戏属性。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `id` | `string` | 属性的唯一标识符 |
+
+**返回值：** `GameProperty` - 找到的属性实例，不存在返回 `null`
+
+**示例：**
+```csharp
+var health = await _propertyService.Get("health");
+if (health != null)
+{
+    Debug.Log($"当前生命值: {health.GetValue()}");
+}
+```
+
+##### GetByCategory(string category, bool includeChildren = false)
+
+获取指定分类下的所有属性。
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `category` | `string` | - | 分类名称 |
+| `includeChildren` | `bool` | `false` | 是否包含子分类 |
+
+**返回值：** `IEnumerable<GameProperty>` - 该分类下的属性集合
+
+**说明：**
+- `includeChildren = true` 时，会递归包含所有子分类的属性
+- 如 "Character" 分类会包含 "Character.Vital"、"Character.Attributes" 等
+
+**示例：**
+```csharp
+// 获取所有角色属性
+var characterProps = await _propertyService.GetByCategory("Character", true);
+
+// 获取基础属性
+var baseProps = await _propertyService.GetByCategory("Character.Attributes");
+```
+
+##### GetByTag(string tag)
+
+根据标签获取属性。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `tag` | `string` | 标签名称 |
+
+**返回值：** `IEnumerable<GameProperty>` - 带有指定标签的属性集合
+
+**示例：**
+```csharp
+// 获取所有可升级的属性
+var upgradableProps = await _propertyService.GetByTag("Upgradable");
+```
+
+##### GetByCategoryAndTag(string category, string tag)
+
+根据分类和标签组合获取属性。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `category` | `string` | 分类名称 |
+| `tag` | `string` | 标签名称 |
+
+**返回值：** `IEnumerable<GameProperty>` - 满足条件的属性集合
+
+**示例：**
+```csharp
+// 获取角色战斗属性中可升级的
+var upgradableCombatProps = await _propertyService.GetByCategoryAndTag("Character.Combat", "Upgradable");
+```
+
+##### GetMetadata(string id)
+
+获取属性的元数据信息。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `id` | `string` | 属性 ID |
+
+**返回值：** `PropertyMetadata` - 属性的元数据，不存在返回 `null`
+
+**示例：**
+```csharp
+var metadata = await _propertyService.GetMetadata("health");
+if (metadata != null)
+{
+    Debug.Log($"描述: {metadata.Description}");
+}
+```
+
+##### GetAllPropertyIds()
+
+获取所有已注册属性的 ID 列表。
+
+**返回值：** `IEnumerable<string>` - 所有属性 ID 的集合
+
+**示例：**
+```csharp
+var allIds = await _propertyService.GetAllPropertyIds();
+Debug.Log($"总属性数量: {allIds.Count()}");
+```
+
+##### GetAllCategories()
+
+获取所有已使用的分类名称。
+
+**返回值：** `IEnumerable<string>` - 所有分类名称的集合
+
+**示例：**
+```csharp
+var categories = await _propertyService.GetAllCategories();
+foreach (var category in categories)
+{
+    Debug.Log($"分类: {category}");
+}
+```
+
+##### Unregister(string id)
+
+从管理器中移除指定属性。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `id` | `string` | 要移除的属性 ID |
+
+**返回值：** `bool` - 成功移除返回 `true`，属性不存在返回 `false`
+
+**示例：**
+```csharp
+bool removed = await _propertyService.Unregister("temporary_Value");
+if (removed)
+{
+    Debug.Log("临时Value已移除");
+}
+```
+
+##### UnregisterCategory(string category)
+
+移除整个分类及其所有属性。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `category` | `string` | 要移除的分类名称 |
+
+**返回值：** 无
+
+**说明：**
+- 会递归移除该分类及其所有子分类下的属性
+- 谨慎使用，可能影响大量属性
+
+**示例：**
+```csharp
+// 移除所有临时效果
+await _propertyService.UnregisterCategory("Temporary");
+```
+
+##### SetCategoryActive(string category, bool active)
+
+设置分类的激活状态，影响该分类下所有属性的行为。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `category` | `string` | 分类名称 |
+| `active` | `bool` | 是否激活 |
+
+**返回值：** `OperationResult<List<string>>` - 操作结果，包含成功/失败的属性ID列表
+
+**说明：**
+- 激活状态影响属性的更新和计算
+- 可用于暂停/恢复某些属性系统
+
+**示例：**
+```csharp
+var result = await _propertyService.SetCategoryActive("Character.Values", false);
+if (result.IsFullSuccess)
+{
+    Debug.Log("所有Value已暂停");
+}
+```
+
+##### ApplyModifierToCategory(string category, IModifier modifier)
+
+向指定分类下的所有属性应用修饰符。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `category` | `string` | 分类名称 |
+| `modifier` | `IModifier` | 要应用的修饰符 |
+
+**返回值：** `OperationResult<List<string>>` - 操作结果，包含成功/失败的属性ID列表
+
+**说明：**
+- 批量操作，适合全局效果如"全体攻击力提升"
+- 修饰符会添加到每个属性上
+
+**示例：**
+```csharp
+// 全体属性提升20%
+var Value = new FloatModifier(ModifierType.Mul, 100, 1.2f);
+var result = await _propertyService.ApplyModifierToCategory("Character.Attributes", Value);
+Debug.Log($"成功应用到 {result.SuccessCount} 个属性");
+```
+
+---
+
+### GamePropertyService 类
 
 集中管理大量游戏属性的服务，提供注册、查询、批量操作等功能。
 
@@ -896,15 +1365,15 @@ manager.Register(new GameProperty("hp", 100f), "Character.Vital");
 manager.Register(new GameProperty("mp", 50f), "Character.Vital");
 
 // 全体增益：所有生命值相关属性 +50%
-var buff = new FloatModifier(ModifierType.Mul, 100, 1.5f);
-var result = manager.ApplyModifierToCategory("Character.Vital", buff);
+var Value = new FloatModifier(ModifierType.Mul, 100, 1.5f);
+var result = manager.ApplyModifierToCategory("Character.Vital", Value);
 
 Debug.Log($"成功数: {result.SuccessCount}, 失败数: {result.FailureCount}");
 // 输出: 成功数: 2, 失败数: 0
 
 if (result.IsFullSuccess)
 {
-    Debug.Log("所有属性已应用 BUFF");
+    Debug.Log("所有属性已应用 Value");
 }
 ```
 
@@ -970,11 +1439,11 @@ BatchModifierResult RemoveModifierFromCategory(string category, IModifier modifi
 ```csharp
 var manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
 
-var buff = new FloatModifier(ModifierType.Mul, 100, 1.5f);
-manager.ApplyModifierToCategory("Character.Vital", buff);
+var Value = new FloatModifier(ModifierType.Mul, 100, 1.5f);
+manager.ApplyModifierToCategory("Character.Vital", Value);
 
-// BUFF 时间结束，移除修饰符
-var result = manager.RemoveModifierFromCategory("Character.Vital", buff);
+// Value 时间结束，移除修饰符
+var result = manager.RemoveModifierFromCategory("Character.Vital", Value);
 Debug.Log($"移除成功数: {result.SuccessCount}");
 ```
 
@@ -1131,6 +1600,110 @@ string json = serializer.SerializeToJson(manager);
 var serializer = new PropertyManagerSerializer();
 var manager = serializer.DeserializeFromJson(json);
 ```
+
+---
+
+### GamePropertyJsonSerializer 类
+
+专门用于 GameProperty 对象的 JSON 序列化/反序列化工具。
+
+**命名空间：** `EasyPack.GamePropertySystem.Serializer`
+
+#### 方法
+
+##### SerializeToJson(GameProperty gameProperty)
+
+```csharp
+public string SerializeToJson(GameProperty gameProperty)
+```
+
+将 GameProperty 对象序列化为 JSON 字符串。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `gameProperty` | `GameProperty` | 要序列化的属性对象 |
+
+**返回值：** `string` - JSON 格式的字符串
+
+**说明：**
+- 包含基础值、修饰符列表、依赖关系
+- 不包含运行时状态（如脏标记）
+
+**示例：**
+```csharp
+var attack = new GameProperty("attack", 50f);
+attack.AddModifier(new FloatModifier(ModifierType.Add, 100, 20f));
+
+var serializer = new GamePropertyJsonSerializer();
+string json = serializer.SerializeToJson(attack);
+Debug.Log(json);
+// 输出: {"id":"attack","baseValue":50.0,"modifiers":[...]}
+```
+
+##### DeserializeFromJson(string json)
+
+```csharp
+public GameProperty DeserializeFromJson(string json)
+```
+
+从 JSON 字符串反序列化 GameProperty 对象。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `json` | `string` | JSON 格式的字符串 |
+
+**返回值：** `GameProperty` - 反序列化的属性对象
+
+**异常：**
+- `SerializationException` - JSON 格式无效或反序列化失败
+
+**示例：**
+```csharp
+var serializer = new GamePropertyJsonSerializer();
+string json = "{\"id\":\"attack\",\"baseValue\":50.0,\"modifiers\":[]}";
+GameProperty attack = serializer.DeserializeFromJson(json);
+Debug.Log(attack.ID); // 输出: attack
+```
+
+---
+
+### PropertyManagerDTO 类
+
+GamePropertyService 的数据传输对象，用于序列化/反序列化。
+
+**命名空间：** `EasyPack.GamePropertySystem.Serializer`
+
+#### 属性
+
+##### Properties
+
+```csharp
+public List<SerializableGameProperty> Properties { get; set; }
+```
+
+序列化的属性列表。
+
+**类型：** `List<SerializableGameProperty>`
+
+##### Categories
+
+```csharp
+public Dictionary<string, List<string>> Categories { get; set; }
+```
+
+分类信息，键为分类名，值为属性ID列表。
+
+**类型：** `Dictionary<string, List<string>>`
+
+##### Metadata
+
+```csharp
+public Dictionary<string, PropertyMetadata> Metadata { get; set; }
+```
+
+属性元数据字典。
+
+**类型：** `Dictionary<string, PropertyMetadata>`
 
 ---
 
@@ -1463,6 +2036,168 @@ Debug.Log(prop.GetValue()); // 输出: 120
 
 ## 结果类型
 
+### OperationResult 类
+
+通用操作结果类，用于表示批量操作的成功/失败状态。
+
+**命名空间：** `EasyPack.GamePropertySystem`
+
+#### 构造函数
+
+##### OperationResult(T data, int count)
+
+创建成功的操作结果。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `data` | `T` | 操作返回的数据 |
+| `count` | `int` | 影响的项目数量 |
+
+**示例：**
+```csharp
+var result = OperationResult.Success(propertyList, 5);
+```
+
+##### OperationResult(T data, int successCount, List<FailureRecord> failures)
+
+创建部分成功的操作结果。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `data` | `T` | 操作返回的数据 |
+| `successCount` | `int` | 成功的项目数量 |
+| `failures` | `List<FailureRecord>` | 失败记录列表 |
+
+**示例：**
+```csharp
+var failures = new List<FailureRecord> { new FailureRecord("property1", "Invalid value") };
+var result = OperationResult.PartialSuccess(propertyList, 3, failures);
+```
+
+#### 属性
+
+##### Data
+
+```csharp
+public T Data { get; }
+```
+
+获取操作返回的数据。
+
+**类型：** `T`
+
+##### SuccessCount
+
+```csharp
+public int SuccessCount { get; }
+```
+
+获取成功的项目数量。
+
+**类型：** `int`
+
+##### FailureCount
+
+```csharp
+public int FailureCount { get; }
+```
+
+获取失败的项目数量。
+
+**类型：** `int`
+
+##### IsSuccess
+
+```csharp
+public bool IsSuccess { get; }
+```
+
+判断操作是否完全成功（无失败项目）。
+
+**类型：** `bool`  
+**返回值：** `FailureCount == 0`
+
+##### IsPartialSuccess
+
+```csharp
+public bool IsPartialSuccess { get; }
+```
+
+判断操作是否部分成功（有成功也有失败）。
+
+**类型：** `bool`  
+**返回值：** `SuccessCount > 0 && FailureCount > 0`
+
+##### IsFullFailure
+
+```csharp
+public bool IsFullFailure { get; }
+```
+
+判断操作是否完全失败（无成功项目）。
+
+**类型：** `bool`  
+**返回值：** `SuccessCount == 0`
+
+##### Failures
+
+```csharp
+public IReadOnlyList<FailureRecord> Failures { get; }
+```
+
+获取失败记录的只读列表。
+
+**类型：** `IReadOnlyList<FailureRecord>`
+
+#### 方法
+
+##### Success(T data, int count)
+
+创建成功的操作结果的静态方法。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `data` | `T` | 操作数据 |
+| `count` | `int` | 成功数量 |
+
+**返回值：** `OperationResult<T>`
+
+##### PartialSuccess(T data, int successCount, List<FailureRecord> failures)
+
+创建部分成功的操作结果的静态方法。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `data` | `T` | 操作数据 |
+| `successCount` | `int` | 成功数量 |
+| `failures` | `List<FailureRecord>` | 失败记录 |
+
+**返回值：** `OperationResult<T>`
+
+**示例：**
+```csharp
+// 完全成功
+var successResult = OperationResult.Success(modifiedProperties, 10);
+
+// 部分成功
+var failures = new List<FailureRecord> { 
+    new FailureRecord("health", "Value out of range") 
+};
+var partialResult = OperationResult.PartialSuccess(modifiedProperties, 8, failures);
+
+// 检查结果
+if (result.IsSuccess)
+{
+    Debug.Log("操作完全成功");
+}
+else if (result.IsPartialSuccess)
+{
+    Debug.Log($"部分成功: {result.SuccessCount}/{result.SuccessCount + result.FailureCount}");
+}
+```
+
+---
+
 ### BatchModifierResult 类
 
 批量修饰符操作的结果信息。
@@ -1516,26 +2251,200 @@ public bool IsFullFailure { get; }
 ```csharp
 var manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
 
-var buff = new FloatModifier(ModifierType.Mul, 100, 1.5f);
-var result = manager.ApplyModifierToCategory("Character.Vital", buff);
+var Value = new FloatModifier(ModifierType.Mul, 100, 1.5f);
+var result = manager.ApplyModifierToCategory("Character.Vital", Value);
 
 Debug.Log($"成功: {result.SuccessCount}, 失败: {result.FailureCount}");
 
 if (result.IsFullSuccess)
 {
-    Debug.Log("所有属性已应用 BUFF");
+    Debug.Log("所有属性已应用 Value");
 }
 else if (result.IsPartialSuccess)
 {
-    Debug.Log("部分属性应用 BUFF");
+    Debug.Log("部分属性应用 Value");
 }
 else if (result.IsFullFailure)
 {
-    Debug.Log("BUFF 应用完全失败");
+    Debug.Log("Value 应用完全失败");
 }
 ```
 
 ---
-维护者： NEKOPACK 团队
+
+### PropertyDependencyManager 类
+
+管理游戏属性间的依赖关系，提供依赖解析和级联更新的功能。
+
+**命名空间：** `EasyPack.GamePropertySystem`
+
+#### 属性
+
+##### DependencyDepth
+
+```csharp
+public int DependencyDepth { get; }
+```
+
+获取依赖深度（依赖链的长度）。
+
+**类型：** `int`  
+**说明：** 用于检测循环依赖和优化更新顺序
+
+##### HasRandomDependency
+
+```csharp
+public bool HasRandomDependency { get; }
+```
+
+判断是否存在随机依赖关系。
+
+**类型：** `bool`  
+**说明：** 影响属性值的确定性和缓存策略
+
+##### DependencyCount
+
+```csharp
+public int DependencyCount { get; }
+```
+
+获取直接依赖的数量。
+
+**类型：** `int`
+
+##### DependentCount
+
+```csharp
+public int DependentCount { get; }
+```
+
+获取被多少其他属性依赖的数量。
+
+**类型：** `int`
+
+#### 方法
+
+##### AddDependency(GameProperty dependency, Func<GameProperty, float, float> calculator = null)
+
+添加一个依赖关系。
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `dependency` | `GameProperty` | - | 被依赖的属性 |
+| `calculator` | `Func<GameProperty, float, float>` | `null` | 计算函数，参数为(依赖属性, 依赖值) |
+
+**返回值：** `bool` - 成功添加返回 `true`，检测到循环依赖返回 `false`
+
+**说明：**
+- 系统会自动检测并阻止循环依赖
+- calculator 为 null 时使用默认的传递函数
+
+**示例：**
+```csharp
+var strength = new GameProperty("strength", 10f);
+var attack = new GameProperty("attack", 0f);
+
+// 攻击力 = 力量 × 2
+bool success = attack.DependencyManager.AddDependency(strength, (dep, val) => val * 2f);
+```
+
+##### RemoveDependency(GameProperty dependency)
+
+移除对指定属性的依赖关系。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `dependency` | `GameProperty` | 要移除依赖的属性 |
+
+**返回值：** `bool` - 成功移除返回 `true`，依赖不存在返回 `false`
+
+**示例：**
+```csharp
+bool removed = attack.DependencyManager.RemoveDependency(strength);
+```
+
+##### TriggerDependentUpdates(float currentValue)
+
+触发所有依赖此属性的其他属性的更新。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `currentValue` | `float` | 当前属性值 |
+
+**返回值：** 无
+
+**说明：**
+- 会递归触发整个依赖链的更新
+- 用于级联更新依赖属性
+
+##### PropagateDirtyTowardsDependents()
+
+向所有依赖此属性的属性传播脏标记。
+
+**返回值：** 无
+
+**说明：**
+- 标记所有依赖属性为脏状态
+- 下次访问时会重新计算值
+
+##### HasDirtyDependencies()
+
+检查是否存在脏依赖关系。
+
+**返回值：** `bool` - 存在脏依赖返回 `true`
+
+**说明：**
+- 用于优化更新逻辑，避免不必要的计算
+
+##### InvalidateDirtyCache()
+
+使脏标记缓存失效。
+
+**返回值：** 无
+
+**说明：**
+- 强制重新评估依赖状态
+- 用于处理复杂的状态变化
+
+##### UpdateDependencies()
+
+更新所有依赖关系的状态。
+
+**返回值：** 无
+
+**说明：**
+- 重新计算依赖链
+- 更新依赖深度和随机性标记
+
+##### UpdateRandomDependencyState()
+
+更新随机依赖的状态。
+
+**返回值：** 无
+
+**说明：**
+- 专门处理随机依赖的更新逻辑
+- 影响缓存策略
+
+##### ClearAll()
+
+清除所有依赖关系。
+
+**返回值：** 无
+
+**说明：**
+- 移除所有依赖和被依赖关系
+- 重置依赖管理器状态
+
+**示例：**
+```csharp
+// 清除所有依赖
+property.DependencyManager.ClearAll();
+Debug.Log($"依赖数量: {property.DependencyManager.DependencyCount}"); // 输出: 0
+```
+
+---
+
+### 维护者： NEKOPACK 团队
 联系方式： 提交 GitHub Issue 或 Pull Request
 许可证： 遵循项目主许可证
