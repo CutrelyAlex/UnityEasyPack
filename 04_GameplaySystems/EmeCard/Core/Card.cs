@@ -129,6 +129,8 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public string Id => Data != null ? Data.ID : string.Empty;
 
+        public string IdAndIndex => Id + Index;
+
         /// <summary>
         /// 卡牌显示名称，来自 <see cref="Data"/>。
         /// </summary>
