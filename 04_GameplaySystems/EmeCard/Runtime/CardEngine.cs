@@ -79,7 +79,7 @@ namespace EasyPack.EmeCardSystem
         /// 事件主循环，依次处理队列中的所有事件。
         /// </summary>
         /// <param name="maxEvents">最大处理事件数。</param>
-        public void Pump(int maxEvents = 2048)
+        public void Pump(int maxEvents = Int32.MaxValue)
         {
             if (_isPumping) return;
             _isPumping = true;
