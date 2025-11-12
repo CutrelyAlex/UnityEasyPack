@@ -128,7 +128,7 @@ namespace EasyPack.EmeCardSystem
 
                     var ctx = BuildContext(rule, source, evt);
                     if (ctx == null) continue;
-                   
+
                     if (EvaluateRequirements(ctx, rule.Requirements, out var matched))
                     {
                         if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
@@ -161,7 +161,7 @@ namespace EasyPack.EmeCardSystem
             finally
             {
                 _processingDepth--;
-                
+
                 // 如果处理完成（深度回到0），将延迟队列的事件批量移入主队列
                 if (_processingDepth == 0 && _deferredQueue.Count > 0)
                 {
