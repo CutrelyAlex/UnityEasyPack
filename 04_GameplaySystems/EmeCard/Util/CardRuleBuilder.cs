@@ -189,6 +189,13 @@ namespace EasyPack.EmeCardSystem
         /// <summary>要求事件数据不为空</summary>
         public CardRuleBuilder WhenEventDataNotNull()
             => When(ctx => ctx.Event.Data != null);
+
+        public CardRuleBuilder WhenLog(string message)
+            => When(context =>
+            {
+                Debug.Log(message);
+                return true;
+            });
         #endregion
 
         #region 条件要求 - 便捷语法糖
