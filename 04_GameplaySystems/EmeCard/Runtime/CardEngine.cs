@@ -309,7 +309,7 @@ namespace EasyPack.EmeCardSystem
         /// 检查指定卡牌是否接入引擎
         /// </summary>
         /// <returns></returns>
-        public bool ContainCard(Card card)
+        public bool HasCard(Card card)
         {
             return GetCardByKey(card.Id, card.Index) == card;
         }
