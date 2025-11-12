@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using EasyPack.GamePropertySystem;
+using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
 {
@@ -270,6 +271,7 @@ namespace EasyPack.EmeCardSystem
         /// </remarks>
         public Card AddChild(Card child, bool intrinsic = false)
         {
+            if(intrinsic&&child.Id=="Signal"){}
             if (child == null) throw new ArgumentNullException(nameof(child));
             if (child.Owner != null) throw new InvalidOperationException("子卡牌已被其他卡牌持有。");
 
