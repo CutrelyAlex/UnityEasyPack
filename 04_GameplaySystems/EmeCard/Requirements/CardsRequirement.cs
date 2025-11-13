@@ -82,7 +82,19 @@ namespace EasyPack.EmeCardSystem
                     maxReturn = MinCount > 0 ? MinCount : count;
                 }
 
-                matched.AddRange(picks.Take(Math.Min(maxReturn, count)));
+
+                int takeCount = Math.Min(maxReturn, count);
+                if (takeCount == count)
+                {
+                    matched.AddRange(picks);
+                }
+                else
+                {
+                    for (int i = 0; i < takeCount; i++)
+                    {
+                        matched.Add(picks[i]);
+                    }
+                }
             }
             return isMatch;
         }

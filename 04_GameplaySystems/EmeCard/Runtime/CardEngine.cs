@@ -60,6 +60,17 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
+        /// 从引擎中注销一条规则。
+        /// </summary>
+        /// <param name="rule">要注销的规则实例。</param>
+        /// <returns>如果成功注销返回true，否则返回false。</returns>
+        public bool UnregisterRule(CardRule rule)
+        {
+            if (rule == null) return false;
+            return _rules[rule.Trigger].Remove(rule);
+        }
+
+        /// <summary>
         /// 卡牌事件回调，入队并驱动事件处理。
         /// </summary>
         private void OnCardEvent(Card source, CardEvent evt)
@@ -114,7 +125,8 @@ namespace EasyPack.EmeCardSystem
                 var rules = _rules[evt.Type];
                 if (rules == null || rules.Count == 0) return;
 
-                var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>();
+                // 预分配容量减少扩容
+                var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rules.Count);
                 for (int i = 0; i < rules.Count; i++)
                 {
                     var rule = rules[i];

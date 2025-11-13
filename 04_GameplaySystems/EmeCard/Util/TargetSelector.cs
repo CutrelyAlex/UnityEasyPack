@@ -34,20 +34,20 @@ namespace EasyPack.EmeCardSystem
                 return Array.Empty<Card>();
             }
 
-            IEnumerable<Card> candidates;
+            List<Card> candidates;
 
             // 第一步：根据 Scope 选择候选集
             switch (scope)
             {
                 case TargetScope.Children:
-                    candidates = ctx.Container.Children;
+                    candidates = new List<Card>(ctx.Container.Children);
                     break;
 
                 case TargetScope.Descendants:
                     {
                         int depth = maxDepth ?? ctx.MaxDepth;
                         if (depth <= 0) depth = int.MaxValue;
-                        candidates = TraversalUtil.EnumerateDescendants(ctx.Container, depth);
+                        candidates = TraversalUtil.EnumerateDescendants(ctx.Container, depth).ToList();
                     }
                     break;
 
@@ -56,38 +56,7 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 第二步：根据 FilterMode 过滤
-            switch (filter)
-            {
-                case CardFilterMode.ByTag:
-                    if (!string.IsNullOrEmpty(filterValue))
-                        candidates = candidates.Where(c => c.HasTag(filterValue));
-                    else
-                        return Array.Empty<Card>();
-                    break;
-
-                case CardFilterMode.ById:
-                    if (!string.IsNullOrEmpty(filterValue))
-                        candidates = candidates.Where(c =>
-                            string.Equals(c.Id, filterValue, StringComparison.Ordinal));
-                    else
-                        return Array.Empty<Card>();
-                    break;
-
-                case CardFilterMode.ByCategory:
-                    if (TryParseCategory(filterValue, out var cat))
-                        candidates = candidates.Where(c => c.Category == cat);
-                    else
-                        return Array.Empty<Card>();
-                    break;
-
-                case CardFilterMode.None:
-                    break;
-
-                default:
-                    return Array.Empty<Card>();
-            }
-
-            return candidates.ToList();
+            return ApplyFilter(candidates, filter, filterValue);
         }
 
         /// <summary>
@@ -139,7 +108,7 @@ namespace EasyPack.EmeCardSystem
 
         private static bool TryParseCategory(string value, out CardCategory cat)
         {
-            cat = default(CardCategory);
+            cat = default;
             if (string.IsNullOrEmpty(value)) return false;
             return Enum.TryParse(value, true, out cat);
         }
@@ -156,40 +125,49 @@ namespace EasyPack.EmeCardSystem
             if (cards == null || cards.Count == 0)
                 return Array.Empty<Card>();
 
-            IEnumerable<Card> filtered = cards;
-
             switch (filter)
             {
+                case CardFilterMode.None:
+                    return cards;
+
                 case CardFilterMode.ByTag:
-                    if (!string.IsNullOrEmpty(filterValue))
-                        filtered = filtered.Where(c => c.HasTag(filterValue));
-                    else
+                    if (string.IsNullOrEmpty(filterValue))
                         return Array.Empty<Card>();
-                    break;
+                    var tagResults = new List<Card>(cards.Count / 2);
+                    for (int i = 0; i < cards.Count; i++)
+                    {
+                        if (cards[i].HasTag(filterValue))
+                            tagResults.Add(cards[i]);
+                    }
+                    return tagResults;
 
                 case CardFilterMode.ById:
-                    if (!string.IsNullOrEmpty(filterValue))
-                        filtered = filtered.Where(c =>
-                            string.Equals(c.Id, filterValue, StringComparison.Ordinal));
-                    else
+                    if (string.IsNullOrEmpty(filterValue))
                         return Array.Empty<Card>();
-                    break;
+                    var idResults = new List<Card>(cards.Count / 4);
+                    for (int i = 0; i < cards.Count; i++)
+                    {
+                        if (string.Equals(cards[i].Id, filterValue, StringComparison.Ordinal))
+                            idResults.Add(cards[i]);
+                    }
+                    return idResults;
 
                 case CardFilterMode.ByCategory:
                     if (TryParseCategory(filterValue, out var cat))
-                        filtered = filtered.Where(c => c.Category == cat);
-                    else
-                        return Array.Empty<Card>();
-                    break;
-
-                case CardFilterMode.None:
-                    return cards;
+                    {
+                        var catResults = new List<Card>(cards.Count / 2);
+                        for (int i = 0; i < cards.Count; i++)
+                        {
+                            if (cards[i].Category == cat)
+                                catResults.Add(cards[i]);
+                        }
+                        return catResults;
+                    }
+                    return Array.Empty<Card>();
 
                 default:
                     return Array.Empty<Card>();
             }
-
-            return filtered.ToList();
         }
     }
 }
