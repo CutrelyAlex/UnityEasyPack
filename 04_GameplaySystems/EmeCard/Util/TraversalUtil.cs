@@ -14,26 +14,33 @@ namespace EasyPack.EmeCardSystem
         {
             if (root == null || maxDepth <= 0) yield break;
 
-            var stack = new Stack<(Card node, int depth)>();
-            // 从子级开始
-            for (int i = root.Children.Count - 1; i >= 0; i--)
+            var stack = TraversalStackPool.Rent();
+            try
             {
-                var child = root.Children[i];
-                yield return child;
-                stack.Push((child, 1));
-            }
-
-            while (stack.Count > 0)
-            {
-                var (node, depth) = stack.Pop();
-                if (depth >= maxDepth) continue;
-
-                for (int i = node.Children.Count - 1; i >= 0; i--)
+                // 从子级开始
+                for (int i = root.Children.Count - 1; i >= 0; i--)
                 {
-                    var child = node.Children[i];
+                    var child = root.Children[i];
                     yield return child;
-                    stack.Push((child, depth + 1));
+                    stack.Push((child, 1));
                 }
+
+                while (stack.Count > 0)
+                {
+                    var (node, depth) = stack.Pop();
+                    if (depth >= maxDepth) continue;
+
+                    for (int i = node.Children.Count - 1; i >= 0; i--)
+                    {
+                        var child = node.Children[i];
+                        yield return child;
+                        stack.Push((child, depth + 1));
+                    }
+                }
+            }
+            finally
+            {
+                TraversalStackPool.Return(stack);
             }
         }
     }

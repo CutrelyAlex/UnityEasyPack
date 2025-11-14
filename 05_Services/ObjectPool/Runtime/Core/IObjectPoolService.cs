@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using EasyPack.ENekoFramework;
 
 namespace EasyPack
@@ -55,5 +56,16 @@ namespace EasyPack
         /// <typeparam name="T">对象类型。</typeparam>
         /// <param name="obj">要归还的对象。</param>
         void Return<T>(T obj) where T : class;
+
+        /// <summary>
+        /// 获取所有活跃池的统计信息。
+        /// </summary>
+        /// <returns>统计信息列表。</returns>
+        IEnumerable<PoolStatistics> GetAllStatistics();
+
+        /// <summary>
+        /// 重置所有池的统计信息。
+        /// </summary>
+        void ResetAllStatistics();
     }
 }

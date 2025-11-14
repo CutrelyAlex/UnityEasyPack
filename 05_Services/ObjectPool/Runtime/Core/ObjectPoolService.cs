@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using EasyPack.ENekoFramework;
 using UnityEngine;
@@ -12,6 +13,27 @@ namespace EasyPack
     public class ObjectPoolService : BaseService, IObjectPoolService
     {
         private readonly ConcurrentDictionary<Type, object> _pools = new ConcurrentDictionary<Type, object>();
+        private bool _statisticsEnabled = false;
+
+        /// <summary>
+        /// 获取或设置是否启用统计收集。默认为 false。
+        /// 仅在编辑器监控窗口打开时启用。
+        /// </summary>
+        public bool StatisticsEnabled
+        {
+            get => _statisticsEnabled;
+            set
+            {
+                _statisticsEnabled = value;
+                // 同步到所有现有的池
+                foreach (var kvp in _pools)
+                {
+                    var poolType = kvp.Value.GetType();
+                    var property = poolType.GetProperty("CollectStatistics");
+                    property?.SetValue(kvp.Value, value);
+                }
+            }
+        }
 
         /// <summary>
         /// 服务初始化时调用。
@@ -76,6 +98,8 @@ namespace EasyPack
             }
 
             var pool = new ObjectPool<T>(factory, cleanup, maxCapacity);
+            // 新池继承当前的统计设置
+            pool.CollectStatistics = _statisticsEnabled;
             _pools[type] = pool;
             Debug.Log($"[ObjectPoolService] 已创建类型 {type.Name} 的对象池，最大容量: {maxCapacity}");
             return pool;
@@ -106,6 +130,41 @@ namespace EasyPack
             }
 
             return CreatePool(factory, cleanup, maxCapacity);
+        }
+
+        /// <summary>
+        /// 获取所有活跃的池的统计信息。
+        /// </summary>
+        public IEnumerable<PoolStatistics> GetAllStatistics()
+        {
+            var stats = new List<PoolStatistics>();
+            foreach (var kvp in _pools)
+            {
+                var poolType = kvp.Value.GetType();
+                var method = poolType.GetMethod("GetStatistics");
+                if (method != null)
+                {
+                    var stat = method.Invoke(kvp.Value, null) as PoolStatistics;
+                    if (stat != null)
+                    {
+                        stats.Add(stat);
+                    }
+                }
+            }
+            return stats;
+        }
+
+        /// <summary>
+        /// 重置所有池的统计信息。
+        /// </summary>
+        public void ResetAllStatistics()
+        {
+            foreach (var kvp in _pools)
+            {
+                var poolType = kvp.Value.GetType();
+                var method = poolType.GetMethod("ResetStatistics");
+                method?.Invoke(kvp.Value, null);
+            }
         }
 
         /// <summary>

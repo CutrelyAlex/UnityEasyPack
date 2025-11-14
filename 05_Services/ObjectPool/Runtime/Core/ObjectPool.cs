@@ -13,12 +13,22 @@ namespace EasyPack
         private readonly Func<T> _factory;
         private readonly Action<T> _cleanup;
         private readonly int _maxCapacity;
+        private bool _collectStatistics;
 
-        // 统计数据
+        // 统计数据（仅在启用统计时收集）
         private int _rentCount;
         private int _createCount;
         private int _hitCount;
         private int _peakPoolSize;
+
+        /// <summary>
+        /// 获取或设置是否启用统计收集。默认为 false。
+        /// </summary>
+        public bool CollectStatistics
+        {
+            get => _collectStatistics;
+            set => _collectStatistics = value;
+        }
 
         /// <summary>
         /// 获取总租用次数。
@@ -67,6 +77,7 @@ namespace EasyPack
             _cleanup = cleanup;
             _maxCapacity = maxCapacity;
             _pool = new Stack<T>(Math.Min(maxCapacity, 16)); // 初始容量避免过早扩容
+            _collectStatistics = false; // 默认不收集统计，性能优先
         }
 
         /// <summary>
@@ -75,15 +86,24 @@ namespace EasyPack
         /// <returns>可用的对象实例。</returns>
         public T Rent()
         {
-            _rentCount++;
+            if (_collectStatistics)
+            {
+                _rentCount++;
+            }
 
             if (_pool.Count > 0)
             {
-                _hitCount++;
+                if (_collectStatistics)
+                {
+                    _hitCount++;
+                }
                 return _pool.Pop();
             }
 
-            _createCount++;
+            if (_collectStatistics)
+            {
+                _createCount++;
+            }
             return _factory();
         }
 
@@ -106,8 +126,10 @@ namespace EasyPack
             _pool.Push(obj);
 
             // 更新峰值
-            if (_pool.Count > _peakPoolSize)
+            if (_collectStatistics && _pool.Count > _peakPoolSize)
+            {
                 _peakPoolSize = _pool.Count;
+            }
         }
 
         /// <summary>
@@ -120,6 +142,29 @@ namespace EasyPack
                 var obj = _pool.Pop();
                 _cleanup?.Invoke(obj);
             }
+
+            // 重置统计信息
+            if (_collectStatistics)
+            {
+                _rentCount = 0;
+                _createCount = 0;
+                _hitCount = 0;
+                _peakPoolSize = 0;
+            }
+        }
+
+        /// <summary>
+        /// 重置统计信息。仅在启用统计时有效。
+        /// </summary>
+        public void ResetStatistics()
+        {
+            if (!_collectStatistics)
+                return;
+
+            _rentCount = 0;
+            _createCount = 0;
+            _hitCount = 0;
+            _peakPoolSize = 0;
         }
 
         /// <summary>
