@@ -101,7 +101,6 @@ namespace EasyPack
             // 新池继承当前的统计设置
             pool.CollectStatistics = _statisticsEnabled;
             _pools[type] = pool;
-            Debug.Log($"[ObjectPoolService] 已创建类型 {type.Name} 的对象池，最大容量: {maxCapacity}");
             return pool;
         }
 
