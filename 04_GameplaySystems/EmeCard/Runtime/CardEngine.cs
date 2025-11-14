@@ -26,6 +26,20 @@ namespace EasyPack.EmeCardSystem
         // 延迟事件队列
         private readonly Queue<EventEntry> _deferredQueue = new();
         private int _processingDepth = 0; // 处理深度
+
+        // 分帧处理相关
+        private float _frameStartTime; // 当前帧开始处理的时间（毫秒）
+        private int _frameProcessedCount; // 当前帧已处理事件数
+
+        /// <summary>
+        /// 获取当前队列中待处理的事件数量
+        /// </summary>
+        public int PendingEventCount => _queue.Count;
+
+        /// <summary>
+        /// 获取延迟队列中的事件数量
+        /// </summary>
+        public int DeferredEventCount => _deferredQueue.Count;
         #endregion
 
         #region 事件和缓存
@@ -83,34 +97,99 @@ namespace EasyPack.EmeCardSystem
             else
             {
                 _queue.Enqueue(new EventEntry(source, evt));
-                if (!_isPumping) Pump();
+
+                // 分帧模式下不自动Pump，等待下一帧主动调用PumpFrame
+                // 非分帧模式保持原有即时处理行为
+                if (!_isPumping && !Policy.EnableFrameDistribution)
+                {
+                    Pump();
+                }
             }
         }
         /// <summary>
         /// 事件主循环，依次处理队列中的所有事件。
         /// </summary>
-        /// <param name="maxEvents">最大处理事件数。</param>
+        /// <param name="maxEvents">最大处理事件数（如果未启用分帧处理，则一次性处理所有）。</param>
         public void Pump(int maxEvents = int.MaxValue)
         {
             if (_isPumping) return;
             _isPumping = true;
             int processed = 0;
+
             try
             {
-                while (_queue.Count > 0 && processed < maxEvents)
+                // 如果启用了分帧处理，使用时间预算控制
+                if (Policy.EnableFrameDistribution)
                 {
-                    var entry = _queue.Dequeue();
-                    Process(entry.Source, entry.Event);
-                    processed++;
+                    _frameStartTime = Time.realtimeSinceStartup * 1000f; // 转为毫秒
+                    _frameProcessedCount = 0;
+
+                    int frameMaxEvents = Mathf.Min(maxEvents, Policy.MaxEventsPerFrame);
+
+                    while (_queue.Count > 0 && processed < frameMaxEvents)
+                    {
+                        // 检查是否超出时间预算（但至少处理MinEventsPerFrame个事件）
+                        if (_frameProcessedCount >= Policy.MinEventsPerFrame)
+                        {
+                            float elapsed = (Time.realtimeSinceStartup * 1000f) - _frameStartTime;
+                            if (elapsed >= Policy.FrameBudgetMs)
+                            {
+                                // 超时，保留剩余事件到下一帧
+                                break;
+                            }
+                        }
+
+                        var entry = _queue.Dequeue();
+                        Process(entry.Source, entry.Event);
+                        processed++;
+                        _frameProcessedCount++;
+                    }
+                }
+                else
+                {
+                    // 传统模式：一次性处理所有事件
+                    while (_queue.Count > 0 && processed < maxEvents)
+                    {
+                        var entry = _queue.Dequeue();
+                        Process(entry.Source, entry.Event);
+                        processed++;
+                    }
                 }
             }
             finally
             {
-                if (processed >= maxEvents)
+                if (processed >= maxEvents && maxEvents != int.MaxValue)
                 {
-                    Debug.Log($"一个动作就调用了{maxEvents}次处理，这绝对死循环了吧");
+                    Debug.LogWarning($"[CardEngine] 单次Pump达到最大处理限制 {maxEvents}，可能存在事件循环");
                 }
+
+                if (Policy.EnableFrameDistribution && _queue.Count > 0)
+                {
+                    // 还有待处理事件，记录日志供调试
+                    if (_queue.Count > 50)
+                    {
+                        Debug.Log($"[CardEngine] 本帧处理 {processed} 个事件，剩余 {_queue.Count} 个待下一帧处理");
+                    }
+                }
+
                 _isPumping = false;
+            }
+        }
+
+        /// <summary>
+        /// 手动驱动分帧处理（在Update或FixedUpdate中调用）
+        /// </summary>
+        public void PumpFrame()
+        {
+            if (!Policy.EnableFrameDistribution)
+            {
+                Debug.LogWarning("[CardEngine] PumpFrame 仅在启用分帧处理时有效，请设置 Policy.EnableFrameDistribution = true");
+                return;
+            }
+
+            if (_queue.Count > 0)
+            {
+                Pump();
             }
         }
 

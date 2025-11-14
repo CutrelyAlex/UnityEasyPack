@@ -15,6 +15,28 @@ namespace EasyPack.EmeCardSystem
 
         // 命中规则的裁决方式
         public RuleSelectionMode RuleSelection { get; set; } = RuleSelectionMode.RegistrationOrder;
+
+        // ===== 分帧处理配置 =====
+
+        /// <summary>
+        /// 是否启用分帧事件处理（默认关闭）
+        /// </summary>
+        public bool EnableFrameDistribution { get; set; } = false;
+
+        /// <summary>
+        /// 每帧事件处理的时间预算（毫秒），默认3ms
+        /// </summary>
+        public float FrameBudgetMs { get; set; } = 3f;
+
+        /// <summary>
+        /// 每帧最小处理事件数，即使超时也至少处理这么多
+        /// </summary>
+        public int MinEventsPerFrame { get; set; } = 1;
+
+        /// <summary>
+        /// 每帧最大处理事件数
+        /// </summary>
+        public int MaxEventsPerFrame { get; set; } = 100;
     }
 
     // 规则策略
