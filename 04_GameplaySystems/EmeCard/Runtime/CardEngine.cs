@@ -7,6 +7,9 @@ namespace EasyPack.EmeCardSystem
 {
     public sealed class CardEngine
     {
+        public event Action<PumpMetricsSnapshot> PumpMetricsUpdated;
+        public event Action<Card, CardEvent> EventProcessingStarted;
+        public event Action<Card, CardEvent> EventProcessingEnded;
         public CardEngine(ICardFactory factory)
         {
             CardFactory = factory;
@@ -89,6 +92,12 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void OnCardEvent(Card source, CardEvent evt)
         {
+            // === VERIFICATION: Track Game.Tick event queueing ===
+            if (evt.Type == CardEventType.Tick && source.HasTag("Game"))
+            {
+                UnityEngine.Debug.Log($"[CardEngine.OnCardEvent] Game.Tick事件入队 - Queue: {_queue.Count}, Deferred: {_deferredQueue.Count}, Depth: {_processingDepth}, Frame: {UnityEngine.Time.frameCount}");
+            }
+
             // 如果正在处理事件，新事件进入延迟队列
             if (_processingDepth > 0)
             {
@@ -140,6 +149,10 @@ namespace EasyPack.EmeCardSystem
                         }
 
                         var entry = _queue.Dequeue();
+
+                        // VERIFICATION: Phase 4 - 追踪事件处理
+                        Debug.Log($"[PumpFrame.Process] 处理事件: {entry.Event.Type}, Source: {entry.Source?.GetType().Name ?? "null"} ({entry.Source?.ToString() ?? "null"}), ID: {entry.Event.ID}, Data: {entry.Event.Data}");
+
                         Process(entry.Source, entry.Event);
                         processed++;
                         _frameProcessedCount++;
@@ -163,16 +176,23 @@ namespace EasyPack.EmeCardSystem
                     Debug.LogWarning($"[CardEngine] 单次Pump达到最大处理限制 {maxEvents}，可能存在事件循环");
                 }
 
-                if (Policy.EnableFrameDistribution && _queue.Count > 0)
-                {
-                    // 还有待处理事件，记录日志供调试
-                    if (_queue.Count > 50)
-                    {
-                        Debug.Log($"[CardEngine] 本帧处理 {processed} 个事件，剩余 {_queue.Count} 个待下一帧处理");
-                    }
-                }
-
                 _isPumping = false;
+
+                try
+                {
+                    float elapsedMs = (Time.realtimeSinceStartup * 1000f) - _frameStartTime;
+                    PumpMetricsUpdated?.Invoke(new PumpMetricsSnapshot
+                    {
+                        EventsProcessed = processed,
+                        FrameTimeMs = elapsedMs,
+                        PendingEvents = _queue.Count,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[CardEngine] Pump metrics handler threw: {ex}");
+                }
             }
         }
 
@@ -181,6 +201,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public void PumpFrame()
         {
+
             if (!Policy.EnableFrameDistribution)
             {
                 Debug.LogWarning("[CardEngine] PumpFrame 仅在启用分帧处理时有效，请设置 Policy.EnableFrameDistribution = true");
@@ -191,6 +212,7 @@ namespace EasyPack.EmeCardSystem
             {
                 Pump();
             }
+
         }
 
         /// <summary>
@@ -199,6 +221,16 @@ namespace EasyPack.EmeCardSystem
         private void Process(Card source, CardEvent evt)
         {
             _processingDepth++; // 进入处理，期间触发的事件会进入延迟队列
+
+            // notify profiling listeners
+            try
+            {
+                EventProcessingStarted?.Invoke(source, evt);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[CardEngine] EventProcessingStarted handler threw: {ex}");
+            }
             try
             {
                 var rules = _rules[evt.Type];
@@ -248,18 +280,25 @@ namespace EasyPack.EmeCardSystem
                         if (ExecuteOne(e)) break;
                     }
                 }
+
+                // Process deferred events immediately
+                while (_deferredQueue.Count > 0)
+                {
+                    var deferredEvent = _deferredQueue.Dequeue();
+                    Process(deferredEvent.Source, deferredEvent.Event);
+                }
             }
             finally
             {
                 _processingDepth--;
 
-                // 如果处理完成（深度回到0），将延迟队列的事件批量移入主队列
-                if (_processingDepth == 0 && _deferredQueue.Count > 0)
+                try
                 {
-                    while (_deferredQueue.Count > 0)
-                    {
-                        _queue.Enqueue(_deferredQueue.Dequeue());
-                    }
+                    EventProcessingEnded?.Invoke(source, evt);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[CardEngine] EventProcessingEnded handler threw: {ex}");
                 }
             }
         }
@@ -494,4 +533,15 @@ namespace EasyPack.EmeCardSystem
 
         public override string ToString() => $"{Id}#{Index}";
     }
+}
+
+/// <summary>
+/// Pump metrics snapshot emitted by CardEngine after each Pump invocation
+/// </summary>
+public struct PumpMetricsSnapshot
+{
+    public int EventsProcessed { get; set; }
+    public float FrameTimeMs { get; set; }
+    public int PendingEvents { get; set; }
+    public DateTime Timestamp { get; set; }
 }

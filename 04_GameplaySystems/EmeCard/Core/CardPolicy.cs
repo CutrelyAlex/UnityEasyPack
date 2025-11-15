@@ -19,9 +19,9 @@ namespace EasyPack.EmeCardSystem
         // ===== 分帧处理配置 =====
 
         /// <summary>
-        /// 是否启用分帧事件处理（默认关闭）
+        /// 是否启用分帧事件处理（默认开启）
         /// </summary>
-        public bool EnableFrameDistribution { get; set; } = false;
+        public bool EnableFrameDistribution { get; set; } = true;
 
         /// <summary>
         /// 每帧事件处理的时间预算（毫秒），默认3ms

@@ -271,7 +271,7 @@ namespace EasyPack.EmeCardSystem
         /// </remarks>
         public Card AddChild(Card child, bool intrinsic = false)
         {
-            if(intrinsic&&child.Id=="Signal"){}
+            if (intrinsic && child.Id == "Signal") { }
             if (child == null) throw new ArgumentNullException(nameof(child));
             if (child.Owner != null) throw new InvalidOperationException("子卡牌已被其他卡牌持有。");
 
@@ -335,7 +335,10 @@ namespace EasyPack.EmeCardSystem
         /// 触发按时事件（<see cref="CardEventType.Tick"/>）。
         /// </summary>
         /// <param name="deltaTime">时间步长（秒）。将作为 <see cref="CardEvent.Data"/> 传递。</param>
-        public void Tick(float deltaTime) => RaiseEvent(new CardEvent(CardEventType.Tick, data: deltaTime));
+        public void Tick(float deltaTime)
+        {
+            RaiseEvent(new CardEvent(CardEventType.Tick, data: deltaTime));
+        }
 
         /// <summary>
         /// 触发主动使用事件（<see cref="CardEventType.Use"/>）。
