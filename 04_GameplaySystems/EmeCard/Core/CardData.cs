@@ -58,7 +58,8 @@ namespace EasyPack.EmeCardSystem
             Description = desc;
             Category = category;
             DefaultTags = defaultTags ?? System.Array.Empty<string>();
-            Sprite = Resources.Load<Sprite>(ID) == null ? Resources.Load<Sprite>("Default") : Resources.Load<Sprite>(ID); ;
+            Sprite = Resources.Load<Sprite>(ID); 
+            Sprite??= Resources.Load<Sprite>("Default");
         }
     }
 }
