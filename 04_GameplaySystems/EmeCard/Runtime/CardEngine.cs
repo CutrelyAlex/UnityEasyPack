@@ -680,6 +680,13 @@ namespace EasyPack.EmeCardSystem
             }
             return this;
         }
+        
+        public void ClearAllCards()
+        {
+            _cardMap.Clear();
+            _idIndexes.Clear();
+            _requirementCache.Clear(); //这个是干嘛的
+        }
         #endregion
     }
 
