@@ -24,29 +24,32 @@ namespace EasyPack.EmeCardSystem
         public bool EnableFrameDistribution { get; set; } = true;
 
         /// <summary>
-        /// 每帧事件处理的时间预算（毫秒），默认3ms
-        /// </summary>
-        public float FrameBudgetMs { get; set; } = 16f;
-
-        /// <summary>
-        /// 每帧最小处理事件数，即使超时也至少处理这么多
+        /// 每帧最小处理事件数（至少处理这么多，即使超时）
+        /// 适用于：PumpFrameWithBudget()、PumpTimeLimitedBatch()
+        /// 默认值：1
         /// </summary>
         public int MinEventsPerFrame { get; set; } = 1;
 
         /// <summary>
         /// 每帧最大处理事件数
+        /// 适用于：PumpFrameWithBudget()、PumpTimeLimitedBatch()
+        /// 默认值：3500
         /// </summary>
-        public int MaxEventsPerFrame { get; set; } = 5000;
+        public int MaxEventsPerFrame { get; set; } = 3500;
 
         /// <summary>
-        /// 时间限制分帧的默认时间窗口（秒）
+        /// 每帧时间预算（毫秒）
+        /// 适用于：PumpFrameWithBudget()、PumpTimeLimitedBatch()
+        /// 默认值：10ms
+        /// </summary>
+        public float FrameBudgetMs { get; set; } = 10f;
+
+        /// <summary>
+        /// 批次处理的总时间限制（秒）
+        /// 仅用于PumpTimeLimitedBatch()方法
+        /// 默认值：0.8s
         /// </summary>
         public float BatchTimeLimitSeconds { get; set; } = 0.8f;
-
-        /// <summary>
-        /// 时间限制分帧的帧预算（毫秒）
-        /// </summary>
-        public float BatchFrameBudgetMs { get; set; } = 12f;
     }
 
     // 规则策略

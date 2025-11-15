@@ -26,11 +26,6 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public EnginePolicy Policy { get; } = new EnginePolicy();
 
-        /// <summary>
-        /// 分帧处理配置
-        /// </summary>
-        public FrameDistributionConfig FrameDistributionConfig { get; } = new FrameDistributionConfig();
-
         private bool _isPumping = false;
         // 延迟事件队列
         private readonly Queue<EventEntry> _deferredQueue = new();
@@ -182,9 +177,9 @@ namespace EasyPack.EmeCardSystem
                 _frameStartTime = Time.realtimeSinceStartup * 1000f;
                 _frameProcessedCount = 0;
 
-                float frameBudget = FrameDistributionConfig.FrameBudgetMs;
-                int maxEvents = FrameDistributionConfig.MaxEventsPerFrame;
-                int minEvents = FrameDistributionConfig.MinEventsPerFrame;
+                float frameBudget = Policy.FrameBudgetMs;
+                int maxEvents = Policy.MaxEventsPerFrame;
+                int minEvents = Policy.MinEventsPerFrame;
 
                 while (_queue.Count > 0 && processed < maxEvents)
                 {
@@ -231,7 +226,7 @@ namespace EasyPack.EmeCardSystem
         /// 初始化时间限制批次处理
         /// 必须调用此方法后，才能在Update中调用PumpTimeLimitedBatch()
         /// </summary>
-        /// <param name="timeLimitSeconds">自定义时间限制（秒），null则使用FrameDistributionConfig.BatchTimeLimitSeconds</param>
+        /// <param name="timeLimitSeconds">自定义时间限制（秒），null则使用Policy.BatchTimeLimitSeconds</param>
         public void BeginTimeLimitedBatch(float? timeLimitSeconds = null)
         {
             if (_isBatchProcessing)
@@ -242,7 +237,7 @@ namespace EasyPack.EmeCardSystem
 
             _isBatchProcessing = true;
             _batchStartTime = Time.realtimeSinceStartup;
-            _batchTimeLimit = timeLimitSeconds ?? FrameDistributionConfig.BatchTimeLimitSeconds;
+            _batchTimeLimit = timeLimitSeconds ?? Policy.BatchTimeLimitSeconds;
 
             Debug.Log($"[CardEngine] 开始时间限制批次处理 - 时间限制: {_batchTimeLimit}s, 初始事件数: {_queue.Count}");
         }
@@ -274,8 +269,8 @@ namespace EasyPack.EmeCardSystem
             {
                 // 分帧阶段：使用帧预算处理事件
                 float frameStart = Time.realtimeSinceStartup;
-                float frameBudgetSec = FrameDistributionConfig.FrameBudgetMs / 1000f;
-                int maxEvents = FrameDistributionConfig.MaxEventsPerFrame;
+                float frameBudgetSec = Policy.FrameBudgetMs / 1000f;
+                int maxEvents = Policy.MaxEventsPerFrame;
 
                 int processedInFrame = 0;
                 while (_queue.Count > 0 &&
