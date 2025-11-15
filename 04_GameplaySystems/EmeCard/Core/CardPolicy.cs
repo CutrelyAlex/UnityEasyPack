@@ -26,7 +26,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         /// 每帧事件处理的时间预算（毫秒），默认3ms
         /// </summary>
-        public float FrameBudgetMs { get; set; } = 3f;
+        public float FrameBudgetMs { get; set; } = 16f;
 
         /// <summary>
         /// 每帧最小处理事件数，即使超时也至少处理这么多
@@ -36,7 +36,17 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         /// 每帧最大处理事件数
         /// </summary>
-        public int MaxEventsPerFrame { get; set; } = 100;
+        public int MaxEventsPerFrame { get; set; } = 5000;
+
+        /// <summary>
+        /// 时间限制分帧的默认时间窗口（秒）
+        /// </summary>
+        public float BatchTimeLimitSeconds { get; set; } = 0.8f;
+
+        /// <summary>
+        /// 时间限制分帧的帧预算（毫秒）
+        /// </summary>
+        public float BatchFrameBudgetMs { get; set; } = 12f;
     }
 
     // 规则策略

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -25,6 +26,11 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public EnginePolicy Policy { get; } = new EnginePolicy();
 
+        /// <summary>
+        /// 分帧处理配置
+        /// </summary>
+        public FrameDistributionConfig FrameDistributionConfig { get; } = new FrameDistributionConfig();
+
         private bool _isPumping = false;
         // 延迟事件队列
         private readonly Queue<EventEntry> _deferredQueue = new();
@@ -33,6 +39,11 @@ namespace EasyPack.EmeCardSystem
         // 分帧处理相关
         private float _frameStartTime; // 当前帧开始处理的时间（毫秒）
         private int _frameProcessedCount; // 当前帧已处理事件数
+
+        // 时间限制分帧机制
+        private bool _isBatchProcessing = false;
+        private float _batchStartTime;
+        private float _batchTimeLimit;
 
         /// <summary>
         /// 获取当前队列中待处理的事件数量
@@ -43,6 +54,9 @@ namespace EasyPack.EmeCardSystem
         /// 获取延迟队列中的事件数量
         /// </summary>
         public int DeferredEventCount => _deferredQueue.Count;
+
+        // RESEARCH: 获取批次处理状态用于研究验证
+        public bool IsBatchProcessing => _isBatchProcessing;
         #endregion
 
         #region 事件和缓存
@@ -92,12 +106,6 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void OnCardEvent(Card source, CardEvent evt)
         {
-            // === VERIFICATION: Track Game.Tick event queueing ===
-            if (evt.Type == CardEventType.Tick && source.HasTag("Game"))
-            {
-                UnityEngine.Debug.Log($"[CardEngine.OnCardEvent] Game.Tick事件入队 - Queue: {_queue.Count}, Deferred: {_deferredQueue.Count}, Depth: {_processingDepth}, Frame: {UnityEngine.Time.frameCount}");
-            }
-
             // 如果正在处理事件，新事件进入延迟队列
             if (_processingDepth > 0)
             {
@@ -115,11 +123,13 @@ namespace EasyPack.EmeCardSystem
                 }
             }
         }
+
+        #region 分帧处理API
+
         /// <summary>
-        /// 事件主循环，依次处理队列中的所有事件。
+        /// 同步一次性处理所有事件（无分帧）
         /// </summary>
-        /// <param name="maxEvents">最大处理事件数（如果未启用分帧处理，则一次性处理所有）。</param>
-        public void Pump(int maxEvents = int.MaxValue)
+        public void Pump()
         {
             if (_isPumping) return;
             _isPumping = true;
@@ -127,55 +137,17 @@ namespace EasyPack.EmeCardSystem
 
             try
             {
-                // 如果启用了分帧处理，使用时间预算控制
-                if (Policy.EnableFrameDistribution)
+                _frameStartTime = Time.realtimeSinceStartup * 1000f;
+
+                while (_queue.Count > 0)
                 {
-                    _frameStartTime = Time.realtimeSinceStartup * 1000f; // 转为毫秒
-                    _frameProcessedCount = 0;
-
-                    int frameMaxEvents = Mathf.Min(maxEvents, Policy.MaxEventsPerFrame);
-
-                    while (_queue.Count > 0 && processed < frameMaxEvents)
-                    {
-                        // 检查是否超出时间预算（但至少处理MinEventsPerFrame个事件）
-                        if (_frameProcessedCount >= Policy.MinEventsPerFrame)
-                        {
-                            float elapsed = (Time.realtimeSinceStartup * 1000f) - _frameStartTime;
-                            if (elapsed >= Policy.FrameBudgetMs)
-                            {
-                                // 超时，保留剩余事件到下一帧
-                                break;
-                            }
-                        }
-
-                        var entry = _queue.Dequeue();
-
-                        // VERIFICATION: Phase 4 - 追踪事件处理
-                        Debug.Log($"[PumpFrame.Process] 处理事件: {entry.Event.Type}, Source: {entry.Source?.GetType().Name ?? "null"} ({entry.Source?.ToString() ?? "null"}), ID: {entry.Event.ID}, Data: {entry.Event.Data}");
-
-                        Process(entry.Source, entry.Event);
-                        processed++;
-                        _frameProcessedCount++;
-                    }
-                }
-                else
-                {
-                    // 传统模式：一次性处理所有事件
-                    while (_queue.Count > 0 && processed < maxEvents)
-                    {
-                        var entry = _queue.Dequeue();
-                        Process(entry.Source, entry.Event);
-                        processed++;
-                    }
+                    var entry = _queue.Dequeue();
+                    Process(entry.Source, entry.Event);
+                    processed++;
                 }
             }
             finally
             {
-                if (processed >= maxEvents && maxEvents != int.MaxValue)
-                {
-                    Debug.LogWarning($"[CardEngine] 单次Pump达到最大处理限制 {maxEvents}，可能存在事件循环");
-                }
-
                 _isPumping = false;
 
                 try
@@ -191,29 +163,145 @@ namespace EasyPack.EmeCardSystem
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[CardEngine] Pump metrics handler threw: {ex}");
+                    Debug.LogError($"[CardEngine] 分帧快照记录出现异常: {ex}");
                 }
             }
         }
 
         /// <summary>
-        /// 手动驱动分帧处理（在Update或FixedUpdate中调用）
+        /// 按帧时间预算处理事件
         /// </summary>
-        public void PumpFrame()
+        public void PumpFrameWithBudget()
         {
+            if (_isPumping) return;
+            _isPumping = true;
+            int processed = 0;
 
-            if (!Policy.EnableFrameDistribution)
+            try
             {
-                Debug.LogWarning("[CardEngine] PumpFrame 仅在启用分帧处理时有效，请设置 Policy.EnableFrameDistribution = true");
+                _frameStartTime = Time.realtimeSinceStartup * 1000f;
+                _frameProcessedCount = 0;
+
+                float frameBudget = FrameDistributionConfig.FrameBudgetMs;
+                int maxEvents = FrameDistributionConfig.MaxEventsPerFrame;
+                int minEvents = FrameDistributionConfig.MinEventsPerFrame;
+
+                while (_queue.Count > 0 && processed < maxEvents)
+                {
+                    // 检查时间预算（但至少处理MinEventsPerFrame个事件）
+                    if (_frameProcessedCount >= minEvents)
+                    {
+                        float elapsed = (Time.realtimeSinceStartup * 1000f) - _frameStartTime;
+                        if (elapsed >= frameBudget)
+                        {
+                            // 超时，保留剩余到下一帧
+                            break;
+                        }
+                    }
+
+                    var entry = _queue.Dequeue();
+                    Process(entry.Source, entry.Event);
+                    processed++;
+                    _frameProcessedCount++;
+                }
+            }
+            finally
+            {
+                _isPumping = false;
+
+                try
+                {
+                    float elapsedMs = (Time.realtimeSinceStartup * 1000f) - _frameStartTime;
+                    PumpMetricsUpdated?.Invoke(new PumpMetricsSnapshot
+                    {
+                        EventsProcessed = processed,
+                        FrameTimeMs = elapsedMs,
+                        PendingEvents = _queue.Count,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[CardEngine] PumpFrameWithBudget metrics handler threw: {ex}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 初始化时间限制批次处理
+        /// 必须调用此方法后，才能在Update中调用PumpTimeLimitedBatch()
+        /// </summary>
+        /// <param name="timeLimitSeconds">自定义时间限制（秒），null则使用FrameDistributionConfig.BatchTimeLimitSeconds</param>
+        public void BeginTimeLimitedBatch(float? timeLimitSeconds = null)
+        {
+            if (_isBatchProcessing)
+            {
+                Debug.LogWarning("[CardEngine] 批次处理已在进行中，忽略新请求");
                 return;
             }
 
-            if (_queue.Count > 0)
+            _isBatchProcessing = true;
+            _batchStartTime = Time.realtimeSinceStartup;
+            _batchTimeLimit = timeLimitSeconds ?? FrameDistributionConfig.BatchTimeLimitSeconds;
+
+            Debug.Log($"[CardEngine] 开始时间限制批次处理 - 时间限制: {_batchTimeLimit}s, 初始事件数: {_queue.Count}");
+        }
+
+        /// <summary>
+        /// 驱动时间限制批次处理（在Update中调用）
+        /// 必须先调用BeginTimeLimitedBatch()初始化
+        /// 在指定时间内分帧处理，超时后同步完成所有
+        /// </summary>
+        public void PumpTimeLimitedBatch()
+        {
+            if (!_isBatchProcessing)
             {
-                Pump();
+                return;
             }
 
+            if (_queue.Count == 0)
+            {
+                float totalTime = Time.realtimeSinceStartup - _batchStartTime;
+                Debug.Log($"[CardEngine] 时间限制批次处理完成 - 总耗时: {totalTime:F3}s");
+                _isBatchProcessing = false;
+                return;
+            }
+
+            float elapsed = Time.realtimeSinceStartup - _batchStartTime;
+            float remaining = _batchTimeLimit - elapsed;
+
+            if (remaining > 0)
+            {
+                // 分帧阶段：使用帧预算处理事件
+                float frameStart = Time.realtimeSinceStartup;
+                float frameBudgetSec = FrameDistributionConfig.FrameBudgetMs / 1000f;
+                int maxEvents = FrameDistributionConfig.MaxEventsPerFrame;
+
+                int processedInFrame = 0;
+                while (_queue.Count > 0 &&
+                       (Time.realtimeSinceStartup - frameStart) < frameBudgetSec &&
+                       processedInFrame < maxEvents)
+                {
+                    var entry = _queue.Dequeue();
+                    Process(entry.Source, entry.Event);
+                    processedInFrame++;
+                }
+            }
+            else
+            {
+                // 超时：同步完成所有剩余事件
+                while (_queue.Count > 0)
+                {
+                    var entry = _queue.Dequeue();
+                    Process(entry.Source, entry.Event);
+                }
+
+                _isBatchProcessing = false;
+                Debug.Log("[CardEngine] 批次处理超时，已同步完成所有剩余事件");
+            }
         }
+
+        #endregion
 
         /// <summary>
         /// 处理单个事件，匹配规则并执行效果。
