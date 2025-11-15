@@ -8,9 +8,6 @@ namespace EasyPack.EmeCardSystem
 {
     public sealed class CardEngine
     {
-        public event Action<PumpMetricsSnapshot> PumpMetricsUpdated;
-        public event Action<Card, CardEvent> EventProcessingStarted;
-        public event Action<Card, CardEvent> EventProcessingEnded;
         public CardEngine(ICardFactory factory)
         {
             CardFactory = factory;
@@ -49,9 +46,12 @@ namespace EasyPack.EmeCardSystem
         /// 获取延迟队列中的事件数量
         /// </summary>
         public int DeferredEventCount => _deferredQueue.Count;
-
-        // RESEARCH: 获取批次处理状态用于研究验证
         public bool IsBatchProcessing => _isBatchProcessing;
+
+
+        private readonly Dictionary<(CardEventType eventType, Card sourceCard, int propertyHash, int ruleId),
+            (bool matched, List<Card> results)> _requirementCache = new();
+
         #endregion
 
         #region 事件和缓存
@@ -59,7 +59,13 @@ namespace EasyPack.EmeCardSystem
         {
             public Card Source;
             public CardEvent Event;
-            public EventEntry(Card s, CardEvent e) { Source = s; Event = e; }
+            public bool IsProcessed;
+            public EventEntry(Card s, CardEvent e)
+            {
+                Source = s;
+                Event = e;
+                IsProcessed = false;
+            }
         }
         // 规则表
         private readonly Dictionary<CardEventType, List<CardRule>> _rules = new();
@@ -71,6 +77,32 @@ namespace EasyPack.EmeCardSystem
         private readonly Dictionary<CardKey, Card> _cardMap = new();
         // id->index集合缓存
         private readonly Dictionary<string, HashSet<int>> _idIndexes = new();
+
+        #endregion
+
+        #region 缓存管理
+        /// <summary>
+        /// 清除涉及指定卡牌的需求评估缓存
+        /// </summary>
+        /// <remarks>
+        /// 当卡牌状态改变（添加/移除子卡）时调用此方法
+        /// </remarks>
+        public void InvalidateRequirementCache(Card card)
+        {
+            if (card == null) return;
+
+            var keysToRemove = new List<(CardEventType, Card, int, int)>();
+
+            foreach (var key in _requirementCache.Keys)
+            {
+                // 清除以此卡牌为源的缓存
+                if (key.Item2 == card)
+                    keysToRemove.Add(key);
+            }
+
+            foreach (var key in keysToRemove)
+                _requirementCache.Remove(key);
+        }
 
         #endregion
 
@@ -148,13 +180,6 @@ namespace EasyPack.EmeCardSystem
                 try
                 {
                     float elapsedMs = (Time.realtimeSinceStartup * 1000f) - _frameStartTime;
-                    PumpMetricsUpdated?.Invoke(new PumpMetricsSnapshot
-                    {
-                        EventsProcessed = processed,
-                        FrameTimeMs = elapsedMs,
-                        PendingEvents = _queue.Count,
-                        Timestamp = DateTime.UtcNow
-                    });
                 }
                 catch (Exception ex)
                 {
@@ -207,17 +232,10 @@ namespace EasyPack.EmeCardSystem
                 try
                 {
                     float elapsedMs = (Time.realtimeSinceStartup * 1000f) - _frameStartTime;
-                    PumpMetricsUpdated?.Invoke(new PumpMetricsSnapshot
-                    {
-                        EventsProcessed = processed,
-                        FrameTimeMs = elapsedMs,
-                        PendingEvents = _queue.Count,
-                        Timestamp = DateTime.UtcNow
-                    });
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[CardEngine] PumpFrameWithBudget metrics handler threw: {ex}");
+                    Debug.LogError($"[CardEngine] PumpFrameWithBudget 错误: {ex}");
                 }
             }
         }
@@ -305,15 +323,6 @@ namespace EasyPack.EmeCardSystem
         {
             _processingDepth++; // 进入处理，期间触发的事件会进入延迟队列
 
-            // notify profiling listeners
-            try
-            {
-                EventProcessingStarted?.Invoke(source, evt);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[CardEngine] EventProcessingStarted handler threw: {ex}");
-            }
             try
             {
                 var rules = _rules[evt.Type];
@@ -335,7 +344,7 @@ namespace EasyPack.EmeCardSystem
                     var ctx = BuildContext(rule, source, evt);
                     if (ctx == null) continue;
 
-                    if (EvaluateRequirements(ctx, rule.Requirements, out var matched))
+                    if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
                     {
                         if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
                             matched = matched.Distinct().ToList();
@@ -348,8 +357,8 @@ namespace EasyPack.EmeCardSystem
 
                 IEnumerable<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> ordered =
                     Policy.RuleSelection == RuleSelectionMode.Priority
-                        ? evals.OrderBy(e => e.rule.Priority).ThenBy(e => e.orderIndex)
-                        : evals.OrderBy(e => e.orderIndex);
+                    ? evals.OrderBy(e => e.rule.Priority).ThenBy(e => e.orderIndex)
+                    : evals.OrderBy(e => e.orderIndex);
 
                 if (Policy.FirstMatchOnly)
                 {
@@ -364,7 +373,6 @@ namespace EasyPack.EmeCardSystem
                     }
                 }
 
-                // Process deferred events immediately
                 while (_deferredQueue.Count > 0)
                 {
                     var deferredEvent = _deferredQueue.Dequeue();
@@ -374,15 +382,6 @@ namespace EasyPack.EmeCardSystem
             finally
             {
                 _processingDepth--;
-
-                try
-                {
-                    EventProcessingEnded?.Invoke(source, evt);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"[CardEngine] EventProcessingEnded handler threw: {ex}");
-                }
             }
         }
 
@@ -432,18 +431,84 @@ namespace EasyPack.EmeCardSystem
             return node ?? source;
         }
 
-        private static bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll)
+        private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll, int ruleId = -1)
         {
+            // 计算卡牌属性状态的哈希值以构建缓存键
+            int propertyHash = GetCardStateHash(ctx.Source);
+            var cacheKey = (ctx.Event.Type, ctx.Source, propertyHash, ruleId);
+
+            if (_requirementCache.TryGetValue(cacheKey, out var cached))
+            {
+                matchedAll = cached.results;
+                return cached.matched;
+            }
+
             matchedAll = new List<Card>();
-            if (requirements == null || requirements.Count == 0) return true;
+            if (requirements == null || requirements.Count == 0)
+            {
+                _requirementCache[cacheKey] = (true, matchedAll);
+                return true;
+            }
 
             foreach (var req in requirements)
             {
-                if (req == null) return false;
-                if (!req.TryMatch(ctx, out var picks)) return false;
+                if (req == null)
+                {
+                    _requirementCache[cacheKey] = (false, matchedAll);
+                    return false;
+                }
+                if (!req.TryMatch(ctx, out var picks))
+                {
+                    _requirementCache[cacheKey] = (false, matchedAll);
+                    return false;
+                }
                 if (picks != null && picks.Count > 0) matchedAll.AddRange(picks);
             }
+
+            _requirementCache[cacheKey] = (true, matchedAll);
             return true;
+        }
+
+        /// <summary>
+        /// 计算卡牌自身状态的哈希值（ID、索引、属性值、标签）
+        /// 子卡改变时通过 InvalidateRequirementCache() 主动失效，避免递归遍历
+        /// </summary>
+        private static int GetCardStateHash(Card card)
+        {
+            if (card == null) return 0;
+
+            unchecked
+            {
+                int hash = 17;
+
+                // 哈希卡牌的基本ID和索引（以区分不同实例）
+                hash = hash * 31 + card.Id.GetHashCode();
+                hash = hash * 31 + card.Index.GetHashCode();
+
+                // 哈希所有属性值
+                if (card.Properties != null)
+                {
+                    foreach (var prop in card.Properties)
+                    {
+                        if (prop != null)
+                        {
+                            hash = hash * 31 + prop.ID.GetHashCode();
+                            hash = hash * 31 + prop.GetValue().GetHashCode();
+                        }
+                    }
+                }
+
+                // 哈希所有标签
+                if (card.Tags != null)
+                {
+                    foreach (var tag in card.Tags)
+                    {
+                        hash = hash * 31 + tag.GetHashCode();
+                    }
+                }
+
+                return hash;
+            }
         }
         #endregion
 
@@ -465,6 +530,9 @@ namespace EasyPack.EmeCardSystem
             {
                 return null;
             }
+
+            // 设置卡牌的Engine引用以支持缓存清除
+            card.Engine = this;
 
             AddCard(card);
 
@@ -557,6 +625,8 @@ namespace EasyPack.EmeCardSystem
                 indexes.Add(c.Index);
                 var key = new CardKey(c.Id, c.Index);
                 _cardMap[key] = c;
+
+                _requirementCache.Clear();
             }
             return this;
         }
@@ -579,6 +649,8 @@ namespace EasyPack.EmeCardSystem
                     if (indexes.Count == 0)
                         _idIndexes.Remove(c.Id);
                 }
+
+                _requirementCache.Clear();
             }
             return this;
         }
@@ -616,15 +688,4 @@ namespace EasyPack.EmeCardSystem
 
         public override string ToString() => $"{Id}#{Index}";
     }
-}
-
-/// <summary>
-/// Pump metrics snapshot emitted by CardEngine after each Pump invocation
-/// </summary>
-public struct PumpMetricsSnapshot
-{
-    public int EventsProcessed { get; set; }
-    public float FrameTimeMs { get; set; }
-    public int PendingEvents { get; set; }
-    public DateTime Timestamp { get; set; }
 }

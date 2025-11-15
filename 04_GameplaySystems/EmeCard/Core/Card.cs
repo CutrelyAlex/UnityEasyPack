@@ -33,9 +33,9 @@ namespace EasyPack.EmeCardSystem
     public class Card
     {
         /// <summary>
-        /// 无参构造函数
+        /// 卡牌所属的CardEngine
         /// </summary>
-        public Card() { }
+        internal CardEngine Engine { get; set; }
 
         /// <summary>
         /// 构造函数：创建卡牌，可选单个属性
@@ -285,6 +285,9 @@ namespace EasyPack.EmeCardSystem
             // 通知子卡
             child.RaiseEvent(new CardEvent(CardEventType.AddedToOwner, data: this));
 
+            // 清除此卡牌相关的需求评估缓存
+            Engine?.InvalidateRequirementCache(this);
+
             return this;
         }
 
@@ -308,6 +311,8 @@ namespace EasyPack.EmeCardSystem
                 _intrinsics.Remove(child);
                 child.RaiseEvent(new CardEvent(CardEventType.RemovedFromOwner, data: this));
                 child.Owner = null;
+
+                Engine?.InvalidateRequirementCache(this);
             }
             return removed;
         }
