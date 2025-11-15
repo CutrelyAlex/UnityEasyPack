@@ -14,7 +14,6 @@ namespace EasyPack.EmeCardSystem
         /// 卡牌唯一标识
         /// </summary>
         public string ID { get; }
-
         /// <summary>
         /// 展示名
         /// </summary>
