@@ -325,63 +325,81 @@ namespace EasyPack.EmeCardSystem
 
             try
             {
-                var rules = _rules[evt.Type];
-                if (rules == null || rules.Count == 0) return;
-
-                // 预分配容量减少扩容
-                var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rules.Count);
-                for (int i = 0; i < rules.Count; i++)
-                {
-                    var rule = rules[i];
-
-                    if (evt.Type == CardEventType.Custom &&
-                        !string.IsNullOrEmpty(rule.CustomId) &&
-                        !string.Equals(rule.CustomId, evt.ID, StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-
-                    var ctx = BuildContext(rule, source, evt);
-                    if (ctx == null) continue;
-
-                    if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
-                    {
-                        if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
-                            matched = matched.Distinct().ToList();
-
-                        evals.Add((rule, matched, ctx, i));
-                    }
-                }
-
-                if (evals.Count == 0) return;
-
-                IEnumerable<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> ordered =
-                    Policy.RuleSelection == RuleSelectionMode.Priority
-                    ? evals.OrderBy(e => e.rule.Priority).ThenBy(e => e.orderIndex)
-                    : evals.OrderBy(e => e.orderIndex);
-
-                if (Policy.FirstMatchOnly)
-                {
-                    var first = ordered.First();
-                    ExecuteOne(first);
-                }
-                else
-                {
-                    foreach (var e in ordered)
-                    {
-                        if (ExecuteOne(e)) break;
-                    }
-                }
+                ProcessCore(source, evt);
 
                 while (_deferredQueue.Count > 0)
                 {
                     var deferredEvent = _deferredQueue.Dequeue();
-                    Process(deferredEvent.Source, deferredEvent.Event);
+                    ProcessCore(deferredEvent.Source, deferredEvent.Event);
                 }
             }
             finally
             {
                 _processingDepth--;
+            }
+        }
+
+        /// <summary>
+        /// 核心事件处理逻辑。
+        /// </summary>
+        private void ProcessCore(Card source, CardEvent evt)
+        {
+            var rules = _rules[evt.Type];
+            if (rules == null || rules.Count == 0) return;
+
+            // 预分配容量减少扩容
+            var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rules.Count);
+            for (int i = 0; i < rules.Count; i++)
+            {
+                var rule = rules[i];
+
+                if (evt.Type == CardEventType.Custom &&
+                    !string.IsNullOrEmpty(rule.CustomId) &&
+                    !string.Equals(rule.CustomId, evt.ID, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var ctx = BuildContext(rule, source, evt);
+                if (ctx == null) continue;
+
+                if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
+                {
+                    if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
+                        matched = matched.Distinct().ToList();
+
+                    evals.Add((rule, matched, ctx, i));
+                }
+            }
+
+            if (evals.Count == 0) return;
+            if (Policy.RuleSelection == RuleSelectionMode.Priority)
+            {
+                evals.Sort((a, b) =>
+                {
+                    int cmp = a.rule.Priority.CompareTo(b.rule.Priority);
+                    if (cmp != 0) return cmp;
+                    return a.orderIndex.CompareTo(b.orderIndex);
+                });
+            }
+            else
+            {
+                evals.Sort((a, b) => a.orderIndex.CompareTo(b.orderIndex));
+            }
+
+            var ordered = evals;
+
+            if (Policy.FirstMatchOnly)
+            {
+                var first = ordered.First();
+                ExecuteOne(first);
+            }
+            else
+            {
+                foreach (var e in ordered)
+                {
+                    if (ExecuteOne(e)) break;
+                }
             }
         }
 
@@ -568,7 +586,9 @@ namespace EasyPack.EmeCardSystem
             foreach (var kv in _cardMap)
             {
                 if (string.Equals(kv.Key.Id, id, StringComparison.Ordinal))
+                {
                     yield return kv.Value;
+                }
             }
         }
         /// <summary>
@@ -581,7 +601,9 @@ namespace EasyPack.EmeCardSystem
             foreach (var kv in _cardMap)
             {
                 if (string.Equals(kv.Key.Id, id, StringComparison.Ordinal))
+                {
                     return kv.Value;
+                }
             }
 
             return null;
@@ -641,13 +663,17 @@ namespace EasyPack.EmeCardSystem
                 c.OnEvent -= OnCardEvent;
                 var key = new CardKey(c.Id, c.Index);
                 if (_cardMap.TryGetValue(key, out var existing) && ReferenceEquals(existing, c))
+                {
                     _cardMap.Remove(key);
+                }
 
                 if (_idIndexes.TryGetValue(c.Id, out var indexes))
                 {
                     indexes.Remove(c.Index);
                     if (indexes.Count == 0)
+                    {
                         _idIndexes.Remove(c.Id);
+                    }
                 }
 
                 _requirementCache.Clear();
