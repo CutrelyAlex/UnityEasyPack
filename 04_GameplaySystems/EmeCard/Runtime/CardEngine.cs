@@ -38,6 +38,11 @@ namespace EasyPack.EmeCardSystem
         private float _batchTimeLimit;
 
         /// <summary>
+        /// 是否禁用需求评估缓存。
+        /// </summary>
+        public bool DisableRequirementCache { get; set; } = true;
+
+        /// <summary>
         /// 获取当前队列中待处理的事件数量
         /// </summary>
         public int PendingEventCount => _queue.Count;
@@ -449,7 +454,8 @@ namespace EasyPack.EmeCardSystem
             int propertyHash = GetCardStateHash(ctx.Source);
             var cacheKey = (ctx.Event.Type, ctx.Source, propertyHash, ruleId);
 
-            if (_requirementCache.TryGetValue(cacheKey, out var cached))
+            // 缓存禁用时，跳过缓存查询
+            if (!DisableRequirementCache && _requirementCache.TryGetValue(cacheKey, out var cached))
             {
                 matchedAll = cached.results;
                 return cached.matched;
@@ -458,7 +464,10 @@ namespace EasyPack.EmeCardSystem
             matchedAll = new List<Card>();
             if (requirements == null || requirements.Count == 0)
             {
-                _requirementCache[cacheKey] = (true, matchedAll);
+                if (!DisableRequirementCache)
+                {
+                    _requirementCache[cacheKey] = (true, matchedAll);
+                }
                 return true;
             }
 
@@ -466,18 +475,27 @@ namespace EasyPack.EmeCardSystem
             {
                 if (req == null)
                 {
-                    _requirementCache[cacheKey] = (false, matchedAll);
+                    if (!DisableRequirementCache)
+                    {
+                        _requirementCache[cacheKey] = (false, matchedAll);
+                    }
                     return false;
                 }
                 if (!req.TryMatch(ctx, out var picks))
                 {
-                    _requirementCache[cacheKey] = (false, matchedAll);
+                    if (!DisableRequirementCache)
+                    {
+                        _requirementCache[cacheKey] = (false, matchedAll);
+                    }
                     return false;
                 }
                 if (picks != null && picks.Count > 0) matchedAll.AddRange(picks);
             }
 
-            _requirementCache[cacheKey] = (true, matchedAll);
+            if (!DisableRequirementCache)
+            {
+                _requirementCache[cacheKey] = (true, matchedAll);
+            }
             return true;
         }
 
@@ -674,7 +692,7 @@ namespace EasyPack.EmeCardSystem
             }
             return this;
         }
-        
+
         public void ClearAllCards()
         {
             _cardMap.Clear();
