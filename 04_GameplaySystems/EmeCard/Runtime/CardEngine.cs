@@ -249,15 +249,12 @@ namespace EasyPack.EmeCardSystem
         {
             if (_isBatchProcessing)
             {
-                Debug.LogWarning("[CardEngine] 批次处理已在进行中，忽略新请求");
                 return;
             }
 
             _isBatchProcessing = true;
             _batchStartTime = Time.realtimeSinceStartup;
             _batchTimeLimit = timeLimitSeconds ?? Policy.BatchTimeLimitSeconds;
-
-            Debug.Log($"[CardEngine] 开始时间限制批次处理 - 时间限制: {_batchTimeLimit}s, 初始事件数: {_queue.Count}");
         }
 
         /// <summary>
@@ -269,14 +266,6 @@ namespace EasyPack.EmeCardSystem
         {
             if (!_isBatchProcessing)
             {
-                return;
-            }
-
-            if (_queue.Count == 0)
-            {
-                float totalTime = Time.realtimeSinceStartup - _batchStartTime;
-                Debug.Log($"[CardEngine] 时间限制批次处理完成 - 总耗时: {totalTime:F3}s");
-                _isBatchProcessing = false;
                 return;
             }
 
@@ -299,6 +288,12 @@ namespace EasyPack.EmeCardSystem
                     Process(entry.Source, entry.Event);
                     processedInFrame++;
                 }
+
+                // 处理后检查队列是否已清空
+                if (_queue.Count == 0)
+                {
+                    _isBatchProcessing = false;
+                }
             }
             else
             {
@@ -310,7 +305,6 @@ namespace EasyPack.EmeCardSystem
                 }
 
                 _isBatchProcessing = false;
-                Debug.Log("[CardEngine] 批次处理超时，已同步完成所有剩余事件");
             }
         }
 
