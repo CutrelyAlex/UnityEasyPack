@@ -27,6 +27,13 @@ namespace EasyPack.Editor
             TryResolveManager();
         }
 
+        [MenuItem("EasyPack/CoreSystems/游戏属性(GameProperty)/管理器窗口")]
+        public static void OpenGamePropertyManagerWindow()
+        {
+            var window = GetWindow<GamePropertyManagerWindow>("GameProperty Manager");
+            window.Show();
+        }
+
         private async void TryResolveManager()
         {
             if (_initialized && _manager != null) return;
