@@ -20,7 +20,7 @@ namespace EasyPack.EmeCardSystem
         public string ID { get; }
         public object Data { get; }
 
-        public CardEvent(CardEventType type, string id = null, object data = null)
+        public CardEvent(CardEventType type, string id = "Default", object data = null)
         {
             Type = type;
             ID = id;

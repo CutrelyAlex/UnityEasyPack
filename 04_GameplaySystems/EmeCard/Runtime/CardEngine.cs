@@ -75,6 +75,8 @@ namespace EasyPack.EmeCardSystem
         private readonly Dictionary<string, HashSet<int>> _idIndexes = new();
         // id->Card列表缓存，用于快速查找
         private readonly Dictionary<string, List<Card>> _cardsById = new();
+        // Custom规则按ID分组缓存
+        private readonly Dictionary<string, List<CardRule>> _customRulesById = new();
 
         #endregion
 
@@ -87,6 +89,17 @@ namespace EasyPack.EmeCardSystem
         {
             if (rule == null) throw new ArgumentNullException(nameof(rule));
             _rules[rule.Trigger].Add(rule);
+
+            // 如果是Custom规则且有CustomId，添加到分组缓存
+            if (rule.Trigger == CardEventType.Custom && !string.IsNullOrEmpty(rule.CustomId))
+            {
+                if (!_customRulesById.TryGetValue(rule.CustomId, out var ruleList))
+                {
+                    ruleList = new List<CardRule>();
+                    _customRulesById[rule.CustomId] = ruleList;
+                }
+                ruleList.Add(rule);
+            }
         }
 
         /// <summary>
@@ -97,7 +110,23 @@ namespace EasyPack.EmeCardSystem
         public bool UnregisterRule(CardRule rule)
         {
             if (rule == null) return false;
-            return _rules[rule.Trigger].Remove(rule);
+
+            bool removed = _rules[rule.Trigger].Remove(rule);
+
+            // 如果是Custom规则且有CustomId，从分组缓存移除
+            if (removed && rule.Trigger == CardEventType.Custom && !string.IsNullOrEmpty(rule.CustomId))
+            {
+                if (_customRulesById.TryGetValue(rule.CustomId, out var ruleList))
+                {
+                    ruleList.Remove(rule);
+                    if (ruleList.Count == 0)
+                    {
+                        _customRulesById.Remove(rule.CustomId);
+                    }
+                }
+            }
+
+            return removed;
         }
 
         /// <summary>
@@ -310,21 +339,34 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void ProcessCore(Card source, CardEvent evt)
         {
-            var rules = _rules[evt.Type];
-            if (rules == null || rules.Count == 0) return;
+            List<CardRule> rulesToProcess;
 
-            // 预分配容量减少扩容
-            var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rules.Count);
-            for (int i = 0; i < rules.Count; i++)
+            if (evt.Type == CardEventType.Custom)
             {
-                var rule = rules[i];
-
-                if (evt.Type == CardEventType.Custom &&
-                    !string.IsNullOrEmpty(rule.CustomId) &&
-                    !string.Equals(rule.CustomId, evt.ID, StringComparison.Ordinal))
+                rulesToProcess = new List<CardRule>();
+                if (_customRulesById.TryGetValue(evt.ID, out var matchedRules))
                 {
-                    continue;
+                    rulesToProcess.AddRange(matchedRules);
                 }
+
+                var allCustomRules = _rules[CardEventType.Custom];
+                foreach (var rule in allCustomRules)
+                {
+                    rulesToProcess.Add(rule);
+                }
+
+            }
+            else
+            {
+                rulesToProcess = _rules[evt.Type];
+            }
+
+            if (rulesToProcess == null || rulesToProcess.Count == 0) return;
+
+            var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rulesToProcess.Count);
+            for (int i = 0; i < rulesToProcess.Count; i++)
+            {
+                var rule = rulesToProcess[i];
 
                 var ctx = BuildContext(rule, source, evt);
                 if (ctx == null) continue;
@@ -332,20 +374,23 @@ namespace EasyPack.EmeCardSystem
                 if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
                 {
                     if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
+                    {
                         matched = matched.Distinct().ToList();
+                    }
 
                     evals.Add((rule, matched, ctx, i));
                 }
             }
 
             if (evals.Count == 0) return;
+
+            // 排序规则
             if (Policy.RuleSelection == RuleSelectionMode.Priority)
             {
                 evals.Sort((a, b) =>
                 {
                     int cmp = a.rule.Priority.CompareTo(b.rule.Priority);
-                    if (cmp != 0) return cmp;
-                    return a.orderIndex.CompareTo(b.orderIndex);
+                    return cmp != 0 ? cmp : a.orderIndex.CompareTo(b.orderIndex);
                 });
             }
             else
