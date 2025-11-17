@@ -39,31 +39,13 @@ namespace EasyPack.EmeCardSystem
         /// <summary>递归深度限制（仅对 Scope=Descendants 生效，null 或 <=0 表示不限制）。</summary>
         public int? MaxDepth = null;
 
-        // 每个 CardsRequirement 实例维护一个选择缓存（按帧/规则处理周期复用）
-        private SelectionCache _cache;
-
         public bool TryMatch(CardRuleContext ctx, out List<Card> matched)
-        {
-            return TryMatchWithCache(ctx, out matched, null);
-        }
-
-        /// <summary>
-        /// 支持外部传入共享缓存的 TryMatch 版本。
-        /// </summary>
-        /// <param name="ctx">规则上下文</param>
-        /// <param name="matched">匹配的卡牌列表</param>
-        /// <param name="sharedCache">外部共享缓存（为 null 则使用实例缓存）</param>
-        /// <returns>是否匹配成功</returns>
-        public bool TryMatchWithCache(CardRuleContext ctx, out List<Card> matched, SelectionCache sharedCache)
         {
             matched = new List<Card>();
             if (ctx == null) return false;
 
             var root = Root == SelectionRoot.Container ? ctx.Container : ctx.Source;
             if (root == null) return false;
-
-            // 优先使用共享缓存，否则懒初始化实例缓存
-            var cache = sharedCache ?? (_cache ??= new SelectionCache());
 
             // 以 root 为容器重建局部上下文，统一走 TargetSelector
             var localCtx = new CardRuleContext(
@@ -92,15 +74,14 @@ namespace EasyPack.EmeCardSystem
                 limitForSelection = MinCount > 0 ? MinCount : 0;
             }
 
-            // 传入 limit 参数以支持早停，传入 cache 以复用子树
+            // 流式选择：不使用缓存，每次重新遍历以确保正确性
             var picks = TargetSelector.Select(
                 Scope,
                 FilterMode,
                 localCtx,
                 FilterValue,
                 MaxDepth,
-                limitForSelection,
-                cache
+                limitForSelection
             );
 
             int count = picks?.Count ?? 0;
@@ -142,14 +123,6 @@ namespace EasyPack.EmeCardSystem
                 }
             }
             return isMatch;
-        }
-
-        /// <summary>
-        /// 清理缓存
-        /// </summary>
-        public void ClearCache()
-        {
-            _cache?.Clear();
         }
     }
 }
