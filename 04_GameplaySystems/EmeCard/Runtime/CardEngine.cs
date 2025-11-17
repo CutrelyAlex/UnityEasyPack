@@ -11,6 +11,10 @@ namespace EasyPack.EmeCardSystem
         {
             CardFactory = factory;
             factory.Owner = this;
+
+            PreCacheAllCardTemplates();
+            InitializeTargetSelectorCache();
+
             foreach (CardEventType t in Enum.GetValues(typeof(CardEventType)))
                 _rules[t] = new List<CardRule>();
         }
@@ -18,9 +22,9 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         /// 初始化TargetSelector的Tag缓存。应在所有卡牌注册完成后调用。
         /// </summary>
-        public void InitializeTargetSelectorCache()
+        private void InitializeTargetSelectorCache()
         {
-            TargetSelector.InitializeTagCache(_registeredCards);
+            TargetSelector.InitializeTagCache(_registeredCardsTemplates);
         }
 
         /// <summary>
@@ -31,7 +35,33 @@ namespace EasyPack.EmeCardSystem
             TargetSelector.ClearTagCache();
         }
 
+        /// <summary>
+        /// 从工厂创建所有卡牌的副本并缓存。
+        /// 应在系统初始化时调用一次。
+        /// </summary>
+        private void PreCacheAllCardTemplates()
+        {
+            _registeredCardsTemplates.Clear();
+
+            if (CardFactory == null) return;
+
+            // 获取工厂中所有注册的卡牌ID
+            var cardIds = CardFactory.GetAllCardIds();
+            if (cardIds == null || cardIds.Count == 0) return;
+
+            foreach (var id in cardIds)
+            {
+                // 为每个ID创建一个副本
+                var templateCard = CardFactory.Create(id);
+                if (templateCard != null)
+                {
+                    _registeredCardsTemplates.Add(templateCard);
+                }
+            }
+        }
+
         #region 基本属性
+
         public ICardFactory CardFactory { get; set; }
         /// <summary>
         /// 引擎全局策略
@@ -77,7 +107,7 @@ namespace EasyPack.EmeCardSystem
         private readonly Queue<EventEntry> _queue = new();
 
         // 已注册的卡牌集合
-        private readonly HashSet<Card> _registeredCards = new();
+        private readonly HashSet<Card> _registeredCardsTemplates = new();
         // 卡牌Key->Card缓存
         private readonly Dictionary<CardKey, Card> _cardMap = new();
         // id->index集合缓存
@@ -546,53 +576,56 @@ namespace EasyPack.EmeCardSystem
         public CardEngine AddCard(Card c)
         {
             if (c == null) return this;
-            if (_registeredCards.Add(c))
+
+            // 检查是否已在实际存储中
+            var key = new CardKey(c.Id, c.Index);
+            if (_cardMap.ContainsKey(key))
+                return this; // 已存在，不重复添加
+
+            c.OnEvent += OnCardEvent;
+
+            var id = c.Id;
+            if (!_idIndexes.TryGetValue(id, out var indexes))
             {
-                c.OnEvent += OnCardEvent;
-
-                var id = c.Id;
-                if (!_idIndexes.TryGetValue(id, out var indexes))
-                {
-                    indexes = new HashSet<int>();
-                    _idIndexes[id] = indexes;
-                }
-
-                int next = c.Index;
-                if (next < 0 || indexes.Contains(next))
-                {
-                    next = 0;
-                    while (indexes.Contains(next)) next++;
-                    c.Index = next;
-                }
-
-                indexes.Add(c.Index);
-                var key = new CardKey(c.Id, c.Index);
-                _cardMap[key] = c;
-
-                // 更新_cardsById缓存
-                if (!_cardsById.TryGetValue(id, out var cardList))
-                {
-                    cardList = new List<Card>();
-                    _cardsById[id] = cardList;
-                }
-                cardList.Add(c);
+                indexes = new HashSet<int>();
+                _idIndexes[id] = indexes;
             }
+
+            int next = c.Index;
+            if (next < 0 || indexes.Contains(next))
+            {
+                next = 0;
+                while (indexes.Contains(next)) next++;
+                c.Index = next;
+            }
+
+            indexes.Add(c.Index);
+            var actualKey = new CardKey(c.Id, c.Index);
+            _cardMap[actualKey] = c;
+
+            // 更新_cardsById缓存
+            if (!_cardsById.TryGetValue(id, out var cardList))
+            {
+                cardList = new List<Card>();
+                _cardsById[id] = cardList;
+            }
+            cardList.Add(c);
+
             return this;
         }
+
         /// <summary>
         /// 移除卡牌，移除事件订阅与索引。
         /// </summary>
         public CardEngine RemoveCard(Card c)
         {
             if (c == null) return this;
-            if (_registeredCards.Remove(c))
+
+            var key = new CardKey(c.Id, c.Index);
+            if (_cardMap.TryGetValue(key, out var existing) && ReferenceEquals(existing, c))
             {
+                _cardMap.Remove(key);
                 c.OnEvent -= OnCardEvent;
-                var key = new CardKey(c.Id, c.Index);
-                if (_cardMap.TryGetValue(key, out var existing) && ReferenceEquals(existing, c))
-                {
-                    _cardMap.Remove(key);
-                }
 
                 if (_idIndexes.TryGetValue(c.Id, out var indexes))
                 {

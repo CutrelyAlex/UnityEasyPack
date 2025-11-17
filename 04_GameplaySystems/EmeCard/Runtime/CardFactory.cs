@@ -8,6 +8,7 @@ namespace EasyPack.EmeCardSystem
     {
         Card Create(string id);
         T Create<T>(string id) where T : Card;
+        IReadOnlyCollection<string> GetAllCardIds();
 
         CardEngine Owner { get; set; }
     }
@@ -31,6 +32,14 @@ namespace EasyPack.EmeCardSystem
             }
         }
 
+        /// <summary>
+        /// 获取所有已注册的卡牌ID
+        /// </summary>
+        public IReadOnlyCollection<string> GetAllCardIds()
+        {
+            return _constructors.Keys;
+        }
+
         public Card Create(string id)
         {
             return Create<Card>(id);
@@ -38,8 +47,7 @@ namespace EasyPack.EmeCardSystem
         public T Create<T>(string id) where T : Card
         {
             if (string.IsNullOrEmpty(id)) return null;
-            Func<Card> ctor;
-            if (_constructors.TryGetValue(id, out ctor))
+            if (_constructors.TryGetValue(id, out Func<Card> ctor))
             {
                 return ctor() as T;
             }
