@@ -17,15 +17,13 @@ namespace EasyPack.EmeCardSystem
         /// <param name="ctx">规则上下文</param>
         /// <param name="filterValue">过滤值（标签名/ID/Category名）</param>
         /// <param name="maxDepth">递归最大深度（仅对 Descendants 生效）</param>
-        /// <param name="limit">最大返回数量（可选，<=0 表示无限制）</param>
         /// <returns>符合条件的卡牌列表</returns>
         public static IReadOnlyList<Card> Select(
             TargetScope scope,
             CardFilterMode filter,
             CardRuleContext ctx,
             string filterValue = null,
-            int? maxDepth = null,
-            int limit = 0)
+            int? maxDepth = null)
         {
             if (ctx == null || ctx.Container == null)
                 return Array.Empty<Card>();
@@ -36,83 +34,20 @@ namespace EasyPack.EmeCardSystem
                 return Array.Empty<Card>();
             }
 
-            // 单次遍历流式筛选
-            var results = new List<Card>();
+            List<Card> candidates;
 
+            // 第一步：根据 Scope 选择候选集
             switch (scope)
             {
                 case TargetScope.Children:
-                    {
-                        var children = ctx.Container.Children;
-                        for (int i = 0; i < children.Count; i++)
-                        {
-                            if (MatchesFilter(children[i], filter, filterValue))
-                            {
-                                results.Add(children[i]);
-                                if (limit > 0 && results.Count >= limit)
-                                    return results;
-                            }
-                        }
-                    }
+                    candidates = new List<Card>(ctx.Container.Children);
                     break;
 
                 case TargetScope.Descendants:
                     {
                         int depth = maxDepth ?? ctx.MaxDepth;
                         if (depth <= 0) depth = int.MaxValue;
-
-                        // 优先使用ctx中的SelectionCache
-                        if (ctx.Cache != null)
-                        {
-                            // 尝试从缓存获取
-                            if (ctx.Cache.TryGetDescendants(ctx.Container, depth, out var cachedDescendants))
-                            {
-                                // 使用缓存的列表进行过滤
-                                for (int i = 0; i < cachedDescendants.Count; i++)
-                                {
-                                    if (MatchesFilter(cachedDescendants[i], filter, filterValue))
-                                    {
-                                        results.Add(cachedDescendants[i]);
-                                        if (limit > 0 && results.Count >= limit)
-                                            return results;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                // 缓存未命中，流式遍历并缓存结果
-                                var allDescendants = new List<Card>();
-                                foreach (var card in TraversalUtil.EnumerateDescendants(ctx.Container, depth))
-                                {
-                                    allDescendants.Add(card);
-                                    if (MatchesFilter(card, filter, filterValue))
-                                    {
-                                        results.Add(card);
-                                        if (limit > 0 && results.Count >= limit)
-                                        {
-                                            // 即使提前退出也缓存已遍历的部分
-                                            ctx.Cache.CacheDescendants(ctx.Container, depth, allDescendants);
-                                            return results;
-                                        }
-                                    }
-                                }
-                                // 缓存完整结果
-                                ctx.Cache.CacheDescendants(ctx.Container, depth, allDescendants);
-                            }
-                        }
-                        else
-                        {
-                            // 无缓存则流式遍历
-                            foreach (var card in TraversalUtil.EnumerateDescendants(ctx.Container, depth))
-                            {
-                                if (MatchesFilter(card, filter, filterValue))
-                                {
-                                    results.Add(card);
-                                    if (limit > 0 && results.Count >= limit)
-                                        return results;
-                                }
-                            }
-                        }
+                        candidates = TraversalUtil.EnumerateDescendants(ctx.Container, depth).ToList();
                     }
                     break;
 
@@ -120,7 +55,8 @@ namespace EasyPack.EmeCardSystem
                     return Array.Empty<Card>();
             }
 
-            return results;
+            // 第二步：根据 FilterMode 过滤
+            return ApplyFilter(candidates, filter, filterValue);
         }
 
         /// <summary>
@@ -149,8 +85,7 @@ namespace EasyPack.EmeCardSystem
                 container: root,
                 evt: ctx.Event,
                 factory: ctx.Factory,
-                maxDepth: selection.MaxDepth ?? ctx.MaxDepth,
-                cache: ctx.Cache
+                maxDepth: selection.MaxDepth ?? ctx.MaxDepth
             );
 
             // 选择目标
@@ -169,30 +104,6 @@ namespace EasyPack.EmeCardSystem
             }
 
             return targets;
-        }
-
-        /// <summary>
-        /// 过滤判断
-        /// </summary>
-        private static bool MatchesFilter(Card card, CardFilterMode filter, string filterValue)
-        {
-            switch (filter)
-            {
-                case CardFilterMode.None:
-                    return true;
-
-                case CardFilterMode.ByTag:
-                    return !string.IsNullOrEmpty(filterValue) && card.HasTag(filterValue);
-
-                case CardFilterMode.ById:
-                    return !string.IsNullOrEmpty(filterValue) && string.Equals(card.Id, filterValue, StringComparison.Ordinal);
-
-                case CardFilterMode.ByCategory:
-                    return TryParseCategory(filterValue, out var cat) && card.Category == cat;
-
-                default:
-                    return false;
-            }
         }
 
         private static bool TryParseCategory(string value, out CardCategory cat)

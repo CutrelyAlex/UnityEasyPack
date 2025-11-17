@@ -13,15 +13,13 @@ namespace EasyPack.EmeCardSystem
         /// <param name="evt">原始事件载体</param>
         /// <param name="factory">产卡工厂</param>
         /// <param name="maxDepth">递归搜索最大深度</param>
-        /// <param name="cache">选择缓存（可选）</param>
-        public CardRuleContext(Card source, Card container, CardEvent evt, ICardFactory factory, int maxDepth, SelectionCache cache = null)
+        public CardRuleContext(Card source, Card container, CardEvent evt, ICardFactory factory, int maxDepth)
         {
             Source = source;
             Container = container;
             Event = evt;
             Factory = factory;
             MaxDepth = maxDepth;
-            Cache = cache;
         }
 
         /// <summary>触发该规则的卡牌（事件源）。</summary>
@@ -40,11 +38,6 @@ namespace EasyPack.EmeCardSystem
         /// 递归搜索最大深度（>0 生效，1 表示仅子级一层）。
         /// </summary>
         public int MaxDepth { get; }
-
-        /// <summary>
-        /// 选择缓存（在同一规则处理周期内复用子树枚举结果）
-        /// </summary>
-        public SelectionCache Cache { get; }
 
         /// <summary>
         /// 从 Tick 事件中获取时间增量（DeltaTime）。

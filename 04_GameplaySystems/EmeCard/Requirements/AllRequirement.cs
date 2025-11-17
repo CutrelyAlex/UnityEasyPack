@@ -19,11 +19,7 @@ namespace EasyPack.EmeCardSystem
             foreach (var child in Children)
             {
                 if (child == null) return false;
-
-                bool childMatched = child.TryMatch(ctx, out List<Card> picks);
-
-                if (!childMatched) return false;
-
+                if (!child.TryMatch(ctx, out var picks)) return false;
                 if (picks != null && picks.Count > 0)
                 {
                     foreach (var c in picks) set.Add(c);

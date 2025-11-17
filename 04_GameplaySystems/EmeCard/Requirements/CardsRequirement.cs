@@ -47,47 +47,16 @@ namespace EasyPack.EmeCardSystem
             var root = Root == SelectionRoot.Container ? ctx.Container : ctx.Source;
             if (root == null) return false;
 
-            // 使用上下文中的缓存
-            var cache = ctx.Cache;
-
-            // 以 root 为容器重建局部上下文
+            // 以 root 为容器重建局部上下文，统一走 TargetSelector
             var localCtx = new CardRuleContext(
                 source: ctx.Source,
                 container: root,
                 evt: ctx.Event,
                 factory: ctx.Factory,
-                maxDepth: MaxDepth ?? ctx.MaxDepth,
-                cache: cache
+                maxDepth: MaxDepth ?? ctx.MaxDepth
             );
 
-            // 计算需要选择的最大数量以支持早停
-            // 若 MaxMatched > 0，提前知道最多需要多少张；否则根据 MinCount 推断
-            int limitForSelection;
-            if (MaxMatched > 0)
-            {
-                limitForSelection = Math.Max(MaxMatched, MinCount);
-            }
-            else if (MaxMatched == 0)
-            {
-                // 返回所有，不设早停限制
-                limitForSelection = 0;
-            }
-            else
-            {
-                // MaxMatched == -1，默认行为：匹配需要 MinCount，返回也最多 MinCount
-                limitForSelection = MinCount > 0 ? MinCount : 0;
-            }
-
-            // 传入 limit 参数以支持早停
-            var picks = TargetSelector.Select(
-                Scope,
-                FilterMode,
-                localCtx,
-                FilterValue,
-                MaxDepth,
-                limitForSelection
-            );
-
+            var picks = TargetSelector.Select(Scope, FilterMode, localCtx, FilterValue);
             int count = picks?.Count ?? 0;
 
             // 检查匹配条件：至少 MinCount 个
@@ -113,6 +82,7 @@ namespace EasyPack.EmeCardSystem
                     maxReturn = MinCount > 0 ? MinCount : count;
                 }
 
+
                 int takeCount = Math.Min(maxReturn, count);
                 if (takeCount == count)
                 {
@@ -130,3 +100,4 @@ namespace EasyPack.EmeCardSystem
         }
     }
 }
+
