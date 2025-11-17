@@ -54,12 +54,17 @@ namespace EasyPack.EmeCardSystem
             if (Data?.DefaultTags != null)
             {
                 foreach (var t in Data.DefaultTags)
-                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+                {
+                    _tags.Add(t);
+
+                }
             }
             if (extraTags != null)
             {
                 foreach (var t in extraTags)
-                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+                {
+                    _tags.Add(t);
+                }
             }
         }
 
@@ -77,12 +82,16 @@ namespace EasyPack.EmeCardSystem
             if (Data?.DefaultTags != null)
             {
                 foreach (var t in Data.DefaultTags)
-                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+                {
+                    _tags.Add(t);
+                }
             }
             if (extraTags != null)
             {
                 foreach (var t in extraTags)
-                    if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+                {
+                    _tags.Add(t);
+                }
             }
         }
 
@@ -115,7 +124,10 @@ namespace EasyPack.EmeCardSystem
                 _tags.Clear();
                 if (_data != null && _data.DefaultTags != null)
                 {
-                    foreach (var t in _data.DefaultTags) if (!string.IsNullOrEmpty(t)) _tags.Add(t);
+                    foreach (var t in _data.DefaultTags)
+                    {
+                        _tags.Add(t);
+                    }
                 }
             }
         }
@@ -174,21 +186,21 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若包含返回 true。</returns>
-        public bool HasTag(string tag) => !string.IsNullOrEmpty(tag) && _tags.Contains(tag);
+        public bool HasTag(string tag) => _tags.Contains(tag);
 
         /// <summary>
         /// 添加一个标签。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功新增（之前不存在）返回 true；否则返回 false。</returns>
-        public bool AddTag(string tag) => !string.IsNullOrEmpty(tag) && _tags.Add(tag);
+        public bool AddTag(string tag) => _tags.Add(tag);
 
         /// <summary>
         /// 移除一个标签。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功移除返回 true；否则返回 false。</returns>
-        public bool RemoveTag(string tag) => !string.IsNullOrEmpty(tag) && _tags.Remove(tag);
+        public bool RemoveTag(string tag) => _tags.Remove(tag);
 
         /// <summary>
         /// 当前卡牌的持有者（父卡）。
@@ -284,10 +296,6 @@ namespace EasyPack.EmeCardSystem
 
             // 通知子卡
             child.RaiseEvent(new CardEvent(CardEventType.AddedToOwner, data: this));
-
-            // 清除此卡牌相关的需求评估缓存
-            Engine?.InvalidateRequirementCache(this);
-
             return this;
         }
 
@@ -311,8 +319,6 @@ namespace EasyPack.EmeCardSystem
                 _intrinsics.Remove(child);
                 child.RaiseEvent(new CardEvent(CardEventType.RemovedFromOwner, data: this));
                 child.Owner = null;
-
-                Engine?.InvalidateRequirementCache(this);
             }
             return removed;
         }
