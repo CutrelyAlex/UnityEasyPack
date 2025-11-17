@@ -15,12 +15,28 @@ namespace EasyPack.EmeCardSystem
             matched = new List<Card>();
             if (Children == null || Children.Count == 0) return false;
 
+            // 创建共享缓存供所有子条件复用
+            var sharedCache = new SelectionCache();
+
             bool any = false;
             var set = new HashSet<Card>();
             foreach (var child in Children)
             {
                 if (child == null) continue;
-                if (child.TryMatch(ctx, out var picks))
+
+                // 如果子条件是 CardsRequirement，传入共享缓存
+                List<Card> picks;
+                bool childMatched;
+                if (child is CardsRequirement cardsReq)
+                {
+                    childMatched = cardsReq.TryMatchWithCache(ctx, out picks, sharedCache);
+                }
+                else
+                {
+                    childMatched = child.TryMatch(ctx, out picks);
+                }
+
+                if (childMatched)
                 {
                     any = true;
                     if (picks != null && picks.Count > 0)
