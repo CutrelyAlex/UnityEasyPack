@@ -38,11 +38,6 @@ namespace EasyPack.EmeCardSystem
         private float _batchTimeLimit;
 
         /// <summary>
-        /// 是否禁用需求评估缓存。
-        /// </summary>
-        public bool DisableRequirementCache { get; set; } = true;
-
-        /// <summary>
         /// 获取当前队列中待处理的事件数量
         /// </summary>
         public int PendingEventCount => _queue.Count;
@@ -52,10 +47,6 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public int DeferredEventCount => _deferredQueue.Count;
         public bool IsBatchProcessing => _isBatchProcessing;
-
-
-        private readonly Dictionary<(CardEventType eventType, Card sourceCard, int propertyHash, int ruleId),
-            (bool matched, List<Card> results)> _requirementCache = new();
 
         #endregion
 
@@ -82,32 +73,8 @@ namespace EasyPack.EmeCardSystem
         private readonly Dictionary<CardKey, Card> _cardMap = new();
         // id->index集合缓存
         private readonly Dictionary<string, HashSet<int>> _idIndexes = new();
-
-        #endregion
-
-        #region 缓存管理
-        /// <summary>
-        /// 清除涉及指定卡牌的需求评估缓存
-        /// </summary>
-        /// <remarks>
-        /// 当卡牌状态改变（添加/移除子卡）时调用此方法
-        /// </remarks>
-        public void InvalidateRequirementCache(Card card)
-        {
-            if (card == null) return;
-
-            var keysToRemove = new List<(CardEventType, Card, int, int)>();
-
-            foreach (var key in _requirementCache.Keys)
-            {
-                // 清除以此卡牌为源的缓存
-                if (key.Item2 == card)
-                    keysToRemove.Add(key);
-            }
-
-            foreach (var key in keysToRemove)
-                _requirementCache.Remove(key);
-        }
+        // id->Card列表缓存，用于快速查找
+        private readonly Dictionary<string, List<Card>> _cardsById = new();
 
         #endregion
 
@@ -450,24 +417,9 @@ namespace EasyPack.EmeCardSystem
 
         private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll, int ruleId = -1)
         {
-            // 计算卡牌属性状态的哈希值以构建缓存键
-            int propertyHash = GetCardStateHash(ctx.Source);
-            var cacheKey = (ctx.Event.Type, ctx.Source, propertyHash, ruleId);
-
-            // 缓存禁用时，跳过缓存查询
-            if (!DisableRequirementCache && _requirementCache.TryGetValue(cacheKey, out var cached))
-            {
-                matchedAll = cached.results;
-                return cached.matched;
-            }
-
             matchedAll = new List<Card>();
             if (requirements == null || requirements.Count == 0)
             {
-                if (!DisableRequirementCache)
-                {
-                    _requirementCache[cacheKey] = (true, matchedAll);
-                }
                 return true;
             }
 
@@ -475,70 +427,15 @@ namespace EasyPack.EmeCardSystem
             {
                 if (req == null)
                 {
-                    if (!DisableRequirementCache)
-                    {
-                        _requirementCache[cacheKey] = (false, matchedAll);
-                    }
                     return false;
                 }
                 if (!req.TryMatch(ctx, out var picks))
                 {
-                    if (!DisableRequirementCache)
-                    {
-                        _requirementCache[cacheKey] = (false, matchedAll);
-                    }
                     return false;
                 }
                 if (picks != null && picks.Count > 0) matchedAll.AddRange(picks);
             }
-
-            if (!DisableRequirementCache)
-            {
-                _requirementCache[cacheKey] = (true, matchedAll);
-            }
             return true;
-        }
-
-        /// <summary>
-        /// 计算卡牌自身状态的哈希值（ID、索引、属性值、标签）
-        /// 子卡改变时通过 InvalidateRequirementCache() 主动失效，避免递归遍历
-        /// </summary>
-        private static int GetCardStateHash(Card card)
-        {
-            if (card == null) return 0;
-
-            unchecked
-            {
-                int hash = 17;
-
-                // 哈希卡牌的基本ID和索引（以区分不同实例）
-                hash = hash * 31 + card.Id.GetHashCode();
-                hash = hash * 31 + card.Index.GetHashCode();
-
-                // 哈希所有属性值
-                if (card.Properties != null)
-                {
-                    foreach (var prop in card.Properties)
-                    {
-                        if (prop != null)
-                        {
-                            hash = hash * 31 + prop.ID.GetHashCode();
-                            hash = hash * 31 + prop.GetValue().GetHashCode();
-                        }
-                    }
-                }
-
-                // 哈希所有标签
-                if (card.Tags != null)
-                {
-                    foreach (var tag in card.Tags)
-                    {
-                        hash = hash * 31 + tag.GetHashCode();
-                    }
-                }
-
-                return hash;
-            }
         }
         #endregion
 
@@ -595,11 +492,11 @@ namespace EasyPack.EmeCardSystem
         public IEnumerable<Card> GetCardsById(string id)
         {
             if (string.IsNullOrEmpty(id)) yield break;
-            foreach (var kv in _cardMap)
+            if (_cardsById.TryGetValue(id, out var cards))
             {
-                if (string.Equals(kv.Key.Id, id, StringComparison.Ordinal))
+                foreach (var card in cards)
                 {
-                    yield return kv.Value;
+                    yield return card;
                 }
             }
         }
@@ -609,15 +506,10 @@ namespace EasyPack.EmeCardSystem
         public Card GetCardById(string id)
         {
             if (string.IsNullOrEmpty(id)) return null;
-
-            foreach (var kv in _cardMap)
+            if (_cardsById.TryGetValue(id, out var cards) && cards.Count > 0)
             {
-                if (string.Equals(kv.Key.Id, id, StringComparison.Ordinal))
-                {
-                    return kv.Value;
-                }
+                return cards[0];
             }
-
             return null;
         }
         /// <summary>
@@ -660,7 +552,13 @@ namespace EasyPack.EmeCardSystem
                 var key = new CardKey(c.Id, c.Index);
                 _cardMap[key] = c;
 
-                _requirementCache.Clear();
+                // 更新_cardsById缓存
+                if (!_cardsById.TryGetValue(id, out var cardList))
+                {
+                    cardList = new List<Card>();
+                    _cardsById[id] = cardList;
+                }
+                cardList.Add(c);
             }
             return this;
         }
@@ -688,7 +586,15 @@ namespace EasyPack.EmeCardSystem
                     }
                 }
 
-                _requirementCache.Clear();
+                // 更新_cardsById缓存
+                if (_cardsById.TryGetValue(c.Id, out var cardList))
+                {
+                    cardList.Remove(c);
+                    if (cardList.Count == 0)
+                    {
+                        _cardsById.Remove(c.Id);
+                    }
+                }
             }
             return this;
         }
@@ -697,7 +603,7 @@ namespace EasyPack.EmeCardSystem
         {
             _cardMap.Clear();
             _idIndexes.Clear();
-            _requirementCache.Clear(); //这个是干嘛的
+            _cardsById.Clear();
         }
         #endregion
     }
