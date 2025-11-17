@@ -344,17 +344,12 @@ namespace EasyPack.EmeCardSystem
             if (evt.Type == CardEventType.Custom)
             {
                 rulesToProcess = new List<CardRule>();
+
+                // 添加匹配CustomId的规则
                 if (_customRulesById.TryGetValue(evt.ID, out var matchedRules))
                 {
                     rulesToProcess.AddRange(matchedRules);
                 }
-
-                var allCustomRules = _rules[CardEventType.Custom];
-                foreach (var rule in allCustomRules)
-                {
-                    rulesToProcess.Add(rule);
-                }
-
             }
             else
             {
