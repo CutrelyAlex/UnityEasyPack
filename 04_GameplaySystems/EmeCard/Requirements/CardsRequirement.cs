@@ -44,14 +44,26 @@ namespace EasyPack.EmeCardSystem
 
         public bool TryMatch(CardRuleContext ctx, out List<Card> matched)
         {
+            return TryMatchWithCache(ctx, out matched, null);
+        }
+
+        /// <summary>
+        /// 支持外部传入共享缓存的 TryMatch 版本。
+        /// </summary>
+        /// <param name="ctx">规则上下文</param>
+        /// <param name="matched">匹配的卡牌列表</param>
+        /// <param name="sharedCache">外部共享缓存（为 null 则使用实例缓存）</param>
+        /// <returns>是否匹配成功</returns>
+        public bool TryMatchWithCache(CardRuleContext ctx, out List<Card> matched, SelectionCache sharedCache)
+        {
             matched = new List<Card>();
             if (ctx == null) return false;
 
             var root = Root == SelectionRoot.Container ? ctx.Container : ctx.Source;
             if (root == null) return false;
 
-            // 懒初始化缓存实例
-            _cache ??= new SelectionCache();
+            // 优先使用共享缓存，否则懒初始化实例缓存
+            var cache = sharedCache ?? (_cache ??= new SelectionCache());
 
             // 以 root 为容器重建局部上下文，统一走 TargetSelector
             var localCtx = new CardRuleContext(
@@ -88,7 +100,7 @@ namespace EasyPack.EmeCardSystem
                 FilterValue,
                 MaxDepth,
                 limitForSelection,
-                _cache
+                cache
             );
 
             int count = picks?.Count ?? 0;
