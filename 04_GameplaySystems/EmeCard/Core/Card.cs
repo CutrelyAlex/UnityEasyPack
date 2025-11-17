@@ -174,7 +174,7 @@ namespace EasyPack.EmeCardSystem
 
         #region 标签和持有关系
 
-        private readonly List<string> _tags = new();
+        private readonly HashSet<string> _tags = new(StringComparer.Ordinal);
 
         /// <summary>
         /// 标签集合。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal"/>）。
@@ -186,46 +186,21 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若包含返回 true。</returns>
-        public bool HasTag(string tag)
-        {
-            for (int i = 0; i < _tags.Count; i++)
-            {
-                if (string.Equals(_tags[i], tag, StringComparison.Ordinal))
-                    return true;
-            }
-            return false;
-        }
+        public bool HasTag(string tag) => _tags.Contains(tag);
 
         /// <summary>
         /// 添加一个标签。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功新增（之前不存在）返回 true；否则返回 false。</returns>
-        public bool AddTag(string tag)
-        {
-            if (HasTag(tag))
-                return false;
-            _tags.Add(tag);
-            return true;
-        }
+        public bool AddTag(string tag) => _tags.Add(tag);
 
         /// <summary>
         /// 移除一个标签。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功移除返回 true；否则返回 false。</returns>
-        public bool RemoveTag(string tag)
-        {
-            for (int i = 0; i < _tags.Count; i++)
-            {
-                if (string.Equals(_tags[i], tag, StringComparison.Ordinal))
-                {
-                    _tags.RemoveAt(i);
-                    return true;
-                }
-            }
-            return false;
-        }
+        public bool RemoveTag(string tag) => _tags.Remove(tag);
 
         /// <summary>
         /// 当前卡牌的持有者（父卡）。
