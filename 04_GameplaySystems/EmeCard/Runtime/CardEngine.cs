@@ -24,9 +24,6 @@ namespace EasyPack.EmeCardSystem
         public EnginePolicy Policy { get; } = new EnginePolicy();
 
         private bool _isPumping = false;
-        // 延迟事件队列
-        private readonly Queue<EventEntry> _deferredQueue = new();
-        private int _processingDepth = 0; // 处理深度
 
         // 分帧处理相关
         private float _frameStartTime; // 当前帧开始处理的时间（毫秒）
@@ -41,11 +38,6 @@ namespace EasyPack.EmeCardSystem
         /// 获取当前队列中待处理的事件数量
         /// </summary>
         public int PendingEventCount => _queue.Count;
-
-        /// <summary>
-        /// 获取延迟队列中的事件数量
-        /// </summary>
-        public int DeferredEventCount => _deferredQueue.Count;
         public bool IsBatchProcessing => _isBatchProcessing;
 
         #endregion
@@ -135,21 +127,13 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void OnCardEvent(Card source, CardEvent evt)
         {
-            // 如果正在处理事件，新事件进入延迟队列
-            if (_processingDepth > 0)
-            {
-                _deferredQueue.Enqueue(new EventEntry(source, evt));
-            }
-            else
-            {
-                _queue.Enqueue(new EventEntry(source, evt));
+            _queue.Enqueue(new EventEntry(source, evt));
 
-                // 分帧模式下不自动Pump，等待下一帧主动调用PumpFrame
-                // 非分帧模式保持原有即时处理行为
-                if (!_isPumping && !Policy.EnableFrameDistribution)
-                {
-                    Pump();
-                }
+            // 分帧模式下不自动Pump，等待下一帧主动调用PumpFrame
+            // 非分帧模式保持原有即时处理行为
+            if (!_isPumping && !Policy.EnableFrameDistribution)
+            {
+                Pump();
             }
         }
 
@@ -308,22 +292,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void Process(Card source, CardEvent evt)
         {
-            _processingDepth++; // 进入处理，期间触发的事件会进入延迟队列
-
-            try
-            {
-                ProcessCore(source, evt);
-
-                while (_deferredQueue.Count > 0)
-                {
-                    var deferredEvent = _deferredQueue.Dequeue();
-                    ProcessCore(deferredEvent.Source, deferredEvent.Event);
-                }
-            }
-            finally
-            {
-                _processingDepth--;
-            }
+            ProcessCore(source, evt);
         }
 
         /// <summary>
