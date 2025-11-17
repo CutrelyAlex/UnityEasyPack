@@ -39,6 +39,9 @@ namespace EasyPack.EmeCardSystem
         /// <summary>递归深度限制（仅对 Scope=Descendants 生效，null 或 <=0 表示不限制）。</summary>
         public int? MaxDepth = null;
 
+        // 每个 CardsRequirement 实例维护一个选择缓存（按帧/规则处理周期复用）
+        private SelectionCache _cache;
+
         public bool TryMatch(CardRuleContext ctx, out List<Card> matched)
         {
             matched = new List<Card>();
@@ -46,6 +49,9 @@ namespace EasyPack.EmeCardSystem
 
             var root = Root == SelectionRoot.Container ? ctx.Container : ctx.Source;
             if (root == null) return false;
+
+            // 懒初始化缓存实例
+            _cache ??= new SelectionCache();
 
             // 以 root 为容器重建局部上下文，统一走 TargetSelector
             var localCtx = new CardRuleContext(
@@ -56,7 +62,35 @@ namespace EasyPack.EmeCardSystem
                 maxDepth: MaxDepth ?? ctx.MaxDepth
             );
 
-            var picks = TargetSelector.Select(Scope, FilterMode, localCtx, FilterValue);
+            // 计算需要选择的最大数量以支持早停
+            // 若 MaxMatched > 0，提前知道最多需要多少张；否则根据 MinCount 推断
+            int limitForSelection;
+            if (MaxMatched > 0)
+            {
+                limitForSelection = Math.Max(MaxMatched, MinCount);
+            }
+            else if (MaxMatched == 0)
+            {
+                // 返回所有，不设早停限制
+                limitForSelection = 0;
+            }
+            else
+            {
+                // MaxMatched == -1，默认行为：匹配需要 MinCount，返回也最多 MinCount
+                limitForSelection = MinCount > 0 ? MinCount : 0;
+            }
+
+            // 传入 limit 参数以支持早停，传入 cache 以复用子树
+            var picks = TargetSelector.Select(
+                Scope,
+                FilterMode,
+                localCtx,
+                FilterValue,
+                MaxDepth,
+                limitForSelection,
+                _cache
+            );
+
             int count = picks?.Count ?? 0;
 
             // 检查匹配条件：至少 MinCount 个
@@ -82,7 +116,6 @@ namespace EasyPack.EmeCardSystem
                     maxReturn = MinCount > 0 ? MinCount : count;
                 }
 
-
                 int takeCount = Math.Min(maxReturn, count);
                 if (takeCount == count)
                 {
@@ -97,6 +130,14 @@ namespace EasyPack.EmeCardSystem
                 }
             }
             return isMatch;
+        }
+
+        /// <summary>
+        /// 清理缓存
+        /// </summary>
+        public void ClearCache()
+        {
+            _cache?.Clear();
         }
     }
 }

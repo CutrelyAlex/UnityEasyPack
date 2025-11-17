@@ -5,6 +5,53 @@ using System.Linq;
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
+    /// 缓存子树枚举结果，避免同一上下文中重复遍历
+    /// </summary>
+    public sealed class SelectionCache
+    {
+        private readonly Dictionary<long, List<Card>> _descendantCache = new();
+
+        /// <summary>
+        /// 生成缓存键
+        /// 容器ID的哈希 + 深度。
+        /// </summary>
+        private static long MakeCacheKey(Card container, int maxDepth)
+        {
+            return ((long)container.GetHashCode() << 32) | (uint)maxDepth;
+        }
+
+        /// <summary>
+        /// 获取或构建指定容器和深度的子树列表
+        /// </summary>
+        public List<Card> GetOrBuildDescendants(Card container, int maxDepth)
+        {
+            long key = MakeCacheKey(container, maxDepth);
+            if (_descendantCache.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
+
+            var list = new List<Card>();
+            foreach (var card in TraversalUtil.EnumerateDescendants(container, maxDepth))
+            {
+                list.Add(card);
+            }
+
+            _descendantCache[key] = list;
+            return list;
+        }
+
+        /// <summary>
+        /// 清除所有缓存
+        /// 通常在规则处理完毕后调用
+        /// </summary>
+        public void Clear()
+        {
+            _descendantCache.Clear();
+        }
+    }
+
+    /// <summary>
     /// 目标选择器：根据 TargetScope、FilterMode 等参数从上下文中选择卡牌。
     /// </summary>
     public static class TargetSelector
@@ -17,13 +64,17 @@ namespace EasyPack.EmeCardSystem
         /// <param name="ctx">规则上下文</param>
         /// <param name="filterValue">过滤值（标签名/ID/Category名）</param>
         /// <param name="maxDepth">递归最大深度（仅对 Descendants 生效）</param>
+        /// <param name="limit">最大返回数量（可选，<=0 表示无限制）</param>
+        /// <param name="cache">可选缓存实例，用于复用子树枚举结果</param>
         /// <returns>符合条件的卡牌列表</returns>
         public static IReadOnlyList<Card> Select(
             TargetScope scope,
             CardFilterMode filter,
             CardRuleContext ctx,
             string filterValue = null,
-            int? maxDepth = null)
+            int? maxDepth = null,
+            int limit = 0,
+            SelectionCache cache = null)
         {
             if (ctx == null || ctx.Container == null)
                 return Array.Empty<Card>();
@@ -34,20 +85,58 @@ namespace EasyPack.EmeCardSystem
                 return Array.Empty<Card>();
             }
 
-            List<Card> candidates;
+            // 单次遍历流式筛选
+            var results = new List<Card>();
 
-            // 第一步：根据 Scope 选择候选集
             switch (scope)
             {
                 case TargetScope.Children:
-                    candidates = new List<Card>(ctx.Container.Children);
+                    {
+                        var children = ctx.Container.Children;
+                        for (int i = 0; i < children.Count; i++)
+                        {
+                            if (MatchesFilter(children[i], filter, filterValue))
+                            {
+                                results.Add(children[i]);
+                                if (limit > 0 && results.Count >= limit)
+                                    return results;
+                            }
+                        }
+                    }
                     break;
 
                 case TargetScope.Descendants:
                     {
                         int depth = maxDepth ?? ctx.MaxDepth;
                         if (depth <= 0) depth = int.MaxValue;
-                        candidates = TraversalUtil.EnumerateDescendants(ctx.Container, depth).ToList();
+
+                        // 若提供缓存，优先复用已缓存的子树列表
+                        if (cache != null)
+                        {
+                            var descendants = cache.GetOrBuildDescendants(ctx.Container, depth);
+                            for (int i = 0; i < descendants.Count; i++)
+                            {
+                                if (MatchesFilter(descendants[i], filter, filterValue))
+                                {
+                                    results.Add(descendants[i]);
+                                    if (limit > 0 && results.Count >= limit)
+                                        return results;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // 无缓存则流式遍历
+                            foreach (var card in TraversalUtil.EnumerateDescendants(ctx.Container, depth))
+                            {
+                                if (MatchesFilter(card, filter, filterValue))
+                                {
+                                    results.Add(card);
+                                    if (limit > 0 && results.Count >= limit)
+                                        return results;
+                                }
+                            }
+                        }
                     }
                     break;
 
@@ -55,8 +144,7 @@ namespace EasyPack.EmeCardSystem
                     return Array.Empty<Card>();
             }
 
-            // 第二步：根据 FilterMode 过滤
-            return ApplyFilter(candidates, filter, filterValue);
+            return results;
         }
 
         /// <summary>
@@ -104,6 +192,30 @@ namespace EasyPack.EmeCardSystem
             }
 
             return targets;
+        }
+
+        /// <summary>
+        /// 过滤判断
+        /// </summary>
+        private static bool MatchesFilter(Card card, CardFilterMode filter, string filterValue)
+        {
+            switch (filter)
+            {
+                case CardFilterMode.None:
+                    return true;
+
+                case CardFilterMode.ByTag:
+                    return !string.IsNullOrEmpty(filterValue) && card.HasTag(filterValue);
+
+                case CardFilterMode.ById:
+                    return !string.IsNullOrEmpty(filterValue) && string.Equals(card.Id, filterValue, StringComparison.Ordinal);
+
+                case CardFilterMode.ByCategory:
+                    return TryParseCategory(filterValue, out var cat) && card.Category == cat;
+
+                default:
+                    return false;
+            }
         }
 
         private static bool TryParseCategory(string value, out CardCategory cat)
