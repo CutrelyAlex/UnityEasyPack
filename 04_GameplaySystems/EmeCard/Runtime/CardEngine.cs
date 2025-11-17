@@ -19,6 +19,12 @@ namespace EasyPack.EmeCardSystem
                 _rules[t] = new List<CardRule>();
         }
 
+        public void Init()
+        {
+            PreCacheAllCardTemplates();
+            InitializeTargetSelectorCache();
+        }
+
         /// <summary>
         /// 初始化TargetSelector的Tag缓存。应在所有卡牌注册完成后调用。
         /// </summary>
