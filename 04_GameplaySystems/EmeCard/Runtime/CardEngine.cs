@@ -34,6 +34,14 @@ namespace EasyPack.EmeCardSystem
         private float _batchStartTime;
         private float _batchTimeLimit;
 
+        // 选择缓存
+        private readonly SelectionCache _selectionCache = new SelectionCache();
+
+        /// <summary>
+        /// 获取当前规则处理周期的选择缓存
+        /// </summary>
+        internal SelectionCache SelectionCache => _selectionCache;
+
         /// <summary>
         /// 获取当前队列中待处理的事件数量
         /// </summary>
@@ -300,73 +308,84 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void ProcessCore(Card source, CardEvent evt)
         {
-            List<CardRule> rulesToProcess;
+            // 每个规则处理周期开始时，初始化新的缓存时间戳
+            _selectionCache.BeginCycle();
 
-            if (evt.Type == CardEventType.Custom)
+            try
             {
-                rulesToProcess = new List<CardRule>();
+                List<CardRule> rulesToProcess;
 
-                // 添加匹配CustomId的规则
-                if (_customRulesById.TryGetValue(evt.ID, out var matchedRules))
+                if (evt.Type == CardEventType.Custom)
                 {
-                    rulesToProcess.AddRange(matchedRules);
-                }
-            }
-            else
-            {
-                rulesToProcess = _rules[evt.Type];
-            }
+                    rulesToProcess = new List<CardRule>();
 
-            if (rulesToProcess == null || rulesToProcess.Count == 0) return;
-
-            var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rulesToProcess.Count);
-            for (int i = 0; i < rulesToProcess.Count; i++)
-            {
-                var rule = rulesToProcess[i];
-
-                var ctx = BuildContext(rule, source, evt);
-                if (ctx == null) continue;
-
-                if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
-                {
-                    if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
+                    // 添加匹配CustomId的规则
+                    if (_customRulesById.TryGetValue(evt.ID, out var matchedRules))
                     {
-                        matched = matched.Distinct().ToList();
+                        rulesToProcess.AddRange(matchedRules);
                     }
+                }
+                else
+                {
+                    rulesToProcess = _rules[evt.Type];
+                }
 
-                    evals.Add((rule, matched, ctx, i));
+                if (rulesToProcess == null || rulesToProcess.Count == 0) return;
+
+                var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rulesToProcess.Count);
+                for (int i = 0; i < rulesToProcess.Count; i++)
+                {
+                    var rule = rulesToProcess[i];
+
+                    var ctx = BuildContext(rule, source, evt);
+                    if (ctx == null) continue;
+
+                    if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
+                    {
+                        if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
+                        {
+                            matched = matched.Distinct().ToList();
+                        }
+
+                        evals.Add((rule, matched, ctx, i));
+                    }
+                }
+
+                if (evals.Count == 0) return;
+
+                // 排序规则
+                if (Policy.RuleSelection == RuleSelectionMode.Priority)
+                {
+                    evals.Sort((a, b) =>
+                    {
+                        int cmp = a.rule.Priority.CompareTo(b.rule.Priority);
+                        return cmp != 0 ? cmp : a.orderIndex.CompareTo(b.orderIndex);
+                    });
+                }
+                else
+                {
+                    evals.Sort((a, b) => a.orderIndex.CompareTo(b.orderIndex));
+                }
+
+                var ordered = evals;
+
+                if (Policy.FirstMatchOnly)
+                {
+                    var first = ordered.First();
+                    ExecuteOne(first);
+                }
+                else
+                {
+                    foreach (var e in ordered)
+                    {
+                        if (ExecuteOne(e)) break;
+                    }
                 }
             }
-
-            if (evals.Count == 0) return;
-
-            // 排序规则
-            if (Policy.RuleSelection == RuleSelectionMode.Priority)
+            finally
             {
-                evals.Sort((a, b) =>
-                {
-                    int cmp = a.rule.Priority.CompareTo(b.rule.Priority);
-                    return cmp != 0 ? cmp : a.orderIndex.CompareTo(b.orderIndex);
-                });
-            }
-            else
-            {
-                evals.Sort((a, b) => a.orderIndex.CompareTo(b.orderIndex));
-            }
-
-            var ordered = evals;
-
-            if (Policy.FirstMatchOnly)
-            {
-                var first = ordered.First();
-                ExecuteOne(first);
-            }
-            else
-            {
-                foreach (var e in ordered)
-                {
-                    if (ExecuteOne(e)) break;
-                }
+                // 规则处理周期结束后清空缓存
+                _selectionCache.Clear();
             }
         }
 
@@ -387,7 +406,8 @@ namespace EasyPack.EmeCardSystem
                 container: container,
                 evt: evt,
                 factory: CardFactory,
-                maxDepth: rule.MaxDepth
+                maxDepth: rule.MaxDepth,
+                cache: _selectionCache
             );
         }
         #endregion
