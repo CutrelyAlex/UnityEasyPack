@@ -56,7 +56,7 @@ namespace EasyPack.EmeCardSystem
                 foreach (var t in Data.DefaultTags)
                 {
                     _tags.Add(t);
-                    _tagMask = TagRegistry.AddTag(_tagMask, t);
+                    TagRegistry.AddTag(_tagIds, t);
                 }
             }
             if (extraTags != null)
@@ -64,7 +64,7 @@ namespace EasyPack.EmeCardSystem
                 foreach (var t in extraTags)
                 {
                     _tags.Add(t);
-                    _tagMask = TagRegistry.AddTag(_tagMask, t);
+                    TagRegistry.AddTag(_tagIds, t);
                 }
             }
         }
@@ -85,7 +85,7 @@ namespace EasyPack.EmeCardSystem
                 foreach (var t in Data.DefaultTags)
                 {
                     _tags.Add(t);
-                    _tagMask = TagRegistry.AddTag(_tagMask, t);
+                    TagRegistry.AddTag(_tagIds, t);
                 }
             }
             if (extraTags != null)
@@ -93,7 +93,7 @@ namespace EasyPack.EmeCardSystem
                 foreach (var t in extraTags)
                 {
                     _tags.Add(t);
-                    _tagMask = TagRegistry.AddTag(_tagMask, t);
+                    TagRegistry.AddTag(_tagIds, t);
                 }
             }
         }
@@ -125,13 +125,13 @@ namespace EasyPack.EmeCardSystem
             {
                 _data = value;
                 _tags.Clear();
-                _tagMask = 0;
+                _tagIds.Clear();
                 if (_data != null && _data.DefaultTags != null)
                 {
                     foreach (var t in _data.DefaultTags)
                     {
                         _tags.Add(t);
-                        _tagMask = TagRegistry.AddTag(_tagMask, t);
+                        TagRegistry.AddTag(_tagIds, t);
                     }
                 }
             }
@@ -180,7 +180,7 @@ namespace EasyPack.EmeCardSystem
         #region 标签和持有关系
 
         private readonly HashSet<string> _tags = new(StringComparer.Ordinal);
-        private ulong _tagMask = 0; // Tag位掩码，用于快速查询
+        private readonly HashSet<int> _tagIds = new();
 
         /// <summary>
         /// 标签集合。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal"/>）。
@@ -188,27 +188,22 @@ namespace EasyPack.EmeCardSystem
         public IReadOnlyCollection<string> Tags => _tags;
 
         /// <summary>
-        /// Tag位掩码
+        /// 标签ID集合，用于快速查找。
         /// </summary>
-        public ulong TagMask => _tagMask;
+        public IReadOnlyCollection<int> TagIds => _tagIds;
 
         /// <summary>
-        /// 判断是否包含指定标签（使用位掩码优化）。
+        /// 判断是否包含指定标签。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若包含返回 true。</returns>
         public bool HasTag(string tag)
         {
-            var mask = TagRegistry.GetTagMask(tag);
-            if (mask != 0)
-            {
-                return (_tagMask & mask) != 0;
-            }
-            return _tags.Contains(tag);
+            return TagRegistry.HasTag(_tagIds, tag) || _tags.Contains(tag);
         }
 
         /// <summary>
-        /// 添加一个标签
+        /// 添加一个标签。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功新增（之前不存在）返回 true；否则返回 false。</returns>
@@ -216,14 +211,14 @@ namespace EasyPack.EmeCardSystem
         {
             if (_tags.Add(tag))
             {
-                _tagMask = TagRegistry.AddTag(_tagMask, tag);
+                TagRegistry.AddTag(_tagIds, tag);
                 return true;
             }
             return false;
         }
 
         /// <summary>
-        /// 移除一个标签（同步更新位掩码）。
+        /// 移除一个标签（同步更新注册表）。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功移除返回 true；否则返回 false。</returns>
@@ -231,7 +226,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (_tags.Remove(tag))
             {
-                _tagMask = TagRegistry.RemoveTag(_tagMask, tag);
+                TagRegistry.RemoveTag(_tagIds, tag);
                 return true;
             }
             return false;
