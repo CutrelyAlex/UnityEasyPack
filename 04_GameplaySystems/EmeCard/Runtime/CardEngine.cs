@@ -67,6 +67,7 @@ namespace EasyPack.EmeCardSystem
         private readonly Dictionary<CardEventType, List<CardRule>> _rules = new();
         // 卡牌事件队列
         private readonly Queue<EventEntry> _queue = new();
+
         // 已注册的卡牌集合
         private readonly HashSet<Card> _registeredCards = new();
         // 卡牌Key->Card缓存
@@ -177,15 +178,6 @@ namespace EasyPack.EmeCardSystem
             finally
             {
                 _isPumping = false;
-
-                try
-                {
-                    float elapsedMs = (Time.realtimeSinceStartup * 1000f) - _frameStartTime;
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"[CardEngine] 分帧快照记录出现异常: {ex}");
-                }
             }
         }
 
