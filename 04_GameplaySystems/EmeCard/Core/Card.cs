@@ -193,14 +193,32 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功新增（之前不存在）返回 true；否则返回 false。</returns>
-        public bool AddTag(string tag) => _tags.Add(tag);
+        public bool AddTag(string tag)
+        {
+            if (_tags.Add(tag))
+            {
+                // 通知TargetSelector缓存更新
+                TargetSelector.OnCardTagAdded(this, tag);
+                return true;
+            }
+            return false;
+        }
 
         /// <summary>
         /// 移除一个标签。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功移除返回 true；否则返回 false。</returns>
-        public bool RemoveTag(string tag) => _tags.Remove(tag);
+        public bool RemoveTag(string tag)
+        {
+            if (_tags.Remove(tag))
+            {
+                // 通知TargetSelector缓存更新
+                TargetSelector.OnCardTagRemoved(this, tag);
+                return true;
+            }
+            return false;
+        }
 
         /// <summary>
         /// 当前卡牌的持有者（父卡）。

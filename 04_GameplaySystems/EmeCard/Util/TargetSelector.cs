@@ -9,6 +9,99 @@ namespace EasyPack.EmeCardSystem
     /// </summary>
     public static class TargetSelector
     {
+        // Tag → 拥有该Tag的所有卡牌集合
+        private static readonly Dictionary<string, HashSet<Card>> _tagCardCache = new();
+
+        // 标记缓存是否已初始化
+        private static bool _isCacheInitialized = false;
+
+        /// <summary>
+        /// 初始化Tag→Card缓存。应
+        /// 在系统初始化完成后调用一次。
+        /// </summary>
+        /// <param name="allCards">系统中所有已注册的卡牌</param>
+        public static void InitializeTagCache(IEnumerable<Card> allCards)
+        {
+            _tagCardCache.Clear();
+
+            if (allCards == null) return;
+
+            foreach (var card in allCards)
+            {
+                if (card == null || card.Tags == null) continue;
+
+                foreach (var tag in card.Tags)
+                {
+                    if (string.IsNullOrEmpty(tag)) continue;
+
+                    if (!_tagCardCache.TryGetValue(tag, out var cardSet))
+                    {
+                        cardSet = new HashSet<Card>();
+                        _tagCardCache[tag] = cardSet;
+                    }
+
+                    cardSet.Add(card);
+                }
+            }
+
+            _isCacheInitialized = true;
+        }
+
+        /// <summary>
+        /// 清除Tag→Card缓存
+        /// </summary>
+        public static void ClearTagCache()
+        {
+            _tagCardCache.Clear();
+            _isCacheInitialized = false;
+        }
+
+        /// <summary>
+        /// 当卡牌添加Tag时，更新缓存
+        /// </summary>
+        internal static void OnCardTagAdded(Card card, string tag)
+        {
+            if (!_isCacheInitialized || card == null || string.IsNullOrEmpty(tag))
+                return;
+
+            if (!_tagCardCache.TryGetValue(tag, out var cardSet))
+            {
+                cardSet = new HashSet<Card>();
+                _tagCardCache[tag] = cardSet;
+            }
+
+            cardSet.Add(card);
+        }
+
+        /// <summary>
+        /// 当卡牌移除Tag时，更新缓存
+        /// </summary>
+        internal static void OnCardTagRemoved(Card card, string tag)
+        {
+            if (!_isCacheInitialized || card == null || string.IsNullOrEmpty(tag))
+                return;
+
+            if (_tagCardCache.TryGetValue(tag, out var cardSet))
+            {
+                cardSet.Remove(card);
+                if (cardSet.Count == 0)
+                {
+                    _tagCardCache.Remove(tag);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取拥有指定Tag的所有卡牌（来自缓存）
+        /// </summary>
+        private static HashSet<Card> GetCardsByTagFromCache(string tag)
+        {
+            if (!_isCacheInitialized || string.IsNullOrEmpty(tag))
+                return null;
+
+            _tagCardCache.TryGetValue(tag, out var cardSet);
+            return cardSet;
+        }
         /// <summary>
         /// 根据作用域和过滤条件选择目标卡牌。
         /// </summary>
@@ -133,13 +226,29 @@ namespace EasyPack.EmeCardSystem
                 case CardFilterMode.ByTag:
                     if (string.IsNullOrEmpty(filterValue))
                         return Array.Empty<Card>();
-                    var tagResults = new List<Card>(cards.Count / 2);
+
+                    // 尝试使用缓存
+                    var cachedCardSet = GetCardsByTagFromCache(filterValue);
+                    if (cachedCardSet != null && cachedCardSet.Count > 0)
+                    {
+                        // 使用缓存：取缓存中与候选集的交集
+                        var tagResults = new List<Card>(Math.Min(cards.Count, cachedCardSet.Count));
+                        for (int i = 0; i < cards.Count; i++)
+                        {
+                            if (cachedCardSet.Contains(cards[i]))
+                                tagResults.Add(cards[i]);
+                        }
+                        return tagResults;
+                    }
+
+                    // 回退：缓存未初始化，使用原有逻辑
+                    var tagResultsFallback = new List<Card>(cards.Count / 2);
                     for (int i = 0; i < cards.Count; i++)
                     {
                         if (cards[i].HasTag(filterValue))
-                            tagResults.Add(cards[i]);
+                            tagResultsFallback.Add(cards[i]);
                     }
-                    return tagResults;
+                    return tagResultsFallback;
 
                 case CardFilterMode.ById:
                     if (string.IsNullOrEmpty(filterValue))

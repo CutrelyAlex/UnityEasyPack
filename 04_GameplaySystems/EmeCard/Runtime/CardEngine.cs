@@ -15,6 +15,22 @@ namespace EasyPack.EmeCardSystem
                 _rules[t] = new List<CardRule>();
         }
 
+        /// <summary>
+        /// 初始化TargetSelector的Tag缓存。应在所有卡牌注册完成后调用。
+        /// </summary>
+        public void InitializeTargetSelectorCache()
+        {
+            TargetSelector.InitializeTagCache(_registeredCards);
+        }
+
+        /// <summary>
+        /// 清除TargetSelector的Tag缓存
+        /// </summary>
+        public void ClearTargetSelectorCache()
+        {
+            TargetSelector.ClearTagCache();
+        }
+
         #region 基本属性
         public ICardFactory CardFactory { get; set; }
         /// <summary>
