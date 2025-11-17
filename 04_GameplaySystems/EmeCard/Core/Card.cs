@@ -133,9 +133,10 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 实例索引：用于区分同一 ID 的多个实例（由持有者在 AddChild 时分配，从 0 起）。
+        /// 实例索引：用于区分同一 ID 的多个实例（由引擎在 AddCard 时分配，从 0 起）。
+        /// 未分配时默认为 -1。
         /// </summary>
-        public int Index { get; set; } = 0;
+        public int Index { get; set; } = -1;
 
         /// <summary>
         /// 卡牌标识，来自 <see cref="Data"/>。

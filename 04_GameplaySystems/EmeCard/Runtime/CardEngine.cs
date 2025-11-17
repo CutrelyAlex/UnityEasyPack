@@ -577,28 +577,32 @@ namespace EasyPack.EmeCardSystem
         {
             if (c == null) return this;
 
-            // 检查是否已在实际存储中
-            var key = new CardKey(c.Id, c.Index);
-            if (_cardMap.ContainsKey(key))
-                return this; // 已存在，不重复添加
-
-            c.OnEvent += OnCardEvent;
-
             var id = c.Id;
+
+            // 第一步: 分配索引（如果还未分配）
             if (!_idIndexes.TryGetValue(id, out var indexes))
             {
                 indexes = new HashSet<int>();
                 _idIndexes[id] = indexes;
             }
 
-            int next = c.Index;
-            if (next < 0 || indexes.Contains(next))
+            int assignedIndex = c.Index;
+            // 只有当Index不已分配时才分配（Index < 0表示未分配），或者索引已被占用时，需要重新分配
+            if (assignedIndex < 0 || indexes.Contains(assignedIndex))
             {
-                next = 0;
-                while (indexes.Contains(next)) next++;
-                c.Index = next;
+                assignedIndex = 0;
+                while (indexes.Contains(assignedIndex)) assignedIndex++;
+                c.Index = assignedIndex;
             }
 
+            // 第二步: 检查是否已在实际存储中（这时Index经已正常分配）
+            var key = new CardKey(c.Id, c.Index);
+            if (_cardMap.ContainsKey(key))
+                return this; // 已存在，不重复添加
+
+            c.OnEvent += OnCardEvent;
+
+            // 第三步: 添加到索引
             indexes.Add(c.Index);
             var actualKey = new CardKey(c.Id, c.Index);
             _cardMap[actualKey] = c;
@@ -610,6 +614,12 @@ namespace EasyPack.EmeCardSystem
                 _cardsById[id] = cardList;
             }
             cardList.Add(c);
+
+            // 第四步: 将卡牌的所有标签加入TargetSelector缓存（确保新创建的卡牌标签也被缓存）
+            foreach (var tag in c.Tags)
+            {
+                TargetSelector.OnCardTagAdded(c, tag);
+            }
 
             return this;
         }
@@ -644,6 +654,12 @@ namespace EasyPack.EmeCardSystem
                     {
                         _cardsById.Remove(c.Id);
                     }
+                }
+
+                // 从TargetSelector缓存中移除卡牌的标签
+                foreach (var tag in c.Tags)
+                {
+                    TargetSelector.OnCardTagRemoved(c, tag);
                 }
             }
             return this;
