@@ -56,7 +56,7 @@ namespace EasyPack.EmeCardSystem
                 foreach (var t in Data.DefaultTags)
                 {
                     _tags.Add(t);
-
+                    _tagMask = TagRegistry.AddTag(_tagMask, t);
                 }
             }
             if (extraTags != null)
@@ -64,6 +64,7 @@ namespace EasyPack.EmeCardSystem
                 foreach (var t in extraTags)
                 {
                     _tags.Add(t);
+                    _tagMask = TagRegistry.AddTag(_tagMask, t);
                 }
             }
         }
@@ -84,6 +85,7 @@ namespace EasyPack.EmeCardSystem
                 foreach (var t in Data.DefaultTags)
                 {
                     _tags.Add(t);
+                    _tagMask = TagRegistry.AddTag(_tagMask, t);
                 }
             }
             if (extraTags != null)
@@ -91,6 +93,7 @@ namespace EasyPack.EmeCardSystem
                 foreach (var t in extraTags)
                 {
                     _tags.Add(t);
+                    _tagMask = TagRegistry.AddTag(_tagMask, t);
                 }
             }
         }
@@ -122,11 +125,13 @@ namespace EasyPack.EmeCardSystem
             {
                 _data = value;
                 _tags.Clear();
+                _tagMask = 0;
                 if (_data != null && _data.DefaultTags != null)
                 {
                     foreach (var t in _data.DefaultTags)
                     {
                         _tags.Add(t);
+                        _tagMask = TagRegistry.AddTag(_tagMask, t);
                     }
                 }
             }
@@ -175,6 +180,7 @@ namespace EasyPack.EmeCardSystem
         #region 标签和持有关系
 
         private readonly HashSet<string> _tags = new(StringComparer.Ordinal);
+        private ulong _tagMask = 0; // Tag位掩码，用于快速查询
 
         /// <summary>
         /// 标签集合。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal"/>）。
@@ -182,25 +188,54 @@ namespace EasyPack.EmeCardSystem
         public IReadOnlyCollection<string> Tags => _tags;
 
         /// <summary>
-        /// 判断是否包含指定标签。
+        /// Tag位掩码
+        /// </summary>
+        public ulong TagMask => _tagMask;
+
+        /// <summary>
+        /// 判断是否包含指定标签（使用位掩码优化）。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若包含返回 true。</returns>
-        public bool HasTag(string tag) => _tags.Contains(tag);
+        public bool HasTag(string tag)
+        {
+            var mask = TagRegistry.GetTagMask(tag);
+            if (mask != 0)
+            {
+                return (_tagMask & mask) != 0;
+            }
+            return _tags.Contains(tag);
+        }
 
         /// <summary>
-        /// 添加一个标签。
+        /// 添加一个标签
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功新增（之前不存在）返回 true；否则返回 false。</returns>
-        public bool AddTag(string tag) => _tags.Add(tag);
+        public bool AddTag(string tag)
+        {
+            if (_tags.Add(tag))
+            {
+                _tagMask = TagRegistry.AddTag(_tagMask, tag);
+                return true;
+            }
+            return false;
+        }
 
         /// <summary>
-        /// 移除一个标签。
+        /// 移除一个标签（同步更新位掩码）。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功移除返回 true；否则返回 false。</returns>
-        public bool RemoveTag(string tag) => _tags.Remove(tag);
+        public bool RemoveTag(string tag)
+        {
+            if (_tags.Remove(tag))
+            {
+                _tagMask = TagRegistry.RemoveTag(_tagMask, tag);
+                return true;
+            }
+            return false;
+        }
 
         /// <summary>
         /// 当前卡牌的持有者（父卡）。
