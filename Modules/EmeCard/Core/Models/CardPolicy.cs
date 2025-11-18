@@ -49,10 +49,14 @@ namespace EasyPack.EmeCardSystem
     // 规则策略
     public sealed class RulePolicy
     {
-        // 是否对聚合的 matched 去重
+        /// <summary>
+        /// 是否对聚合的 matched 去重
+        /// </summary>
         public bool DistinctMatched { get; set; } = true;
 
-        // 该规则命中并执行后，是否中止本次事件的后续规则
+        /// <summary>
+        /// 该规则命中并执行后，是否中止本次事件的后续规则
+        /// </summary>
         public bool StopEventOnSuccess { get; set; } = false;
     }
 }
