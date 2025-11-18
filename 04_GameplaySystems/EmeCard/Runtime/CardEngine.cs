@@ -7,6 +7,7 @@ namespace EasyPack.EmeCardSystem
 {
     public sealed class CardEngine
     {
+        #region 初始化
         public CardEngine(ICardFactory factory)
         {
             CardFactory = factory;
@@ -65,6 +66,7 @@ namespace EasyPack.EmeCardSystem
                 }
             }
         }
+        #endregion
 
         #region 基本属性
 
@@ -202,8 +204,6 @@ namespace EasyPack.EmeCardSystem
 
             try
             {
-                _frameStartTime = Time.realtimeSinceStartup * 1000f;
-
                 while (_queue.Count > 0)
                 {
                     var entry = _queue.Dequeue();
@@ -482,6 +482,7 @@ namespace EasyPack.EmeCardSystem
                 {
                     return false;
                 }
+
                 if (!req.TryMatch(ctx, out var picks))
                 {
                     return false;
@@ -491,6 +492,7 @@ namespace EasyPack.EmeCardSystem
             return true;
         }
         #endregion
+
 
         #region 卡牌创建
         /// <summary>
