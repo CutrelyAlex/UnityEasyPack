@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.ObjectPool
 {
     /// <summary>
     /// 泛型对象池，提供对象复用功能以减少 GC 压力。

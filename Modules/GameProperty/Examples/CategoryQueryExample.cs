@@ -4,7 +4,7 @@ using UnityEngine;
 using EasyPack.GamePropertySystem;
 using EasyPack.Architecture;
 
-namespace EasyPack.GamePropertySystem
+namespace EasyPack.GamePropertySystem.Example
 {
     /// <summary>
     /// 分类查询示例

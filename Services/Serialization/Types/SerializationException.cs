@@ -1,6 +1,6 @@
 using System;
 
-namespace EasyPack
+namespace EasyPack.Serialization
 {
     /// <summary>
     /// 序列化错误码

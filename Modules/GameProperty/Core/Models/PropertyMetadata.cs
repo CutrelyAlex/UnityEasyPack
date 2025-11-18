@@ -2,7 +2,7 @@ using EasyPack.CustomData;
 using System;
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// 属性元数据

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using EasyPack.GamePropertySystem;
+using EasyPack.Serialization;
 
 namespace EasyPack.EmeCardSystem
 {

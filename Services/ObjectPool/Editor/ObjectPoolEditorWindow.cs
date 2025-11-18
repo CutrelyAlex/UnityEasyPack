@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.ObjectPool
 {
     /// <summary>
     /// 对象池编辑器监控窗口。

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Tilemaps;
-namespace EasyPack
+namespace EasyPack.Tools.PathFinding
 {
     [System.Serializable]
     public class PathfindingEvent : UnityEvent<List<Vector3Int>> { }

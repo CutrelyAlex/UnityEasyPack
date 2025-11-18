@@ -5,7 +5,7 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.Serialization
 {
     /// <summary>
     /// 通用序列化器基类

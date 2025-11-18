@@ -1,4 +1,4 @@
-namespace EasyPack
+namespace EasyPack.ObjectPool
 {
     /// <summary>
     /// 对象池统计数据。

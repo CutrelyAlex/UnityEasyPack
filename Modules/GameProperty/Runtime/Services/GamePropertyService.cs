@@ -8,8 +8,9 @@ using EasyPack.ENekoFramework;
 using EasyPack.GamePropertySystem;
 using EasyPack.Architecture;
 using EasyPack.Modifiers;
+using EasyPack.Serialization;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// 游戏属性管理器

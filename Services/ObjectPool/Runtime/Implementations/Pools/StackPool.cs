@@ -2,7 +2,7 @@ using EasyPack.Architecture;
 using System;
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.ObjectPool
 {
     /// <summary>
     /// 泛型 Stack&lt;T&gt; 专用对象池。

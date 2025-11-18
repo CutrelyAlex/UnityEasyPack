@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using EasyPack.ENekoFramework;
 
-namespace EasyPack
+namespace EasyPack.ObjectPool
 {
     /// <summary>
     /// 对象池服务接口，提供全局对象池管理功能。

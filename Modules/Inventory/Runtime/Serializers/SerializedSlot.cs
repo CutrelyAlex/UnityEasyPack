@@ -1,3 +1,4 @@
+using EasyPack.Serialization;
 using System;
 namespace EasyPack.InventorySystem
 {

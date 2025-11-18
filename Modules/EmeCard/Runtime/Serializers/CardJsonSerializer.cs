@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using EasyPack.GamePropertySystem;
+using EasyPack.Serialization;
 
 namespace EasyPack.EmeCardSystem
 {
@@ -293,6 +294,6 @@ namespace EasyPack.EmeCardSystem
         public bool Equals(T x, T y) => ReferenceEquals(x, y);
         public int GetHashCode(T obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
-}
     #endregion
+}
 

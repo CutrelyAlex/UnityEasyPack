@@ -5,8 +5,9 @@ using System.Threading.Tasks;
 using UnityEngine;
 using EasyPack.GamePropertySystem;
 using EasyPack.CustomData;
+using EasyPack.Serialization;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// GamePropertyManager 序列化器

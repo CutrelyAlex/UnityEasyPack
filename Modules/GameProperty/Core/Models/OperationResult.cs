@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// 批量操作结果

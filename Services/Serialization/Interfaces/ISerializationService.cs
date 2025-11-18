@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using EasyPack.CustomData;
 using EasyPack.ENekoFramework;
 
-namespace EasyPack
+namespace EasyPack.Serialization
 {
     /// <summary>
     /// 序列化策略

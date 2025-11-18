@@ -1,7 +1,8 @@
 using System;
 using EasyPack.GamePropertySystem;
+using EasyPack.Serialization;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// GamePropertyManager 的可序列化数据传输对象

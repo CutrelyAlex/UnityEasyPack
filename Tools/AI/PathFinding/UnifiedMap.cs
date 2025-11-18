@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-namespace EasyPack
+namespace EasyPack.Tools.PathFinding
 {
     /// <summary>
     /// 统一地图数据结构

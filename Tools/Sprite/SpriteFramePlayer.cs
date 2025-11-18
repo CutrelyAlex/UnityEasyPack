@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.Tools.SpriteFramesPlayer
 {
     /// <summary>
     /// SpriteFramePlayer 用于在 Unity 中播放精灵帧动画。

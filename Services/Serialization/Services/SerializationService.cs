@@ -5,7 +5,7 @@ using EasyPack.CustomData;
 using EasyPack.ENekoFramework;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.Serialization
 {
     /// <summary>
     /// 双泛型序列化器适配器

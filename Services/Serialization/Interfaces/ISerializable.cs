@@ -1,4 +1,4 @@
-namespace EasyPack
+namespace EasyPack.Serialization
 {
     /// <summary>
     /// 可序列化 DTO 的标记接口

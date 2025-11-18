@@ -5,7 +5,7 @@ using EasyPack.GamePropertySystem;
 using EasyPack.Architecture;
 using EasyPack.Modifiers;
 
-namespace EasyPack.GamePropertySystem
+namespace EasyPack.GamePropertySystem.Example
 {
     /// <summary>
     /// GamePropertyManager使用示例

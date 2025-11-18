@@ -1,3 +1,4 @@
+using EasyPack.Serialization;
 using System;
 using UnityEngine;
 

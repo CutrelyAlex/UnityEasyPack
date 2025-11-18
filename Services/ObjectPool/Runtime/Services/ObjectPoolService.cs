@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using EasyPack.ENekoFramework;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.ObjectPool
 {
     /// <summary>
     /// 对象池服务，提供全局对象池管理功能。

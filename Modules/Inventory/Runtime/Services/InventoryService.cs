@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using EasyPack.ENekoFramework;
 using EasyPack.Architecture;
+using EasyPack.Serialization;
 
 namespace EasyPack.InventorySystem
 {

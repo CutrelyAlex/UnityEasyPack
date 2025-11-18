@@ -1,4 +1,5 @@
 using EasyPack.CustomData;
+using EasyPack.Serialization;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
