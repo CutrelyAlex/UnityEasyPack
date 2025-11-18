@@ -1,7 +1,5 @@
-namespace EasyPack
+namespace EasyPack.Modifiers
 {
-
-
     public class FloatModifier : IModifier<float>
     {
         public ModifierType Type { get; }

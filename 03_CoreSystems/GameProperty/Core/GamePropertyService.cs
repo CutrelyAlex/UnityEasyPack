@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using UnityEngine;
 using EasyPack.ENekoFramework;
 using EasyPack.GamePropertySystem;
+using EasyPack.Architecture;
+using EasyPack.Modifiers;
 
 namespace EasyPack
 {

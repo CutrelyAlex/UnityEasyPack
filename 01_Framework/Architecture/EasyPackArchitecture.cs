@@ -5,7 +5,7 @@ using System;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.Architecture
 {
     /// <summary>
     /// EasyPack 统一架构容器

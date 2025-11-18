@@ -1,3 +1,4 @@
+using EasyPack.CustomData;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -143,21 +144,17 @@ namespace EasyPack
     {
         public override byte[] SerializeToBinary(T obj)
         {
-            using (var stream = new MemoryStream())
-            {
-                var formatter = new BinaryFormatter();
-                formatter.Serialize(stream, obj);
-                return stream.ToArray();
-            }
+            using var stream = new MemoryStream();
+            var formatter = new BinaryFormatter();
+            formatter.Serialize(stream, obj);
+            return stream.ToArray();
         }
 
         public override T DeserializeFromBinary(byte[] data)
         {
-            using (var stream = new MemoryStream(data))
-            {
-                var formatter = new BinaryFormatter();
-                return (T)formatter.Deserialize(stream);
-            }
+            using var stream = new MemoryStream(data);
+            var formatter = new BinaryFormatter();
+            return (T)formatter.Deserialize(stream);
         }
     }
 }

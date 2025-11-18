@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.CustomData
 {
     public interface ICustomDataSerializer
     {

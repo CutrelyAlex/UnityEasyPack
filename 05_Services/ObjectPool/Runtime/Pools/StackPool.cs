@@ -1,3 +1,4 @@
+using EasyPack.Architecture;
 using System;
 using System.Collections.Generic;
 
@@ -11,7 +12,7 @@ namespace EasyPack
     {
         private static ObjectPool<Stack<T>> _pool;
         private static bool _isInitialized = false;
-        private static readonly object _lockObj = new object();
+        private static readonly object _lockObj = new();
 
         /// <summary>
         /// 初始化栈池。

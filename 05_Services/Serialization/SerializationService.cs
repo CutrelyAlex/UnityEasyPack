@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using EasyPack.CustomData;
 using EasyPack.ENekoFramework;
 using UnityEngine;
 
@@ -292,7 +293,7 @@ namespace EasyPack
         public T DeserializeFromJson<T>(string json)
         {
             var result = DeserializeFromJson(json, typeof(T));
-            return result != null ? (T)result : default(T);
+            return result != null ? (T)result : default;
         }
 
         public object DeserializeFromJson(string json, Type type)
@@ -384,7 +385,7 @@ namespace EasyPack
         public T DeserializeFromCustomData<T>(List<CustomDataEntry> entries)
         {
             var result = DeserializeFromCustomData(entries, typeof(T));
-            return result != null ? (T)result : default(T);
+            return result != null ? (T)result : default;
         }
 
         public object DeserializeFromCustomData(List<CustomDataEntry> entries, Type type)
@@ -477,7 +478,7 @@ namespace EasyPack
         public T DeserializeFromBinary<T>(byte[] data)
         {
             var result = DeserializeFromBinary(data, typeof(T));
-            return result != null ? (T)result : default(T);
+            return result != null ? (T)result : default;
         }
 
         public object DeserializeFromBinary(byte[] data, Type type)

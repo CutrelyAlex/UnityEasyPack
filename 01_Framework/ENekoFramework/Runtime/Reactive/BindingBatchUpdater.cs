@@ -112,7 +112,7 @@ namespace EasyPack.ENekoFramework
                 }
                 catch (System.Exception ex)
                 {
-                    Debug.LogError($"[BindingBatchUpdater] Exception during FlushUpdates: {ex}");
+                    Debug.LogWarning($"[BindingBatchUpdater] Exception during FlushUpdates: {ex}");
                 }
             }
             

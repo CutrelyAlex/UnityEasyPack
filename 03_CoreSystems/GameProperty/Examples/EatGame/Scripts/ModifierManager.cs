@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using EasyPack.GamePropertySystem;
+using EasyPack.Modifiers;
 using UnityEngine;
 
 namespace EasyPack.GamePropertySystem.Example.EatGame

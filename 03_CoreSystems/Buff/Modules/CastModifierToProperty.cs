@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using EasyPack.GamePropertySystem;
+using EasyPack.Modifiers;
 
 namespace EasyPack.BuffSystem
 {
@@ -28,7 +29,7 @@ namespace EasyPack.BuffSystem
         /// <summary>
         /// 存储已应用的所有修饰符实例
         /// </summary>
-        private readonly List<IModifier> _appliedModifiers = new List<IModifier>();
+        private readonly List<IModifier> _appliedModifiers = new();
 
         /// <summary>
         /// 缓存的属性实例，避免重复查找

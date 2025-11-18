@@ -2,6 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using EasyPack.Architecture;
 
 
 namespace EasyPack.ENekoFramework.Editor

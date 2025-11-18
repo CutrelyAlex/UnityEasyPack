@@ -1,4 +1,4 @@
-namespace EasyPack
+namespace EasyPack.CustomData
 {
     public enum CustomDataType
     {

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.Modifiers
 {
     public class RangeModifier : IModifier<Vector2>
     {

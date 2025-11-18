@@ -1,3 +1,4 @@
+using EasyPack.CustomData;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -68,7 +69,7 @@ namespace EasyPack.InventorySystem
                     : null,
                 Shape = item.Shape != null
                     ? item.Shape.ConvertAll(cell => new SerializedCell { x = cell.x, y = cell.y })
-                    : new List<SerializedCell> { new SerializedCell { x = 0, y = 0 } },
+                    : new List<SerializedCell> { new() { x = 0, y = 0 } },
                 CanRotate = item.CanRotate,
                 Rotation = (int)item.Rotation
             };

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.Modifiers
 {
     public static class ModifierStrategyManager
     {

@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.Architecture
 {
     /// <summary>
     /// EasyPack Controller 基类

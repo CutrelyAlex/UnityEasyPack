@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.Modifiers
 {
     /// <summary>
     /// 乘法修改器策略

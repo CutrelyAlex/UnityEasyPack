@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using EasyPack.ENekoFramework;
+using EasyPack.Architecture;
 
 namespace EasyPack.InventorySystem
 {

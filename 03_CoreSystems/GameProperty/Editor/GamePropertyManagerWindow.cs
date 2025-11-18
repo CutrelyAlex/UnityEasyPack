@@ -4,6 +4,8 @@ using UnityEditor;
 using System.Linq;
 using System.Collections.Generic;
 using EasyPack.GamePropertySystem;
+using EasyPack.Modifiers;
+using EasyPack.Architecture;
 
 namespace EasyPack.GamePropertySystem.Editor
 {

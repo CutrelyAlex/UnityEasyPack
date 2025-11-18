@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace EasyPack
+namespace EasyPack.Modifiers
 {
     public interface IModifierStrategy
     {

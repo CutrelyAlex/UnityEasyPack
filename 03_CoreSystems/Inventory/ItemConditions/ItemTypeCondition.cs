@@ -1,3 +1,5 @@
+using EasyPack.CustomData;
+
 namespace EasyPack.InventorySystem
 {
     public class ItemTypeCondition : IItemCondition, ISerializableCondition

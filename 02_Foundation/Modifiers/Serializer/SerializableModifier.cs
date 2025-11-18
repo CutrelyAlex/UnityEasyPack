@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.Modifiers
 {
     /// <summary>
     /// 修饰器的可序列化表示形式

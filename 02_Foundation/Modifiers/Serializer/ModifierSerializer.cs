@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace EasyPack
+namespace EasyPack.Modifiers
 {
     /// <summary>
     /// IModifier 的 JSON 序列化器

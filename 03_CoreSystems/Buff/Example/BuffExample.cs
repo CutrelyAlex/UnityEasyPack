@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using EasyPack.GamePropertySystem;
+using EasyPack.Architecture;
+using EasyPack.Modifiers;
 
-namespace EasyPack.BuffSystem
+namespace EasyPack.BuffSystem.Example
 {
     /// <summary>
     /// Buff 系统完整示例
@@ -302,7 +304,7 @@ namespace EasyPack.BuffSystem
                 Duration = 8f
             };
 
-            var healthModifier = new FloatModifier(ModifierType.Mul, 0, 1.5f);  // 增加50%生命值
+            IModifier healthModifier = new FloatModifier(ModifierType.Mul, 0, 1.5f);  // 增加50%生命值
             var healthModule = new CastModifierToProperty(healthModifier, "Health", _gamePropertyManager);
             healthBuff.BuffModules.Add(healthModule);
 

@@ -1,3 +1,4 @@
+using EasyPack.CustomData;
 using System.Collections.Generic;
 using UnityEngine;
 

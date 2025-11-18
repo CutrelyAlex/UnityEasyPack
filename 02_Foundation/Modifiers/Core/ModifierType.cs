@@ -1,6 +1,6 @@
 using System;
 
-namespace EasyPack
+namespace EasyPack.Modifiers
 {
     [Serializable]
     public enum ModifierType

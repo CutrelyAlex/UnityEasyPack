@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 
+using EasyPack.Architecture;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;

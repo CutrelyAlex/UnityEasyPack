@@ -1,4 +1,4 @@
-namespace EasyPack
+namespace EasyPack.Modifiers
 {
     public interface IModifier
     {
