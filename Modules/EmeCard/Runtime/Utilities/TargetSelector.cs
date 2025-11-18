@@ -118,7 +118,23 @@ namespace EasyPack.EmeCardSystem
             string filterValue = null,
             int? maxDepth = null)
         {
-            if (ctx == null || ctx.Container == null)
+            if (ctx == null || ctx.MatchRoot == null)
+                return Array.Empty<Card>();
+
+            return Select(scope, filter, ctx.MatchRoot, filterValue, maxDepth ?? ctx.MaxDepth);
+        }
+
+        /// <summary>
+        /// 根据作用域和过滤条件选择目标卡牌。
+        /// </summary>
+        public static IReadOnlyList<Card> Select(
+            TargetScope scope,
+            CardFilterMode filter,
+            Card root,
+            string filterValue = null,
+            int maxDepth = int.MaxValue)
+        {
+            if (root == null)
                 return Array.Empty<Card>();
 
             // 特殊处理：Matched 不应该在这里处理，由调用方直接使用匹配结果
@@ -133,14 +149,14 @@ namespace EasyPack.EmeCardSystem
             switch (scope)
             {
                 case TargetScope.Children:
-                    candidates = new List<Card>(ctx.Container.Children);
+                    candidates = new List<Card>(root.Children);
                     break;
 
                 case TargetScope.Descendants:
                     {
-                        int depth = maxDepth ?? ctx.MaxDepth;
+                        int depth = maxDepth;
                         if (depth <= 0) depth = int.MaxValue;
-                        candidates = TraversalUtil.EnumerateDescendants(ctx.Container, depth).ToList();
+                        candidates = TraversalUtil.EnumerateDescendants(root, depth).ToList();
                     }
                     break;
 
@@ -168,14 +184,14 @@ namespace EasyPack.EmeCardSystem
                 return Array.Empty<Card>();
 
             // 确定根容器
-            Card root = selection.Root == SelectionRoot.Source ? ctx.Source : ctx.Container;
+            Card root = selection.Root == SelectionRoot.Source ? ctx.Source : ctx.MatchRoot;
             if (root == null)
                 return Array.Empty<Card>();
 
             // 构建局部上下文
             var localCtx = new CardRuleContext(
                 source: ctx.Source,
-                container: root,
+                matchRoot: root,
                 evt: ctx.Event,
                 factory: ctx.Factory,
                 maxDepth: selection.MaxDepth ?? ctx.MaxDepth
