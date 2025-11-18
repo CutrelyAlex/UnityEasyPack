@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EasyPack.ENekoFramework.Editor.Windows
+namespace EasyPack.ENekoFramework.Editor
 {
     /// <summary>
     /// 命令历史窗口

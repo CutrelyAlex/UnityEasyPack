@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace EasyPack.ENekoFramework.Editor.Windows
+namespace EasyPack.ENekoFramework.Editor
 {
     /// <summary>
     /// 事件监视器窗口

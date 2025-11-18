@@ -5,7 +5,7 @@ using System.Linq;
 using System.Collections.Generic;
 using EasyPack.GamePropertySystem;
 
-namespace EasyPack.Editor
+namespace EasyPack.GamePropertySystem.Editor
 {
     /// <summary>
     /// GamePropertyManager 可视化管理窗口

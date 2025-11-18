@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EasyPack.ENekoFramework.Editor;
 
-namespace EasyPack.ENekoFramework.Editor.Windows
+namespace EasyPack.ENekoFramework.Editor
 {
     /// <summary>
     /// 架构总览窗口

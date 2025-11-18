@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace EasyPack.ENekoFramework.Editor.Windows
+namespace EasyPack.ENekoFramework.Editor
 {
     /// <summary>
     /// 编辑器监控偏好设置

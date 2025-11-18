@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EasyPack.ENekoFramework.Editor.Windows
+namespace EasyPack.ENekoFramework.Editor
 {
     /// <summary>
     /// 依赖关系图窗口
