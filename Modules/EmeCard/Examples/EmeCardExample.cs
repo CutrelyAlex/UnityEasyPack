@@ -282,7 +282,7 @@ namespace EasyPack.EmeCardSystem.Example
                 .DoModifyTag("火把", "Ticks", 1f)
                 .DoInvoke((ctx, matched) =>
                 {
-                    var torches = ctx.Container.Children.Where(c => c.HasTag("火把")).ToList();
+                    var torches = ctx.MatchRoot.Children.Where(c => c.HasTag("火把")).ToList();
                     var ticks = torches.Select(t => t.Properties?.FirstOrDefault()?.GetBaseValue() ?? 0f);
                     Debug.Log($"[火把燃烧] 火把Ticks: {string.Join(", ", ticks)}");
                 })
@@ -294,7 +294,7 @@ namespace EasyPack.EmeCardSystem.Example
                 .AtSelf()
                 .WhenWithCards(ctx =>
                 {
-                    var burnedTorches = ctx.Container.Children
+                    var burnedTorches = ctx.MatchRoot.Children
                         .Where(c => c.HasTag("火把") &&
                                c.Properties?.FirstOrDefault()?.GetBaseValue() >= 5f)
                         .ToList();
@@ -308,7 +308,7 @@ namespace EasyPack.EmeCardSystem.Example
                     {
                         torch.Owner?.RemoveChild(torch, force: false);
                         var ash = _factory.Create("灰烬");
-                        ctx.Container.AddChild(ash);
+                        ctx.MatchRoot.AddChild(ash);
                     }
                 })
             );

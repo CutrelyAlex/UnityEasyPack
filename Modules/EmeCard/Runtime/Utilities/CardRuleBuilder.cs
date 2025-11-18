@@ -160,27 +160,27 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>要求容器的类别为指定类别</summary>
         public CardRuleBuilder WhenContainerCategory(CardCategory category)
-            => When(ctx => ctx.Container?.Category == category);
+            => When(ctx => ctx.MatchRoot?.Category == category);
 
         /// <summary>要求容器为对象类别</summary>
         public CardRuleBuilder WhenContainerIsObject()
-            => When(ctx => ctx.Container?.Category == CardCategory.Object);
+            => When(ctx => ctx.MatchRoot?.Category == CardCategory.Object);
 
         /// <summary>要求容器为动作类别</summary>
         public CardRuleBuilder WhenContainerIsAction()
-            => When(ctx => ctx.Container?.Category == CardCategory.Action);
+            => When(ctx => ctx.MatchRoot?.Category == CardCategory.Action);
 
         /// <summary>要求容器为属性类别</summary>
         public CardRuleBuilder WhenContainerIsAttribute()
-            => When(ctx => ctx.Container?.Category == CardCategory.Attribute);
+            => When(ctx => ctx.MatchRoot?.Category == CardCategory.Attribute);
 
         /// <summary>要求容器有指定标签</summary>
         public CardRuleBuilder WhenContainerHasTag(string tag)
-            => When(ctx => ctx.Container?.HasTag(tag) ?? false);
+            => When(ctx => ctx.MatchRoot?.HasTag(tag) ?? false);
 
         /// <summary>要求容器没有指定标签</summary>
         public CardRuleBuilder WhenContainerNotHasTag(string tag)
-            => When(ctx => !(ctx.Container?.HasTag(tag) ?? false));
+            => When(ctx => !(ctx.MatchRoot?.HasTag(tag) ?? false));
 
         /// <summary>要求事件数据为指定类型</summary>
         public CardRuleBuilder WhenEventDataIs<T>() where T : class
@@ -190,12 +190,6 @@ namespace EasyPack.EmeCardSystem
         public CardRuleBuilder WhenEventDataNotNull()
             => When(ctx => ctx.Event.Data != null);
 
-        public CardRuleBuilder WhenLog(string message)
-            => When(context =>
-            {
-                Debug.Log(message);
-                return true;
-            });
         #endregion
 
         #region 条件要求 - 便捷语法糖
@@ -390,7 +384,7 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>给容器卡牌自身添加标签</summary>
         public CardRuleBuilder DoAddTagToContainer(string tag)
-            => DoInvoke((ctx, matched) => ctx.Container.AddTag(tag));
+            => DoInvoke((ctx, matched) => ctx.MatchRoot.AddTag(tag));
 
         /// <summary>给容器子卡中指定标签的卡牌添加新标签</summary>
         public CardRuleBuilder DoAddTagToTag(string targetTag, string newTag, int? take = null)
@@ -406,7 +400,7 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>给容器卡牌自身移除标签</summary>
         public CardRuleBuilder DoRemoveTagFromContainer(string tag)
-            => DoInvoke((ctx, matched) => ctx.Container.RemoveTag(tag));
+            => DoInvoke((ctx, matched) => ctx.MatchRoot.RemoveTag(tag));
 
         /// <summary>修改匹配结果中指定标签的卡牌的属性</summary>
         public CardRuleBuilder DoModifyTag(
@@ -444,9 +438,28 @@ namespace EasyPack.EmeCardSystem
         #endregion
 
         #region Debug
+#if UNITY_EDITOR
 
         public CardRuleBuilder PrintContext() => DoInvoke(((context, list) => Debug.Log(context.ToString())));
 
+
+        /// <summary>
+        /// 调试时输出日志
+        /// </summary>
+        public CardRuleBuilder WhenLog(string message)
+            => When(context =>
+            {
+                Debug.Log(message);
+                return true;
+            });
+
+        public CardRuleBuilder WhenDebugInvoke()
+            => When(context =>
+            {
+
+                return true;
+            });
+#endif
         #endregion
 
         /// <summary>构建规则</summary>

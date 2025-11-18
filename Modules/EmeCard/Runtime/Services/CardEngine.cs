@@ -436,7 +436,7 @@ namespace EasyPack.EmeCardSystem
             if (container == null) return null;
             return new CardRuleContext(
                 source: source,
-                container: container,
+                matchRoot: container,
                 evt: evt,
                 factory: CardFactory,
                 maxDepth: rule.MaxDepth

@@ -44,19 +44,10 @@ namespace EasyPack.EmeCardSystem
             matched = new List<Card>();
             if (ctx == null) return false;
 
-            var root = Root == SelectionRoot.Container ? ctx.Container : ctx.Source;
+            var root = Root == SelectionRoot.Container ? ctx.MatchRoot : ctx.Source;
             if (root == null) return false;
 
-            // 以 root 为容器重建局部上下文，统一走 TargetSelector
-            var localCtx = new CardRuleContext(
-                source: ctx.Source,
-                container: root,
-                evt: ctx.Event,
-                factory: ctx.Factory,
-                maxDepth: MaxDepth ?? ctx.MaxDepth
-            );
-
-            var picks = TargetSelector.Select(Scope, FilterMode, localCtx, FilterValue);
+            var picks = TargetSelector.Select(Scope, FilterMode, root, FilterValue, MaxDepth ?? ctx.MaxDepth);
             int count = picks?.Count ?? 0;
 
             // 检查匹配条件：至少 MinCount 个

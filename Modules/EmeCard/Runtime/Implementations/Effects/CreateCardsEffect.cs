@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
-    /// 产卡效果：在上下文容器（<see cref="CardRuleContext.Container"/>）中创建指定 ID 的新卡。
+    /// 产卡效果：在上下文容器（<see cref="CardRuleContext.MatchRoot"/>）中创建指定 ID 的新卡。
     /// <para></para>
     /// - 必须存在 <see cref="CardRuleContext.Factory"/>，否则不生效；
     /// <para></para>
@@ -30,7 +30,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="matched">匹配结果（本效果不使用）。</param>
         public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
-            if (ctx.Factory == null || ctx.Container == null || CardIds == null || CardIds.Count == 0 || CountPerId <= 0)
+            if (ctx.Factory == null || ctx.MatchRoot == null || CardIds == null || CardIds.Count == 0 || CountPerId <= 0)
                 return;
 
             foreach (var id in CardIds)
@@ -39,7 +39,7 @@ namespace EasyPack.EmeCardSystem
                 {
                     var card = ctx.Factory.Owner.CreateCard(id);
                     if (card != null)
-                        ctx.Container.AddChild(card);
+                        ctx.MatchRoot.AddChild(card);
                 }
             }
         }

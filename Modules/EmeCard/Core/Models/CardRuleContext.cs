@@ -9,14 +9,14 @@ namespace EasyPack.EmeCardSystem
         /// 构造函数：创建规则上下文实例。
         /// </summary>
         /// <param name="source">触发该规则的卡牌（事件源）</param>
-        /// <param name="container">用于匹配与执行的容器</param>
+        /// <param name="matchRoot">用于匹配与执行的容器</param>
         /// <param name="evt">原始事件载体</param>
         /// <param name="factory">产卡工厂</param>
         /// <param name="maxDepth">递归搜索最大深度</param>
-        public CardRuleContext(Card source, Card container, CardEvent evt, ICardFactory factory, int maxDepth)
+        public CardRuleContext(Card source, Card matchRoot, CardEvent evt, ICardFactory factory, int maxDepth)
         {
             Source = source;
-            Container = container;
+            MatchRoot = matchRoot;
             Event = evt;
             Factory = factory;
             MaxDepth = maxDepth;
@@ -26,7 +26,7 @@ namespace EasyPack.EmeCardSystem
         public Card Source { get; }
 
         /// <summary>用于匹配与执行的容器（由规则的 OwnerHops 选择）。</summary>
-        public Card Container { get; }
+        public Card MatchRoot { get; }
 
         /// <summary>原始事件载体（包含类型、ID、数据等）。</summary>
         public CardEvent Event { get; }
@@ -78,7 +78,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <typeparam name="T">目标卡牌类型。</typeparam>
         /// <returns>转换后的卡牌对象，失败返回 null。</returns>
-        public T GetContainer<T>() where T : Card => Container as T;
+        public T GetContainer<T>() where T : Card => MatchRoot as T;
 
         /// <summary>
         /// 将事件数据作为指定引用类型返回。
@@ -149,7 +149,7 @@ namespace EasyPack.EmeCardSystem
         {
             return "CardRuleContext:\n" +
                    $"  Source: {Source}\n" +
-                   $"  Container: {Container}\n" +
+                   $"  Container: {MatchRoot}\n" +
                    $"  Event: Type={Event.Type}, ID={Event.ID}, Data={Event.Data}\n" +
                    $"  Factory: {Factory}\n" +
                    $"  MaxDepth: {MaxDepth}\n" +
