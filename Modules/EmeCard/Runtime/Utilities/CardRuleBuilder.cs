@@ -442,7 +442,6 @@ namespace EasyPack.EmeCardSystem
 
         public CardRuleBuilder PrintContext() => DoInvoke(((context, list) => Debug.Log(context.ToString())));
 
-
         /// <summary>
         /// 调试时输出日志
         /// </summary>
@@ -453,12 +452,27 @@ namespace EasyPack.EmeCardSystem
                 return true;
             });
 
-        public CardRuleBuilder WhenDebugInvoke()
+        /// <summary>
+        /// 仅在编辑器中执行调试逻辑
+        /// </summary>
+        public CardRuleBuilder WhenDebugInvoke(Func<CardRuleContext, bool> debugAction = null)
             => When(context =>
             {
-
+                debugAction?.Invoke(context);
                 return true;
             });
+
+        /// <summary>
+        /// 仅在编辑器中执行调试效果
+        /// </summary>
+        public CardRuleBuilder DoDebugInvoke(Action<CardRuleContext, IReadOnlyList<Card>> debugAction = null)
+        {
+            if (debugAction != null)
+            {
+                _rule.Effects.Add(new InvokeEffect(debugAction));
+            }
+            return this;
+        }
 #endif
         #endregion
 
