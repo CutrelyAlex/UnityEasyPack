@@ -18,7 +18,7 @@ namespace EasyPack.CustomData
 
             foreach (var kv in dict)
             {
-                var entry = new CustomDataEntry { Id = kv.Key, Serializer = fallbackSerializer };
+                var entry = new CustomDataEntry { Key = kv.Key, Serializer = fallbackSerializer };
                 entry.SetValue(kv.Value);
                 list.Add(entry);
             }
@@ -32,7 +32,7 @@ namespace EasyPack.CustomData
 
             foreach (var e in entries)
             {
-                dict[e.Id] = e.GetValue();
+                dict[e.Key] = e.GetValue();
             }
             return dict;
         }
@@ -54,7 +54,7 @@ namespace EasyPack.CustomData
 
             foreach (var e in entries)
             {
-                if (e.Id != id) continue;
+                if (e.Key != id) continue;
 
                 var obj = e.GetValue();
                 if (obj is T t)
@@ -106,14 +106,14 @@ namespace EasyPack.CustomData
                 throw new System.ArgumentNullException(nameof(entries));
 
             // 查找现有条目
-            var existing = entries.FirstOrDefault(e => e.Id == id);
+            var existing = entries.FirstOrDefault(e => e.Key == id);
             if (existing != null)
             {
                 existing.SetValue(value);
             }
             else
             {
-                var entry = new CustomDataEntry { Id = id };
+                var entry = new CustomDataEntry { Key = id };
                 entry.SetValue(value);
                 entries.Add(entry);
             }
@@ -130,7 +130,7 @@ namespace EasyPack.CustomData
         public static bool RemoveValue(List<CustomDataEntry> entries, string id)
         {
             if (entries == null) return false;
-            return entries.RemoveAll(e => e.Id == id) > 0;
+            return entries.RemoveAll(e => e.Key == id) > 0;
         }
 
         /// <summary>检查是否存在指定的自定义数据</summary>
@@ -139,7 +139,7 @@ namespace EasyPack.CustomData
         /// <returns>如果存在返回 true，否则返回 false</returns>
         public static bool HasValue(List<CustomDataEntry> entries, string id)
         {
-            return entries != null && entries.Any(e => e.Id == id);
+            return entries != null && entries.Any(e => e.Key == id);
         }
 
         /// <summary>清空所有自定义数据</summary>
@@ -155,7 +155,7 @@ namespace EasyPack.CustomData
         public static IEnumerable<string> GetKeys(List<CustomDataEntry> entries)
         {
             if (entries == null) return Enumerable.Empty<string>();
-            return entries.Select(e => e.Id);
+            return entries.Select(e => e.Key);
         }
 
         #endregion
@@ -188,7 +188,7 @@ namespace EasyPack.CustomData
             {
                 var clonedEntry = new CustomDataEntry
                 {
-                    Id = entry.Id,
+                    Key = entry.Key,
                     Type = entry.Type,
                     IntValue = entry.IntValue,
                     FloatValue = entry.FloatValue,
@@ -217,7 +217,7 @@ namespace EasyPack.CustomData
         public static IEnumerable<string> GetValuesByType(List<CustomDataEntry> entries, CustomDataType type)
         {
             if (entries == null) return Enumerable.Empty<string>();
-            return entries.Where(e => e.Type == type).Select(e => e.Id);
+            return entries.Where(e => e.Type == type).Select(e => e.Key);
         }
 
         /// <summary>获取满足条件的所有数据</summary>
@@ -371,7 +371,7 @@ namespace EasyPack.CustomData
 
             foreach (var entry in other)
             {
-                SetValue(entries, entry.Id, entry.GetValue());
+                SetValue(entries, entry.Key, entry.GetValue());
             }
         }
 

@@ -58,7 +58,7 @@ namespace EasyPack.GamePropertySystem
             // 查找是否已存在
             foreach (var entry in CustomData)
             {
-                if (entry.Id == key)
+                if (entry.Key == key)
                 {
                     entry.SetValue(value);
                     return;
@@ -66,7 +66,7 @@ namespace EasyPack.GamePropertySystem
             }
 
             // 不存在则添加新条目
-            var newEntry = new CustomDataEntry { Id = key };
+            var newEntry = new CustomDataEntry { Key = key };
             newEntry.SetValue(value);
             CustomData.Add(newEntry);
         }

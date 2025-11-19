@@ -77,9 +77,9 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("beneficial", "attack", "temporary", "stackable")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Id = "priority", Type = CustomDataType.String, StringValue = "1" },
-                    new CustomDataEntry { Id = "stackLimit", Type = CustomDataType.String, StringValue = "3" },
-                    new CustomDataEntry { Id = "source", Type = CustomDataType.String, StringValue = "equipment" }
+                    new CustomDataEntry { Key = "priority", Type = CustomDataType.String, StringValue = "1" },
+                    new CustomDataEntry { Key = "stackLimit", Type = CustomDataType.String, StringValue = "3" },
+                    new CustomDataEntry { Key = "source", Type = CustomDataType.String, StringValue = "equipment" }
                 })
                 .Complete();
 
@@ -87,9 +87,9 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("beneficial", "movement", "temporary")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Id = "priority", Type = CustomDataType.String, StringValue = "2" },
-                    new CustomDataEntry { Id = "stackLimit", Type = CustomDataType.String, StringValue = "1" },
-                    new CustomDataEntry { Id = "source", Type = CustomDataType.String, StringValue = "skill" }
+                    new CustomDataEntry { Key = "priority", Type = CustomDataType.String, StringValue = "2" },
+                    new CustomDataEntry { Key = "stackLimit", Type = CustomDataType.String, StringValue = "1" },
+                    new CustomDataEntry { Key = "source", Type = CustomDataType.String, StringValue = "skill" }
                 })
                 .Complete();
 
@@ -97,8 +97,8 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("beneficial", "healing", "persistent")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Id = "tickRate", Type = CustomDataType.String, StringValue = "1" },
-                    new CustomDataEntry { Id = "source", Type = CustomDataType.String, StringValue = "passive" }
+                    new CustomDataEntry { Key = "tickRate", Type = CustomDataType.String, StringValue = "1" },
+                    new CustomDataEntry { Key = "source", Type = CustomDataType.String, StringValue = "passive" }
                 })
                 .Complete();
 
@@ -106,8 +106,8 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("beneficial", "defense", "temporary", "exclusive")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Id = "priority", Type = CustomDataType.String, StringValue = "10" },
-                    new CustomDataEntry { Id = "overridable", Type = CustomDataType.String, StringValue = "false" }
+                    new CustomDataEntry { Key = "priority", Type = CustomDataType.String, StringValue = "10" },
+                    new CustomDataEntry { Key = "overridable", Type = CustomDataType.String, StringValue = "false" }
                 })
                 .Complete();
 
@@ -145,8 +145,8 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("harmful", "damage_over_time", "removable", "stackable")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Id = "resisType", Type = CustomDataType.String, StringValue = "poison" },
-                    new CustomDataEntry { Id = "source", Type = CustomDataType.String, StringValue = "enemy" }
+                    new CustomDataEntry { Key = "resisType", Type = CustomDataType.String, StringValue = "poison" },
+                    new CustomDataEntry { Key = "source", Type = CustomDataType.String, StringValue = "enemy" }
                 })
                 .Complete();
 
@@ -154,7 +154,7 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("harmful", "stat_reduction", "temporary")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Id = "affectedStat", Type = CustomDataType.String, StringValue = "attack" }
+                    new CustomDataEntry { Key = "affectedStat", Type = CustomDataType.String, StringValue = "attack" }
                 })
                 .Complete();
 
@@ -162,8 +162,8 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("harmful", "crowd_control", "temporary", "priority")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Id = "priority", Type = CustomDataType.String, StringValue = "5" },
-                    new CustomDataEntry { Id = "overridable", Type = CustomDataType.String, StringValue = "true" }
+                    new CustomDataEntry { Key = "priority", Type = CustomDataType.String, StringValue = "5" },
+                    new CustomDataEntry { Key = "overridable", Type = CustomDataType.String, StringValue = "true" }
                 })
                 .Complete();
 
@@ -171,7 +171,7 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("harmful", "damage_stacking", "temporary")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Id = "stackType", Type = CustomDataType.String, StringValue = "damage" }
+                    new CustomDataEntry { Key = "stackType", Type = CustomDataType.String, StringValue = "damage" }
                 })
                 .Complete();
 
@@ -243,7 +243,7 @@ namespace EasyPack.CategoryService.Examples
                     Debug.Log($"[移除前] {poison.Name} 的元数据:");
                     foreach (var entry in metadataResult.Value)
                     {
-                        Debug.Log($"        {entry.Id}: {entry.GetValue()}");
+                        Debug.Log($"        {entry.Key}: {entry.GetValue()}");
                     }
                 }
             }

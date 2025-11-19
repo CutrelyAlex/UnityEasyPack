@@ -165,8 +165,8 @@ namespace EasyPack.CategoryService.Examples
             var entity = new TestEntity("meta1", "Meta Entity");
             var metadata = new List<CustomDataEntry>
             {
-                new CustomDataEntry { Id = "key1", Type = CustomDataType.String, StringValue = "value1" },
-                new CustomDataEntry { Id = "key2", Type = CustomDataType.String, StringValue = "value2" }
+                new CustomDataEntry { Key = "key1", Type = CustomDataType.String, StringValue = "value1" },
+                new CustomDataEntry { Key = "key2", Type = CustomDataType.String, StringValue = "value2" }
             };
 
             service.RegisterEntity(entity, "Meta.Category")
@@ -179,7 +179,7 @@ namespace EasyPack.CategoryService.Examples
 
             var newMetadata = new List<CustomDataEntry>
             {
-                new CustomDataEntry { Id = "key3", Type = CustomDataType.String, StringValue = "value3" }
+                new CustomDataEntry { Key = "key3", Type = CustomDataType.String, StringValue = "value3" }
             };
 
             var updateResult = service.UpdateMetadata("meta1", newMetadata);

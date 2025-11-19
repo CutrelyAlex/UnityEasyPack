@@ -274,7 +274,7 @@ namespace EasyPack.InventorySystem
                     var slot = _slots[i];
                     if (slot.IsOccupied && slot.Item != null)
                     {
-                        var entry = slot.Item.CustomData?.FirstOrDefault(e => e.Id == attributeName);
+                        var entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
                         if (entry != null)
                         {
                             var value = entry.GetValue();
@@ -297,7 +297,7 @@ namespace EasyPack.InventorySystem
                     var slot = _slots[i];
                     if (slot.IsOccupied && slot.Item != null)
                     {
-                        var entry = slot.Item.CustomData?.FirstOrDefault(e => e.Id == attributeName);
+                        var entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
                         if (entry != null)
                         {
                             var value = entry.GetValue();

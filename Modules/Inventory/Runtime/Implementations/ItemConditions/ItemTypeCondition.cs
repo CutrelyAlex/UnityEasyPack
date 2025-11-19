@@ -31,7 +31,7 @@ namespace EasyPack.InventorySystem
         public SerializedCondition ToDto()
         {
             var dto = new SerializedCondition { Kind = Kind };
-            var entry = new CustomDataEntry { Id = "ItemType" };
+            var entry = new CustomDataEntry { Key = "ItemType" };
             entry.SetValue(ItemType, CustomDataType.String);
             dto.Params.Add(entry);
             return dto;
@@ -42,7 +42,7 @@ namespace EasyPack.InventorySystem
             string t = null;
             foreach (var p in dto.Params)
             {
-                if (p?.Id == "ItemType")
+                if (p?.Key == "ItemType")
                 {
                     t = p.StringValue ?? p.GetValue() as string;
                     break;

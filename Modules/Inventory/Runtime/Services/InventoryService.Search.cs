@@ -302,7 +302,7 @@ namespace EasyPack.InventorySystem
                 results = SearchItemsByCondition(item =>
                 {
                     if (item.CustomData == null) return false;
-                    var entry = item.CustomData.FirstOrDefault(e => e.Id == attributeName);
+                    var entry = item.CustomData.FirstOrDefault(e => e.Key == attributeName);
                     if (entry == null) return false;
                     var value = entry.GetValue();
                     return attributeValue == null || value?.Equals(attributeValue) == true;

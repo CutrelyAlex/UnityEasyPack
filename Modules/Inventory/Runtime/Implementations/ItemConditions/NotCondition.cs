@@ -47,7 +47,7 @@ namespace EasyPack.InventorySystem
                 var innerDto = serializableInner.ToDto();
                 if (innerDto != null)
                 {
-                    var innerEntry = new CustomDataEntry { Id = "Inner" };
+                    var innerEntry = new CustomDataEntry { Key = "Inner" };
                     innerEntry.SetValue(JsonUtility.ToJson(innerDto), CustomDataType.String);
                     dto.Params.Add(innerEntry);
                 }
@@ -67,7 +67,7 @@ namespace EasyPack.InventorySystem
             // 反序列化内部条件
             foreach (var p in dto.Params)
             {
-                if (p?.Id == "Inner" && !string.IsNullOrEmpty(p.StringValue))
+                if (p?.Key == "Inner" && !string.IsNullOrEmpty(p.StringValue))
                 {
                     try
                     {

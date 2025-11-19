@@ -58,7 +58,7 @@ namespace EasyPack.InventorySystem
             if (item == null || item.CustomData == null)
                 return false;
 
-            var entry = item.CustomData.FirstOrDefault(e => e.Id == AttributeName);
+            var entry = item.CustomData.FirstOrDefault(e => e.Key == AttributeName);
             if (ComparisonType == AttributeComparisonType.Exists)
                 return entry != null;
 
@@ -138,13 +138,13 @@ namespace EasyPack.InventorySystem
         {
             var dto = new SerializedCondition { Kind = Kind };
 
-            var name = new CustomDataEntry { Id = "Name" };
+            var name = new CustomDataEntry { Key = "Name" };
             name.SetValue(AttributeName, CustomDataType.String);
 
-            var cmp = new CustomDataEntry { Id = "Cmp" };
+            var cmp = new CustomDataEntry { Key = "Cmp" };
             cmp.SetValue((int)ComparisonType, CustomDataType.Int);
 
-            var val = new CustomDataEntry { Id = "Value" };
+            var val = new CustomDataEntry { Key = "Value" };
 
             val.SetValue(AttributeValue);
 
@@ -165,7 +165,7 @@ namespace EasyPack.InventorySystem
             foreach (var p in dto.Params)
             {
                 if (p == null) continue;
-                switch (p.Id)
+                switch (p.Key)
                 {
                     case "Name": name = p.StringValue ?? p.GetValue() as string; break;
                     case "Cmp": cmp = p.IntValue; break;

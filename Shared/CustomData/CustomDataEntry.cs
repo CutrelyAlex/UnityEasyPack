@@ -14,7 +14,7 @@ namespace EasyPack.CustomData
     [Serializable]
     public class CustomDataEntry : ISerializationCallbackReceiver
     {
-        public string Id;
+        public string Key;
         public CustomDataType Type = CustomDataType.None;
 
         [NonSerialized] public int IntValue;

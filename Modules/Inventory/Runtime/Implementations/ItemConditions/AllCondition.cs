@@ -68,7 +68,7 @@ namespace EasyPack.InventorySystem
                     var childDto = serializableChild.ToDto();
                     if (childDto != null)
                     {
-                        var childEntry = new CustomDataEntry { Id = $"Child_{childIndex}" };
+                        var childEntry = new CustomDataEntry { Key = $"Child_{childIndex}" };
                         childEntry.SetValue(JsonUtility.ToJson(childDto), CustomDataType.String);
                         dto.Params.Add(childEntry);
                         childIndex++;
@@ -77,7 +77,7 @@ namespace EasyPack.InventorySystem
             }
 
             // 存储子条件数量
-            var countEntry = new CustomDataEntry { Id = "ChildCount" };
+            var countEntry = new CustomDataEntry { Key = "ChildCount" };
             countEntry.SetValue(childIndex, CustomDataType.Int);
             dto.Params.Add(countEntry);
 
@@ -96,7 +96,7 @@ namespace EasyPack.InventorySystem
             int childCount = 0;
             foreach (var p in dto.Params)
             {
-                if (p?.Id == "ChildCount")
+                if (p?.Key == "ChildCount")
                 {
                     childCount = p.IntValue;
                     break;
@@ -109,7 +109,7 @@ namespace EasyPack.InventorySystem
                 string childId = $"Child_{i}";
                 foreach (var p in dto.Params)
                 {
-                    if (p?.Id == childId)
+                    if (p?.Key == childId)
                     {
                         var childJsonStr = p.StringValue ?? p.GetValue() as string;
                         if (!string.IsNullOrEmpty(childJsonStr))
