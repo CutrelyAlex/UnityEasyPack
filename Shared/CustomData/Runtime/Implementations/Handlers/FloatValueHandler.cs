@@ -1,0 +1,45 @@
+using System;
+using System.Globalization;
+
+namespace EasyPack.CustomData
+{
+    public class FloatValueHandler : IValueHandler
+    {
+        public CustomDataType SupportedType => CustomDataType.Float;
+        public object GetValue(CustomDataEntry entry) => entry.FloatValue;
+
+        public void SetValue(CustomDataEntry entry, object value)
+        {
+            entry.FloatValue = Convert.ToSingle(value, CultureInfo.InvariantCulture);
+            entry.Type = CustomDataType.Float;
+            ClearOtherValues(entry);
+        }
+
+        public bool TryDeserialize(CustomDataEntry entry, string data, Type jsonClrType = null)
+        {
+            if (!float.TryParse(data, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var value))
+                return false;
+            entry.FloatValue = value;
+            entry.Type = CustomDataType.Float;
+            ClearOtherValues(entry);
+            return true;
+        }
+
+        public string Serialize(CustomDataEntry entry)
+            => entry.FloatValue.ToString("R", CultureInfo.InvariantCulture);
+
+        public void Clear(CustomDataEntry entry) => entry.FloatValue = default;
+
+        private static void ClearOtherValues(CustomDataEntry entry)
+        {
+            entry.IntValue = default;
+            entry.BoolValue = default;
+            entry.StringValue = default;
+            entry.Vector2Value = default;
+            entry.Vector3Value = default;
+            entry.ColorValue = default;
+            entry.JsonValue = default;
+            entry.JsonClrType = default;
+        }
+    }
+}
