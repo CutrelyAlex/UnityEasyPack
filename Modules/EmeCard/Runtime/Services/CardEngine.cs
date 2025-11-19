@@ -424,7 +424,8 @@ namespace EasyPack.EmeCardSystem
 
         private bool ExecuteOne((CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex) e)
         {
-            if (e.rule.Effects == null || e.rule.Effects.Count == 0) return false;
+            if (e.matched == null || e.rule.Effects == null || e.rule.Effects.Count == 0) return false;
+
             foreach (var eff in e.rule.Effects)
                 eff.Execute(e.ctx, e.matched);
             return e.rule.Policy?.StopEventOnSuccess == true;
@@ -486,6 +487,7 @@ namespace EasyPack.EmeCardSystem
                 if (!req.TryMatch(ctx, out var picks))
                 {
                     return false;
+
                 }
                 if (picks != null && picks.Count > 0) matchedAll.AddRange(picks);
             }
