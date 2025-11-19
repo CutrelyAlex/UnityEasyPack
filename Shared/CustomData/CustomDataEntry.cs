@@ -172,36 +172,10 @@ namespace EasyPack.CustomData
                 case Vector3 v: SetByType(CustomDataType.Vector3, v); break;
                 case Color v: SetByType(CustomDataType.Color, v); break;
                 default:
-                    try
-                    {
-                        JsonValue = JsonUtility.ToJson(value);
-                        JsonClrType = value.GetType().AssemblyQualifiedName;
-                        Type = CustomDataType.Json;
-                        ClearNonJson();
-                    }
-                    catch
-                    {
-                        if (Serializer != null)
-                        {
-                            try
-                            {
-                                JsonValue = Serializer.Serialize(value);
-                                JsonClrType = Serializer.TargetClrType != null ? Serializer.TargetClrType.AssemblyQualifiedName : null;
-                                Type = CustomDataType.Custom;
-                                ClearNonJson();
-                            }
-                            catch
-                            {
-                                Type = CustomDataType.None;
-                                ClearAll();
-                            }
-                        }
-                        else
-                        {
-                            Type = CustomDataType.None;
-                            ClearAll();
-                        }
-                    }
+                    JsonValue = JsonUtility.ToJson(value);
+                    JsonClrType = value.GetType().AssemblyQualifiedName;
+                    Type = CustomDataType.Json;
+                    ClearNonJson();
                     break;
             }
         }
