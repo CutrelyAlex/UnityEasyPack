@@ -275,6 +275,7 @@ namespace EasyPack.CustomData
                         return true;
                     case CustomDataType.Custom:
                         if (Serializer == null) return false;
+                        Serializer.Deserialize(data);
                         JsonValue = data;
                         JsonClrType = Serializer.TargetClrType != null ? Serializer.TargetClrType.AssemblyQualifiedName : null;
                         Type = CustomDataType.Custom;
