@@ -3,7 +3,7 @@ using EasyPack.Architecture;
 using EasyPack.EmeCardSystem;
 using EasyPack.ObjectPool;
 
-namespace EasyPack
+namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     /// Stack&lt;(Card node, int depth)&gt; 专用对象池，用于 EmeCard 系统中的遍历操作。

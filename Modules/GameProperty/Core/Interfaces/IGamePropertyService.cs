@@ -4,7 +4,7 @@ using EasyPack.ENekoFramework;
 using EasyPack.GamePropertySystem;
 using EasyPack.Modifiers;
 
-namespace EasyPack
+namespace EasyPack.GamePropertySystem
 {
     /// <summary>
     /// 游戏属性管理器接口

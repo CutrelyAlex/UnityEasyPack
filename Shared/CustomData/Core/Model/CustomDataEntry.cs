@@ -147,14 +147,7 @@ namespace EasyPack.CustomData
         void ISerializationCallbackReceiver.OnAfterDeserialize()
         {
             var handler = ValueHandlerRegistry.GetHandler(Type);
-            try
-            {
-                handler.TryDeserialize(this, Data ?? "", null);
-            }
-            catch
-            {
-                handler.Clear(this);
-            }
+            handler.TryDeserialize(this, Data ?? "", null);
         }
         #endregion
     }

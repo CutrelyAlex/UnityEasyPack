@@ -14,14 +14,10 @@ namespace EasyPack.CustomData
             {
                 entry.ColorValue = color;
             }
-            else if (value is string strValue)
+            else if (value is string strValue && !string.IsNullOrEmpty(strValue))
             {
-                try
-                {
-                    var parsed = JsonUtility.FromJson<Color>(strValue);
-                    entry.ColorValue = parsed;
-                }
-                catch { }
+                var parsed = JsonUtility.FromJson<Color>(strValue);
+                entry.ColorValue = parsed;
             }
             entry.Type = CustomDataType.Color;
             ClearOtherValues(entry);

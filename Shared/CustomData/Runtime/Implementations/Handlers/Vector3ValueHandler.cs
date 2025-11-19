@@ -14,14 +14,10 @@ namespace EasyPack.CustomData
             {
                 entry.Vector3Value = v3;
             }
-            else if (value is string strValue)
+            else if (value is string strValue && !string.IsNullOrEmpty(strValue))
             {
-                try
-                {
-                    var parsed = JsonUtility.FromJson<Vector3>(strValue);
-                    entry.Vector3Value = parsed;
-                }
-                catch { }
+                var parsed = JsonUtility.FromJson<Vector3>(strValue);
+                entry.Vector3Value = parsed;
             }
             entry.Type = CustomDataType.Vector3;
             ClearOtherValues(entry);
