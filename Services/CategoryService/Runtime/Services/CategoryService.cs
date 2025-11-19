@@ -193,9 +193,16 @@ namespace EasyPack.CategoryService
             else
             {
                 // 精确匹配
-                if (_categoryIndex.TryGetValue(pattern, out var ids))
+                if (_categoryTree.TryGetValue(pattern, out var node))
                 {
-                    if (includeChildren && _categoryTree.TryGetValue(pattern, out var node))
+                    // 总是包含当前节点的实体
+                    foreach (var id in node.EntityIds)
+                    {
+                        entityIds.Add(id);
+                    }
+
+                    // 如果需要包含子节点
+                    if (includeChildren)
                     {
                         var descendants = node.GetDescendants();
                         foreach (var desc in descendants)
@@ -204,13 +211,6 @@ namespace EasyPack.CategoryService
                             {
                                 entityIds.Add(id);
                             }
-                        }
-                    }
-                    else
-                    {
-                        foreach (var id in ids)
-                        {
-                            entityIds.Add(id);
                         }
                     }
                 }
@@ -258,37 +258,28 @@ namespace EasyPack.CategoryService
         #region 实体删除
 
         /// <summary>
-        /// 删除实体
+        /// 删除实体（内部方法，不获取锁）
+        /// 调用者必须持有 _treeLock 写锁
         /// </summary>
-        /// <param name="id">实体 ID</param>
-        /// <returns>操作结果</returns>
-        public OperationResult DeleteEntity(string id)
+        private void DeleteEntity_NoLock(string id)
         {
             if (!_entities.ContainsKey(id))
             {
-                return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+                return;
             }
 
             // 从实体存储中移除
             _entities.Remove(id);
 
-            // 从分类索引中移除
-            _treeLock.EnterWriteLock();
-            try
+            // 从分类索引中移除（假定已持有写锁）
+            foreach (var kvp in _categoryTree)
             {
-                foreach (var kvp in _categoryTree)
-                {
-                    kvp.Value.EntityIds.Remove(id);
-                }
-
-                foreach (var kvp in _categoryIndex)
-                {
-                    kvp.Value.Remove(id);
-                }
+                kvp.Value.EntityIds.Remove(id);
             }
-            finally
+
+            foreach (var kvp in _categoryIndex)
             {
-                _treeLock.ExitWriteLock();
+                kvp.Value.Remove(id);
             }
 
             // 从标签索引中移除
@@ -310,6 +301,29 @@ namespace EasyPack.CategoryService
 
             // 从元数据存储中移除
             _metadataStore.Remove(id);
+        }
+
+        /// <summary>
+        /// 删除实体
+        /// </summary>
+        /// <param name="id">实体 ID</param>
+        /// <returns>操作结果</returns>
+        public OperationResult DeleteEntity(string id)
+        {
+            if (!_entities.ContainsKey(id))
+            {
+                return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+            }
+
+            _treeLock.EnterWriteLock();
+            try
+            {
+                DeleteEntity_NoLock(id);
+            }
+            finally
+            {
+                _treeLock.ExitWriteLock();
+            }
 
             // 清除缓存
             _cacheStrategy.Clear();
@@ -337,7 +351,7 @@ namespace EasyPack.CategoryService
                 // 删除实体
                 foreach (var id in node.EntityIds.ToList())
                 {
-                    DeleteEntity(id);
+                    DeleteEntity_NoLock(id);
                 }
 
                 // 从树中移除节点
@@ -350,6 +364,7 @@ namespace EasyPack.CategoryService
                     node.Parent.RemoveChild(node.Name);
                 }
 
+                _cacheStrategy.Clear();
                 return OperationResult.Success();
             }
             finally
@@ -386,7 +401,7 @@ namespace EasyPack.CategoryService
                     // 删除实体
                     foreach (var id in desc.EntityIds.ToList())
                     {
-                        DeleteEntity(id);
+                        DeleteEntity_NoLock(id);
                     }
 
                     // 从树中移除
@@ -394,12 +409,23 @@ namespace EasyPack.CategoryService
                     _categoryIndex.Remove(desc.FullPath);
                 }
 
+                // 删除根节点的实体
+                foreach (var id in node.EntityIds.ToList())
+                {
+                    DeleteEntity_NoLock(id);
+                }
+
+                // 从树中移除根节点
+                _categoryTree.Remove(category);
+                _categoryIndex.Remove(category);
+
                 // 从父节点移除引用
                 if (node.Parent != null)
                 {
                     node.Parent.RemoveChild(node.Name);
                 }
 
+                _cacheStrategy.Clear();
                 return OperationResult.Success();
             }
             finally

@@ -1,6 +1,5 @@
 #if UNITY_EDITOR
 using UnityEditor;
-using UnityEngine;
 
 namespace EasyPack.ENekoFramework.Editor
 {
@@ -13,7 +12,7 @@ namespace EasyPack.ENekoFramework.Editor
         private const string EnableEventMonitoringKey = "EasyPack.EditorMonitoring.EnableEventMonitoring";
         private const string EnableServiceMonitoringKey = "EasyPack.EditorMonitoring.EnableServiceMonitoring";
         private const string EnableCommandMonitoringKey = "EasyPack.EditorMonitoring.EnableCommandMonitoring";
-        
+
         private static bool? _enableEventMonitoring;
         private static bool? _enableServiceMonitoring;
         private static bool? _enableCommandMonitoring;

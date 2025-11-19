@@ -77,9 +77,9 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("beneficial", "attack", "temporary", "stackable")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Key = "priority", Type = CustomDataType.String, StringValue = "1" },
-                    new CustomDataEntry { Key = "stackLimit", Type = CustomDataType.String, StringValue = "3" },
-                    new CustomDataEntry { Key = "source", Type = CustomDataType.String, StringValue = "equipment" }
+                    CustomDataEntry.CreateString("priority", "1"),
+                    CustomDataEntry.CreateString("stackLimit", "3"),
+                    CustomDataEntry.CreateString("source", "equipment")
                 })
                 .Complete();
 
@@ -87,9 +87,9 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("beneficial", "movement", "temporary")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Key = "priority", Type = CustomDataType.String, StringValue = "2" },
-                    new CustomDataEntry { Key = "stackLimit", Type = CustomDataType.String, StringValue = "1" },
-                    new CustomDataEntry { Key = "source", Type = CustomDataType.String, StringValue = "skill" }
+                    CustomDataEntry.CreateString("priority", "2"),
+                    CustomDataEntry.CreateString("stackLimit", "1"),
+                    CustomDataEntry.CreateString("source", "skill")
                 })
                 .Complete();
 
@@ -97,8 +97,8 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("beneficial", "healing", "persistent")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Key = "tickRate", Type = CustomDataType.String, StringValue = "1" },
-                    new CustomDataEntry { Key = "source", Type = CustomDataType.String, StringValue = "passive" }
+                    CustomDataEntry.CreateString("tickRate", "1"),
+                    CustomDataEntry.CreateString("source", "passive")
                 })
                 .Complete();
 
@@ -106,8 +106,8 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("beneficial", "defense", "temporary", "exclusive")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Key = "priority", Type = CustomDataType.String, StringValue = "10" },
-                    new CustomDataEntry { Key = "overridable", Type = CustomDataType.String, StringValue = "false" }
+                    CustomDataEntry.CreateString("priority", "10"),
+                    CustomDataEntry.CreateString("overridable", "false")
                 })
                 .Complete();
 
@@ -145,8 +145,8 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("harmful", "damage_over_time", "removable", "stackable")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Key = "resisType", Type = CustomDataType.String, StringValue = "poison" },
-                    new CustomDataEntry { Key = "source", Type = CustomDataType.String, StringValue = "enemy" }
+                    CustomDataEntry.CreateString("resisType", "poison"),
+                    CustomDataEntry.CreateString("source", "enemy")
                 })
                 .Complete();
 
@@ -154,7 +154,7 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("harmful", "stat_reduction", "temporary")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Key = "affectedStat", Type = CustomDataType.String, StringValue = "attack" }
+                    CustomDataEntry.CreateString("affectedStat", "attack")
                 })
                 .Complete();
 
@@ -162,8 +162,8 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("harmful", "crowd_control", "temporary", "priority")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Key = "priority", Type = CustomDataType.String, StringValue = "5" },
-                    new CustomDataEntry { Key = "overridable", Type = CustomDataType.String, StringValue = "true" }
+                    CustomDataEntry.CreateString("priority", "5"),
+                    CustomDataEntry.CreateString("overridable", "true")
                 })
                 .Complete();
 
@@ -171,7 +171,7 @@ namespace EasyPack.CategoryService.Examples
                 .WithTags("harmful", "damage_stacking", "temporary")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Key = "stackType", Type = CustomDataType.String, StringValue = "damage" }
+                    CustomDataEntry.CreateString("stackType", "damage")
                 })
                 .Complete();
 

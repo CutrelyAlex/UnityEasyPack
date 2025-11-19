@@ -4,7 +4,6 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using EasyPack.ENekoFramework.Editor;
 
 namespace EasyPack.ENekoFramework.Editor
 {
@@ -87,7 +86,7 @@ namespace EasyPack.ENekoFramework.Editor
         {
             InitializeStyles();
             DrawToolbar();
-            
+
             EditorGUILayout.BeginHorizontal();
             DrawArchitectureList();
             DrawArchitectureDetails();
@@ -176,7 +175,7 @@ namespace EasyPack.ENekoFramework.Editor
         private void DrawArchitectureItem(ArchitectureInfo arch)
         {
             bool isSelected = _selectedArchitecture == arch;
-            
+
             var backgroundColor = GUI.backgroundColor;
             if (isSelected)
             {
@@ -251,25 +250,25 @@ namespace EasyPack.ENekoFramework.Editor
             // 服务容器信息
             EditorGUILayout.LabelField("服务容器", EditorStyles.boldLabel);
             EditorGUILayout.LabelField($"已注册服务: {arch.ServiceCount}");
-            
+
             if (arch.Container != null && arch.ServiceCount > 0)
             {
                 EditorGUILayout.Space(5);
                 EditorGUILayout.LabelField("服务列表:", EditorStyles.miniBoldLabel);
-                
+
                 var services = arch.Container.GetAllServices();
                 foreach (var service in services)
                 {
                     EditorGUILayout.BeginHorizontal();
                     EditorGUILayout.LabelField("•", GUILayout.Width(10));
                     EditorGUILayout.LabelField(service.ServiceType.Name);
-                    
+
                     var stateColor = GetStateColor(service.State);
                     var previousColor = GUI.color;
                     GUI.color = stateColor;
                     EditorGUILayout.LabelField(service.State.ToString(), GUILayout.Width(100));
                     GUI.color = previousColor;
-                    
+
                     EditorGUILayout.EndHorizontal();
                 }
             }
@@ -284,17 +283,17 @@ namespace EasyPack.ENekoFramework.Editor
             // 操作按钮
             EditorGUILayout.Space(10);
             EditorGUILayout.BeginHorizontal();
-            
+
             if (GUILayout.Button("查看服务详情"))
             {
                 ServiceOverviewWindow.ShowWindow();
             }
-            
+
             if (GUILayout.Button("查看依赖关系"))
             {
                 DependencyGraphWindow.ShowWindow();
             }
-            
+
             EditorGUILayout.EndHorizontal();
         }
 
@@ -303,12 +302,12 @@ namespace EasyPack.ENekoFramework.Editor
             EditorGUILayout.BeginHorizontal();
             var statusIcon = exists ? "✓" : "✗";
             var statusColor = exists ? Color.green : Color.red;
-            
+
             var previousColor = GUI.color;
             GUI.color = statusColor;
             EditorGUILayout.LabelField($"{statusIcon} {componentName}", _labelStyle);
             GUI.color = previousColor;
-            
+
             EditorGUILayout.EndHorizontal();
         }
 
@@ -338,19 +337,19 @@ namespace EasyPack.ENekoFramework.Editor
 
         private void RefreshArchitecturesAsync()
         {
-            if (_isRefreshing) return; 
-            
+            if (_isRefreshing) return;
+
             _isRefreshing = true;
             _refreshStartTime = EditorApplication.timeSinceStartup;
             _lastRefreshTime = EditorApplication.timeSinceStartup;
-            
+
             // 异步执行刷新操作
             System.Threading.Tasks.Task.Run(() =>
             {
                 try
                 {
                     var newArchitectures = RefreshArchitecturesInternal();
-                    
+
                     // 在主线程更新UI
                     EditorApplication.delayCall += () =>
                     {
@@ -358,15 +357,15 @@ namespace EasyPack.ENekoFramework.Editor
                         if (_isRefreshing && EditorApplication.timeSinceStartup - _refreshStartTime < 10.0)
                         {
                             _architectures = newArchitectures;
-                            
+
                             // 如果当前选择的架构不在新列表中，清除选择
-                            if (_selectedArchitecture != null && 
+                            if (_selectedArchitecture != null &&
                                 !_architectures.Any(a => a.TypeName == _selectedArchitecture.TypeName))
                             {
                                 _selectedArchitecture = null;
                             }
                         }
-                        
+
                         _isRefreshing = false;
                         Repaint();
                     };
@@ -374,7 +373,7 @@ namespace EasyPack.ENekoFramework.Editor
                 catch (Exception ex)
                 {
                     Debug.LogError($"ArchitectureOverviewWindow: 刷新架构信息时发生异常 - {ex.Message}\n{ex.StackTrace}");
-                    
+
                     EditorApplication.delayCall += () =>
                     {
                         _architectures = new List<ArchitectureInfo>();
@@ -391,7 +390,7 @@ namespace EasyPack.ENekoFramework.Editor
             var architectures = new List<ArchitectureInfo>();
 
             var instances = ServiceInspector.GetAllArchitectureInstances();
-            
+
             foreach (var instance in instances)
             {
                 var info = new ArchitectureInfo
@@ -450,10 +449,10 @@ namespace EasyPack.ENekoFramework.Editor
         private bool HasProperty(object instance, string propertyName)
         {
             var prop = instance.GetType().GetProperty(propertyName,
-                System.Reflection.BindingFlags.Public | 
-                System.Reflection.BindingFlags.NonPublic | 
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.NonPublic |
                 System.Reflection.BindingFlags.Instance);
-            
+
             return prop != null && prop.GetValue(instance) != null;
         }
     }

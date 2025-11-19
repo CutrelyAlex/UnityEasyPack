@@ -14,6 +14,8 @@ namespace EasyPack.CustomData
     [Serializable]
     public class CustomDataEntry : ISerializationCallbackReceiver
     {
+        #region 字段
+
         public string Key;
         public CustomDataType Type = CustomDataType.None;
 
@@ -33,6 +35,84 @@ namespace EasyPack.CustomData
         [NonSerialized] public ICustomDataSerializer Serializer;
 
         [SerializeField] private string Data;
+
+        #endregion
+
+        #region 静态工厂方法
+
+        /// <summary>
+        /// 创建字符串类型的 CustomDataEntry
+        /// </summary>
+        public static CustomDataEntry CreateString(string key, string value)
+        {
+            return new CustomDataEntry { Key = key, Type = CustomDataType.String, StringValue = value ?? "" };
+        }
+
+        /// <summary>
+        /// 创建整数类型的 CustomDataEntry
+        /// </summary>
+        public static CustomDataEntry CreateInt(string key, int value)
+        {
+            return new CustomDataEntry { Key = key, Type = CustomDataType.Int, IntValue = value };
+        }
+
+        /// <summary>
+        /// 创建浮点数类型的 CustomDataEntry
+        /// </summary>
+        public static CustomDataEntry CreateFloat(string key, float value)
+        {
+            return new CustomDataEntry { Key = key, Type = CustomDataType.Float, FloatValue = value };
+        }
+
+        /// <summary>
+        /// 创建布尔类型的 CustomDataEntry
+        /// </summary>
+        public static CustomDataEntry CreateBool(string key, bool value)
+        {
+            return new CustomDataEntry { Key = key, Type = CustomDataType.Bool, BoolValue = value };
+        }
+
+        /// <summary>
+        /// 创建 Vector2 类型的 CustomDataEntry
+        /// </summary>
+        public static CustomDataEntry CreateVector2(string key, Vector2 value)
+        {
+            return new CustomDataEntry { Key = key, Type = CustomDataType.Vector2, Vector2Value = value };
+        }
+
+        /// <summary>
+        /// 创建 Vector3 类型的 CustomDataEntry
+        /// </summary>
+        public static CustomDataEntry CreateVector3(string key, Vector3 value)
+        {
+            return new CustomDataEntry { Key = key, Type = CustomDataType.Vector3, Vector3Value = value };
+        }
+
+        /// <summary>
+        /// 创建 Color 类型的 CustomDataEntry
+        /// </summary>
+        public static CustomDataEntry CreateColor(string key, Color value)
+        {
+            return new CustomDataEntry { Key = key, Type = CustomDataType.Color, ColorValue = value };
+        }
+
+        /// <summary>
+        /// 创建 JSON 类型的 CustomDataEntry
+        /// </summary>
+        public static CustomDataEntry CreateJson(string key, object jsonObject)
+        {
+            var entry = new CustomDataEntry { Key = key, Type = CustomDataType.Json };
+            if (jsonObject != null)
+            {
+                entry.JsonValue = JsonUtility.ToJson(jsonObject);
+                entry.JsonClrType = jsonObject.GetType().AssemblyQualifiedName;
+            }
+            return entry;
+        }
+
+        #endregion
+
+        #region 值获取与设置
 
         public object GetValue()
         {
@@ -209,6 +289,10 @@ namespace EasyPack.CustomData
             }
         }
 
+        #endregion
+
+        #region 类型转换
+
         private void SetByType(CustomDataType type, object value, Type jsonClrType = null)
         {
             switch (type)
@@ -268,6 +352,10 @@ namespace EasyPack.CustomData
             }
         }
 
+        #endregion
+
+        #region 数据清理
+
         private void ClearAll()
         {
             IntValue = default;
@@ -308,6 +396,10 @@ namespace EasyPack.CustomData
             Vector3Value = default;
             ColorValue = default;
         }
+
+        #endregion
+
+        #region 序列化回调
 
         // 仅序列化所需字段
         void ISerializationCallbackReceiver.OnBeforeSerialize()
@@ -385,10 +477,16 @@ namespace EasyPack.CustomData
             }
         }
 
+        #endregion
+
+        #region 工具方法
+
         private static int TryParseInt(string s)
             => int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : 0;
 
         private static float TryParseFloat(string s)
             => float.TryParse(s, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var v) ? v : 0f;
+
+        #endregion
     }
 }

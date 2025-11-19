@@ -1,6 +1,5 @@
 using EasyPack.CustomData;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace EasyPack.InventorySystem
 {

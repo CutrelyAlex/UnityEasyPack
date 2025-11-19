@@ -1,5 +1,3 @@
-using EasyPack.CategoryService.Core.Interfaces;
-
 namespace EasyPack.CategoryService
 {
     /// <summary>

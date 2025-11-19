@@ -79,7 +79,7 @@ namespace EasyPack.CategoryService.Examples
             var result1 = _categoryService.RegisterEntity(healthProp, "Character.Vitality")
                 .WithMetadata(new List<CustomDataEntry>
                 {
-                    new CustomDataEntry { Key = "type", Type = CustomDataType.String, StringValue = "vital" }
+                    CustomDataEntry.CreateString("type", "vital")
                 })
                 .Complete();
 
@@ -227,10 +227,10 @@ namespace EasyPack.CategoryService.Examples
 
             var metadata = new List<CustomDataEntry>
             {
-                new CustomDataEntry { Key = "author", Type = CustomDataType.String, StringValue = "GameDesigner01" },
-                new CustomDataEntry { Key = "version", Type = CustomDataType.String, StringValue = "1.0" },
-                new CustomDataEntry { Key = "lastModified", Type = CustomDataType.String, StringValue = "2025-11-20" },
-                new CustomDataEntry { Key = "category", Type = CustomDataType.String, StringValue = "Combat" }
+                CustomDataEntry.CreateString("author", "GameDesigner01"),
+                CustomDataEntry.CreateString("version", "1.0"),
+                CustomDataEntry.CreateString("lastModified", "2025-11-20"),
+                CustomDataEntry.CreateString("category", "Combat")
             };
 
             _categoryService.RegisterEntity(specialProp, "Ability.Special")
@@ -249,7 +249,7 @@ namespace EasyPack.CategoryService.Examples
             }
 
             // 更新元数据
-            metadata.Add(new CustomDataEntry { Key = "deprecated", Type = CustomDataType.String, StringValue = "false" });
+            metadata.Add(CustomDataEntry.CreateString("deprecated", "false"));
             var updateResult = _categoryService.UpdateMetadata("special_crit", metadata);
             Debug.Log($"[US4] 更新元数据: {(updateResult.IsSuccess ? "成功" : "失败")}");
         }

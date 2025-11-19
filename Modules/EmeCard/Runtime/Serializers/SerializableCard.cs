@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using EasyPack.GamePropertySystem;
 using EasyPack.Serialization;
 
@@ -22,7 +21,7 @@ namespace EasyPack.EmeCardSystem
         public int Index;
         public SerializableGameProperty[] Properties;
         public string[] Tags;
-        public string ChildrenJson;  
+        public string ChildrenJson;
         public bool IsIntrinsic;
     }
 

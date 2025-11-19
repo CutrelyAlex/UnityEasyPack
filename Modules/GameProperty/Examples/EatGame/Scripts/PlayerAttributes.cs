@@ -1,4 +1,3 @@
-using EasyPack.GamePropertySystem;
 using UnityEngine;
 using System.Collections.Generic;
 

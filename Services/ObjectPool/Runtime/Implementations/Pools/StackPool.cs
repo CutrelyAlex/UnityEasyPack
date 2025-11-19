@@ -1,5 +1,4 @@
 using EasyPack.Architecture;
-using System;
 using System.Collections.Generic;
 
 namespace EasyPack.ObjectPool

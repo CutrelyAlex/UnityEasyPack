@@ -117,8 +117,8 @@ namespace EasyPack.CategoryService.Examples
             var level1 = service.GetByCategory("Level1", includeChildren: true);
             AssertTrue(level1.Count > 0, "应该能获取Level1的所有后代");
 
-            var level2 = service.GetByCategory("Level1.Level2");
-            AssertTrue(level2.Count > 0, "应该能获取Level2的实体");
+            var level2 = service.GetByCategory("Level1.Level2", includeChildren: true);
+            AssertTrue(level2.Count > 0, "应该能获取Level2及其子节点的实体");
         }
 
         private void TestWildcardQuery(CategoryService<TestEntity> service)
@@ -165,8 +165,8 @@ namespace EasyPack.CategoryService.Examples
             var entity = new TestEntity("meta1", "Meta Entity");
             var metadata = new List<CustomDataEntry>
             {
-                new CustomDataEntry { Key = "key1", Type = CustomDataType.String, StringValue = "value1" },
-                new CustomDataEntry { Key = "key2", Type = CustomDataType.String, StringValue = "value2" }
+                CustomDataEntry.CreateString("key1", "value1"),
+                CustomDataEntry.CreateString("key2", "value2")
             };
 
             service.RegisterEntity(entity, "Meta.Category")
@@ -179,7 +179,7 @@ namespace EasyPack.CategoryService.Examples
 
             var newMetadata = new List<CustomDataEntry>
             {
-                new CustomDataEntry { Key = "key3", Type = CustomDataType.String, StringValue = "value3" }
+                CustomDataEntry.CreateString("key3", "value3")
             };
 
             var updateResult = service.UpdateMetadata("meta1", newMetadata);

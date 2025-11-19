@@ -1,5 +1,4 @@
 using System;
-using EasyPack.GamePropertySystem;
 using EasyPack.Serialization;
 
 namespace EasyPack.GamePropertySystem

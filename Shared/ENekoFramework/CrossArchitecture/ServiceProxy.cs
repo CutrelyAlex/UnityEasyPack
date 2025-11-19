@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using UnityEngine;
 
 namespace EasyPack.ENekoFramework
 {
@@ -16,7 +15,7 @@ namespace EasyPack.ENekoFramework
         private bool _isResolved = false;
         private bool _disposed = false;
         private readonly object _lock = new object();
-        
+
         /// <summary>
         /// 创建服务代理
         /// </summary>
@@ -25,7 +24,7 @@ namespace EasyPack.ENekoFramework
         {
             _sourceContainer = sourceContainer ?? throw new ArgumentNullException(nameof(sourceContainer));
         }
-        
+
         /// <summary>
         /// 获取服务实例（使用缓存）
         /// </summary>
@@ -42,7 +41,7 @@ namespace EasyPack.ENekoFramework
             {
                 return Task.FromResult(_cachedService);
             }
-            
+
             // 首次解析
             lock (_lock)
             {
@@ -51,10 +50,10 @@ namespace EasyPack.ENekoFramework
                     return Task.FromResult(_cachedService);
                 }
             }
-            
+
             // 在锁外解析服务
             var service = _sourceContainer.Resolve<TService>();
-            
+
             lock (_lock)
             {
                 if (!_isResolved)
@@ -63,10 +62,10 @@ namespace EasyPack.ENekoFramework
                     _isResolved = true;
                 }
             }
-            
+
             return Task.FromResult(_cachedService);
         }
-        
+
         /// <summary>
         /// 同步获取服务实例
         /// </summary>
@@ -77,7 +76,7 @@ namespace EasyPack.ENekoFramework
             task.Wait();
             return task.Result;
         }
-        
+
         /// <summary>
         /// 释放代理
         /// </summary>
@@ -87,7 +86,7 @@ namespace EasyPack.ENekoFramework
             {
                 return;
             }
-            
+
             lock (_lock)
             {
                 _cachedService = null;

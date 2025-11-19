@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using EasyPack;
 using EasyPack.Architecture;
 using EasyPack.Modifiers;
 using UnityEngine;

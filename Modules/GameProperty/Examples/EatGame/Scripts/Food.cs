@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using EasyPack.GamePropertySystem;
 using EasyPack.Modifiers;
 using UnityEngine;
 
@@ -29,7 +28,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         /// <summary>
         /// 持续效果：属性名 -> (修饰符类型, 修饰符值, 持续天数)
         /// </summary>
-        public Dictionary<string, (ModifierType type, float value, int duration)> SustainedEffects = 
+        public Dictionary<string, (ModifierType type, float value, int duration)> SustainedEffects =
             new Dictionary<string, (ModifierType, float, int)>();
 
         /// <summary>

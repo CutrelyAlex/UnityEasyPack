@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using EasyPack.ENekoFramework;
-using EasyPack.GamePropertySystem;
 using EasyPack.Architecture;
 using EasyPack.Modifiers;
 using EasyPack.Serialization;
