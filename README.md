@@ -30,40 +30,36 @@
 
 ## 系统简介
 
-每个已基本完成的系统目录下方都有Example目录，可以查看具体的使用方案
+每个已基本完成的系统目录下方都有Examples目录，可以查看具体的使用方案
 
-### 01_Framework
+### Shared（共享基础设施）
 
-- ENekoFramework
+- **Architecture**：框架架构核心
+- **CustomData**（可扩展数据）：轻量的键值属性系统，支持类型存储
+- **ENekoFramework**：框架核心组件
+- **Modifiers**（修饰器）：设计用于可组合的变换步骤（百分比、加法、最小/最大约束等）
 
-### 02_Foundation（基础组件）
+### Modules（核心模块）
 
-- Modifier（修饰器）：设计用于可组合的变换步骤（百分比、加法、最小/最大约束等）
-- CustomData（可扩展数据）：轻量的键值属性系统，支持类型存储
+- **Buff**：用于处理游戏中的临时/永久状态效果（如增益、减益等）。基于模块化设计，通过组合不同的 `BuffModule` 实现复杂效果。支持多种叠加策略、标签和层级系统、事件驱动的生命周期管理。
+- **GameProperty**（游戏属性）：基于 `Modifier` 系统实现的游戏属性框架，支持复杂依赖等
+- **Inventory**：基于 `Item` `Slot` 和 `Container`概念的背包系统，支持线性和二维背包。
+- **EmeCard**（规则涌现卡牌系统）：可以自定"规则"的卡牌系统
+- **SynthesisSystem**（合成系统，挖坑）：物品合成和配方管理系统（暂挖坑）
 
-### 03_CoreSystems（核心系统）
-- GameProperty（游戏属性）：基于 `Modifier` 系统实现的游戏属性框架，支持复杂依赖等
-- Buff：用于处理游戏中的临时/永久状态效果（如增益、减益等）。基于模块化设计，通过组合不同的 `BuffModule` 实现复杂效果。支持多种叠加策略、标签和层级系统、事件驱动的生命周期管理。
-- Inventory：基于 `Item` `Slot` 和 `Container`概念的背包系统，支持线性和二维背包。
+### Services（服务系统）
 
-### 04_GameplaySystems（游戏系统）
-- EmeCard（规则涌现卡牌系统）：可以自定"规则"的卡牌系统
-- SynthesisSystem（合成系统，挖坑）：物品合成和配方管理系统（暂挖坑）
-### 05_Services（服务系统）
-- Serialization（序列化系统）：支持 JSON、二进制及自定义策略的服务
+- **CategoryManager**：分类管理服务
+- **ObjectPool**：对象池服务
+- **Serialization**（序列化系统）：支持 JSON、二进制及自定义策略的服务
 
-### 06_Tools（工具系统）
-- AI
-- Sprite
+### Tools（工具系统）
 
+- **AI**：AI 相关工具
+- **Sprite**：精灵处理工具
 
 ## 贡献
 
 - 感谢一冰在北对本系统的贡献
 - 感谢各位使用者提出的建议
 - 欢迎各位加入本系统的开发之中
-
-
-
-
-

@@ -1,0 +1,19 @@
+using EasyPack.Serialization;
+using System;
+using UnityEngine;
+
+namespace EasyPack.Modifiers
+{
+    /// <summary>
+    /// 修饰器的可序列化表示形式
+    /// </summary>
+    [Serializable]
+    public class SerializableModifier : ISerializable
+    {
+        public ModifierType Type;
+        public int Priority;
+        public float FloatValue;
+        public Vector2 RangeValue;
+        public bool IsRangeModifier;
+    }
+}
