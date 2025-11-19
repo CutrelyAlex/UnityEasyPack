@@ -133,8 +133,9 @@ namespace EasyPack.CustomData
                         if (clrType != null)
                         {
                             try { return JsonUtility.FromJson(JsonValue, clrType); }
-                            catch { }
+                            catch { return null; }
                         }
+                        return null;
                     }
                     return JsonValue;
                 case CustomDataType.Custom:
