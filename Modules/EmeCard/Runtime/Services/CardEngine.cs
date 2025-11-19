@@ -471,10 +471,7 @@ namespace EasyPack.EmeCardSystem
         private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll, int ruleId = -1)
         {
             matchedAll = new List<Card>();
-            if (requirements == null || requirements.Count == 0)
-            {
-                return true;
-            }
+            if (requirements == null) return true;
 
             foreach (var req in requirements)
             {
@@ -487,7 +484,7 @@ namespace EasyPack.EmeCardSystem
                 {
                     return false;
                 }
-                if (picks != null && picks.Count > 0) matchedAll.AddRange(picks);
+                if (picks?.Count > 0) matchedAll.AddRange(picks);
             }
             return true;
         }
