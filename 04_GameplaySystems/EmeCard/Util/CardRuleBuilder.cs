@@ -425,7 +425,7 @@ namespace EasyPack.EmeCardSystem
             => DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Matched);
 
         /// <summary>批量触发匹配卡牌的自定义事件</summary>
-        public CardRuleBuilder DoBatchCustom(string eventId, Func<CardRuleContext, object> data = null, bool haveSource = true)
+        public CardRuleBuilder DoBatchCustom(string eventId, Func<CardRuleContext, object> data = null, bool haveSource = false)
         {
             return DoInvoke((ctx, matched) =>
             {
