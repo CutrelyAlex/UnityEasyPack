@@ -29,18 +29,18 @@ namespace EasyPack.CustomData
         public string Serialize(CustomDataEntry entry)
             => entry.IntValue.ToString(CultureInfo.InvariantCulture);
 
-        public void Clear(CustomDataEntry entry) => entry.IntValue = default;
+        public void Clear(CustomDataEntry entry) => entry.IntValue = 0;
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {
-            entry.FloatValue = default;
-            entry.BoolValue = default;
-            entry.StringValue = default;
+            entry.FloatValue = 0;
+            entry.BoolValue = false;
+            entry.StringValue = null;
             entry.Vector2Value = default;
             entry.Vector3Value = default;
             entry.ColorValue = default;
-            entry.JsonValue = default;
-            entry.JsonClrType = default;
+            entry.JsonValue = null;
+            entry.JsonClrType = null;
         }
     }
 }

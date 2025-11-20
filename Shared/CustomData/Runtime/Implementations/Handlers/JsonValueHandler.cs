@@ -59,16 +59,16 @@ namespace EasyPack.CustomData
 
         public void Clear(CustomDataEntry entry)
         {
-            entry.JsonValue = default;
-            entry.JsonClrType = default;
+            entry.JsonValue = null;
+            entry.JsonClrType = null;
         }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {
-            entry.IntValue = default;
-            entry.FloatValue = default;
-            entry.BoolValue = default;
-            entry.StringValue = default;
+            entry.IntValue = 0;
+            entry.FloatValue = 0;
+            entry.BoolValue = false;
+            entry.StringValue = null;
             entry.Vector2Value = default;
             entry.Vector3Value = default;
             entry.ColorValue = default;

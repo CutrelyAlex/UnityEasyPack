@@ -27,18 +27,18 @@ namespace EasyPack.CustomData
         public string Serialize(CustomDataEntry entry)
             => entry.BoolValue ? "true" : "false";
 
-        public void Clear(CustomDataEntry entry) => entry.BoolValue = default;
+        public void Clear(CustomDataEntry entry) => entry.BoolValue = false;
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {
-            entry.IntValue = default;
-            entry.FloatValue = default;
-            entry.StringValue = default;
+            entry.IntValue = 0;
+            entry.FloatValue = 0;
+            entry.StringValue = null;
             entry.Vector2Value = default;
             entry.Vector3Value = default;
             entry.ColorValue = default;
-            entry.JsonValue = default;
-            entry.JsonClrType = default;
+            entry.JsonValue = null;
+            entry.JsonClrType = null;
         }
     }
 }
