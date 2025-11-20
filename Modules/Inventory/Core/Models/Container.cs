@@ -38,7 +38,7 @@ namespace EasyPack.InventorySystem
         // 查询服务
         private readonly IItemQueryService _queryService;
 
-        public Container(string id, string name, string type, int capacity = -1)
+        protected Container(string id, string name, string type, int capacity = -1)
         {
             ID = id;
             Name = name;
