@@ -1,3 +1,4 @@
+using EasyPack.Architecture;
 using EasyPack.CustomData;
 using EasyPack.Serialization;
 using System;
@@ -9,6 +10,7 @@ namespace EasyPack.CategoryService
 {
     /// <summary>
     /// CategoryManager 状态数据的可序列化表示
+    /// Entities 序列化由 SerializationService 管理
     /// </summary>
     /// <typeparam name="T">实体类型</typeparam>
     [Serializable]
@@ -52,11 +54,13 @@ namespace EasyPack.CategoryService
     /// <summary>
     /// CategoryManager JSON 序列化器
     /// 继承 EasyPack 序列化基类，支持完整状态的序列化和反序列化
+    /// Entities 序列化由 SerializationService 管理，支持注册的序列化器和自动 [Serializable] 处理
     /// </summary>
     /// <typeparam name="T">实体类型</typeparam>
     public class CategoryManagerJsonSerializer<T> : JsonSerializerBase<CategoryManager<T>>
     {
         private readonly Func<T, string> _idExtractor;
+        private ISerializationService _serializationService;
 
         /// <summary>
         /// 序列化数据版本号
@@ -69,7 +73,19 @@ namespace EasyPack.CategoryService
         }
 
         /// <summary>
+        /// 获取或初始化 SerializationService
+        /// </summary>
+        private async void EnsureSerializationService()
+        {
+            if (_serializationService == null)
+            {
+                _serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+            }
+        }
+
+        /// <summary>
         /// 序列化 CategoryManager 为 JSON 字符串
+        /// 实体序列化由 SerializationService 管理
         /// </summary>
         /// <param name="manager">要序列化的 CategoryManager 实例</param>
         /// <returns>JSON 字符串</returns>
@@ -79,6 +95,8 @@ namespace EasyPack.CategoryService
 
             try
             {
+                EnsureSerializationService();
+
                 var data = new SerializableCategoryManagerState<T>
                 {
                     Version = CurrentVersion,
@@ -106,10 +124,15 @@ namespace EasyPack.CategoryService
                         // 避免重复添加实体
                         if (!data.Entities.Any(e => e.Id == id))
                         {
+                            // 使用 SerializationService 序列化实体
+                            string entityJson = _serializationService != null
+                                ? _serializationService.SerializeToJson(entity)
+                                : JsonUtility.ToJson(entity);
+
                             data.Entities.Add(new SerializableCategoryManagerState<T>.SerializedEntity
                             {
                                 Id = id,
-                                EntityJson = JsonUtility.ToJson(entity),
+                                EntityJson = entityJson,
                                 Category = category
                             });
                         }
@@ -149,6 +172,7 @@ namespace EasyPack.CategoryService
 
         /// <summary>
         /// 从 JSON 字符串反序列化为 CategoryManager
+        /// 实体反序列化由 SerializationService 管理
         /// 注意：此方法创建新的 CategoryManager 实例
         /// </summary>
         /// <param name="json">JSON 字符串</param>
@@ -162,6 +186,8 @@ namespace EasyPack.CategoryService
 
             try
             {
+                EnsureSerializationService();
+
                 var data = JsonUtility.FromJson<SerializableCategoryManagerState<T>>(json);
 
                 // 版本兼容性检查
@@ -181,7 +207,16 @@ namespace EasyPack.CategoryService
                 {
                     try
                     {
-                        var entity = JsonUtility.FromJson<T>(serializedEntity.EntityJson);
+                        // 使用 SerializationService 反序列化实体
+                        T entity;
+                        if (_serializationService != null)
+                        {
+                            entity = _serializationService.DeserializeFromJson<T>(serializedEntity.EntityJson);
+                        }
+                        else
+                        {
+                            entity = JsonUtility.FromJson<T>(serializedEntity.EntityJson);
+                        }
                         
                         // 查找实体的标签
                         var tags = data.Tags
