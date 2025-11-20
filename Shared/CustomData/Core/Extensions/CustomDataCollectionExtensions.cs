@@ -7,13 +7,12 @@ namespace EasyPack.CustomData
 {
     /// <summary>
     /// CustomDataCollection 扩展方法
-    /// 为 IEnumerable<CustomDataEntry> 提供便利方法
+    /// 为 IEnumerable&lt;CustomDataEntry&gt; 提供便利方法
     /// </summary>
     public static class CustomDataCollectionExtensions
     {
         /// <summary>
         /// 尝试从可枚举集合获取值
-        /// （对于 CustomDataCollection 使用实例方法效率更高）
         /// </summary>
         public static bool TryGetValue<T>(this IEnumerable<CustomDataEntry> entries, string id, out T value)
         {
@@ -32,26 +31,26 @@ namespace EasyPack.CustomData
                 if (e.Key != id) continue;
 
                 var obj = e.GetValue();
-                
-                // 快路径：直接类型匹配
-                if (obj is T t)
-                {
-                    value = t;
-                    return true;
-                }
 
-                // 慢路径：JSON 反序列化
-                if (obj is string json)
+                switch (obj)
                 {
-                    try
-                    {
-                        value = JsonUtility.FromJson<T>(json);
+                    // 快路径：直接类型匹配
+                    case T t:
+                        value = t;
                         return true;
-                    }
-                    catch
-                    {
-                        Debug.LogWarning("从CustomDataEntries 获取值失败");
-                    }
+                    // 慢路径：JSON 反序列化
+                    case string json:
+                        try
+                        {
+                            value = JsonUtility.FromJson<T>(json);
+                            return true;
+                        }
+                        catch
+                        {
+                            Debug.LogWarning("从CustomDataEntries 获取值失败");
+                        }
+
+                        break;
                 }
 
                 return false;
@@ -98,8 +97,7 @@ namespace EasyPack.CustomData
         /// <summary>获取所有的键</summary>
         public static IEnumerable<string> GetKeys(this IEnumerable<CustomDataEntry> entries)
         {
-            if (entries == null) return Enumerable.Empty<string>();
-            return entries.Select(e => e.Key);
+            return entries == null ? Enumerable.Empty<string>() : entries.Select(e => e.Key);
         }
 
         /// <summary>获取数据数量</summary>

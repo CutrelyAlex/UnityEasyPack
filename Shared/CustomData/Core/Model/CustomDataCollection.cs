@@ -499,7 +499,7 @@ namespace EasyPack.CustomData
         /// <summary>
         /// 获取第一个匹配条件的值
         /// </summary>
-        public T GetFirstValue<T>(System.Func<string, T, bool> predicate, T defaultValue = default)
+        public T GetFirstValue<T>(Func<string, T, bool> predicate, T defaultValue = default)
         {
             if (predicate == null) return defaultValue;
 
@@ -546,10 +546,9 @@ namespace EasyPack.CustomData
         /// <summary>
         /// 获取满足条件的所有数据条目
         /// </summary>
-        public IEnumerable<CustomDataEntry> GetEntriesWhere(System.Func<CustomDataEntry, bool> predicate)
+        public IEnumerable<CustomDataEntry> GetEntriesWhere(Func<CustomDataEntry, bool> predicate)
         {
-            if (predicate == null) return System.Linq.Enumerable.Empty<CustomDataEntry>();
-            return _list.Where(predicate);
+            return predicate == null ? Enumerable.Empty<CustomDataEntry>() : _list.Where(predicate);
         }
 
         /// <summary>
@@ -576,7 +575,7 @@ namespace EasyPack.CustomData
         public IEnumerable<string> GetDifference(CustomDataCollection other)
         {
             var thisKeys = new HashSet<string>(GetKeys());
-            var otherKeys = new HashSet<string>(other?.GetKeys() ?? System.Linq.Enumerable.Empty<string>());
+            var otherKeys = new HashSet<string>(other?.GetKeys() ?? Enumerable.Empty<string>());
             otherKeys.ExceptWith(thisKeys);
             return otherKeys;
         }
@@ -677,7 +676,7 @@ namespace EasyPack.CustomData
         public Color GetColor(string id, Color? defaultValue = null) => GetValue(id, defaultValue ?? Color.white);
 
         /// <summary>如果数据存在则执行操作</summary>
-        public bool IfHasValue<T>(string id, System.Action<T> action)
+        public bool IfHasValue<T>(string id, Action<T> action)
         {
             if (TryGetValue(id, out T value))
             {
@@ -688,7 +687,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>如果数据存在则执行操作，否则执行默认操作</summary>
-        public void IfElse<T>(string id, System.Action<T> onExists, System.Action onNotExists)
+        public void IfElse<T>(string id, Action<T> onExists, Action onNotExists)
         {
             if (TryGetValue(id, out T value))
                 onExists?.Invoke(value);

@@ -40,10 +40,7 @@ namespace EasyPack.CustomData
         /// <returns>对应的值处理器实例，如果未找到则返回None处理器</returns>
         public static IValueHandler GetHandler(CustomDataType type)
         {
-            if (Handlers.TryGetValue(type, out var handler))
-                return handler;
-
-            return Handlers[CustomDataType.None];
+            return Handlers.TryGetValue(type, out var handler) ? handler : Handlers[CustomDataType.None];
         }
 
         /// <summary>
@@ -58,22 +55,17 @@ namespace EasyPack.CustomData
 
             var valueType = value.GetType();
 
-            if (valueType == typeof(int))
-                return Handlers[CustomDataType.Int];
-            if (valueType == typeof(float))
-                return Handlers[CustomDataType.Float];
-            if (valueType == typeof(bool))
-                return Handlers[CustomDataType.Bool];
-            if (valueType == typeof(string))
-                return Handlers[CustomDataType.String];
-            if (valueType == typeof(Vector2))
-                return Handlers[CustomDataType.Vector2];
-            if (valueType == typeof(Vector3))
-                return Handlers[CustomDataType.Vector3];
-            if (valueType == typeof(Color))
-                return Handlers[CustomDataType.Color];
-
-            return Handlers[CustomDataType.Json];
+            return valueType switch
+            {
+                _ when valueType == typeof(int) => Handlers[CustomDataType.Int],
+                _ when valueType == typeof(float) => Handlers[CustomDataType.Float],
+                _ when valueType == typeof(bool) => Handlers[CustomDataType.Bool],
+                _ when valueType == typeof(string) => Handlers[CustomDataType.String],
+                _ when valueType == typeof(Vector2) => Handlers[CustomDataType.Vector2],
+                _ when valueType == typeof(Vector3) => Handlers[CustomDataType.Vector3],
+                _ when valueType == typeof(Color) => Handlers[CustomDataType.Color],
+                _ => Handlers[CustomDataType.Json]
+            };
         }
     }
 }

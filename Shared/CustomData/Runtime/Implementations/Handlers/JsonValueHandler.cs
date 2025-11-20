@@ -20,7 +20,7 @@ namespace EasyPack.CustomData
                 if (type != null)
                     return JsonUtility.FromJson(entry.JsonValue, type);
             }
-            catch(SystemException e)
+            catch
             {
                 Debug.LogWarning("从CustomDataEntry获取Value失败");
             }
