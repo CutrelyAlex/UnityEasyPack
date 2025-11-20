@@ -32,7 +32,7 @@ namespace EasyPack.Tools.PathFinding
 
         public TileInfo GetTileInfo(Vector3Int position)
         {
-            return walkableTiles.TryGetValue(position, out TileInfo info) ? info : null;
+            return walkableTiles.GetValueOrDefault(position);
         }
 
         private void UpdateBounds(Vector3Int position)

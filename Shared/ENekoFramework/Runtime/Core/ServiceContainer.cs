@@ -145,7 +145,7 @@ namespace EasyPack.ENekoFramework
             lock (_lock)
             {
                 var serviceType = typeof(TService);
-                return _services.TryGetValue(serviceType, out var descriptor) ? descriptor : null;
+                return _services.GetValueOrDefault(serviceType);
             }
         }
 

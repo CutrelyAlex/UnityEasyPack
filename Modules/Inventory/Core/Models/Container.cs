@@ -122,7 +122,7 @@ namespace EasyPack.InventorySystem
         {
             int newTotal = GetItemTotalCount(itemId);
 
-            int oldTotal = _itemTotalCounts.TryGetValue(itemId, out int value) ? value : 0;
+            int oldTotal = _itemTotalCounts.GetValueOrDefault(itemId, 0);
 
             // 只有总数有变化才继续处理
             if (newTotal == oldTotal) return;
@@ -176,7 +176,7 @@ namespace EasyPack.InventorySystem
                     foreach (string itemId in _pendingTotalCountUpdates)
                     {
                         TriggerItemTotalCountChanged(itemId,
-                            _itemRefCache.TryGetValue(itemId, out var itemRef) ? itemRef : null);
+                            _itemRefCache.GetValueOrDefault(itemId));
                     }
 
                     _pendingTotalCountUpdates.Clear();

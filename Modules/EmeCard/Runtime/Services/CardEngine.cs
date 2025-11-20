@@ -532,9 +532,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (string.IsNullOrEmpty(id)) return null;
             var key = new CardKey(id, index);
-            if (_cardMap.TryGetValue(key, out var c)) return c;
-
-            return null;
+            return _cardMap.GetValueOrDefault(key);
         }
         /// <summary>
         /// 按ID返回所有已注册卡牌。
