@@ -293,7 +293,7 @@ namespace EasyPack.ENekoFramework.Editor
             {
                 _architectureNames.Add(arch);
                 // 恢复之前的筛选状态，如果架构不存在则默认为true（全选）
-                _architectureFilters.Add(previousFilters.ContainsKey(arch) ? previousFilters[arch] : true);
+                _architectureFilters.Add(!previousFilters.TryGetValue(arch, out bool previousFilter) || previousFilter);
             }
         }
 

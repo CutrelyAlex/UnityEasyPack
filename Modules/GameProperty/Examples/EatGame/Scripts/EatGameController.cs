@@ -255,12 +255,12 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
 
         private void UpdateUI()
         {
-            if (statusText != null)
+            if (statusText)
             {
                 statusText.text = playerAttributes.GetStatusDescription();
             }
 
-            if (strangeScoreText != null)
+            if (strangeScoreText)
             {
                 strangeScoreText.text = $"奇怪评分: {playerAttributes.StrangeScore.GetValue():F1}/100";
             }

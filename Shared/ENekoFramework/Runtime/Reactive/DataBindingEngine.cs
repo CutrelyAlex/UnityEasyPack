@@ -64,10 +64,9 @@ namespace EasyPack.ENekoFramework
         /// <param name="target">要清理绑定的GameObject</param>
         public void CleanupBindings(GameObject target)
         {
-            if (target == null || !_bindings.ContainsKey(target))
+            if (!target || !_bindings.TryGetValue(target, out var cleanups))
                 return;
 
-            var cleanups = _bindings[target];
             foreach (var cleanup in cleanups)
             {
                 cleanup?.Invoke();

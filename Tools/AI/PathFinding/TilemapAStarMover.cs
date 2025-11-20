@@ -415,7 +415,7 @@ namespace EasyPack.Tools.PathFinding
 
         public void MoveAlongPath(List<Vector3Int> path)
         {
-            if (pathfindingObject == null || path.Count == 0) return;
+            if (!pathfindingObject || path.Count == 0) return;
             if (_moveCoroutine != null)
             {
                 StopCoroutine(_moveCoroutine);
@@ -491,7 +491,7 @@ namespace EasyPack.Tools.PathFinding
             _refreshTimer += Time.deltaTime;
             bool freq = _refreshTimer >= 1f / refreshFrequency;
             bool byMove = false;
-            if (refreshOnTargetMove && targetObject != null)
+            if (refreshOnTargetMove && targetObject != null && targetObject)
             {
                 if (!_hasInitializedTargetPosition)
                 {
@@ -513,7 +513,7 @@ namespace EasyPack.Tools.PathFinding
 
         private void AutoRefreshPathfinding()
         {
-            if (!IsMoving || pathfindingObject == null || targetObject == null) return;
+            if (!IsMoving || !pathfindingObject || targetObject is null) return;
 
             Vector3Int startPos = (_currentPath.Count > 0 && _currentPathIndex < _currentPath.Count)
                 ? _currentPath[_currentPathIndex]
@@ -574,8 +574,8 @@ namespace EasyPack.Tools.PathFinding
         protected virtual bool IsTileWalkable(TileBase tile, Vector3Int position) => tile != null;
         protected virtual float GetTileCost(TileBase tile)
         {
-            if (useTerrainCosts && TileCostMap.ContainsKey(tile))
-                return TileCostMap[tile];
+            if (useTerrainCosts && TileCostMap.TryGetValue(tile, out float cost))
+                return cost;
             return 1f;
         }
         #endregion
@@ -960,7 +960,7 @@ namespace EasyPack.Tools.PathFinding
         #region 工具方法 / 设置接口 / 调试
         public Vector3Int GetTilePositionFromGameObject(GameObject obj)
         {
-            if (obj == null)
+            if (!obj)
                 return Vector3Int.zero;
 
             Tilemap refMap = null;
@@ -980,9 +980,9 @@ namespace EasyPack.Tools.PathFinding
         {
             Tilemap refMap = null;
             if (allTilemaps.Count > 0) refMap = allTilemaps[0];
-            else if (_conversionTilemap != null) refMap = _conversionTilemap;
+            else if (_conversionTilemap) refMap = _conversionTilemap;
 
-            if (refMap == null)
+            if (!refMap)
                 return Vector3.zero;
 
             Vector3 worldPos = refMap.CellToWorld(cell);
