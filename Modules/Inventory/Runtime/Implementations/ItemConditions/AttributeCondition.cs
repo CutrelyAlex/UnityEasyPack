@@ -16,7 +16,7 @@ namespace EasyPack.InventorySystem
         NotContains,
         Exists
     }
-    public class AttributeCondition : IItemCondition, ISerializableCondition
+    public class AttributeCondition : ISerializableCondition
     {
         public string AttributeName { get; set; }
         public object AttributeValue { get; set; }

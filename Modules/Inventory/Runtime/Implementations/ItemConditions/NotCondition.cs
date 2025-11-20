@@ -8,7 +8,7 @@ namespace EasyPack.InventorySystem
     /// <summary>
     /// 对单一子条件取反：子条件不成立时为真；如果 Inner 为 null，视为真。
     /// </summary>
-    public sealed class NotCondition : IItemCondition, ISerializableCondition
+    public sealed class NotCondition : ISerializableCondition
     {
         public IItemCondition Inner { get; set; }
 

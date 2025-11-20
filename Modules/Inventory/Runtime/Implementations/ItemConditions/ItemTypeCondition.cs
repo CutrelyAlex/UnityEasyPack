@@ -2,7 +2,7 @@ using EasyPack.CustomData;
 
 namespace EasyPack.InventorySystem
 {
-    public class ItemTypeCondition : IItemCondition, ISerializableCondition
+    public class ItemTypeCondition : ISerializableCondition
     {
         public string ItemType { get; set; }
 

@@ -8,7 +8,7 @@ namespace EasyPack.InventorySystem
     /// <summary>
     /// 所有子条件全部成立则返回 true；空子集视为真。
     /// </summary>
-    public sealed class AllCondition : IItemCondition, ISerializableCondition
+    public sealed class AllCondition : ISerializableCondition
     {
         public List<IItemCondition> Children { get; } = new List<IItemCondition>();
 

@@ -42,11 +42,7 @@ namespace EasyPack.GamePropertySystem
         /// </summary>
         public T GetCustomData<T>(string key, T defaultValue = default)
         {
-            if (CustomDataUtility.TryGetValue(CustomData, key, out T value))
-            {
-                return value;
-            }
-            return defaultValue;
+            return CustomData.TryGetValue(key, out T value) ? value : defaultValue;
         }
 
         /// <summary>
