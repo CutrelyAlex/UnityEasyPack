@@ -44,22 +44,22 @@ namespace EasyPack.Serialization
             return DeserializeFromJson(json);
         }
 
-        public List<CustomDataEntry> SerializeToCustomData(TOriginal obj)
+        public CustomDataCollection SerializeToCustomData(TOriginal obj)
         {
             throw new NotSupportedException($"类型 {typeof(TOriginal).Name} 的双泛型序列化器不支持 CustomDataEntry 序列化");
         }
 
-        public TOriginal DeserializeFromCustomData(List<CustomDataEntry> entries)
+        public TOriginal DeserializeFromCustomData(CustomDataCollection entries)
         {
             throw new NotSupportedException($"类型 {typeof(TOriginal).Name} 的双泛型序列化器不支持 CustomDataEntry 反序列化");
         }
 
-        public List<CustomDataEntry> SerializeToCustomData(object obj)
+        public CustomDataCollection SerializeToCustomData(object obj)
         {
             return SerializeToCustomData((TOriginal)obj);
         }
 
-        public object DeserializeFromCustomData(List<CustomDataEntry> entries, Type targetType)
+        public object DeserializeFromCustomData(CustomDataCollection entries, Type targetType)
         {
             return DeserializeFromCustomData(entries);
         }
@@ -338,12 +338,12 @@ namespace EasyPack.Serialization
 
         #region CustomData 序列化
 
-        public List<CustomDataEntry> SerializeToCustomData<T>(T obj)
+        public CustomDataCollection SerializeToCustomData<T>(T obj)
         {
             return SerializeToCustomData(obj, typeof(T));
         }
 
-        public List<CustomDataEntry> SerializeToCustomData(object obj, Type type)
+        public CustomDataCollection SerializeToCustomData(object obj, Type type)
         {
             if (type == null)
             {
@@ -365,7 +365,7 @@ namespace EasyPack.Serialization
             {
                 var entries = serializer.SerializeToCustomData(obj);
                 Debug.Log($"[SerializationService] 已将 {type.Name} 序列化为 CustomData（{entries?.Count ?? 0} 条目）");
-                return entries ?? new List<CustomDataEntry>();
+                return entries ?? new CustomDataCollection();
             }
             catch (SerializationException)
             {
@@ -382,13 +382,13 @@ namespace EasyPack.Serialization
             }
         }
 
-        public T DeserializeFromCustomData<T>(List<CustomDataEntry> entries)
+        public T DeserializeFromCustomData<T>(CustomDataCollection entries)
         {
             var result = DeserializeFromCustomData(entries, typeof(T));
             return result != null ? (T)result : default;
         }
 
-        public object DeserializeFromCustomData(List<CustomDataEntry> entries, Type type)
+        public object DeserializeFromCustomData(CustomDataCollection entries, Type type)
         {
             if (type == null)
             {

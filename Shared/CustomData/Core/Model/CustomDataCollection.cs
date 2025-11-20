@@ -1,0 +1,403 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+namespace EasyPack.CustomData
+{
+    /// <summary>
+    /// CustomData 集合类
+    /// 实现 IList<CustomDataEntry> 接口 内部维护字典缓存
+    /// 建议使用此类作为集合，因为性能是O(1)的
+    /// </summary>
+    [Serializable]
+    public class CustomDataCollection : IList<CustomDataEntry>, IEnumerable<CustomDataEntry>, ISerializationCallbackReceiver
+    {
+        [SerializeField]
+        private List<CustomDataEntry> _list = new();
+
+        [NonSerialized]
+        private Dictionary<string, CustomDataEntry> _cache;
+
+        [NonSerialized]
+        private bool _cacheDirty = true;
+
+        public CustomDataCollection() { }
+
+        public CustomDataCollection(int capacity)
+        {
+            _list = new List<CustomDataEntry>(capacity);
+        }
+
+        public CustomDataCollection(IEnumerable<CustomDataEntry> collection)
+        {
+            _list = new List<CustomDataEntry>(collection);
+            _cacheDirty = true;
+        }
+
+        #region IList<CustomDataEntry> 实现
+
+        public CustomDataEntry this[int index]
+        {
+            get => _list[index];
+            set
+            {
+                if (_list[index] != value)
+                {
+                    _list[index] = value;
+                    MarkDirty();
+                }
+            }
+        }
+
+        public int Count => _list.Count;
+
+        public bool IsReadOnly => false;
+
+        public void Add(CustomDataEntry item)
+        {
+            _list.Add(item);
+            MarkDirty();
+        }
+
+        public void Clear()
+        {
+            _list.Clear();
+            _cache?.Clear();
+            _cacheDirty = false;
+        }
+
+        public bool Contains(CustomDataEntry item)
+        {
+            return _list.Contains(item);
+        }
+
+        public void CopyTo(CustomDataEntry[] array, int arrayIndex)
+        {
+            _list.CopyTo(array, arrayIndex);
+        }
+
+        public int IndexOf(CustomDataEntry item)
+        {
+            return _list.IndexOf(item);
+        }
+
+        public void Insert(int index, CustomDataEntry item)
+        {
+            _list.Insert(index, item);
+            MarkDirty();
+        }
+
+        public bool Remove(CustomDataEntry item)
+        {
+            var result = _list.Remove(item);
+            if (result) MarkDirty();
+            return result;
+        }
+
+        public void RemoveAt(int index)
+        {
+            _list.RemoveAt(index);
+            MarkDirty();
+        }
+
+        #endregion
+
+        #region IEnumerable<CustomDataEntry> 实现
+
+        public IEnumerator<CustomDataEntry> GetEnumerator()
+        {
+            return _list.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return _list.GetEnumerator();
+        }
+
+        #endregion
+
+        #region 扩展方法
+
+        /// <summary>
+        /// 添加多个项
+        /// </summary>
+        public void AddRange(IEnumerable<CustomDataEntry> collection)
+        {
+            _list.AddRange(collection);
+            MarkDirty();
+        }
+
+        /// <summary>
+        /// 在指定位置插入多个项
+        /// </summary>
+        public void InsertRange(int index, IEnumerable<CustomDataEntry> collection)
+        {
+            _list.InsertRange(index, collection);
+            MarkDirty();
+        }
+
+        /// <summary>
+        /// 移除多个项
+        /// </summary>
+        public void RemoveRange(int index, int count)
+        {
+            _list.RemoveRange(index, count);
+            MarkDirty();
+        }
+
+        /// <summary>
+        /// 移除满足条件的所有项
+        /// </summary>
+        public int RemoveAll(Predicate<CustomDataEntry> match)
+        {
+            var result = _list.RemoveAll(match);
+            if (result > 0) MarkDirty();
+            return result;
+        }
+
+        /// <summary>
+        /// 排序
+        /// </summary>
+        public void Sort()
+        {
+            _list.Sort();
+            MarkDirty();
+        }
+
+        /// <summary>
+        /// 使用比较器排序
+        /// </summary>
+        public void Sort(IComparer<CustomDataEntry> comparer)
+        {
+            _list.Sort(comparer);
+            MarkDirty();
+        }
+
+        /// <summary>
+        /// 使用比较方法排序
+        /// </summary>
+        public void Sort(Comparison<CustomDataEntry> comparison)
+        {
+            _list.Sort(comparison);
+            MarkDirty();
+        }
+
+        /// <summary>
+        /// 反转
+        /// </summary>
+        public void Reverse()
+        {
+            _list.Reverse();
+            MarkDirty();
+        }
+
+        /// <summary>
+        /// 获取子列表
+        /// </summary>
+        public List<CustomDataEntry> GetRange(int index, int count)
+        {
+            return _list.GetRange(index, count);
+        }
+
+        /// <summary>
+        /// 二分查找
+        /// </summary>
+        public int BinarySearch(CustomDataEntry item)
+        {
+            return _list.BinarySearch(item);
+        }
+
+        /// <summary>
+        /// 查找第一个匹配项
+        /// </summary>
+        public CustomDataEntry Find(Predicate<CustomDataEntry> match)
+        {
+            return _list.Find(match);
+        }
+
+        /// <summary>
+        /// 查找所有匹配项
+        /// </summary>
+        public List<CustomDataEntry> FindAll(Predicate<CustomDataEntry> match)
+        {
+            return _list.FindAll(match);
+        }
+
+        #endregion
+
+        #region 缓存管理
+
+        /// <summary>
+        /// 重建缓存字典
+        /// </summary>
+        private void RebuildCache()
+        {
+            if (_cache == null)
+            {
+                _cache = new Dictionary<string, CustomDataEntry>(_list.Count);
+            }
+            else
+            {
+                _cache.Clear();
+            }
+
+            foreach (var entry in _list)
+            {
+                if (!string.IsNullOrEmpty(entry.Key))
+                {
+                    _cache[entry.Key] = entry;
+                }
+            }
+            _cacheDirty = false;
+        }
+
+        /// <summary>
+        /// 确保缓存已初始化
+        /// </summary>
+        private void EnsureCache()
+        {
+            if (_cacheDirty || _cache == null)
+            {
+                RebuildCache();
+            }
+        }
+
+        /// <summary>
+        /// 标记缓存为脏
+        /// </summary>
+        private void MarkDirty()
+        {
+            _cacheDirty = true;
+        }
+
+        #endregion
+
+        #region 优化的查找方法
+
+        /// <summary>
+        /// 尝试获取指定键的值，如果存在则返回true并设置out参数
+        /// </summary>
+        /// <typeparam name="T">值的类型</typeparam>
+        /// <param name="key">要查找的键</param>
+        /// <param name="value">如果找到则设置为对应的值，否则为默认值</param>
+        /// <returns>如果键存在则返回true，否则返回false</returns>
+        public bool TryGetValue<T>(string key, out T value)
+        {
+            value = default;
+            EnsureCache();
+
+            if (_cache.TryGetValue(key, out var entry))
+            {
+                var obj = entry.GetValue();
+                if (obj is T t)
+                {
+                    value = t;
+                    return true;
+                }
+
+                try
+                {
+                    if (obj is string json)
+                    {
+                        value = JsonUtility.FromJson<T>(json);
+                        return true;
+                    }
+                }
+                catch { }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 获取指定键的值，如果不存在则返回默认值
+        /// </summary>
+        /// <typeparam name="T">值的类型</typeparam>
+        /// <param name="key">要查找的键</param>
+        /// <param name="defaultValue">如果键不存在时返回的默认值</param>
+        /// <returns>键对应的值或默认值</returns>
+        public T GetValue<T>(string key, T defaultValue = default)
+        {
+            return TryGetValue(key, out T value) ? value : defaultValue;
+        }
+
+        /// <summary>
+        /// 设置指定键的值，如果键不存在则添加新条目
+        /// </summary>
+        /// <param name="key">要设置的键</param>
+        /// <param name="value">要设置的值</param>
+        public void SetValue(string key, object value)
+        {
+            EnsureCache();
+
+            if (_cache.TryGetValue(key, out var entry))
+            {
+                entry.SetValue(value);
+            }
+            else
+            {
+                var newEntry = new CustomDataEntry { Key = key };
+                newEntry.SetValue(value);
+                _list.Add(newEntry);
+                _cache[key] = newEntry;
+            }
+        }
+
+        /// <summary>
+        /// 移除指定键的值，如果存在则返回true
+        /// </summary>
+        /// <param name="key">要移除的键</param>
+        /// <returns>如果键存在并成功移除则返回true，否则返回false</returns>
+        public bool RemoveValue(string key)
+        {
+            EnsureCache();
+
+            if (_cache.TryGetValue(key, out var entry))
+            {
+                _list.Remove(entry);
+                _cache.Remove(key);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 检查指定键是否存在
+        /// </summary>
+        /// <param name="key">要检查的键</param>
+        /// <returns>如果键存在则返回true，否则返回false</returns>
+        public bool HasValue(string key)
+        {
+            EnsureCache();
+            return _cache.ContainsKey(key);
+        }
+
+        #endregion
+
+        #region 序列化支持
+
+        /// <summary>
+        /// 获取内部列表（仅用于序列化）
+        /// </summary>
+        public List<CustomDataEntry> GetInternalList()
+        {
+            return _list;
+        }
+
+        void ISerializationCallbackReceiver.OnBeforeSerialize()
+        {
+            // 序列化前无需特殊处理
+            // Unity 会自动序列化 _list
+        }
+
+        void ISerializationCallbackReceiver.OnAfterDeserialize()
+        {
+            // 反序列化后标记缓存为脏，在下次访问时重建
+            _cacheDirty = true;
+            _cache = null;
+        }
+
+        #endregion
+    }
+}

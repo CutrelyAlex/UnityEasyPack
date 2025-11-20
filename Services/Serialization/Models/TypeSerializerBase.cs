@@ -39,17 +39,17 @@ namespace EasyPack.Serialization
             return DeserializeFromJson(json);
         }
 
-        public virtual List<CustomDataEntry> SerializeToCustomData(T obj)
+        public virtual CustomDataCollection SerializeToCustomData(T obj)
         {
             throw new NotSupportedException($"类型 {typeof(T).Name} 不支持 CustomDataEntry 序列化");
         }
 
-        public virtual T DeserializeFromCustomData(List<CustomDataEntry> entries)
+        public virtual T DeserializeFromCustomData(CustomDataCollection entries)
         {
             throw new NotSupportedException($"类型 {typeof(T).Name} 不支持 CustomDataEntry 反序列化");
         }
 
-        public List<CustomDataEntry> SerializeToCustomData(object obj)
+        public CustomDataCollection SerializeToCustomData(object obj)
         {
             if (obj is T typedObj)
             {
@@ -58,7 +58,7 @@ namespace EasyPack.Serialization
             throw new ArgumentException($"对象不是类型 {typeof(T).Name}");
         }
 
-        public object DeserializeFromCustomData(List<CustomDataEntry> entries, Type targetType)
+        public object DeserializeFromCustomData(CustomDataCollection entries, Type targetType)
         {
             return DeserializeFromCustomData(entries);
         }
@@ -106,8 +106,8 @@ namespace EasyPack.Serialization
     {
         public override SerializationStrategy SupportedStrategy => SerializationStrategy.CustomDataEntry;
 
-        public abstract override List<CustomDataEntry> SerializeToCustomData(T obj);
-        public abstract override T DeserializeFromCustomData(List<CustomDataEntry> entries);
+        public abstract override CustomDataCollection SerializeToCustomData(T obj);
+        public abstract override T DeserializeFromCustomData(CustomDataCollection entries);
     }
 
     /// <summary>

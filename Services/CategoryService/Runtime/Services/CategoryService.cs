@@ -30,7 +30,7 @@ namespace EasyPack.CategoryService
         private readonly Dictionary<string, ReaderWriterLockSlim> _tagLocks;
 
         // 元数据存储
-        private readonly Dictionary<string, List<CustomDataEntry>> _metadataStore;
+        private readonly Dictionary<string, CustomDataCollection> _metadataStore;
 
         // 根节点锁
         private readonly ReaderWriterLockSlim _treeLock;
@@ -59,7 +59,7 @@ namespace EasyPack.CategoryService
             _categoryIndex = new Dictionary<string, HashSet<string>>();
             _tagIndex = new Dictionary<string, HashSet<string>>();
             _tagLocks = new Dictionary<string, ReaderWriterLockSlim>();
-            _metadataStore = new Dictionary<string, List<CustomDataEntry>>();
+            _metadataStore = new Dictionary<string, CustomDataCollection>();
             _treeLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         }
 
@@ -574,20 +574,20 @@ namespace EasyPack.CategoryService
         /// </summary>
         /// <param name="id">实体 ID</param>
         /// <returns>元数据操作结果</returns>
-        public OperationResult<List<CustomDataEntry>> GetMetadata(string id)
+        public OperationResult<CustomDataCollection> GetMetadata(string id)
         {
             if (!_entities.ContainsKey(id))
             {
-                return OperationResult<List<CustomDataEntry>>.Failure(
+                return OperationResult<CustomDataCollection>.Failure(
                     ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
             }
 
             if (_metadataStore.TryGetValue(id, out var metadata))
             {
-                return OperationResult<List<CustomDataEntry>>.Success(metadata);
+                return OperationResult<CustomDataCollection>.Success(metadata);
             }
 
-            return OperationResult<List<CustomDataEntry>>.Success(new List<CustomDataEntry>());
+            return OperationResult<CustomDataCollection>.Success(new CustomDataCollection());
         }
 
         /// <summary>
@@ -596,7 +596,7 @@ namespace EasyPack.CategoryService
         /// <param name="id">实体 ID</param>
         /// <param name="metadata">元数据列表</param>
         /// <returns>操作结果</returns>
-        public OperationResult UpdateMetadata(string id, List<CustomDataEntry> metadata)
+        public OperationResult UpdateMetadata(string id, CustomDataCollection metadata)
         {
             if (!_entities.ContainsKey(id))
             {
@@ -621,7 +621,7 @@ namespace EasyPack.CategoryService
             private readonly T _entity;
             private readonly string _category;
             private readonly List<string> _tags;
-            private List<CustomDataEntry> _metadata;
+            private CustomDataCollection _metadata;
             private readonly OperationResult _validationResult;
 
             public EntityRegistration(
@@ -648,7 +648,7 @@ namespace EasyPack.CategoryService
                 return this;
             }
 
-            public IEntityRegistration WithMetadata(List<CustomDataEntry> metadata)
+            public IEntityRegistration WithMetadata(CustomDataCollection metadata)
             {
                 _metadata = metadata;
                 return this;

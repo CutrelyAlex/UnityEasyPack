@@ -115,11 +115,11 @@ namespace EasyPack.InventorySystem
             // 反序列化 CustomData
             if (dto.CustomData != null && dto.CustomData.Count > 0)
             {
-                item.CustomData = new List<CustomDataEntry>(dto.CustomData);
+                item.CustomData = new CustomDataCollection(dto.CustomData);
             }
             else
             {
-                item.CustomData = new List<CustomDataEntry>();
+                item.CustomData = new CustomDataCollection();
             }
 
             // 反序列化容器ID列表

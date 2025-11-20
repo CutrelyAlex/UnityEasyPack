@@ -28,14 +28,14 @@ namespace EasyPack.GamePropertySystem
         /// <summary>
         /// 自定义扩展数据
         /// </summary>
-        public List<CustomDataEntry> CustomData;
+        public CustomDataCollection CustomData;
 
         /// <summary>
         /// 默认构造函数
         /// </summary>
         public PropertyMetadata()
         {
-            CustomData = new List<CustomDataEntry>();
+            CustomData = new CustomDataCollection();
         }
 
         /// <summary>

@@ -15,7 +15,7 @@ namespace EasyPack.InventorySystem
         int MaxStackCount { get; }
 
         /// <summary>自定义数据列表，支持多种类型的键值对存储</summary>
-        List<CustomDataEntry> CustomData { get; set; }
+        CustomDataCollection CustomData { get; set; }
 
         IItem Clone();
     }
@@ -42,7 +42,7 @@ namespace EasyPack.InventorySystem
         /// <param name="value">要设置的值</param>
         public static void SetCustomData(this IItem item, string id, object value)
         {
-            item.CustomData ??= new List<CustomDataEntry>();
+            item.CustomData ??= new CustomDataCollection();
 
             CustomDataUtility.SetValue(item.CustomData, id, value);
         }
@@ -85,7 +85,7 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 自定义数据列表
         /// </summary>
-        public List<CustomDataEntry> CustomData { get; set; } = new List<CustomDataEntry>();
+        public CustomDataCollection CustomData { get; set; } = new CustomDataCollection();
 
 
         public bool IsContainerItem = false;
@@ -128,7 +128,7 @@ namespace EasyPack.InventorySystem
         public void SetCustomData(string id, object value)
         {
             if (CustomData == null)
-                CustomData = new List<CustomDataEntry>();
+                CustomData = new CustomDataCollection();
 
             CustomDataUtility.SetValue(CustomData, id, value);
         }

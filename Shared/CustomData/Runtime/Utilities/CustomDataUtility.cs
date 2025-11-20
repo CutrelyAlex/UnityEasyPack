@@ -11,9 +11,9 @@ namespace EasyPack.CustomData
     {
         #region 转换方法
 
-        public static List<CustomDataEntry> ToEntries(Dictionary<string, object> dict, ICustomDataSerializer fallbackSerializer = null)
+        public static CustomDataCollection ToEntries(Dictionary<string, object> dict, ICustomDataSerializer fallbackSerializer = null)
         {
-            var list = new List<CustomDataEntry>();
+            var list = new CustomDataCollection();
             if (dict == null) return list;
 
             foreach (var kv in dict)
@@ -85,11 +85,10 @@ namespace EasyPack.CustomData
         /// <param name="id">数据键</param>
         /// <param name="defaultValue">默认值</param>
         /// <returns>找到的值或默认值</returns>
-        public static T GetValue<T>(List<CustomDataEntry> entries, string id, T defaultValue = default)
+        public static T GetValue<T>(CustomDataCollection entries, string id, T defaultValue = default)
         {
-            if (TryGetValue(entries, id, out T value))
-                return value;
-            return defaultValue;
+            if (entries == null) return defaultValue;
+            return entries.GetValue(id, defaultValue);
         }
 
         #endregion
@@ -100,23 +99,11 @@ namespace EasyPack.CustomData
         /// <param name="entries">CustomData 列表</param>
         /// <param name="id">数据键</param>
         /// <param name="value">数据值</param>
-        public static void SetValue(List<CustomDataEntry> entries, string id, object value)
+        public static void SetValue(CustomDataCollection entries, string id, object value)
         {
             if (entries == null)
                 throw new System.ArgumentNullException(nameof(entries));
-
-            // 查找现有条目
-            var existing = entries.FirstOrDefault(e => e.Key == id);
-            if (existing != null)
-            {
-                existing.SetValue(value);
-            }
-            else
-            {
-                var entry = new CustomDataEntry { Key = id };
-                entry.SetValue(value);
-                entries.Add(entry);
-            }
+            entries.SetValue(id, value);
         }
 
         #endregion
@@ -127,24 +114,25 @@ namespace EasyPack.CustomData
         /// <param name="entries">CustomData 列表</param>
         /// <param name="id">数据键</param>
         /// <returns>如果移除成功返回 true，否则返回 false</returns>
-        public static bool RemoveValue(List<CustomDataEntry> entries, string id)
+        public static bool RemoveValue(CustomDataCollection entries, string id)
         {
             if (entries == null) return false;
-            return entries.RemoveAll(e => e.Key == id) > 0;
+            return entries.RemoveValue(id);
         }
 
         /// <summary>检查是否存在指定的自定义数据</summary>
         /// <param name="entries">CustomData 列表</param>
         /// <param name="id">数据键</param>
         /// <returns>如果存在返回 true，否则返回 false</returns>
-        public static bool HasValue(List<CustomDataEntry> entries, string id)
+        public static bool HasValue(CustomDataCollection entries, string id)
         {
-            return entries != null && entries.Any(e => e.Key == id);
+            if (entries == null) return false;
+            return entries.HasValue(id);
         }
 
         /// <summary>清空所有自定义数据</summary>
         /// <param name="entries">CustomData 列表</param>
-        public static void ClearAll(List<CustomDataEntry> entries)
+        public static void ClearAll(CustomDataCollection entries)
         {
             entries?.Clear();
         }
@@ -152,7 +140,7 @@ namespace EasyPack.CustomData
         /// <summary>获取所有数据的键</summary>
         /// <param name="entries">CustomData 列表</param>
         /// <returns>键的集合</returns>
-        public static IEnumerable<string> GetKeys(List<CustomDataEntry> entries)
+        public static IEnumerable<string> GetKeys(CustomDataCollection entries)
         {
             if (entries == null) return Enumerable.Empty<string>();
             return entries.Select(e => e.Key);
@@ -165,7 +153,7 @@ namespace EasyPack.CustomData
         /// <summary>批量设置多个自定义数据</summary>
         /// <param name="entries">CustomData 列表</param>
         /// <param name="values">要设置的键值对</param>
-        public static void SetValues(List<CustomDataEntry> entries, Dictionary<string, object> values)
+        public static void SetValues(CustomDataCollection entries, Dictionary<string, object> values)
         {
             if (entries == null || values == null) return;
 
@@ -178,12 +166,12 @@ namespace EasyPack.CustomData
         /// <summary>深拷贝 CustomData 列表</summary>
         /// <param name="source">源列表</param>
         /// <returns>拷贝后的新列表</returns>
-        public static List<CustomDataEntry> Clone(List<CustomDataEntry> source)
+        public static CustomDataCollection Clone(CustomDataCollection source)
         {
             if (source == null || source.Count == 0)
-                return new List<CustomDataEntry>();
+                return new CustomDataCollection();
 
-            var cloned = new List<CustomDataEntry>();
+            var cloned = new CustomDataCollection();
             foreach (var entry in source)
             {
                 var clonedEntry = new CustomDataEntry
@@ -214,7 +202,7 @@ namespace EasyPack.CustomData
         /// <param name="entries">CustomData 列表</param>
         /// <param name="type">数据类型</param>
         /// <returns>符合类型的数据 ID 集合</returns>
-        public static IEnumerable<string> GetValuesByType(List<CustomDataEntry> entries, CustomDataType type)
+        public static IEnumerable<string> GetValuesByType(CustomDataCollection entries, CustomDataType type)
         {
             if (entries == null) return Enumerable.Empty<string>();
             return entries.Where(e => e.Type == type).Select(e => e.Key);
@@ -224,7 +212,7 @@ namespace EasyPack.CustomData
         /// <param name="entries">CustomData 列表</param>
         /// <param name="predicate">过滤条件</param>
         /// <returns>符合条件的数据条目</returns>
-        public static IEnumerable<CustomDataEntry> GetEntriesWhere(List<CustomDataEntry> entries, System.Func<CustomDataEntry, bool> predicate)
+        public static IEnumerable<CustomDataEntry> GetEntriesWhere(CustomDataCollection entries, System.Func<CustomDataEntry, bool> predicate)
         {
             if (entries == null) return Enumerable.Empty<CustomDataEntry>();
             return entries.Where(predicate);
@@ -233,7 +221,7 @@ namespace EasyPack.CustomData
         /// <summary>获取数据的数量</summary>
         /// <param name="entries">CustomData 列表</param>
         /// <returns>数据个数</returns>
-        public static int Count(List<CustomDataEntry> entries)
+        public static int Count(CustomDataCollection entries)
         {
             return entries?.Count ?? 0;
         }
@@ -241,7 +229,7 @@ namespace EasyPack.CustomData
         /// <summary>判断列表是否为空</summary>
         /// <param name="entries">CustomData 列表</param>
         /// <returns>如果为空返回 true，否则返回 false</returns>
-        public static bool IsEmpty(List<CustomDataEntry> entries)
+        public static bool IsEmpty(CustomDataCollection entries)
         {
             return entries == null || entries.Count == 0;
         }
@@ -255,7 +243,7 @@ namespace EasyPack.CustomData
         /// <param name="id">数据键</param>
         /// <param name="delta">增加量</param>
         /// <returns>增加后的新值，如果数据不存在或类型不匹配返回 delta</returns>
-        public static int AddInt(List<CustomDataEntry> entries, string id, int delta = 1)
+        public static int AddInt(CustomDataCollection entries, string id, int delta = 1)
         {
             if (entries == null) return delta;
             int current = GetValue(entries, id, 0);
@@ -269,7 +257,7 @@ namespace EasyPack.CustomData
         /// <param name="id">数据键</param>
         /// <param name="delta">增加量</param>
         /// <returns>增加后的新值，如果数据不存在或类型不匹配返回 delta</returns>
-        public static float AddFloat(List<CustomDataEntry> entries, string id, float delta = 1f)
+        public static float AddFloat(CustomDataCollection entries, string id, float delta = 1f)
         {
             if (entries == null) return delta;
             float current = GetValue(entries, id, 0f);
@@ -283,46 +271,46 @@ namespace EasyPack.CustomData
         #region 快捷方法 - 基础类型
 
         /// <summary>快速设置 int 值</summary>
-        public static void SetInt(List<CustomDataEntry> entries, string id, int value) => SetValue(entries, id, value);
+        public static void SetInt(CustomDataCollection entries, string id, int value) => SetValue(entries, id, value);
 
         /// <summary>快速设置 float 值</summary>
-        public static void SetFloat(List<CustomDataEntry> entries, string id, float value) => SetValue(entries, id, value);
+        public static void SetFloat(CustomDataCollection entries, string id, float value) => SetValue(entries, id, value);
 
         /// <summary>快速设置 bool 值</summary>
-        public static void SetBool(List<CustomDataEntry> entries, string id, bool value) => SetValue(entries, id, value);
+        public static void SetBool(CustomDataCollection entries, string id, bool value) => SetValue(entries, id, value);
 
         /// <summary>快速设置 string 值</summary>
-        public static void SetString(List<CustomDataEntry> entries, string id, string value) => SetValue(entries, id, value);
+        public static void SetString(CustomDataCollection entries, string id, string value) => SetValue(entries, id, value);
 
         /// <summary>快速设置 Vector2 值</summary>
-        public static void SetVector2(List<CustomDataEntry> entries, string id, Vector2 value) => SetValue(entries, id, value);
+        public static void SetVector2(CustomDataCollection entries, string id, Vector2 value) => SetValue(entries, id, value);
 
         /// <summary>快速设置 Vector3 值</summary>
-        public static void SetVector3(List<CustomDataEntry> entries, string id, Vector3 value) => SetValue(entries, id, value);
+        public static void SetVector3(CustomDataCollection entries, string id, Vector3 value) => SetValue(entries, id, value);
 
         /// <summary>快速设置 Color 值</summary>
-        public static void SetColor(List<CustomDataEntry> entries, string id, Color value) => SetValue(entries, id, value);
+        public static void SetColor(CustomDataCollection entries, string id, Color value) => SetValue(entries, id, value);
 
         /// <summary>快速获取 int 值</summary>
-        public static int GetInt(List<CustomDataEntry> entries, string id, int defaultValue = 0) => GetValue(entries, id, defaultValue);
+        public static int GetInt(CustomDataCollection entries, string id, int defaultValue = 0) => GetValue(entries, id, defaultValue);
 
         /// <summary>快速获取 float 值</summary>
-        public static float GetFloat(List<CustomDataEntry> entries, string id, float defaultValue = 0f) => GetValue(entries, id, defaultValue);
+        public static float GetFloat(CustomDataCollection entries, string id, float defaultValue = 0f) => GetValue(entries, id, defaultValue);
 
         /// <summary>快速获取 bool 值</summary>
-        public static bool GetBool(List<CustomDataEntry> entries, string id, bool defaultValue = false) => GetValue(entries, id, defaultValue);
+        public static bool GetBool(CustomDataCollection entries, string id, bool defaultValue = false) => GetValue(entries, id, defaultValue);
 
         /// <summary>快速获取 string 值</summary>
-        public static string GetString(List<CustomDataEntry> entries, string id, string defaultValue = "") => GetValue(entries, id, defaultValue);
+        public static string GetString(CustomDataCollection entries, string id, string defaultValue = "") => GetValue(entries, id, defaultValue);
 
         /// <summary>快速获取 Vector2 值</summary>
-        public static Vector2 GetVector2(List<CustomDataEntry> entries, string id, Vector2? defaultValue = null) => GetValue(entries, id, defaultValue ?? Vector2.zero);
+        public static Vector2 GetVector2(CustomDataCollection entries, string id, Vector2? defaultValue = null) => GetValue(entries, id, defaultValue ?? Vector2.zero);
 
         /// <summary>快速获取 Vector3 值</summary>
-        public static Vector3 GetVector3(List<CustomDataEntry> entries, string id, Vector3? defaultValue = null) => GetValue(entries, id, defaultValue ?? Vector3.zero);
+        public static Vector3 GetVector3(CustomDataCollection entries, string id, Vector3? defaultValue = null) => GetValue(entries, id, defaultValue ?? Vector3.zero);
 
         /// <summary>快速获取 Color 值</summary>
-        public static Color GetColor(List<CustomDataEntry> entries, string id, Color? defaultValue = null) => GetValue(entries, id, defaultValue ?? Color.white);
+        public static Color GetColor(CustomDataCollection entries, string id, Color? defaultValue = null) => GetValue(entries, id, defaultValue ?? Color.white);
 
         #endregion
 
@@ -334,9 +322,9 @@ namespace EasyPack.CustomData
         /// <param name="id">数据键</param>
         /// <param name="action">执行的操作</param>
         /// <returns>如果数据存在并执行成功返回 true，否则返回 false</returns>
-        public static bool IfHasValue<T>(List<CustomDataEntry> entries, string id, System.Action<T> action)
+        public static bool IfHasValue<T>(CustomDataCollection entries, string id, System.Action<T> action)
         {
-            if (TryGetValue(entries, id, out T value))
+            if (entries != null && entries.TryGetValue(id, out T value))
             {
                 action?.Invoke(value);
                 return true;
@@ -350,9 +338,9 @@ namespace EasyPack.CustomData
         /// <param name="id">数据键</param>
         /// <param name="onExists">数据存在时执行的操作</param>
         /// <param name="onNotExists">数据不存在时执行的操作</param>
-        public static void IfElse<T>(List<CustomDataEntry> entries, string id, System.Action<T> onExists, System.Action onNotExists)
+        public static void IfElse<T>(CustomDataCollection entries, string id, System.Action<T> onExists, System.Action onNotExists)
         {
-            if (TryGetValue(entries, id, out T value))
+            if (entries != null && entries.TryGetValue(id, out T value))
                 onExists?.Invoke(value);
             else
                 onNotExists?.Invoke();
@@ -365,13 +353,13 @@ namespace EasyPack.CustomData
         /// <summary>将另一个 CustomData 列表合并到当前列表（覆盖模式）</summary>
         /// <param name="entries">目标列表</param>
         /// <param name="other">要合并的列表</param>
-        public static void Merge(List<CustomDataEntry> entries, List<CustomDataEntry> other)
+        public static void Merge(CustomDataCollection entries, CustomDataCollection other)
         {
             if (entries == null || other == null) return;
 
             foreach (var entry in other)
             {
-                SetValue(entries, entry.Key, entry.GetValue());
+                entries.SetValue(entry.Key, entry.GetValue());
             }
         }
 
@@ -379,7 +367,7 @@ namespace EasyPack.CustomData
         /// <param name="entries">当前列表</param>
         /// <param name="other">对比列表</param>
         /// <returns>差异键的集合</returns>
-        public static IEnumerable<string> GetDifference(List<CustomDataEntry> entries, List<CustomDataEntry> other)
+        public static IEnumerable<string> GetDifference(CustomDataCollection entries, CustomDataCollection other)
         {
             var entriesKeys = new HashSet<string>(GetKeys(entries));
             var otherKeys = new HashSet<string>(GetKeys(other));
