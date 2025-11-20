@@ -14,9 +14,9 @@ namespace EasyPack.GamePropertySystem
     /// <summary>
     /// 游戏属性管理器
     /// 提供属性注册、查询、分类管理和批量操作功能
-    /// 实现IService接口，支持生命周期管理
+    /// 继承 BaseService，支持标准生命周期管理
     /// </summary>
-    public class GamePropertyService : IGamePropertyService
+    public class GamePropertyService : BaseService, IGamePropertyService
     {
         #region 字段
 
@@ -33,27 +33,17 @@ namespace EasyPack.GamePropertySystem
         private readonly object _categoryLock = new object();
         private readonly object _tagLock = new object();
 
-        // 服务生命周期状态
-        private ServiceLifecycleState _state = ServiceLifecycleState.Uninitialized;
-
         #endregion
 
-        #region IService 生命周期
+        #region 生命周期管理
 
         /// <summary>
-        /// 服务的当前生命周期状态
+        /// 服务初始化
+        /// 初始化所有数据结构并注册序列化器
         /// </summary>
-        public ServiceLifecycleState State => _state;
-
-        /// <summary>
-        /// 异步初始化服务
-        /// </summary>
-        public async Task InitializeAsync()
+        protected override async Task OnInitializeAsync()
         {
-            if (_state != ServiceLifecycleState.Uninitialized)
-                return;
-
-            _state = ServiceLifecycleState.Initializing;
+            await base.OnInitializeAsync();
 
             // 初始化字典
             _properties = new ConcurrentDictionary<string, GameProperty>();
@@ -62,15 +52,14 @@ namespace EasyPack.GamePropertySystem
             _categories = new ConcurrentDictionary<string, HashSet<string>>();
             _tagIndex = new ConcurrentDictionary<string, HashSet<string>>();
 
-            // 注册GameProperty系统的序列化器
+            // 注册 GameProperty 系统的序列化器
             await RegisterSerializers();
 
-            _state = ServiceLifecycleState.Ready;
-            await Task.CompletedTask;
+            Debug.Log("[GamePropertyService] 游戏属性服务初始化完成");
         }
 
         /// <summary>
-        /// 注册GameProperty系统的序列化器
+        /// 注册 GameProperty 系统的序列化器
         /// </summary>
         private async Task RegisterSerializers()
         {
@@ -79,51 +68,44 @@ namespace EasyPack.GamePropertySystem
                 // 获取序列化服务
                 var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
 
+                if (serializationService == null)
+                {
+                    Debug.LogWarning("[GamePropertyService] SerializationService 未初始化，跳过序列化器注册");
+                    return;
+                }
+
                 // 注册所有修饰符相关的序列化器
                 serializationService.RegisterSerializer(new ModifierSerializer());
                 serializationService.RegisterSerializer(new FloatModifierSerializer());
                 serializationService.RegisterSerializer(new RangeModifierSerializer());
                 serializationService.RegisterSerializer(new ModifierListSerializer());
 
-                // 注册GameProperty JSON序列化器
+                // 注册 GameProperty JSON 序列化器
                 serializationService.RegisterSerializer(new GamePropertyJsonSerializer());
                 serializationService.RegisterSerializer(new PropertyManagerSerializer());
+
+                Debug.Log("[GamePropertyService] 序列化器注册完成");
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[GamePropertyManager] 序列化器注册失败: {ex.Message}");
+                Debug.LogWarning($"[GamePropertyService] 序列化器注册失败: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// 暂停服务
+        /// 服务释放
         /// </summary>
-        public void Pause()
-        {
-            if (_state == ServiceLifecycleState.Ready)
-                _state = ServiceLifecycleState.Paused;
-        }
-
-        /// <summary>
-        /// 恢复服务
-        /// </summary>
-        public void Resume()
-        {
-            if (_state == ServiceLifecycleState.Paused)
-                _state = ServiceLifecycleState.Ready;
-        }
-
-        /// <summary>
-        /// 释放服务资源
-        /// </summary>
-        public void Dispose()
+        protected override async Task OnDisposeAsync()
         {
             _properties?.Clear();
             _metadata?.Clear();
             _categories?.Clear();
             _tagIndex?.Clear();
             _propertyToCategory?.Clear();
-            _state = ServiceLifecycleState.Disposed;
+
+            await base.OnDisposeAsync();
+
+            Debug.Log("[GamePropertyService] 游戏属性服务已释放");
         }
 
         #endregion
@@ -478,8 +460,8 @@ namespace EasyPack.GamePropertySystem
         /// </summary>
         private void ThrowIfNotReady()
         {
-            if (_state != ServiceLifecycleState.Ready)
-                throw new InvalidOperationException($"服务未就绪，当前状态: {_state}");
+            if (State != ServiceLifecycleState.Ready)
+                throw new InvalidOperationException($"服务未就绪，当前状态: {State}");
         }
 
         #endregion

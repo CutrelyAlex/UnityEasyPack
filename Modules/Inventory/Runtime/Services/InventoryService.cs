@@ -12,14 +12,9 @@ namespace EasyPack.InventorySystem
     /// <summary>
     /// 多个容器管理的系统，实现 IService 接口以支持 ENekoFramework
     /// </summary>
-    public partial class InventoryService : IInventoryService
+    public partial class InventoryService : BaseService, IInventoryService
     {
         #region IService 实现
-
-        /// <summary>
-        /// 服务当前生命周期状态
-        /// </summary>
-        public ServiceLifecycleState State { get; private set; } = ServiceLifecycleState.Uninitialized;
 
         /// <summary>
         /// 线程锁，用于保证线程安全
@@ -27,17 +22,12 @@ namespace EasyPack.InventorySystem
         private readonly object _lock = new object();
 
         /// <summary>
-        /// 异步初始化服务
+        /// 服务初始化钩子方法
+        /// 派生类应重写此方法以实现自定义初始化逻辑
         /// </summary>
-        public async Task InitializeAsync()
+        protected override async Task OnInitializeAsync()
         {
-            if (State != ServiceLifecycleState.Uninitialized)
-            {
-                Debug.LogWarning("[InventoryService] 服务已初始化，跳过重复初始化");
-                return;
-            }
-
-            State = ServiceLifecycleState.Initializing;
+            await base.OnInitializeAsync();
 
             // 执行必要的初始化逻辑
             await Task.Run(() =>
@@ -52,7 +42,6 @@ namespace EasyPack.InventorySystem
             // 注册序列化器
             await RegisterSerializers();
 
-            State = ServiceLifecycleState.Ready;
             Debug.Log("[InventoryService] 服务初始化完成");
         }
 
@@ -84,49 +73,36 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 暂停服务
+        /// 服务暂停钩子方法
         /// </summary>
-        public void Pause()
+        protected override void OnPause()
         {
             lock (_lock)
             {
-                if (State == ServiceLifecycleState.Ready)
-                {
-                    State = ServiceLifecycleState.Paused;
-                    Debug.Log("[InventoryService] 服务已暂停");
-                }
+                Debug.Log("[InventoryService] 服务已暂停");
             }
+            base.OnPause();
         }
 
         /// <summary>
-        /// 恢复服务
+        /// 服务恢复钩子方法
         /// </summary>
-        public void Resume()
+        protected override void OnResume()
         {
             lock (_lock)
             {
-                if (State == ServiceLifecycleState.Paused)
-                {
-                    State = ServiceLifecycleState.Ready;
-                    Debug.Log("[InventoryService] 服务已恢复");
-                }
+                Debug.Log("[InventoryService] 服务已恢复");
             }
+            base.OnResume();
         }
 
         /// <summary>
-        /// 释放服务资源
+        /// 服务释放钩子方法
         /// </summary>
-        public void Dispose()
+        protected override async Task OnDisposeAsync()
         {
             lock (_lock)
             {
-                if (State == ServiceLifecycleState.Disposed)
-                {
-                    return;
-                }
-
-                State = ServiceLifecycleState.Disposed;
-
                 // 清理所有容器
                 foreach (var container in _containers.Values)
                 {
@@ -142,6 +118,8 @@ namespace EasyPack.InventorySystem
 
                 Debug.Log("[InventoryService] 服务已释放");
             }
+
+            await base.OnDisposeAsync();
         }
 
         /// <summary>

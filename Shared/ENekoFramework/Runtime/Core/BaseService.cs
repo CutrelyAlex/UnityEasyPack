@@ -8,30 +8,24 @@ namespace EasyPack.ENekoFramework
     /// </summary>
     public abstract class BaseService : IService
     {
-        private ServiceLifecycleState _state = ServiceLifecycleState.Uninitialized;
-
         /// <summary>
         /// 服务的当前生命周期状态。
         /// </summary>
-        public ServiceLifecycleState State
-        {
-            get => _state;
-            protected set => _state = value;
-        }
+        public ServiceLifecycleState State { get; protected set; } = ServiceLifecycleState.Uninitialized;
 
         /// <summary>
         /// 异步初始化服务。
         /// </summary>
         public async Task InitializeAsync()
         {
-            if (_state >= ServiceLifecycleState.Ready)
+            if (State >= ServiceLifecycleState.Ready)
             {
                 return; // 已初始化
             }
 
-            _state = ServiceLifecycleState.Initializing;
+            State = ServiceLifecycleState.Initializing;
             await OnInitializeAsync();
-            _state = ServiceLifecycleState.Ready;
+            State = ServiceLifecycleState.Ready;
         }
 
         /// <summary>
@@ -39,12 +33,12 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         public void Pause()
         {
-            if (_state != ServiceLifecycleState.Ready)
+            if (State != ServiceLifecycleState.Ready)
             {
                 return;
             }
 
-            _state = ServiceLifecycleState.Paused;
+            State = ServiceLifecycleState.Paused;
             OnPause();
         }
 
@@ -53,12 +47,12 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         public void Resume()
         {
-            if (_state != ServiceLifecycleState.Paused)
+            if (State != ServiceLifecycleState.Paused)
             {
                 return;
             }
 
-            _state = ServiceLifecycleState.Ready;
+            State = ServiceLifecycleState.Ready;
             OnResume();
         }
 
@@ -67,13 +61,13 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         public void Dispose()
         {
-            if (_state == ServiceLifecycleState.Disposed)
+            if (State == ServiceLifecycleState.Disposed)
             {
                 return; // 已释放
             }
 
             OnDisposeAsync().Wait();
-            _state = ServiceLifecycleState.Disposed;
+            State = ServiceLifecycleState.Disposed;
         }
 
         /// <summary>

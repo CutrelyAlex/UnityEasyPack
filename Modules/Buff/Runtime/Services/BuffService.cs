@@ -9,56 +9,24 @@ namespace EasyPack.BuffSystem
     /// Buff生命周期管理器，负责Buff的创建、更新、移除和查询
     /// 实现IBuffService接口以集成到EasyPack架构中
     /// </summary>
-    public class BuffService : IBuffService
+    public class BuffService : BaseService, IBuffService
     {
         #region IService 生命周期
 
-        private ServiceLifecycleState _state = ServiceLifecycleState.Uninitialized;
-
         /// <summary>
-        /// 服务的当前生命周期状态
+        /// 服务初始化钩子方法
+        /// 派生类应重写此方法以实现自定义初始化逻辑
         /// </summary>
-        public ServiceLifecycleState State => _state;
-
-        /// <summary>
-        /// 异步初始化服务
-        /// </summary>
-        public async Task InitializeAsync()
+        protected override async Task OnInitializeAsync()
         {
-            if (_state != ServiceLifecycleState.Uninitialized)
-                return;
-
-            _state = ServiceLifecycleState.Initializing;
-
-
+            await base.OnInitializeAsync();
             // 预留异步初始化
-
-            _state = ServiceLifecycleState.Ready;
-            await Task.CompletedTask;
         }
 
         /// <summary>
-        /// 暂停服务
+        /// 服务释放钩子方法
         /// </summary>
-        public void Pause()
-        {
-            if (_state == ServiceLifecycleState.Ready)
-                _state = ServiceLifecycleState.Paused;
-        }
-
-        /// <summary>
-        /// 恢复服务
-        /// </summary>
-        public void Resume()
-        {
-            if (_state == ServiceLifecycleState.Paused)
-                _state = ServiceLifecycleState.Ready;
-        }
-
-        /// <summary>
-        /// 释放服务资源
-        /// </summary>
-        public void Dispose()
+        protected override async Task OnDisposeAsync()
         {
             _targetToBuffs?.Clear();
             _allBuffs?.Clear();
@@ -76,7 +44,7 @@ namespace EasyPack.BuffSystem
             _buffsToRemove?.Clear();
             _removalIndices?.Clear();
 
-            _state = ServiceLifecycleState.Disposed;
+            await base.OnDisposeAsync();
         }
 
         #endregion
@@ -815,7 +783,7 @@ namespace EasyPack.BuffSystem
         public void Update(float deltaTime)
         {
             // 暂停时跳过更新
-            if (_state != ServiceLifecycleState.Ready)
+            if (State != ServiceLifecycleState.Ready)
                 return;
 
             _removedBuffs.Clear();
