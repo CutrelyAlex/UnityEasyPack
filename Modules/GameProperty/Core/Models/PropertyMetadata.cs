@@ -1,6 +1,5 @@
 using EasyPack.CustomData;
 using System;
-using System.Collections.Generic;
 
 namespace EasyPack.GamePropertySystem
 {

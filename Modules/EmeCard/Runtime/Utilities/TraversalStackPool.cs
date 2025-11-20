@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using EasyPack.Architecture;
-using EasyPack.EmeCardSystem;
 using EasyPack.ObjectPool;
 
 namespace EasyPack.EmeCardSystem

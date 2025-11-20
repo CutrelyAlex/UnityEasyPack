@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using EasyPack.CustomData;
 
 namespace EasyPack.CategoryService

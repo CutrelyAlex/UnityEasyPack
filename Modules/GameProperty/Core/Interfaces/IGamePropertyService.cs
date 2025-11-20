@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using EasyPack.ENekoFramework;
-using EasyPack.GamePropertySystem;
 using EasyPack.Modifiers;
 
 namespace EasyPack.GamePropertySystem

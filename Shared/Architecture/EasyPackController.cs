@@ -40,7 +40,7 @@ namespace EasyPack.Architecture
         /// <typeparam name="TResult">命令返回类型</typeparam>
         /// <param name="command">命令实例</param>
         /// <param name="timeoutSeconds">超时秒数</param>
-        /// <param name="cancellationToken">获取</param>
+        /// <param name="cancellationToken">获取取消Token</param>
         protected async Task<TResult> SendCommandAsync<TResult>(
             ICommand<TResult> command,
             int? timeoutSeconds = null,

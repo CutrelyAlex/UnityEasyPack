@@ -1,6 +1,8 @@
+using System;
 using EasyPack.CustomData;
 using System.Collections.Generic;
 using System.Linq;
+using static EasyPack.InventorySystem.RotationAngle;
 
 namespace EasyPack.InventorySystem
 {
@@ -34,7 +36,7 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 当前旋转角度
         /// </summary>
-        public RotationAngle Rotation { get; set; } = RotationAngle.Rotate0;
+        public RotationAngle Rotation { get; set; } = Rotate0;
 
         /// <summary>
         /// 获取实际占用的单元格坐标列表（考虑旋转）
@@ -52,7 +54,7 @@ namespace EasyPack.InventorySystem
         /// </summary>
         private List<(int x, int y)> RotateShape(List<(int x, int y)> shape, RotationAngle angle)
         {
-            if (angle == RotationAngle.Rotate0)
+            if (angle == Rotate0)
                 return new List<(int x, int y)>(shape);
 
             // 计算形状的边界
@@ -65,7 +67,7 @@ namespace EasyPack.InventorySystem
 
             var rotated = new List<(int x, int y)>();
 
-            foreach (var (x, y) in shape)
+            foreach ((int x, int y) in shape)
             {
                 // 先归一化到原点
                 int normX = x - minX;
@@ -75,15 +77,15 @@ namespace EasyPack.InventorySystem
                 int rotX, rotY;
                 switch (angle)
                 {
-                    case RotationAngle.Rotate90:
+                    case Rotate90:
                         rotX = shapeHeight - 1 - normY;
                         rotY = normX;
                         break;
-                    case RotationAngle.Rotate180:
+                    case Rotate180:
                         rotX = shapeWidth - 1 - normX;
                         rotY = shapeHeight - 1 - normY;
                         break;
-                    case RotationAngle.Rotate270:
+                    case Rotate270:
                         rotX = normY;
                         rotY = shapeWidth - 1 - normX;
                         break;
@@ -164,11 +166,11 @@ namespace EasyPack.InventorySystem
 
             Rotation = Rotation switch
             {
-                RotationAngle.Rotate0 => RotationAngle.Rotate90,
-                RotationAngle.Rotate90 => RotationAngle.Rotate180,
-                RotationAngle.Rotate180 => RotationAngle.Rotate270,
-                RotationAngle.Rotate270 => RotationAngle.Rotate0,
-                _ => RotationAngle.Rotate0
+                Rotate0 => Rotate90,
+                Rotate90 => Rotate180,
+                Rotate180 => Rotate270,
+                Rotate270 => Rotate0,
+                _ => throw new ArgumentOutOfRangeException(nameof(Rotation), Rotation, null)
             };
 
             return true;
@@ -181,7 +183,7 @@ namespace EasyPack.InventorySystem
         /// <returns>是否成功设置</returns>
         public bool SetRotation(RotationAngle angle)
         {
-            if (!CanRotate && angle != RotationAngle.Rotate0) return false;
+            if (!CanRotate && angle != Rotate0) return false;
             Rotation = angle;
             return true;
         }
@@ -189,7 +191,7 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 克隆网格物品
         /// </summary>
-        public new GridItem Clone()
+        private new GridItem Clone()
         {
             var clone = new GridItem
             {

@@ -693,7 +693,7 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 添加指定数量的物品到容器（内部实现，带超出数量返回）
         /// </summary>
-        (AddItemResult result, int actualCount)
+        private (AddItemResult result, int actualCount)
         AddItemsWithCount(IItem item, out int exceededCount, int count = 1, int slotIndex = -1)
         {
             exceededCount = 0;

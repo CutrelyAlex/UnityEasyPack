@@ -18,7 +18,7 @@ namespace EasyPack.BuffSystem.Example
         private GameObject _dummyCreator;
         private IGamePropertyService _gamePropertyManager;
 
-        async void Start()
+        private async void Start()
         {
             try
             {
@@ -68,7 +68,7 @@ namespace EasyPack.BuffSystem.Example
         /// 示例1：基础 Buff 使用
         /// 学习目标：了解 Buff 的基本概念和创建流程
         /// </summary>
-        void Example_1_BasicBuff()
+        private void Example_1_BasicBuff()
         {
             Debug.Log("=== 示例1：基础 Buff 使用 ===");
 
@@ -108,7 +108,7 @@ namespace EasyPack.BuffSystem.Example
         /// 示例2：Buff 持续时间
         /// 学习目标：了解如何使用有限时间的 Buff
         /// </summary>
-        void Example_2_BuffDuration()
+        private void Example_2_BuffDuration()
         {
             Debug.Log("=== 示例2：Buff 持续时间 ===");
 
@@ -147,7 +147,7 @@ namespace EasyPack.BuffSystem.Example
         /// 示例3：Buff 堆叠
         /// 学习目标：了解 Buff 的堆叠机制
         /// </summary>
-        void Example_3_BuffStacking()
+        private void Example_3_BuffStacking()
         {
             Debug.Log("=== 示例3：Buff 堆叠 ===");
 
@@ -191,7 +191,7 @@ namespace EasyPack.BuffSystem.Example
         /// 示例4：Buff 叠加策略
         /// 学习目标：了解不同的叠加策略对持续时间和堆叠数的影响
         /// </summary>
-        void Example_4_BuffSuperpositionStrategies()
+        private void Example_4_BuffSuperpositionStrategies()
         {
             Debug.Log("=== 示例4：Buff 叠加策略 ===");
 
@@ -266,7 +266,7 @@ namespace EasyPack.BuffSystem.Example
         /// 示例5：属性修改型 Buff
         /// 学习目标：了解如何使用 Buff 修改游戏属性
         /// </summary>
-        void Example_5_PropertyModifierBuffs()
+        private void Example_5_PropertyModifierBuffs()
         {
             Debug.Log("=== 示例5：属性修改型 Buff ===");
 
@@ -330,7 +330,7 @@ namespace EasyPack.BuffSystem.Example
         /// 示例6：自定义 Buff 模块
         /// 学习目标：了解如何创建自定义的 Buff 效果
         /// </summary>
-        void Example_6_CustomBuffModules()
+        private void Example_6_CustomBuffModules()
         {
             Debug.Log("=== 示例6：自定义 Buff 模块 ===");
 
@@ -351,7 +351,7 @@ namespace EasyPack.BuffSystem.Example
 
             // 6.2 模拟时间流逝观察触发效果
             Debug.Log("开始模拟时间流逝...");
-            for (int i = 1; i <= 3; i++)
+            for (var i = 1; i <= 3; i++)
             {
                 _buffManager.Update(2f);
                 Debug.Log($"经过 {i * 2} 秒");
@@ -383,7 +383,7 @@ namespace EasyPack.BuffSystem.Example
         /// 示例7：Buff 标签和层级系统
         /// 学习目标：了解如何使用标签和层级管理 Buff
         /// </summary>
-        void Example_7_BuffTagsAndLayers()
+        private void Example_7_BuffTagsAndLayers()
         {
             Debug.Log("=== 示例7：Buff 标签和层级系统 ===");
 
@@ -447,7 +447,7 @@ namespace EasyPack.BuffSystem.Example
         /// 示例8：Buff 生命周期事件
         /// 学习目标：了解如何监听和响应 Buff 的各种生命周期事件
         /// </summary>
-        void Example_8_BuffLifecycleEvents()
+        private void Example_8_BuffLifecycleEvents()
         {
             Debug.Log("=== 示例8：Buff 生命周期事件 ===");
 
@@ -497,7 +497,7 @@ namespace EasyPack.BuffSystem.Example
         /// 示例9：复杂 RPG Buff 组合
         /// 学习目标：了解在实际游戏中如何组合各种 Buff 功能
         /// </summary>
-        void Example_9_ComplexRPGBuffs()
+        private void Example_9_ComplexRPGBuffs()
         {
             Debug.Log("=== 示例9：复杂 RPG Buff 组合 ===");
 
@@ -605,11 +605,12 @@ namespace EasyPack.BuffSystem.Example
             Debug.Log("复杂 RPG Buff 组合示例完成\n");
         }
 
+        // ReSharper disable Unity.PerformanceAnalysis
         /// <summary>
         /// 示例10：Buff 性能和最佳实践
         /// 学习目标：了解 Buff 系统的性能优化和使用最佳实践
         /// </summary>
-        void Example_10_BuffPerformanceAndBestPractices()
+        private void Example_10_BuffPerformanceAndBestPractices()
         {
             Debug.Log("=== 示例10：Buff 性能和最佳实践 ===");
 
@@ -618,7 +619,7 @@ namespace EasyPack.BuffSystem.Example
             var testBuffs = new List<Buff>();
 
             // 创建多个Buff用于测试
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
                 var buffData = new BuffData
                 {
@@ -687,7 +688,7 @@ namespace EasyPack.BuffSystem.Example
 
             // 安全的Buff创建
             BuffData safeBuff = null;
-
+            
             var safeBuffInstance = _buffManager.CreateBuff(safeBuff, _dummyCreator, _dummyTarget);
             if (safeBuffInstance == null)
                 Debug.Log("安全的Buff创建：传入null BuffData，未创建Buff实例");
@@ -705,7 +706,7 @@ namespace EasyPack.BuffSystem.Example
         /// 示例11：错误处理和调试
         /// 学习目标：了解常见错误和调试技巧
         /// </summary>
-        void Example_11_ErrorHandlingAndDebugging()
+        private void Example_11_ErrorHandlingAndDebugging()
         {
             Debug.Log("=== 示例11：错误处理和调试 ===");
 
@@ -765,7 +766,7 @@ namespace EasyPack.BuffSystem.Example
             Debug.Log("错误处理和调试示例完成\n");
         }
 
-        void Update()
+        private void Update()
         {
             // 在实际游戏中，需要在Update中调用BuffManager的Update方法
             // _buffManager.Update(Time.deltaTime);

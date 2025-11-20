@@ -112,7 +112,7 @@ namespace EasyPack.ENekoFramework.Editor
     /// </summary>
     public class DependencyGraphView : GraphView
     {
-        private List<Type> _circularDependencies = new List<Type>();
+        private readonly List<Type> _circularDependencies = new List<Type>();
 
         public DependencyGraphView()
         {
@@ -137,14 +137,14 @@ namespace EasyPack.ENekoFramework.Editor
             if (services == null || services.Count == 0)
                 return;
             
-            var nodes = new Dictionary<Type, ServiceNode>();
+            var serviceNodes = new Dictionary<Type, ServiceNode>();
             
             // 创建节点
             foreach (var service in services)
             {
                 var node = CreateServiceNode(service);
                 AddElement(node);
-                nodes[service.ServiceType] = node;
+                serviceNodes[service.ServiceType] = node;
             }
             
             // 创建连接
@@ -154,21 +154,17 @@ namespace EasyPack.ENekoFramework.Editor
                 if (dependencies == null)
                     continue;
                 
-                foreach (var depType in dependencies)
+                foreach (var edge in from depType in dependencies
+                         where serviceNodes.ContainsKey(service.ServiceType) && serviceNodes.ContainsKey(depType)
+                         select CreateEdge(serviceNodes[service.ServiceType], serviceNodes[depType]))
                 {
-                    if (nodes.ContainsKey(service.ServiceType) && nodes.ContainsKey(depType))
-                    {
-                        var edge = CreateEdge(nodes[service.ServiceType], nodes[depType]);
-                        AddElement(edge);
-                    }
+                    AddElement(edge);
                 }
                 
                 // 检查循环依赖
-                if (ServiceInspector.HasCircularDependency(service.ServiceType))
-                {
-                    _circularDependencies.Add(service.ServiceType);
-                    nodes[service.ServiceType].MarkAsCircular();
-                }
+                if (!ServiceInspector.HasCircularDependency(service.ServiceType)) continue;
+                _circularDependencies.Add(service.ServiceType);
+                serviceNodes[service.ServiceType].MarkAsCircular();
             }
             
             // 自动布局
@@ -177,26 +173,26 @@ namespace EasyPack.ENekoFramework.Editor
 
         public void AutoLayout()
         {
-            var nodes = this.nodes.ToList().Cast<ServiceNode>().ToList();
-            if (nodes.Count == 0)
+            var serviceNodes = this.nodes.ToList().Cast<ServiceNode>().ToList();
+            if (serviceNodes.Count == 0)
                 return;
             
             // 简单的层次布局算法
-            var layers = CalculateLayers(nodes);
+            var layers = CalculateLayers(serviceNodes);
             
-            float xSpacing = 250f;
-            float ySpacing = 150f;
-            float startX = 100f;
-            float startY = 100f;
+            const float xSpacing = 250f;
+            const float ySpacing = 150f;
+            const float startX = 100f;
+            const float startY = 100f;
             
-            for (int layer = 0; layer < layers.Count; layer++)
+            for (var layer = 0; layer < layers.Count; layer++)
             {
                 var nodesInLayer = layers[layer];
-                float y = startY + layer * ySpacing;
+                var y = startY + layer * ySpacing;
                 
-                for (int i = 0; i < nodesInLayer.Count; i++)
+                for (var i = 0; i < nodesInLayer.Count; i++)
                 {
-                    float x = startX + i * xSpacing;
+                    var x = startX + i * xSpacing;
                     nodesInLayer[i].SetPosition(new Rect(x, y, 200, 100));
                 }
             }
@@ -209,10 +205,10 @@ namespace EasyPack.ENekoFramework.Editor
 
         private ServiceNode CreateServiceNode(ServiceDescriptor service)
         {
-            return new ServiceNode(service);
+            return ServiceNode.Create(service);
         }
 
-        private Edge CreateEdge(ServiceNode from, ServiceNode to)
+        private static Edge CreateEdge(ServiceNode from, ServiceNode to)
         {
             var edge = new Edge
             {
@@ -226,23 +222,31 @@ namespace EasyPack.ENekoFramework.Editor
             return edge;
         }
 
-        private List<List<ServiceNode>> CalculateLayers(List<ServiceNode> nodes)
+        private List<List<ServiceNode>> CalculateLayers(List<ServiceNode> serviceNodes)
         {
             var layers = new List<List<ServiceNode>>();
             var processed = new HashSet<ServiceNode>();
-            var nodesByType = nodes.ToDictionary(n => n.ServiceType);
+            var nodesByType = new Dictionary<Type, ServiceNode>();
+            foreach (var node in serviceNodes)
+            {
+                nodesByType[node.ServiceType] = node;
+            }
             
             // 第一层：没有依赖的节点
-            var layer0 = nodes.Where(n =>
+            var layer0 = new List<ServiceNode>();
+            foreach (var node in serviceNodes)
             {
-                var deps = ServiceInspector.GetServiceDependencies(n.ServiceType);
-                return deps == null || deps.Count == 0;
-            }).ToList();
+                var deps = ServiceInspector.GetServiceDependencies(node.ServiceType);
+                if (deps == null || deps.Count == 0)
+                {
+                    layer0.Add(node);
+                }
+            }
             
             if (layer0.Count == 0)
             {
                 // 如果所有节点都有依赖（可能是循环依赖），全部放在第一层
-                layer0 = nodes.ToList();
+                layer0.AddRange(serviceNodes);
             }
             
             layers.Add(layer0);
@@ -252,36 +256,54 @@ namespace EasyPack.ENekoFramework.Editor
             }
             
             // 后续层
-            int maxIterations = 100;
-            int iteration = 0;
+            const int maxIterations = 100;
+            var iteration = 0;
             
-            while (processed.Count < nodes.Count && iteration < maxIterations)
+            while (processed.Count < serviceNodes.Count && iteration < maxIterations)
             {
                 iteration++;
                 
-                var nextLayer = nodes.Where(n =>
+                var nextLayer = new List<ServiceNode>();
+                foreach (var node in serviceNodes)
                 {
-                    if (processed.Contains(n))
-                        return false;
+                    if (processed.Contains(node))
+                        continue;
                     
-                    var deps = ServiceInspector.GetServiceDependencies(n.ServiceType);
+                    var deps = ServiceInspector.GetServiceDependencies(node.ServiceType);
                     if (deps == null)
-                        return true;
+                    {
+                        nextLayer.Add(node);
+                        continue;
+                    }
                     
                     // 检查所有依赖是否都已处理
-                    return deps.All(depType =>
-                        !nodesByType.ContainsKey(depType) ||
-                        processed.Contains(nodesByType[depType])
-                    );
-                }).ToList();
+                    var allDepsProcessed = true;
+                    foreach (var depType in deps)
+                    {
+                        if (nodesByType.ContainsKey(depType) && processed.Contains(nodesByType[depType])) continue;
+                        allDepsProcessed = false;
+                        break;
+                    }
+                    
+                    if (allDepsProcessed)
+                    {
+                        nextLayer.Add(node);
+                    }
+                }
                 
                 if (nextLayer.Count == 0)
                 {
                     // 剩余的节点可能涉及循环依赖，全部放入下一层
-                    nextLayer = nodes.Where(n => !processed.Contains(n)).ToList();
+                    foreach (var node in serviceNodes)
+                    {
+                        if (!processed.Contains(node))
+                        {
+                            nextLayer.Add(node);
+                        }
+                    }
                 }
-                
-                if (nextLayer.Count > 0)
+
+                if (nextLayer.Count <= 0)
                 {
                     layers.Add(nextLayer);
                     foreach (var node in nextLayer)
@@ -301,28 +323,43 @@ namespace EasyPack.ENekoFramework.Editor
     public class ServiceNode : Node
     {
         public Type ServiceType { get; }
-        public Port InputPort { get; }
-        public Port OutputPort { get; }
+        public Port InputPort { get; private set; }
+        public Port OutputPort { get; private set; }
         
-        private Label _statusLabel;
-
-        public ServiceNode(ServiceDescriptor service)
+        private ServiceDescriptor _serviceDescriptor;
+        
+        private ServiceNode(ServiceDescriptor descriptor)
         {
-            ServiceType = service.ServiceType;
+            ServiceType = descriptor.ServiceType;
+            _serviceDescriptor = descriptor;
+        }
+        
+        public static ServiceNode Create(ServiceDescriptor service)
+        {
+            var node = new ServiceNode(service);
+            node.Initialize();
+            return node;
+        }
+        
+        private void Initialize()
+        {
+            var service = _serviceDescriptor;
+
+            // 设置标题
             title = service.ServiceType.Name;
-            
+
             // 输入端口（被依赖）
             InputPort = InstantiatePort(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(object));
             InputPort.portName = "Dependents";
             inputContainer.Add(InputPort);
-            
+
             // 输出端口（依赖其他）
             OutputPort = InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(object));
             OutputPort.portName = "Dependencies";
             outputContainer.Add(OutputPort);
-            
+
             // 状态标签
-            _statusLabel = new Label(service.State.ToString())
+            var statusLabel = new Label(service.State.ToString())
             {
                 style =
                 {
@@ -331,8 +368,8 @@ namespace EasyPack.ENekoFramework.Editor
                     marginTop = 5
                 }
             };
-            mainContainer.Add(_statusLabel);
-            
+            mainContainer.Add(statusLabel);
+
             // 实现类型标签
             var implLabel = new Label(service.ImplementationType.Name)
             {
@@ -344,8 +381,10 @@ namespace EasyPack.ENekoFramework.Editor
                 }
             };
             mainContainer.Add(implLabel);
-            
+
             RefreshExpandedState();
+            
+            _serviceDescriptor = null;
         }
 
         public void MarkAsCircular()
@@ -364,7 +403,7 @@ namespace EasyPack.ENekoFramework.Editor
             mainContainer.Add(warningLabel);
         }
 
-        private Color GetStateColor(ServiceLifecycleState state)
+        private static Color GetStateColor(ServiceLifecycleState state)
         {
             return state switch
             {
@@ -379,4 +418,3 @@ namespace EasyPack.ENekoFramework.Editor
     }
 }
 #endif
-

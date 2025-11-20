@@ -11,7 +11,7 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 用于验证物品条件的委托
         /// </summary>
-        Func<IItem, bool> Condition { get; set; }
+        private Func<IItem, bool> Condition { get; set; }
 
         public CustomItemCondition(Func<IItem, bool> condition)
         {
