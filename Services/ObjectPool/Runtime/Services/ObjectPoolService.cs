@@ -123,12 +123,7 @@ namespace EasyPack.ObjectPool
         public ObjectPool<T> GetOrCreatePool<T>(Func<T> factory, Action<T> cleanup = null, int maxCapacity = 64) where T : class
         {
             var pool = GetPool<T>();
-            if (pool != null)
-            {
-                return pool;
-            }
-
-            return CreatePool(factory, cleanup, maxCapacity);
+            return pool ?? CreatePool(factory, cleanup, maxCapacity);
         }
 
         /// <summary>
@@ -141,13 +136,10 @@ namespace EasyPack.ObjectPool
             {
                 var poolType = kvp.Value.GetType();
                 var method = poolType.GetMethod("GetStatistics");
-                if (method != null)
+                if (method == null) continue;
+                if (method.Invoke(kvp.Value, null) is PoolStatistics stat)
                 {
-                    var stat = method.Invoke(kvp.Value, null) as PoolStatistics;
-                    if (stat != null)
-                    {
-                        stats.Add(stat);
-                    }
+                    stats.Add(stat);
                 }
             }
             return stats;
@@ -188,11 +180,9 @@ namespace EasyPack.ObjectPool
         public T Rent<T>() where T : class
         {
             var pool = GetPool<T>();
-            if (pool == null)
-            {
-                throw new InvalidOperationException($"类型 {typeof(T).Name} 的对象池不存在，请先调用 CreatePool 或 GetOrCreatePool");
-            }
-            return pool.Rent();
+            return pool == null
+                ? throw new InvalidOperationException($"类型 {typeof(T).Name} 的对象池不存在，请先调用 CreatePool 或 GetOrCreatePool")
+                : pool.Rent();
         }
 
         /// <summary>

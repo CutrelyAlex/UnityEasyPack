@@ -17,7 +17,7 @@ namespace EasyPack.ObjectPool
         private Vector2 _scrollPosition;
         private bool _isMonitoring = false;
         private IObjectPoolService _poolService;
-        private List<PoolStatistics> _currentStats = new List<PoolStatistics>();
+        private List<PoolStatistics> _currentStats = new();
         private float _refreshInterval = 0.5f;
         private float _lastRefreshTime;
 

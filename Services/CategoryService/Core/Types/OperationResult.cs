@@ -100,7 +100,7 @@ namespace EasyPack.CategoryService
         /// </summary>
         public static OperationResult<T> Failure(ErrorCode errorCode, string errorMessage = null)
         {
-            return new OperationResult<T>(false, errorCode, errorMessage, default(T));
+            return new OperationResult<T>(false, errorCode, errorMessage, default);
         }
 
         /// <summary>

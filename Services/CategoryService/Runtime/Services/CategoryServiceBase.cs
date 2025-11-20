@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using EasyPack.ENekoFramework;
 
@@ -9,7 +10,7 @@ namespace EasyPack.CategoryService
     /// </summary>
     public abstract class CategoryServiceBase : ICategoryService
     {
-        public ServiceLifecycleState State => throw new System.NotImplementedException();
+        public ServiceLifecycleState State => throw new NotImplementedException();
 
         public virtual Task InitAsync()
         {
@@ -22,17 +23,22 @@ namespace EasyPack.CategoryService
 
         public Task InitializeAsync()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void Pause()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void Resume()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
+
+        public abstract CategoryManager<T> GetOrCreateManager<T>(
+            Func<T, string> idExtractor,
+            StringComparison comparisonMode = StringComparison.OrdinalIgnoreCase,
+            CacheStrategy cacheStrategy = CacheStrategy.Balanced);
     }
 }

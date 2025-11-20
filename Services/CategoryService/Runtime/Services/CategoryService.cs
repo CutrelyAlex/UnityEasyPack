@@ -8,11 +8,11 @@ using System.Threading;
 namespace EasyPack.CategoryService
 {
     /// <summary>
-    /// 通用分类管理服务
+    /// 通用分类管理器
     /// 提供实体的分类管理、标签系统和元数据管理功能
     /// </summary>
-    /// <typeparam name="T">实体类型</typeparam>
-    public class CategoryService<T> : CategoryServiceBase
+    /// <typeparam name="T">实体类型（必须可序列化）</typeparam>
+    public class CategoryManager<T>
     {
         #region 属性
 
@@ -45,7 +45,7 @@ namespace EasyPack.CategoryService
         /// <param name="idExtractor">实体 ID 提取函数</param>
         /// <param name="comparisonMode">字符串比较模式</param>
         /// <param name="cacheStrategy">缓存策略</param>
-        public CategoryService(
+        public CategoryManager(
             Func<T, string> idExtractor,
             StringComparison comparisonMode = StringComparison.OrdinalIgnoreCase,
             CacheStrategy cacheStrategy = CacheStrategy.Balanced)
@@ -161,26 +161,24 @@ namespace EasyPack.CategoryService
                 {
                     foreach (var kvp in _categoryTree)
                     {
-                        if (regex.IsMatch(kvp.Key))
+                        if (!regex.IsMatch(kvp.Key)) continue;
+                        if (includeChildren)
                         {
-                            if (includeChildren)
+                            // 获取所有后代节点
+                            var descendants = kvp.Value.GetDescendants();
+                            foreach (var node in descendants)
                             {
-                                // 获取所有后代节点
-                                var descendants = kvp.Value.GetDescendants();
-                                foreach (var node in descendants)
-                                {
-                                    foreach (var id in node.EntityIds)
-                                    {
-                                        entityIds.Add(id);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                foreach (var id in kvp.Value.EntityIds)
+                                foreach (var id in node.EntityIds)
                                 {
                                     entityIds.Add(id);
                                 }
+                            }
+                        }
+                        else
+                        {
+                            foreach (var id in kvp.Value.EntityIds)
+                            {
+                                entityIds.Add(id);
                             }
                         }
                     }
@@ -229,11 +227,9 @@ namespace EasyPack.CategoryService
         /// <returns>操作结果</returns>
         public OperationResult<T> GetById(string id)
         {
-            if (_entities.TryGetValue(id, out var entity))
-            {
-                return OperationResult<T>.Success(entity);
-            }
-            return OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+            return _entities.TryGetValue(id, out var entity)
+                ? OperationResult<T>.Success(entity)
+                : OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
         }
 
         /// <summary>
@@ -357,10 +353,7 @@ namespace EasyPack.CategoryService
                 _categoryIndex.Remove(category);
 
                 // 从父节点移除引用
-                if (node.Parent != null)
-                {
-                    node.Parent.RemoveChild(node.Name);
-                }
+                node.Parent?.RemoveChild(node.Name);
 
                 _cacheStrategy.Clear();
                 return OperationResult.Success();
@@ -418,10 +411,7 @@ namespace EasyPack.CategoryService
                 _categoryIndex.Remove(category);
 
                 // 从父节点移除引用
-                if (node.Parent != null)
-                {
-                    node.Parent.RemoveChild(node.Name);
-                }
+                node.Parent?.RemoveChild(node.Name);
 
                 _cacheStrategy.Clear();
                 return OperationResult.Success();
@@ -580,12 +570,10 @@ namespace EasyPack.CategoryService
                     ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
             }
 
-            if (_metadataStore.TryGetValue(id, out var metadata))
-            {
-                return OperationResult<CustomDataCollection>.Success(metadata);
-            }
-
-            return OperationResult<CustomDataCollection>.Success(new CustomDataCollection());
+            return OperationResult<CustomDataCollection>
+                            .Success(_metadataStore.TryGetValue(id, out var metadata)
+                ? metadata
+                : new CustomDataCollection());
         }
 
         /// <summary>
@@ -607,6 +595,298 @@ namespace EasyPack.CategoryService
 
         #endregion
 
+        #region 内部访问器
+
+        /// <summary>
+        /// 获取标签索引
+        /// </summary>
+        /// <returns>标签到实体 ID 集合的映射</returns>
+        internal IReadOnlyDictionary<string, HashSet<string>> GetTagIndex()
+        {
+            return _tagIndex;
+        }
+
+        /// <summary>
+        /// 获取元数据存储
+        /// </summary>
+        /// <returns>实体 ID 到元数据集合的映射</returns>
+        internal IReadOnlyDictionary<string, CustomDataCollection> GetMetadataStore()
+        {
+            return _metadataStore;
+        }
+
+        /// <summary>
+        /// 设置标签索引
+        /// </summary>
+        /// <param name="tagIndex">标签索引数据</param>
+        internal void SetTagIndex(Dictionary<string, HashSet<string>> tagIndex)
+        {
+            _tagIndex.Clear();
+            foreach (var kvp in tagIndex)
+            {
+                _tagIndex[kvp.Key] = kvp.Value;
+            }
+        }
+
+        /// <summary>
+        /// 设置元数据存储
+        /// </summary>
+        /// <param name="metadataStore">元数据存储数据</param>
+        internal void SetMetadataStore(Dictionary<string, CustomDataCollection> metadataStore)
+        {
+            _metadataStore.Clear();
+            foreach (var kvp in metadataStore)
+            {
+                _metadataStore[kvp.Key] = kvp.Value;
+            }
+        }
+
+        #endregion
+
+        #region 语法糖操作
+
+        /// <summary>
+        /// 将实体移动到新分类
+        /// </summary>
+        /// <param name="entityId">实体 ID</param>
+        /// <param name="newCategory">新分类名称</param>
+        /// <returns>操作结果</returns>
+        public OperationResult MoveEntityToCategory(string entityId, string newCategory)
+        {
+            // 验证实体存在
+            if (!_entities.TryGetValue(entityId, out var entity))
+            {
+                return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
+            }
+
+            // 验证并规范化新分类名称
+            newCategory = CategoryNameNormalizer.Normalize(newCategory, _comparisonMode);
+            if (!CategoryNameNormalizer.IsValid(newCategory, out var errorMessage))
+            {
+                return OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage);
+            }
+
+            _treeLock.EnterWriteLock();
+            try
+            {
+                // 从旧分类中移除
+                foreach (var kvp in _categoryTree.ToList())
+                {
+                    if (kvp.Value.EntityIds.Remove(entityId))
+                    {
+                        _categoryIndex[kvp.Key]?.Remove(entityId);
+                    }
+                }
+
+                // 添加到新分类（自动创建）
+                var node = GetOrCreateNode(newCategory);
+                node.EntityIds.Add(entityId);
+
+                if (!_categoryIndex.ContainsKey(newCategory))
+                {
+                    _categoryIndex[newCategory] = new HashSet<string>();
+                }
+                _categoryIndex[newCategory].Add(entityId);
+
+                // 清除缓存
+                _cacheStrategy.Clear();
+
+                return OperationResult.Success();
+            }
+            finally
+            {
+                _treeLock.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
+        /// 重命名分类
+        /// </summary>
+        /// <param name="oldName">旧分类名称</param>
+        /// <param name="newName">新分类名称</param>
+        /// <returns>操作结果</returns>
+        public OperationResult RenameCategory(string oldName, string newName)
+        {
+            // 规范化分类名称
+            oldName = CategoryNameNormalizer.Normalize(oldName, _comparisonMode);
+            newName = CategoryNameNormalizer.Normalize(newName, _comparisonMode);
+
+            // 验证新分类名称
+            if (!CategoryNameNormalizer.IsValid(newName, out var errorMessage))
+            {
+                return OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage);
+            }
+
+            _treeLock.EnterWriteLock();
+            try
+            {
+                // 检查旧分类是否存在
+                if (!_categoryTree.TryGetValue(oldName, out var oldNode))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到分类 '{oldName}'");
+                }
+
+                // 检查新分类名称是否已存在
+                if (_categoryTree.ContainsKey(newName))
+                {
+                    return OperationResult.Failure(ErrorCode.DuplicateId, $"分类 '{newName}' 已存在");
+                }
+
+                // 重命名节点及其所有子节点
+                var descendants = oldNode.GetDescendants();
+                var nodesToRename = new List<CategoryNode> { oldNode };
+                nodesToRename.AddRange(descendants);
+
+                // 从后往前重命名（先处理子节点）
+                for (int i = nodesToRename.Count - 1; i >= 0; i--)
+                {
+                    var node = nodesToRename[i];
+                    var oldFullPath = node.FullPath;
+                    var newFullPath = oldFullPath.Replace(oldName, newName);
+
+                    // 更新节点数据
+                    var entityIds = new HashSet<string>(node.EntityIds);
+                    
+                    // 从旧路径移除
+                    _categoryTree.Remove(oldFullPath);
+                    _categoryIndex.Remove(oldFullPath);
+
+                    // 创建新节点
+                    var newNode = new CategoryNode(
+                        newFullPath.Split('.').Last(),
+                        newFullPath
+                    );
+                    
+                    foreach (var id in entityIds)
+                    {
+                        newNode.EntityIds.Add(id);
+                    }
+
+                    // 重建父子关系
+                    if (node.Parent != null)
+                    {
+                        var parentNewPath = node.Parent.FullPath.Replace(oldName, newName);
+                        if (_categoryTree.TryGetValue(parentNewPath, out var newParent))
+                        {
+                            newParent.AddChild(newNode);
+                        }
+                    }
+
+                    // 复制子节点引用
+                    foreach (var child in node.Children.Values)
+                    {
+                        var childNewPath = child.FullPath.Replace(oldName, newName);
+                        if (_categoryTree.TryGetValue(childNewPath, out var newChild))
+                        {
+                            newNode.AddChild(newChild);
+                        }
+                    }
+
+                    // 添加到新路径
+                    _categoryTree[newFullPath] = newNode;
+                    _categoryIndex[newFullPath] = entityIds;
+                }
+
+                // 清除缓存
+                _cacheStrategy.Clear();
+
+                return OperationResult.Success();
+            }
+            finally
+            {
+                _treeLock.ExitWriteLock();
+            }
+        }
+
+        #endregion
+
+        #region 序列化支持
+
+        /// <summary>
+        /// 序列化为 JSON 字符串
+        /// 使用 EasyPack 序列化服务
+        /// </summary>
+        /// <returns>JSON 字符串</returns>
+        public string SerializeToJson()
+        {
+            var serializer = new CategoryManagerJsonSerializer<T>(_idExtractor);
+            return serializer.SerializeToJson(this);
+        }
+
+        /// <summary>
+        /// 从 JSON 字符串反序列化并替换当前实例的数据
+        /// 注意：此方法会清空当前实例并加载新数据
+        /// </summary>
+        /// <param name="json">JSON 字符串</param>
+        /// <returns>操作结果</returns>
+        public OperationResult LoadFromJson(string json)
+        {
+            try
+            {
+                var serializer = new CategoryManagerJsonSerializer<T>(_idExtractor);
+                var newManager = serializer.DeserializeFromJson(json);
+
+                // 清空当前数据
+                _treeLock.EnterWriteLock();
+                try
+                {
+                    _entities.Clear();
+                    _categoryTree.Clear();
+                    _categoryIndex.Clear();
+                    _tagIndex.Clear();
+                    _metadataStore.Clear();
+                    _cacheStrategy.Clear();
+
+                    // 从新实例复制数据
+                    foreach (var kvp in newManager._entities)
+                    {
+                        _entities[kvp.Key] = kvp.Value;
+                    }
+                    foreach (var kvp in newManager._categoryTree)
+                    {
+                        _categoryTree[kvp.Key] = kvp.Value;
+                    }
+                    foreach (var kvp in newManager._categoryIndex)
+                    {
+                        _categoryIndex[kvp.Key] = kvp.Value;
+                    }
+                    foreach (var kvp in newManager._tagIndex)
+                    {
+                        _tagIndex[kvp.Key] = kvp.Value;
+                    }
+                    foreach (var kvp in newManager._metadataStore)
+                    {
+                        _metadataStore[kvp.Key] = kvp.Value;
+                    }
+                }
+                finally
+                {
+                    _treeLock.ExitWriteLock();
+                }
+
+                return OperationResult.Success();
+            }
+            catch (Exception ex)
+            {
+                return OperationResult.Failure(ErrorCode.InvalidCategory, 
+                    $"反序列化失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 从 JSON 字符串创建新的 CategoryManager 实例
+        /// </summary>
+        /// <param name="json">JSON 字符串</param>
+        /// <param name="idExtractor">实体 ID 提取函数</param>
+        /// <returns>新的 CategoryManager 实例</returns>
+        public static CategoryManager<T> CreateFromJson(string json, System.Func<T, string> idExtractor)
+        {
+            var serializer = new CategoryManagerJsonSerializer<T>(idExtractor);
+            return serializer.DeserializeFromJson(json);
+        }
+
+        #endregion
+
         #region 实体注册内部类
 
         /// <summary>
@@ -614,7 +894,7 @@ namespace EasyPack.CategoryService
         /// </summary>
         private class EntityRegistration : IEntityRegistration
         {
-            private readonly CategoryService<T> _service;
+            private readonly CategoryManager<T> _manager;
             private readonly string _entityId;
             private readonly T _entity;
             private readonly string _category;
@@ -623,13 +903,13 @@ namespace EasyPack.CategoryService
             private readonly OperationResult _validationResult;
 
             public EntityRegistration(
-                CategoryService<T> service,
+                CategoryManager<T> manager,
                 string entityId,
                 T entity,
                 string category,
                 OperationResult validationResult)
             {
-                _service = service;
+                _manager = manager;
                 _entityId = entityId;
                 _entity = entity;
                 _category = category;
@@ -663,52 +943,52 @@ namespace EasyPack.CategoryService
                 try
                 {
                     // 存储实体
-                    _service._entities[_entityId] = _entity;
+                    _manager._entities[_entityId] = _entity;
 
                     // 创建或获取分类节点
-                    _service._treeLock.EnterWriteLock();
+                    _manager._treeLock.EnterWriteLock();
                     try
                     {
-                        var node = _service.GetOrCreateNode(_category);
+                        var node = _manager.GetOrCreateNode(_category);
                         node.EntityIds.Add(_entityId);
 
-                        if (!_service._categoryIndex.ContainsKey(_category))
+                        if (!_manager._categoryIndex.ContainsKey(_category))
                         {
-                            _service._categoryIndex[_category] = new HashSet<string>();
+                            _manager._categoryIndex[_category] = new HashSet<string>();
                         }
-                        _service._categoryIndex[_category].Add(_entityId);
+                        _manager._categoryIndex[_category].Add(_entityId);
                     }
                     finally
                     {
-                        _service._treeLock.ExitWriteLock();
+                        _manager._treeLock.ExitWriteLock();
                     }
 
                     // 处理标签
                     foreach (var tag in _tags)
                     {
-                        _service.AcquireTagWriteLock(tag);
+                        _manager.AcquireTagWriteLock(tag);
                         try
                         {
-                            if (!_service._tagIndex.ContainsKey(tag))
+                            if (!_manager._tagIndex.ContainsKey(tag))
                             {
-                                _service._tagIndex[tag] = new HashSet<string>();
+                                _manager._tagIndex[tag] = new HashSet<string>();
                             }
-                            _service._tagIndex[tag].Add(_entityId);
+                            _manager._tagIndex[tag].Add(_entityId);
                         }
                         finally
                         {
-                            _service.ReleaseTagLock(tag);
+                            _manager.ReleaseTagLock(tag);
                         }
                     }
 
                     // 处理元数据
                     if (_metadata != null)
                     {
-                        _service._metadataStore[_entityId] = _metadata;
+                        _manager._metadataStore[_entityId] = _metadata;
                     }
 
                     // 清除缓存
-                    _service._cacheStrategy.Clear();
+                    _manager._cacheStrategy.Clear();
 
                     return OperationResult.Success();
                 }
@@ -723,7 +1003,10 @@ namespace EasyPack.CategoryService
 
         #region 注销
 
-        public override void Dispose()
+        /// <summary>
+        /// 释放资源
+        /// </summary>
+        public void Dispose()
         {
             _treeLock?.Dispose();
 
@@ -736,8 +1019,6 @@ namespace EasyPack.CategoryService
             {
                 node?.Dispose();
             }
-
-            base.Dispose();
         }
 
         #endregion

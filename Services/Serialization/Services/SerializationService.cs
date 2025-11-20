@@ -254,10 +254,7 @@ namespace EasyPack.Serialization
 
         public string SerializeToJson(object obj, Type type)
         {
-            if (type == null)
-            {
-                type = obj.GetType();
-            }
+            type ??= obj.GetType();
 
             var serializer = GetSerializer(type);
 
@@ -345,10 +342,7 @@ namespace EasyPack.Serialization
 
         public CustomDataCollection SerializeToCustomData(object obj, Type type)
         {
-            if (type == null)
-            {
-                type = obj.GetType();
-            }
+            type ??= obj.GetType();
 
             var serializer = GetSerializer(type);
 
@@ -438,10 +432,7 @@ namespace EasyPack.Serialization
 
         public byte[] SerializeToBinary(object obj, Type type)
         {
-            if (type == null)
-            {
-                type = obj.GetType();
-            }
+            type ??= obj.GetType();
 
             var serializer = GetSerializer(type);
 

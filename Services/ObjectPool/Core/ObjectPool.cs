@@ -12,43 +12,33 @@ namespace EasyPack.ObjectPool
         private readonly Stack<T> _pool;
         private readonly Func<T> _factory;
         private readonly Action<T> _cleanup;
-        private readonly int _maxCapacity;
-        private bool _collectStatistics;
 
         // 统计数据（仅在启用统计时收集）
-        private int _rentCount;
-        private int _createCount;
-        private int _hitCount;
-        private int _peakPoolSize;
 
         /// <summary>
         /// 获取或设置是否启用统计收集。默认为 false。
         /// </summary>
-        public bool CollectStatistics
-        {
-            get => _collectStatistics;
-            set => _collectStatistics = value;
-        }
+        public bool CollectStatistics { get; set; }
 
         /// <summary>
         /// 获取总租用次数。
         /// </summary>
-        public int RentCount => _rentCount;
+        public int RentCount { get; private set; }
 
         /// <summary>
         /// 获取对象创建次数。
         /// </summary>
-        public int CreateCount => _createCount;
+        public int CreateCount { get; private set; }
 
         /// <summary>
         /// 获取池命中次数（从池中成功获取对象的次数）。
         /// </summary>
-        public int HitCount => _hitCount;
+        public int HitCount { get; private set; }
 
         /// <summary>
         /// 获取池的峰值大小。
         /// </summary>
-        public int PeakPoolSize => _peakPoolSize;
+        public int PeakPoolSize { get; private set; }
 
         /// <summary>
         /// 获取当前池中的对象数量。
@@ -58,7 +48,7 @@ namespace EasyPack.ObjectPool
         /// <summary>
         /// 获取池的最大容量。
         /// </summary>
-        public int MaxCapacity => _maxCapacity;
+        public int MaxCapacity { get; }
 
         /// <summary>
         /// 创建对象池实例。
@@ -68,16 +58,14 @@ namespace EasyPack.ObjectPool
         /// <param name="maxCapacity">池的最大容量，默认为64。超出时将丢弃归还的对象。</param>
         public ObjectPool(Func<T> factory, Action<T> cleanup = null, int maxCapacity = 64)
         {
-            if (factory == null)
-                throw new ArgumentNullException(nameof(factory));
             if (maxCapacity <= 0)
                 throw new ArgumentOutOfRangeException(nameof(maxCapacity), "最大容量必须大于0");
 
-            _factory = factory;
+            _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _cleanup = cleanup;
-            _maxCapacity = maxCapacity;
+            MaxCapacity = maxCapacity;
             _pool = new Stack<T>(Math.Min(maxCapacity, 16)); // 初始容量避免过早扩容
-            _collectStatistics = false; // 默认不收集统计，性能优先
+            CollectStatistics = false; // 默认不收集统计，性能优先
         }
 
         /// <summary>
@@ -86,23 +74,23 @@ namespace EasyPack.ObjectPool
         /// <returns>可用的对象实例。</returns>
         public T Rent()
         {
-            if (_collectStatistics)
+            if (CollectStatistics)
             {
-                _rentCount++;
+                RentCount++;
             }
 
             if (_pool.Count > 0)
             {
-                if (_collectStatistics)
+                if (CollectStatistics)
                 {
-                    _hitCount++;
+                    HitCount++;
                 }
                 return _pool.Pop();
             }
 
-            if (_collectStatistics)
+            if (CollectStatistics)
             {
-                _createCount++;
+                CreateCount++;
             }
             return _factory();
         }
@@ -120,15 +108,15 @@ namespace EasyPack.ObjectPool
             _cleanup?.Invoke(obj);
 
             // 检查容量限制
-            if (_pool.Count >= _maxCapacity)
+            if (_pool.Count >= MaxCapacity)
                 return; // 丢弃对象，防止内存无限增长
 
             _pool.Push(obj);
 
             // 更新峰值
-            if (_collectStatistics && _pool.Count > _peakPoolSize)
+            if (CollectStatistics && _pool.Count > PeakPoolSize)
             {
-                _peakPoolSize = _pool.Count;
+                PeakPoolSize = _pool.Count;
             }
         }
 
@@ -144,12 +132,12 @@ namespace EasyPack.ObjectPool
             }
 
             // 重置统计信息
-            if (_collectStatistics)
+            if (CollectStatistics)
             {
-                _rentCount = 0;
-                _createCount = 0;
-                _hitCount = 0;
-                _peakPoolSize = 0;
+                RentCount = 0;
+                CreateCount = 0;
+                HitCount = 0;
+                PeakPoolSize = 0;
             }
         }
 
@@ -158,13 +146,13 @@ namespace EasyPack.ObjectPool
         /// </summary>
         public void ResetStatistics()
         {
-            if (!_collectStatistics)
+            if (!CollectStatistics)
                 return;
 
-            _rentCount = 0;
-            _createCount = 0;
-            _hitCount = 0;
-            _peakPoolSize = 0;
+            RentCount = 0;
+            CreateCount = 0;
+            HitCount = 0;
+            PeakPoolSize = 0;
         }
 
         /// <summary>
@@ -176,13 +164,13 @@ namespace EasyPack.ObjectPool
             return new PoolStatistics
             {
                 TypeName = typeof(T).Name,
-                RentCount = _rentCount,
-                CreateCount = _createCount,
-                HitCount = _hitCount,
-                HitRate = _rentCount > 0 ? (float)_hitCount / _rentCount : 0f,
-                PeakPoolSize = _peakPoolSize,
+                RentCount = RentCount,
+                CreateCount = CreateCount,
+                HitCount = HitCount,
+                HitRate = RentCount > 0 ? (float)HitCount / RentCount : 0f,
+                PeakPoolSize = PeakPoolSize,
                 CurrentPoolSize = _pool.Count,
-                MaxCapacity = _maxCapacity
+                MaxCapacity = MaxCapacity
             };
         }
     }

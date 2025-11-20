@@ -28,8 +28,7 @@ namespace EasyPack.CategoryService
             categoryName = categoryName.Trim();
 
             // 根据比较模式处理大小写
-            if (comparisonMode == StringComparison.OrdinalIgnoreCase ||
-                comparisonMode == StringComparison.InvariantCultureIgnoreCase)
+            if (comparisonMode is StringComparison.OrdinalIgnoreCase or StringComparison.InvariantCultureIgnoreCase)
             {
                 categoryName = categoryName.ToLowerInvariant();
             }
@@ -86,12 +85,7 @@ namespace EasyPack.CategoryService
             }
 
             var lastDotIndex = categoryName.LastIndexOf(Separator);
-            if (lastDotIndex < 0)
-            {
-                return null;
-            }
-
-            return categoryName.Substring(0, lastDotIndex);
+            return lastDotIndex < 0 ? null : categoryName[..lastDotIndex];
         }
 
         /// <summary>
@@ -101,12 +95,7 @@ namespace EasyPack.CategoryService
         /// <returns>层级深度</returns>
         public static int GetDepth(string categoryName)
         {
-            if (string.IsNullOrWhiteSpace(categoryName))
-            {
-                return 0;
-            }
-
-            return categoryName.Split(Separator).Length;
+            return string.IsNullOrWhiteSpace(categoryName) ? 0 : categoryName.Split(Separator).Length;
         }
     }
 }
