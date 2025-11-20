@@ -26,7 +26,7 @@ namespace EasyPack.GamePropertySystem
     /// 定义可修改属性的接口，支持通过修饰符系统动态修改属性值
     /// </summary>
     /// <typeparam name="T">属性值的类型</typeparam>
-    public interface IModifiableProperty<T> : IReadableProperty<T>
+    public interface IModifiableProperty<out T> : IReadableProperty<T>
     {
         /// <summary>
         /// 获取应用于此属性的所有修饰符列表

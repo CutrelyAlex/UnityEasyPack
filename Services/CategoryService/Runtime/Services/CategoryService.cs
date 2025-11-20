@@ -263,14 +263,12 @@ namespace EasyPack.CategoryService
         /// </summary>
         private void DeleteEntity_NoLock(string id)
         {
-            if (!_entities.ContainsKey(id))
+            // 从实体存储中移除
+            if (!_entities.Remove(id))
             {
                 return;
             }
-
-            // 从实体存储中移除
-            _entities.Remove(id);
-
+            
             // 从分类索引中移除（假定已持有写锁）
             foreach (var kvp in _categoryTree)
             {

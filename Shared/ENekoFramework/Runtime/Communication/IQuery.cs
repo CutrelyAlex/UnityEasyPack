@@ -4,7 +4,7 @@ namespace EasyPack.ENekoFramework
     /// 同步查询的基础接口。
     /// </summary>
     /// <typeparam name="TResult">查询结果的类型</typeparam>
-    public interface IQuery<TResult>
+    public interface IQuery<out TResult>
     {
         /// <summary>
         /// 同步执行查询并返回结果。
