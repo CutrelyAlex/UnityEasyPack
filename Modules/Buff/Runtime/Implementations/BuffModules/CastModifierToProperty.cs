@@ -111,6 +111,7 @@ namespace EasyPack.BuffSystem
 
         /// <summary>
         /// 添加修饰符到目标属性
+        /// 每次添加都会克隆修饰符实例，确保堆叠时的独立性
         /// </summary>
         private void AddModifier()
         {
@@ -118,10 +119,12 @@ namespace EasyPack.BuffSystem
             if (property == null)
                 return;
             
-            property.AddModifier(Modifier);
+            var newModifier = Modifier.Clone();
+            
+            property.AddModifier(newModifier);
 
             // 记录已应用的修饰符以便后续移除
-            _appliedModifiers.Add(Modifier);
+            _appliedModifiers.Add(newModifier);
         }
 
         /// <summary>

@@ -16,6 +16,11 @@ namespace EasyPack.Modifiers
             Value = range;
         }
 
+        public IModifier Clone()
+        {
+            return new RangeModifier(Type, Priority, Value);
+        }
+
         public override bool Equals(object obj)
         {
             if (obj is RangeModifier other)
