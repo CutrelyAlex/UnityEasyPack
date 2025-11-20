@@ -135,7 +135,7 @@ namespace EasyPack.EmeCardSystem
                     DefaultTags = card.Data.DefaultTags,
                     Index = card.Index,
                     Properties = Array.Empty<SerializableGameProperty>(),
-                    Tags = card.Tags != null && card.Tags.Count > 0 ? new List<string>(card.Tags).ToArray() : Array.Empty<string>(),
+                    Tags = card.Tags is { Count: > 0 } ? new List<string>(card.Tags).ToArray() : Array.Empty<string>(),
                     ChildrenJson = null,  // 默认为空，有子卡时才序列化
                     IsIntrinsic = false
                 };
@@ -163,7 +163,7 @@ namespace EasyPack.EmeCardSystem
                 }
 
                 // 递归序列化子卡
-                if (card.Children != null && card.Children.Count > 0)
+                if (card.Children is { Count: > 0 })
                 {
                     foreach (var child in card.Children)
                     {
@@ -253,12 +253,12 @@ namespace EasyPack.EmeCardSystem
                 try
                 {
                     var childrenArray = JsonUtility.FromJson<SerializableCardArray>(data.ChildrenJson);
-                    if (childrenArray != null && childrenArray.Cards != null)
+                    if (childrenArray is { Cards: not null })
                     {
                         foreach (var childData in childrenArray.Cards)
                         {
                             var child = DeserializeCardRecursive(childData);
-                            bool intrinsic = childData != null && childData.IsIntrinsic;
+                            bool intrinsic = childData is { IsIntrinsic: true };
                             card.AddChild(child, intrinsic: intrinsic);
                         }
                     }

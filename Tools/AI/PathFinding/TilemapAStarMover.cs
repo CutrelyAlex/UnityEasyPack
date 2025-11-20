@@ -1015,7 +1015,7 @@ namespace EasyPack.Tools.PathFinding
                     Gizmos.DrawWireCube(GetWorldPosition(tile), Vector3.one * 0.3f);
                 }
             }
-            if (showDebugPath && _currentPath != null && _currentPath.Count > 0)
+            if (showDebugPath && _currentPath is { Count: > 0 })
             {
                 Gizmos.color = pathColor;
                 for (int i = 0; i < _currentPath.Count - 1; i++)

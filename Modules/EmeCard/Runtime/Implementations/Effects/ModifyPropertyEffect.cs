@@ -99,7 +99,7 @@ namespace EasyPack.EmeCardSystem
                 }
 
                 // 应用 Take 限制
-                if (Take.HasValue && Take.Value > 0 && targets.Count > Take.Value)
+                if (Take is > 0 && targets.Count > Take.Value)
                 {
                     targets = targets.Take(Take.Value).ToList();
                 }

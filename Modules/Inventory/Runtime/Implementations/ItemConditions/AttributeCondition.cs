@@ -120,7 +120,7 @@ namespace EasyPack.InventorySystem
             if (container is string containerStr && value is string valueStr)
                 return containerStr.Contains(valueStr);
 
-            if (container is System.Collections.IEnumerable enumerable && container is not string)
+            if (container is System.Collections.IEnumerable enumerable and not string)
             {
                 foreach (var item in enumerable)
                 {

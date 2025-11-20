@@ -23,7 +23,7 @@ namespace EasyPack.EmeCardSystem
                 if (child.TryMatch(ctx, out var picks))
                 {
                     any = true;
-                    if (picks != null && picks.Count > 0)
+                    if (picks is { Count: > 0 })
                     {
                         foreach (var c in picks) set.Add(c);
                     }

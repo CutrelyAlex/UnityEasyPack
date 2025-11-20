@@ -207,7 +207,7 @@ namespace EasyPack.EmeCardSystem
             );
 
             // 应用 Take 限制
-            if (selection.Take.HasValue && selection.Take.Value > 0 && targets.Count > selection.Take.Value)
+            if (selection.Take is > 0 && targets.Count > selection.Take.Value)
             {
                 return targets.Take(selection.Take.Value).ToList();
             }
@@ -245,7 +245,7 @@ namespace EasyPack.EmeCardSystem
 
                     // 尝试使用缓存
                     var cachedCardSet = GetCardsByTagFromCache(filterValue);
-                    if (cachedCardSet != null && cachedCardSet.Count > 0)
+                    if (cachedCardSet is { Count: > 0 })
                     {
                         // 使用缓存：取缓存中与候选集的交集
                         var tagResults = new List<Card>(Math.Min(cards.Count, cachedCardSet.Count));

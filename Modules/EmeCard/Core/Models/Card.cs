@@ -107,7 +107,7 @@ namespace EasyPack.EmeCardSystem
             {
                 _data = value;
                 _tags.Clear();
-                if (_data != null && _data.DefaultTags != null)
+                if (_data is { DefaultTags: not null })
                 {
                     foreach (var t in _data.DefaultTags)
                     {

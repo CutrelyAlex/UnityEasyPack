@@ -223,14 +223,14 @@ namespace EasyPack.GamePropertySystem.Editor
                     if (!string.IsNullOrEmpty(metadata.Description))
                         EditorGUILayout.LabelField($"描述: {metadata.Description}");
 
-                    if (metadata.Tags != null && metadata.Tags.Length > 0)
+                    if (metadata.Tags is { Length: > 0 })
                         EditorGUILayout.LabelField($"标签: {string.Join(", ", metadata.Tags)}");
 
                     EditorGUI.indentLevel--;
                 }
             }
 
-            if (_showModifiers && property.Modifiers != null && property.Modifiers.Count > 0)
+            if (_showModifiers && property.Modifiers is { Count: > 0 })
             {
                 EditorGUI.indentLevel++;
                 EditorGUILayout.LabelField($"修饰符数量: {property.Modifiers.Count}");

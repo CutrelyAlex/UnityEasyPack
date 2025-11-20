@@ -110,7 +110,7 @@ namespace EasyPack.InventorySystem
 
             clone.CustomData = CustomDataUtility.Clone(CustomData);
 
-            if (ContainerIds != null && ContainerIds.Count > 0)
+            if (ContainerIds is { Count: > 0 })
             {
                 clone.ContainerIds = new List<string>(ContainerIds);
             }

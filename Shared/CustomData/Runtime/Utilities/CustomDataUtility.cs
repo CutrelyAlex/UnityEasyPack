@@ -41,7 +41,26 @@ namespace EasyPack.CustomData
 
         #region 获取值
 
-        /// <summary>尝试获取自定义数据值</summary>
+        /// <summary>
+        /// 尝试获取自定义数据值
+        /// </summary>
+        /// <typeparam name="T">期望的值类型</typeparam>
+        /// <param name="entries">CustomData 列表</param>
+        /// <param name="id">数据键</param>
+        /// <param name="value">输出值</param>
+        /// <returns>如果找到并成功转换返回 true，否则返回 false</returns>
+        public static bool TryGetValue<T>(CustomDataCollection entries, string id, out T value)
+        {
+            value = default;
+            if (entries == null || string.IsNullOrEmpty(id)) return false;
+            
+            // 使用集合的 O(1) TryGetValue
+            return entries.TryGetValue<T>(id, out value);
+        }
+
+        /// <summary>
+        /// 尝试获取自定义数据值
+        /// </summary>
         /// <typeparam name="T">期望的值类型</typeparam>
         /// <param name="entries">CustomData 列表</param>
         /// <param name="id">数据键</param>
@@ -50,30 +69,40 @@ namespace EasyPack.CustomData
         public static bool TryGetValue<T>(IEnumerable<CustomDataEntry> entries, string id, out T value)
         {
             value = default;
-            if (entries == null) return false;
+            if (entries == null || string.IsNullOrEmpty(id)) return false;
 
+            // 如果是 CustomDataCollection，使用优化的 TryGetValue
+            if (entries is CustomDataCollection collection)
+            {
+                return collection.TryGetValue<T>(id, out value);
+            }
+
+            // 否则线性遍历
             foreach (var e in entries)
             {
                 if (e.Key != id) continue;
 
                 var obj = e.GetValue();
+                
+                // 快路径：直接类型匹配
                 if (obj is T t)
                 {
                     value = t;
                     return true;
                 }
 
-                try
+                // 慢路径：JSON 反序列化
+                if (obj is string json)
                 {
-                    if (obj is string json)
+                    try
                     {
                         value = JsonUtility.FromJson<T>(json);
                         return true;
                     }
-                }
-                catch
-                {
-                    Debug.LogWarning("从CustomDataEntries 获取值失败");
+                    catch
+                    {
+                        Debug.LogWarning("从CustomDataEntries 获取值失败");
+                    }
                 }
 
                 return false;
@@ -90,8 +119,19 @@ namespace EasyPack.CustomData
         /// <returns>找到的值或默认值</returns>
         public static T GetValue<T>(CustomDataCollection entries, string id, T defaultValue = default)
         {
-            if (entries == null) return defaultValue;
-            return entries.GetValue(id, defaultValue);
+            if (entries == null || string.IsNullOrEmpty(id)) return defaultValue;
+            return entries.TryGetValue<T>(id, out T value) ? value : defaultValue;
+        }
+
+        /// <summary>获取自定义数据值，如果不存在则返回默认值 (IEnumerable 重载)</summary>
+        /// <typeparam name="T">期望的值类型</typeparam>
+        /// <param name="entries">CustomData 列表</param>
+        /// <param name="id">数据键</param>
+        /// <param name="defaultValue">默认值</param>
+        /// <returns>找到的值或默认值</returns>
+        public static T GetValue<T>(IEnumerable<CustomDataEntry> entries, string id, T defaultValue = default)
+        {
+            return TryGetValue(entries, id, out T value) ? value : defaultValue;
         }
 
         #endregion
@@ -107,6 +147,78 @@ namespace EasyPack.CustomData
             if (entries == null)
                 throw new System.ArgumentNullException(nameof(entries));
             entries.SetValue(id, value);
+        }
+
+        #endregion
+
+        #region 查询方法
+
+        /// <summary>
+        /// 批量获取多个值
+        /// </summary>
+        /// <typeparam name="T">值类型</typeparam>
+        /// <param name="entries">CustomData 列表</param>
+        /// <param name="ids">要查询的键集合</param>
+        /// <param name="defaultValue">未找到时的默认值</param>
+        /// <returns>键到值的字典（如果找不到则使用默认值）</returns>
+        public static Dictionary<string, T> GetValues<T>(CustomDataCollection entries, IEnumerable<string> ids, T defaultValue = default)
+        {
+            var result = new Dictionary<string, T>();
+            if (entries == null || ids == null) return result;
+
+            foreach (var id in ids)
+            {
+                result[id] = GetValue(entries, id, defaultValue);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 获取第一个匹配条件的值
+        /// </summary>
+        /// <typeparam name="T">值类型</typeparam>
+        /// <param name="entries">CustomData 列表</param>
+        /// <param name="predicate">匹配条件 (key, value) => bool</param>
+        /// <param name="defaultValue">未找到时的默认值</param>
+        /// <returns>匹配的值或默认值</returns>
+        public static T GetFirstValue<T>(CustomDataCollection entries, System.Func<string, T, bool> predicate, T defaultValue = default)
+        {
+            if (entries == null || predicate == null) return defaultValue;
+
+            foreach (var entry in entries)
+            {
+                if (entry.Key == null) continue;
+                if (entries.TryGetValue<T>(entry.Key, out T value) && predicate(entry.Key, value))
+                {
+                    return value;
+                }
+            }
+            return defaultValue;
+        }
+
+        /// <summary>
+        /// 缓存式获取
+        /// </summary>
+        /// <typeparam name="T">值类型</typeparam>
+        /// <param name="entries">CustomData 列表</param>
+        /// <param name="id">数据键</param>
+        /// <param name="cache">缓存字典（调用者维护）</param>
+        /// <param name="defaultValue">未找到时的默认值</param>
+        /// <returns>找到的值或默认值</returns>
+        public static T GetValueCached<T>(CustomDataCollection entries, string id, Dictionary<string, T> cache, T defaultValue = default)
+        {
+            if (entries == null || cache == null || string.IsNullOrEmpty(id)) return defaultValue;
+
+            // 检查缓存
+            if (cache.TryGetValue(id, out T cached))
+            {
+                return cached;
+            }
+
+            // 从 entries 获取并缓存
+            T value = GetValue(entries, id, defaultValue);
+            cache[id] = value;
+            return value;
         }
 
         #endregion

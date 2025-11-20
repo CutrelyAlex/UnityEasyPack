@@ -42,7 +42,7 @@ namespace EasyPack.InventorySystem
             var dto = new SerializedCondition { Kind = Kind };
 
             // 序列化内部条件
-            if (Inner != null && Inner is ISerializableCondition serializableInner)
+            if (Inner is ISerializableCondition serializableInner)
             {
                 var innerDto = serializableInner.ToDto();
                 if (innerDto != null)

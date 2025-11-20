@@ -101,7 +101,7 @@ namespace EasyPack.InventorySystem
         protected virtual void OnSlotQuantityChanged(int slotIndex, IItem item, int oldCount, int newCount)
         {
             // 维护可继续堆叠占用槽位计数
-            if (item != null && item.IsStackable)
+            if (item is { IsStackable: true })
             {
                 bool oldTracked = oldCount > 0 && (item.MaxStackCount <= 0 || oldCount < item.MaxStackCount);
                 bool newTracked = newCount > 0 && (item.MaxStackCount <= 0 || newCount < item.MaxStackCount);
@@ -238,7 +238,7 @@ namespace EasyPack.InventorySystem
                 return false;
             }
 
-            if (ContainerCondition != null && ContainerCondition.Count > 0)
+            if (ContainerCondition is { Count: > 0 })
             {
                 foreach (var condition in ContainerCondition)
                 {
@@ -309,7 +309,7 @@ namespace EasyPack.InventorySystem
             for (int i = 0; i < _slots.Count; i++)
             {
                 var s = _slots[i];
-                if (s.IsOccupied && s.Item != null && s.Item.IsStackable)
+                if (s.IsOccupied && s.Item is { IsStackable: true })
                 {
                     if (s.Item.MaxStackCount <= 0 || s.ItemCount < s.Item.MaxStackCount)
                         _notFullStackSlotsCount++;
@@ -420,7 +420,7 @@ namespace EasyPack.InventorySystem
             List<(ISlot slot, int removeAmount, int slotIndex)> removals = new();
 
             // 使用缓存的槽位索引集合
-            if (_cacheService.TryGetItemSlotIndices(itemId, out var indices) && indices != null && indices.Count > 0)
+            if (_cacheService.TryGetItemSlotIndices(itemId, out var indices) && indices is { Count: > 0 })
             {
                 foreach (int i in indices)
                 {

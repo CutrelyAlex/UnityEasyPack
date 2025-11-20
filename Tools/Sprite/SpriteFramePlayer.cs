@@ -147,7 +147,7 @@ namespace EasyPack.Tools.SpriteFramesPlayer
         /// <returns>IEnumerator 用于协程。</returns>
         private IEnumerator PlayFrames()
         {
-            while (isPlaying && frames != null && frames.Length > 0)
+            while (isPlaying && frames is { Length: > 0 })
             {
                 // 显示当前帧
                 spriteRenderer.sprite = frames[currentFrame];

@@ -66,7 +66,7 @@ namespace EasyPack.InventorySystem
             int childIndex = 0;
             foreach (var child in Children)
             {
-                if (child != null && child is ISerializableCondition serializableChild)
+                if (child is ISerializableCondition serializableChild)
                 {
                     var childDto = serializableChild.ToDto();
                     if (childDto != null)

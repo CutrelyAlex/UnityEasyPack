@@ -369,7 +369,7 @@ namespace EasyPack.ENekoFramework.Editor
             
             var dependencies = ServiceInspector.GetServiceDependencies(_selectedService.ServiceType);
             
-            if (dependencies != null && dependencies.Count > 0)
+            if (dependencies is { Count: > 0 })
             {
                 foreach (var dep in dependencies)
                 {

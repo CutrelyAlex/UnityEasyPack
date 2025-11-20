@@ -323,8 +323,7 @@ namespace EasyPack.InventorySystem
             for (int i = 0; i < _slots.Count; i++)
             {
                 var slot = _slots[i];
-                if (slot.IsOccupied && slot.Item != null &&
-                    slot.Item.Name != null && slot.Item.Name.Contains(namePattern))
+                if (slot.IsOccupied && slot.Item is { Name: not null } && slot.Item.Name.Contains(namePattern))
                 {
                     result.Add((i, slot.Item, slot.ItemCount));
                 }

@@ -275,7 +275,7 @@ namespace EasyPack.InventorySystem
 
         private bool IsSlotEligibleForConsolidation(ISlot slot)
         {
-            return slot.IsOccupied && slot.Item != null && slot.Item.IsStackable;
+            return slot.IsOccupied && slot.Item is { IsStackable: true };
         }
 
         private void AddSlotToItemGroup(Dictionary<string, List<(int slotIndex, IItem item, int count)>> itemGroups,

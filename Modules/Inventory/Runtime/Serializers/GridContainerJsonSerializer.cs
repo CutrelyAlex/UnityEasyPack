@@ -66,7 +66,7 @@ namespace EasyPack.InventorySystem
             dto.Slots = slotsList;
 
             // 序列化容器条件
-            if (container.ContainerCondition != null && container.ContainerCondition.Count > 0)
+            if (container.ContainerCondition is { Count: > 0 })
             {
                 foreach (var cond in container.ContainerCondition)
                 {
@@ -112,7 +112,7 @@ namespace EasyPack.InventorySystem
             }
 
             // 反序列化容器条件
-            if (dto.ContainerConditions != null && dto.ContainerConditions.Count > 0)
+            if (dto.ContainerConditions is { Count: > 0 })
             {
                 foreach (var condDto in dto.ContainerConditions)
                 {

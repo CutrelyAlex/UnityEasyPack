@@ -377,7 +377,7 @@ namespace EasyPack.EmeCardSystem
 
                 if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
                 {
-                    if ((rule.Policy?.DistinctMatched ?? true) && matched != null && matched.Count > 1)
+                    if ((rule.Policy?.DistinctMatched ?? true) && matched is { Count: > 1 })
                     {
                         matched = matched.Distinct().ToList();
                     }

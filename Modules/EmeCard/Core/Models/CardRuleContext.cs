@@ -47,7 +47,7 @@ namespace EasyPack.EmeCardSystem
         {
             get
             {
-                if (Event.Type == CardEventType.Tick && Event.Data is float f)
+                if (Event is { Type: CardEventType.Tick, Data: float f })
                     return f;
                 return 0f;
             }

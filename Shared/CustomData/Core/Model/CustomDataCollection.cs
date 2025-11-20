@@ -18,10 +18,16 @@ namespace EasyPack.CustomData
         private List<CustomDataEntry> _list = new();
 
         /// <summary>
-        /// 缓存映射：key -> index
+        /// 缓存映射 key -> index
         /// </summary>
         [NonSerialized]
         private Dictionary<string, int> _keyIndexMap;
+
+        /// <summary>
+        /// Entry对象缓存：key -> entry
+        /// </summary>
+        [NonSerialized]
+        private Dictionary<string, CustomDataEntry> _entryCache;
 
         [NonSerialized]
         private bool _cacheDirty = true;
@@ -68,6 +74,7 @@ namespace EasyPack.CustomData
         {
             _list.Clear();
             _keyIndexMap?.Clear();
+            _entryCache?.Clear();
             _cacheDirty = false;
         }
 
@@ -233,8 +240,7 @@ namespace EasyPack.CustomData
         #region 缓存管理
 
         /// <summary>
-        /// 重建缓存索引映射 - 时间复杂度 O(N)
-        /// 将所有key映射到它们在列表中的索引位置
+        /// 重建缓存索引映射和Entry对象缓存
         /// </summary>
         private void RebuildCache()
         {
@@ -247,13 +253,23 @@ namespace EasyPack.CustomData
                 _keyIndexMap.Clear();
             }
 
-            // 构建 key -> index 映射
+            if (_entryCache == null)
+            {
+                _entryCache = new Dictionary<string, CustomDataEntry>(_list.Count);
+            }
+            else
+            {
+                _entryCache.Clear();
+            }
+
+            // 构建 key -> index 和 key -> entry 映射
             for (int i = 0; i < _list.Count; i++)
             {
                 var entry = _list[i];
                 if (!string.IsNullOrEmpty(entry.Key))
                 {
                     _keyIndexMap[entry.Key] = i;
+                    _entryCache[entry.Key] = entry;
                 }
             }
             _cacheDirty = false;
@@ -284,6 +300,7 @@ namespace EasyPack.CustomData
 
         /// <summary>
         /// 尝试获取指定键的值，如果存在则返回true并设置out参数
+        /// 时间复杂度：O(1)
         /// </summary>
         /// <typeparam name="T">值的类型</typeparam>
         /// <param name="key">要查找的键</param>
@@ -293,11 +310,9 @@ namespace EasyPack.CustomData
         {
             value = default;
             EnsureCache();
-
-            // 通过索引映射查找，避免存储entry对象
-            if (_keyIndexMap.TryGetValue(key, out int index))
+            
+            if (_entryCache.TryGetValue(key, out var entry))
             {
-                var entry = _list[index];
                 var obj = entry.GetValue();
                 if (obj is T t)
                 {
@@ -335,7 +350,6 @@ namespace EasyPack.CustomData
 
         /// <summary>
         /// 设置指定键的值，如果键不存在则添加新条目
-        /// 时间复杂度：O(1) 平均情况（O(N)在哈希冲突严重时）
         /// </summary>
         /// <param name="key">要设置的键</param>
         /// <param name="value">要设置的值</param>
@@ -345,8 +359,10 @@ namespace EasyPack.CustomData
 
             if (_keyIndexMap.TryGetValue(key, out int index))
             {
-                // 存在：直接更新
-                _list[index].SetValue(value);
+                // 存在：直接更新entry和缓存
+                var entry = _list[index];
+                entry.SetValue(value);
+                _entryCache[key] = entry;
             }
             else
             {
@@ -355,12 +371,14 @@ namespace EasyPack.CustomData
                 newEntry.SetValue(value);
                 int newIndex = _list.Count;  // 新条目会被添加到末尾
                 _list.Add(newEntry);
-                _keyIndexMap[key] = newIndex;  // 缓存新索引
+                _keyIndexMap[key] = newIndex;  // 缓存索引
+                _entryCache[key] = newEntry;    // 缓存entry对象
             }
         }
 
         /// <summary>
         /// 移除指定键的值，如果存在则返回true
+        /// 时间复杂度：O(1) 平均情况
         /// </summary>
         /// <param name="key">要移除的键</param>
         /// <returns>如果键存在并成功移除则返回true，否则返回false</returns>
@@ -391,6 +409,7 @@ namespace EasyPack.CustomData
             // 移除末尾
             _list.RemoveAt(lastIndex);
             _keyIndexMap.Remove(key);
+            _entryCache.Remove(key);  // 同时删除entry缓存
             
             return true;
         }
@@ -430,6 +449,7 @@ namespace EasyPack.CustomData
                     // 删除此元素
                     removedCount++;
                     _keyIndexMap.Remove(entry.Key);
+                    _entryCache.Remove(entry.Key);  // 同时删除entry缓存
                 }
             }
             
@@ -451,7 +471,7 @@ namespace EasyPack.CustomData
         public bool HasValue(string key)
         {
             EnsureCache();
-            return _keyIndexMap.ContainsKey(key);
+            return _entryCache.ContainsKey(key);  // 使用entry缓存查询
         }
 
         #endregion
@@ -459,7 +479,7 @@ namespace EasyPack.CustomData
         #region 序列化支持
 
         /// <summary>
-        /// 获取内部列表（仅用于序列化）
+        /// 获取内部列表
         /// </summary>
         public List<CustomDataEntry> GetInternalList()
         {
@@ -477,6 +497,7 @@ namespace EasyPack.CustomData
             // 反序列化后标记缓存为脏，在下次访问时重建
             _cacheDirty = true;
             _keyIndexMap = null;
+            _entryCache = null;
         }
 
         #endregion

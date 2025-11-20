@@ -62,10 +62,10 @@ namespace EasyPack.InventorySystem
                 Weight = item.Weight,
                 isContanierItem = item.IsContainerItem,
 
-                CustomData = item.CustomData != null && item.CustomData.Count > 0
+                CustomData = item.CustomData is { Count: > 0 }
                     ? new List<CustomDataEntry>(item.CustomData)
                     : null,
-                ContainerIds = item.IsContainerItem && item.ContainerIds != null && item.ContainerIds.Count > 0
+                ContainerIds = item.IsContainerItem && item.ContainerIds is { Count: > 0 }
                     ? new List<string>(item.ContainerIds)
                     : null,
                 Shape = item.Shape != null
@@ -105,7 +105,7 @@ namespace EasyPack.InventorySystem
                 IsStackable = dto.IsStackable,
                 Weight = dto.Weight,
                 IsContainerItem = dto.isContanierItem,
-                Shape = dto.Shape != null && dto.Shape.Count > 0
+                Shape = dto.Shape is { Count: > 0 }
                     ? dto.Shape.ConvertAll(cell => (cell.x, cell.y))
                     : new List<(int x, int y)> { (0, 0) },
                 CanRotate = dto.CanRotate,
@@ -113,7 +113,7 @@ namespace EasyPack.InventorySystem
             };
 
             // 反序列化 CustomData
-            if (dto.CustomData != null && dto.CustomData.Count > 0)
+            if (dto.CustomData is { Count: > 0 })
             {
                 item.CustomData = new CustomDataCollection(dto.CustomData);
             }
@@ -123,7 +123,7 @@ namespace EasyPack.InventorySystem
             }
 
             // 反序列化容器ID列表
-            if (dto.ContainerIds != null && dto.ContainerIds.Count > 0)
+            if (dto.ContainerIds is { Count: > 0 })
             {
                 item.IsContainerItem = true;
                 item.ContainerIds = new List<string>(dto.ContainerIds);

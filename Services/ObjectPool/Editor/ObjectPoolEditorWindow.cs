@@ -40,7 +40,7 @@ namespace EasyPack.ObjectPool
             EditorApplication.update -= OnEditorUpdate;
 
             // 监控窗口关闭时禁用统计收集
-            if (_poolService != null && _poolService is ObjectPoolService service)
+            if (_poolService is ObjectPoolService service)
             {
                 service.StatisticsEnabled = false;
             }

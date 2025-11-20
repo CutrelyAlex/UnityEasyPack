@@ -205,7 +205,7 @@ namespace EasyPack.ENekoFramework.Editor
 
             var filteredHistory = GetFilteredCommandHistory();
 
-            if (filteredHistory != null && filteredHistory.Count > 0)
+            if (filteredHistory is { Count: > 0 })
             {
                 // 倒序显示
                 for (int i = filteredHistory.Count - 1; i >= 0; i--)

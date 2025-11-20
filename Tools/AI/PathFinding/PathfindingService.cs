@@ -44,7 +44,7 @@ namespace EasyPack.Tools.PathFinding
         {
             if (_built) return;
 
-            if (fromGrids != null && fromGrids.Count > 0)
+            if (fromGrids is { Count: > 0 })
             {
                 CollectFromGridsIfAny(fromGrids, globalTilemaps);
             }
