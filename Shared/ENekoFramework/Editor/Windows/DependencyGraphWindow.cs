@@ -125,12 +125,6 @@ namespace EasyPack.ENekoFramework.Editor
             var grid = new GridBackground();
             Insert(0, grid);
             grid.StretchToParentSize();
-            
-            var styleSheet = Resources.Load<StyleSheet>("DependencyGraphStyle");
-            if (styleSheet != null)
-            {
-                styleSheets.Add(styleSheet);
-            }
         }
 
         public void RefreshGraph()
@@ -385,3 +379,4 @@ namespace EasyPack.ENekoFramework.Editor
     }
 }
 #endif
+

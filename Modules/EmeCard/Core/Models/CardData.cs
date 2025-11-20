@@ -44,10 +44,10 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         /// 创建一条卡牌静态数据。
         /// </summary>
-        /// <param name="id">逻辑ID（建议全局唯一）。</param>
-        /// <param name="name">展示名（可本地化）。默认为 "Default"。</param>
-        /// <param name="desc">描述文本（可本地化）。</param>
-        /// <param name="category">类别（默认 Item）。</param>
+        /// <param name="id">逻辑ID</param>
+        /// <param name="name">展示名。默认为 "Default"</param>
+        /// <param name="desc">描述文本</param>
+        /// <param name="category">类别（默认 Item）</param>
         /// <param name="defaultTags">默认标签集合；null 时使用空数组。</param>
         /// <param name="sprite">卡牌图标。</param>
         public CardData(string id, string name = "Default", string desc = "",
@@ -58,8 +58,7 @@ namespace EasyPack.EmeCardSystem
             Description = desc;
             Category = category;
             DefaultTags = defaultTags ?? System.Array.Empty<string>();
-            Sprite = Resources.Load<Sprite>(ID); 
-            Sprite??= Resources.Load<Sprite>("Default");
+            Sprite = sprite ?? Resources.Load<Sprite>(ID) ?? Resources.Load<Sprite>("Default");
         }
     }
 }

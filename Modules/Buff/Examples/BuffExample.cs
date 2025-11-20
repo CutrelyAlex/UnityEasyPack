@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using EasyPack.GamePropertySystem;
@@ -19,41 +20,48 @@ namespace EasyPack.BuffSystem.Example
 
         async void Start()
         {
-            // 初始化基础组件
             try
             {
-                // 通过 EasyPack 架构获取服务
-                _buffManager = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
-                _dummyTarget = new GameObject("DummyTarget");
-                _dummyCreator = new GameObject("DummyCreator");
-                _gamePropertyManager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
+                // 初始化基础组件
+                try
+                {
+                    // 通过 EasyPack 架构获取服务
+                    _buffManager = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
+                    _dummyTarget = new GameObject("DummyTarget");
+                    _dummyCreator = new GameObject("DummyCreator");
+                    _gamePropertyManager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"服务初始化失败: {ex.Message}");
+                    return;
+                }
+
+                Debug.Log("=== Buff 系统示例开始 ===\n");
+
+                // 按照学习顺序执行示例
+                Example_1_BasicBuff();
+                Example_2_BuffDuration();
+                Example_3_BuffStacking();
+                Example_4_BuffSuperpositionStrategies();
+                Example_5_PropertyModifierBuffs();
+                Example_6_CustomBuffModules();
+                Example_7_BuffTagsAndLayers();
+                Example_8_BuffLifecycleEvents();
+                Example_9_ComplexRPGBuffs();
+                Example_10_BuffPerformanceAndBestPractices();
+                Example_11_ErrorHandlingAndDebugging();
+
+                Debug.Log("\n=== Buff 系统示例结束 ===");
+
+                // 清理测试对象
+                Destroy(_dummyTarget);
+                Destroy(_dummyCreator);
             }
-            catch (System.Exception ex)
+            catch (Exception e)
             {
-                Debug.LogError($"服务初始化失败: {ex.Message}");
-                return;
+                Debug.LogWarning($"初始化失败 {e.Message}");
             }
-
-            Debug.Log("=== Buff 系统示例开始 ===\n");
-
-            // 按照学习顺序执行示例
-            Example_1_BasicBuff();
-            Example_2_BuffDuration();
-            Example_3_BuffStacking();
-            Example_4_BuffSuperpositionStrategies();
-            Example_5_PropertyModifierBuffs();
-            Example_6_CustomBuffModules();
-            Example_7_BuffTagsAndLayers();
-            Example_8_BuffLifecycleEvents();
-            Example_9_ComplexRPGBuffs();
-            Example_10_BuffPerformanceAndBestPractices();
-            Example_11_ErrorHandlingAndDebugging();
-
-            Debug.Log("\n=== Buff 系统示例结束 ===");
-
-            // 清理测试对象
-            Destroy(_dummyTarget);
-            Destroy(_dummyCreator);
         }
 
         /// <summary>

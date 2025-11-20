@@ -57,10 +57,6 @@ namespace EasyPack.ENekoFramework.Editor
             window.Show();
         }
 
-        private void OnEnable()
-        {
-        }
-
         private void Update()
         {
             if (_isRefreshing && EditorApplication.timeSinceStartup - _refreshStartTime > 10.0)

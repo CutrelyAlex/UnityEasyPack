@@ -33,13 +33,14 @@ namespace EasyPack.Architecture
         {
             return await GetArchitecture().ResolveAsync<T>();
         }
-        
+
         /// <summary>
         /// 发送命令并异步执行
         /// </summary>
         /// <typeparam name="TResult">命令返回类型</typeparam>
         /// <param name="command">命令实例</param>
         /// <param name="timeoutSeconds">超时秒数</param>
+        /// <param name="cancellationToken">获取</param>
         protected async Task<TResult> SendCommandAsync<TResult>(
             ICommand<TResult> command,
             int? timeoutSeconds = null,

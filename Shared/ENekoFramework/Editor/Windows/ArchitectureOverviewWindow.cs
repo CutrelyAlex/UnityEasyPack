@@ -54,11 +54,6 @@ namespace EasyPack.ENekoFramework.Editor
             window.Show();
         }
 
-        private void OnEnable()
-        {
-            // RefreshArchitectures();
-        }
-
         private void Update()
         {
             // 检查刷新超时（10秒）
