@@ -3,12 +3,11 @@ namespace EasyPack.Modifiers
     public interface IModifier
     {
         ModifierType Type { get; }
-        int Priority { get; set; }
-        IModifier Clone();
+        int Priority { get; }
     }
 
-    public interface IModifier<T> : IModifier
+    public interface IModifier<out T> : IModifier
     {
-        T Value { get; set; }
+        T Value { get; }
     }
 }
