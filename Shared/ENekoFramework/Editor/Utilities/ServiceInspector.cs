@@ -187,12 +187,10 @@ namespace EasyPack.ENekoFramework.Editor
                 visited = new HashSet<Type>();
             }
 
-            if (visited.Contains(serviceType))
+            if (!visited.Add(serviceType))
             {
                 return true;
             }
-
-            visited.Add(serviceType);
 
             var dependencies = GetServiceDependencies(serviceType);
             foreach (var dependency in dependencies)
