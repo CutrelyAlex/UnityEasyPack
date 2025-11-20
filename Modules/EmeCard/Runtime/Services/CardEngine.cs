@@ -198,7 +198,6 @@ namespace EasyPack.EmeCardSystem
         {
             if (_isPumping) return;
             _isPumping = true;
-            int processed = 0;
 
             try
             {
@@ -206,7 +205,6 @@ namespace EasyPack.EmeCardSystem
                 {
                     var entry = _queue.Dequeue();
                     Process(entry.Source, entry.Event);
-                    processed++;
                 }
             }
             finally
