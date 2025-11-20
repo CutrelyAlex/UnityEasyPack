@@ -482,23 +482,6 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 缓存式获取
-        /// </summary>
-        public T GetValueCached<T>(string id, Dictionary<string, T> cache, T defaultValue = default)
-        {
-            if (cache == null || string.IsNullOrEmpty(id)) return defaultValue;
-
-            if (cache.TryGetValue(id, out T cached))
-            {
-                return cached;
-            }
-
-            T value = GetValue(id, defaultValue);
-            cache[id] = value;
-            return value;
-        }
-
-        /// <summary>
         /// 批量获取多个值
         /// </summary>
         public Dictionary<string, T> GetValues<T>(IEnumerable<string> ids, T defaultValue = default)

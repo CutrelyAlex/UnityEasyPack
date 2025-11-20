@@ -8,7 +8,7 @@
 |-----|------|
 | `CustomDataCollection` | 数据存储容器，基于双缓存架构 |
 | `CustomDataEntry` | 单个数据条目 |
-| `CustomDataUtility` | 工具方法集 |
+| `CustomDataType` | 数据类型枚举 |
 
 ## 快速开始
 
@@ -21,89 +21,52 @@ var data = new CustomDataCollection();
 // 设置数据
 data.SetValue("health", 100f);
 data.SetValue("level", 10);
+data.SetValue("name", "Hero");
 
 // 获取数据
-float health = CustomDataUtility.GetValue(data, "health", 0f);
-int level = CustomDataUtility.GetValue(data, "level", 1);
+float health = data.GetValue("health", 0f);
+int level = data.GetValue("level", 1);
+string name = data.GetValue("name", "Unknown");
 ```
 
-### 查询
+### 快捷方法
+
+```csharp
+// 使用类型化方法
+data.SetInt("score", 100);
+data.SetFloat("speed", 5.5f);
+data.SetBool("isAlive", true);
+data.SetString("nickname", "Player");
+data.SetVector3("position", Vector3.zero);
+data.SetColor("color", Color.red);
+
+// 获取数据
+int score = data.GetInt("score");
+float speed = data.GetFloat("speed");
+bool isAlive = data.GetBool("isAlive");
+string nickname = data.GetString("nickname");
+Vector3 position = data.GetVector3("position");
+Color color = data.GetColor("color");
+```
+
+### 查询操作
 
 ```csharp
 // 单个查询
-float value = CustomDataUtility.GetValue(data, "key", 0f);
+float value = data.GetValue("key", 0f);
 
 // 批量查询
-var values = CustomDataUtility.GetValues(data, keys, 0f);
-
-// 热点缓存
-var cache = new Dictionary<string, float>();
-for (int i = 0; i < frames; i++)
-{
-    float hp = CustomDataUtility.GetValueCached(data, "hp", cache);
-}
+var keys = new[] { "hp", "mp", "speed" };
+var values = data.GetValues<int>(keys, 0);
 
 // 条件查询
-var valuable = CustomDataUtility.GetFirstValue(data, (k, v) => v > 1000, 0f);
-```
-## 最佳实践
+var valuable = data.GetFirstValue((key, value) => value > 1000, 0f);
 
-### 1. 热点访问（UI 更新），性能最好
-- 注意过期数据风险
-- 使用cache.remove(key)或cache.clear()刷新缓存
-```csharp
-private Dictionary<string, float> statsCache = new();
-
-void Update()
-{
-    float hp = CustomDataUtility.GetValueCached(playerData, "hp", statsCache);
-    float mp = CustomDataUtility.GetValueCached(playerData, "mp", statsCache);
-}
+// 检查存在性
+bool exists = data.HasValue("key");
 ```
 
-### 2. 初始化多个属性
-
-```csharp
-// 一次性查询多个键比多次单查更快
-var keys = new[] { "hp", "mp", "speed", "attack" };
-var stats = CustomDataUtility.GetValues(playerData, keys, 0f);
-```
-
-### 3. 偶尔查询
-
-```csharp
-float level = CustomDataUtility.GetValue(playerData, "level", 1);
-```
-
-### 4. 条件查询
-
-```csharp
-// 查找满足条件的第一个值
-var loot = CustomDataUtility.GetFirstValue(
-    itemData, 
-    (key, value) => value > 1000,
-    0
-);
-```
-
-## 支持的数据类型
-
-- 原始类型：`int`, `float`, `bool`, `string`
-- Unity 类型：`Vector2`, `Vector3`, `Color`
-- 自定义类型：JSON 序列化（通过 `ICustomDataSerializer`）
-
-```csharp
-// 使用快捷方法
-CustomDataUtility.SetInt(data, "level", 10);
-CustomDataUtility.SetFloat(data, "health", 100f);
-CustomDataUtility.SetVector3(data, "position", Vector3.zero);
-
-var level = CustomDataUtility.GetInt(data, "level", 1);
-var health = CustomDataUtility.GetFloat(data, "health", 100f);
-var pos = CustomDataUtility.GetVector3(data, "position");
-```
-
-## 批量操作
+### 批量操作
 
 ```csharp
 // 批量设置
@@ -113,33 +76,128 @@ var values = new Dictionary<string, object>
     { "mp", 50f },
     { "level", 10 }
 };
-CustomDataUtility.SetValues(data, values);
+data.SetValues(values);
 
-// 批量获取
-var hp = CustomDataUtility.GetValue(data, "hp", 0f);
-var mp = CustomDataUtility.GetValue(data, "mp", 0f);
+// 批量删除
+var keysToRemove = new[] { "oldKey1", "oldKey2" };
+int removedCount = data.RemoveValues(keysToRemove);
 
 // 合并数据
-CustomDataUtility.Merge(target, source);
-
-// 深拷贝
-var cloned = CustomDataUtility.Clone(original);
+var otherData = new CustomDataCollection();
+otherData.SetValue("bonus", 25);
+data.Merge(otherData);
 ```
 
-## 条件操作
+### 条件操作
 
 ```csharp
 // 如果存在则执行
-CustomDataUtility.IfHasValue<string>(data, "skill", skill => 
+data.IfHasValue<string>("skill", skill =>
 {
     UseSkill(skill);
 });
 
 // If-Else 操作
-CustomDataUtility.IfElse<int>(data, "gold",
+data.IfElse<int>("gold",
     gold => Debug.Log($"金币：{gold}"),
     () => Debug.Log("无金币")
 );
+```
+
+## 支持的数据类型
+
+- **原始类型**：`int`, `float`, `bool`, `string`
+- **Unity 类型**：`Vector2`, `Vector3`, `Color`
+- **自定义类型**：通过 JSON 序列化或 `ICustomDataSerializer`
+
+```csharp
+// 自定义类型示例
+[System.Serializable]
+public class PlayerStats
+{
+    public int strength;
+    public int agility;
+}
+
+var stats = new PlayerStats { strength = 10, agility = 8 };
+data.SetValue("stats", stats);
+var loadedStats = data.GetValue<PlayerStats>("stats");
+```
+
+## 高级功能
+
+### 克隆和比较
+
+```csharp
+// 深拷贝
+var cloned = data.Clone();
+
+// 获取差异
+var other = new CustomDataCollection();
+var differences = data.GetDifference(other); // 返回other中有但data中没有的键
+```
+
+### 数值操作
+
+```csharp
+// 增加数值
+int newScore = data.AddInt("score", 10);
+float newHealth = data.AddFloat("health", -5f);
+```
+
+### 数据枚举
+
+```csharp
+// 获取所有键
+var allKeys = data.GetKeys();
+
+// 按类型获取键
+var intKeys = data.GetKeysByType(CustomDataType.Int);
+
+// 条件筛选
+var highValues = data.GetEntriesWhere(entry => entry.GetValue() is float f && f > 100);
+```
+
+## 最佳实践
+
+### 1. 性能优化
+
+```csharp
+// ✅ 使用类型化方法避免装箱
+data.SetInt("score", 100);
+int score = data.GetInt("score");
+
+// ❌ 频繁的装箱操作
+data.SetValue("score", 100);  // 装箱
+var score = (int)data.GetValue("score");  // 拆箱
+```
+
+### 2. 批量操作
+
+```csharp
+// ✅ 批量设置减少缓存重建
+var batchData = new Dictionary<string, object>
+{
+    { "hp", 100 }, { "mp", 50 }, { "exp", 0 }
+};
+data.SetValues(batchData);
+
+// ❌ 可避免的多次单独设置
+data.SetValue("hp", 100);
+data.SetValue("mp", 50);
+data.SetValue("exp", 0);
+```
+
+### 3. 内存管理
+
+```csharp
+// ✅ 推荐：及时清理不需要的数据
+data.RemoveValue("temporaryKey");
+
+// ✅ 推荐：重用集合对象
+var tempData = new CustomDataCollection();
+// 使用 tempData...
+tempData.Clear();  // 重置而不是创建新对象
 ```
 
 ## 内部架构
@@ -151,11 +209,106 @@ CustomDataCollection
 └─ _entryCache        : Dict<string, Entry>        // 对象缓存（O(1) 读取）
 ```
 
+### 缓存机制
+
+- **索引缓存** (`_keyIndexMap`)：键到索引的映射，用于 O(1) 查找和删除
+- **对象缓存** (`_entryCache`)：键到 Entry 对象的映射，用于 O(1) 值获取
+- **延迟重建**：修改操作后标记脏缓存，下次访问时重建
+
 ### 性能特性
 
-| 操作 | 复杂度 | 备注 |
+| 操作 | 复杂度 | 说明 |
 |------|--------|------|
-| 查询 (GetValue) | O(1) | 通过 _entryCache |
-| 添加 (SetValue) | O(1) | 同步两个缓存 |
-| 删除 (RemoveValue) | O(1) | 交换删除法 |
-| 批删 (RemoveValues) | O(N+K) | 数组压缩 |
+| GetValue | O(1) | 通过对象缓存直接获取 |
+| SetValue | O(1) | 更新缓存和存储 |
+| HasValue | O(1) | 通过对象缓存检查 |
+| RemoveValue | O(1) | 交换删除法 + 缓存更新 |
+| GetValues | O(N) | 遍历请求的键 |
+| SetValues | O(N) | 批量设置 |
+
+## API 参考
+
+### 基础操作
+
+#### 构造函数
+```csharp
+new CustomDataCollection()                    // 空集合
+new CustomDataCollection(capacity)            // 指定初始容量
+new CustomDataCollection(collection)          // 从集合初始化
+```
+
+#### 数据操作
+```csharp
+void SetValue(string key, object value)       // 设置值
+T GetValue<T>(string key, T defaultValue)     // 获取值
+bool TryGetValue<T>(string key, out T value)  // 尝试获取
+bool HasValue(string key)                     // 检查存在
+bool RemoveValue(string key)                  // 删除单个
+int RemoveValues(IEnumerable<string> keys)    // 批量删除
+```
+
+#### 快捷方法
+```csharp
+// 设置
+void SetInt(string key, int value)
+void SetFloat(string key, float value)
+void SetBool(string key, bool value)
+void SetString(string key, string value)
+void SetVector2(string key, Vector2 value)
+void SetVector3(string key, Vector3 value)
+void SetColor(string key, Color value)
+
+// 获取
+int GetInt(string key, int defaultValue = 0)
+float GetFloat(string key, float defaultValue = 0f)
+bool GetBool(string key, bool defaultValue = false)
+string GetString(string key, string defaultValue = "")
+Vector2 GetVector2(string key, Vector2? defaultValue = null)
+Vector3 GetVector3(string key, Vector3? defaultValue = null)
+Color GetColor(string key, Color? defaultValue = null)
+```
+
+### 高级操作
+
+#### 批量操作
+```csharp
+Dictionary<string, T> GetValues<T>(IEnumerable<string> keys, T defaultValue)
+void SetValues(Dictionary<string, object> values)
+void Merge(CustomDataCollection other)
+```
+
+#### 查询操作
+```csharp
+T GetFirstValue<T>(Func<string, T, bool> predicate, T defaultValue)
+IEnumerable<string> GetKeys()
+IEnumerable<string> GetKeysByType(CustomDataType type)
+IEnumerable<CustomDataEntry> GetEntriesWhere(Func<CustomDataEntry, bool> predicate)
+```
+
+#### 条件操作
+```csharp
+bool IfHasValue<T>(string key, Action<T> action)
+void IfElse<T>(string key, Action<T> onExists, Action onNotExists)
+```
+
+#### 增量操作
+```csharp
+int AddInt(string key, int delta = 1)
+float AddFloat(string key, float delta = 1f)
+```
+
+#### 集合操作
+```csharp
+CustomDataCollection Clone()
+IEnumerable<string> GetDifference(CustomDataCollection other)
+bool IsEmpty { get; }
+int Count { get; }
+```
+
+## 序列化支持
+
+CustomDataCollection 实现了 `ISerializationCallbackReceiver`，支持 Unity 序列化：
+
+- 序列化时自动保存 `_list`
+- 反序列化后重建缓存
+- 支持 Unity Inspector 编辑
