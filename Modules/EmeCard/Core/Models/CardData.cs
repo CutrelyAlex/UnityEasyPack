@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
@@ -58,7 +57,7 @@ namespace EasyPack.EmeCardSystem
             Description = desc;
             Category = category;
             DefaultTags = defaultTags ?? System.Array.Empty<string>();
-            Sprite = sprite ?? Resources.Load<Sprite>(ID) ?? Resources.Load<Sprite>("Default");
+            Sprite = sprite ?? Resources.Load<Sprite>(ID);
         }
     }
 }
