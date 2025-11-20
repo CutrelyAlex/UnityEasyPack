@@ -419,13 +419,16 @@ namespace EasyPack.InventorySystem
                 // 准备容器列表并按优先级排序
                 lock (_lock)
                 {
-                    foreach (string containerId in targetContainerIds)
+                    if (targetContainerIds != null)
                     {
-                        var container = GetContainer(containerId);
-                        if (container != null)
+                        foreach (string containerId in targetContainerIds)
                         {
-                            int priority = GetContainerPriority(containerId);
-                            sortedContainers.Add((containerId, container, priority));
+                            var container = GetContainer(containerId);
+                            if (container != null)
+                            {
+                                int priority = GetContainerPriority(containerId);
+                                sortedContainers.Add((containerId, container, priority));
+                            }
                         }
                     }
                 }

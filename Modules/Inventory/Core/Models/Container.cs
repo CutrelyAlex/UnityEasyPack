@@ -57,30 +57,42 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 添加物品操作结果事件（统一处理成功和失败）
         /// </summary>
-        /// <typeparam name="item">操作的物品</typeparam>
-        /// <typeparam name="requestedCount">请求添加的数量</typeparam>
-        /// <typeparam name="actualCount">实际添加的数量</typeparam>
-        /// <typeparam name="result">操作结果</typeparam>
-        /// <typeparam name="affectedSlots">涉及的槽位索引列表（失败时为空列表）</typeparam>
+        /// <param name="IItem">操作的物品</param>
+        /// <param name="requestedCount">请求添加的数量</param>
+        /// <param name="actualCount">实际添加的数量</param>
+        /// <param name="result">操作结果</param>
+        /// <param name="affectedSlots">涉及的槽位索引列表（失败时为空列表）</param>
         public event Action<IItem, int, int, AddItemResult, List<int>> OnItemAddResult;
 
         /// <summary>
-        /// 移除物品操作结果事件（统一处理成功和失败）
+        /// 移除物品操作结果事件（统一处理成功和失败）。
         /// </summary>
-        /// <typeparam name="itemId">操作的物品ID</typeparam>
-        /// <typeparam name="requestedCount">请求移除的数量</typeparam>
-        /// <typeparam name="actualCount">实际移除的数量</typeparam>
-        /// <typeparam name="result">操作结果</typeparam>
-        /// <typeparam name="affectedSlots">涉及的槽位索引列表，失败时为空列表</typeparam>
+        /// <param name="itemId">
+        /// 操作的物品 ID（字符串形式）。
+        /// </param>
+        /// <param name="requestedCount">
+        /// 请求移除的数量。
+        /// </param>
+        /// <param name="actualCount">
+        /// 实际移除的数量（成功时等于 <paramref name="requestedCount"/>，失败时为 0）。
+        /// </param>
+        /// <param name="result">
+        /// 操作结果，使用 <see cref="RemoveItemResult"/> 表示成功/失败等状态。
+        /// </param>
+        /// <param name="affectedSlots">
+        /// 受影响的槽位索引列表。<br/>
+        /// • 成功时：包含实际被移除的槽位索引。<br/>
+        /// • 失败时：为空列表（<c>new List&lt;int&gt;()</c>）。
+        /// </param>
         public event Action<string, int, int, RemoveItemResult, List<int>> OnItemRemoveResult;
 
         /// <summary>
         /// 槽位数量变更事件
         /// </summary>
-        /// <typeparam name="slotIndex">变更的槽位索引</typeparam>
-        /// <typeparam name="item">变更的物品</typeparam>
-        /// <typeparam name="oldCount">原数量</typeparam>
-        /// <typeparam name="newCount">新数量</typeparam>
+        /// <param name="slotIndex">变更的槽位索引</param>
+        /// <param name="item">变更的物品</param>
+        /// <param name="oldCount">原数量</param>
+        /// <param name="newCount">新数量</param>
         public event Action<int, IItem, int, int> OnSlotCountChanged;
 
         /// <summary>
@@ -107,10 +119,10 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 物品总数变更事件
         /// </summary>
-        /// <typeparam name="itemId">物品ID</typeparam>
-        /// <typeparam name="item">物品引用，可能为null，如果物品已完全移除</typeparam>
-        /// <typeparam name="oldTotalCount">旧总数</typeparam>
-        /// <typeparam name="newTotalCount">新总数</typeparam>
+        /// <param name="itemId">物品ID</param>
+        /// <param name="item">物品引用，可能为null，如果物品已完全移除</param>
+        /// <param name="oldTotalCount">旧总数</param>
+        /// <param name="newTotalCount">新总数</param>
         public event Action<string, IItem, int, int> OnItemTotalCountChanged;
 
         private readonly Dictionary<string, int> _itemTotalCounts = new();
