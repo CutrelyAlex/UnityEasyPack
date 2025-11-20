@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System;
 using UnityEngine;
 using UnityEditor;
 using System.Linq;
@@ -37,10 +38,10 @@ namespace EasyPack.GamePropertySystem.Editor
 
         private async void TryResolveManager()
         {
-            if (_initialized && _manager != null) return;
-
             try
             {
+                if (_initialized && _manager != null) return;
+                
                 // 先检查服务是否已注册和初始化
                 if (!EasyPackArchitecture.Instance.IsServiceRegistered<IGamePropertyService>())
                 {
@@ -69,10 +70,9 @@ namespace EasyPack.GamePropertySystem.Editor
                 _initialized = true;
                 Repaint();
             }
-            catch (System.Exception ex)
+            catch (Exception e)
             {
                 Debug.LogWarning($"[GamePropertyManagerWindow] 解析 Manager 失败: {ex.Message}");
-                _initialized = false;
             }
         }
 

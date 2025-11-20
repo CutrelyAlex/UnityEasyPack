@@ -236,7 +236,7 @@ namespace EasyPack.EmeCardSystem
                     // 检查时间预算（但至少处理MinEventsPerFrame个事件）
                     if (_frameProcessedCount >= minEvents)
                     {
-                        float elapsed = (Time.realtimeSinceStartup * 1000f) - _frameStartTime;
+                        float elapsed = Time.realtimeSinceStartup * 1000f - _frameStartTime;
                         if (elapsed >= frameBudget)
                         {
                             // 超时，保留剩余到下一帧
@@ -256,7 +256,7 @@ namespace EasyPack.EmeCardSystem
 
                 try
                 {
-                    float elapsedMs = (Time.realtimeSinceStartup * 1000f) - _frameStartTime;
+                    float elapsedMs = Time.realtimeSinceStartup * 1000f - _frameStartTime;
                 }
                 catch (Exception ex)
                 {
@@ -306,7 +306,7 @@ namespace EasyPack.EmeCardSystem
 
                 int processedInFrame = 0;
                 while (_queue.Count > 0 &&
-                       (Time.realtimeSinceStartup - frameStart) < frameBudgetSec &&
+                       Time.realtimeSinceStartup - frameStart < frameBudgetSec &&
                        processedInFrame < maxEvents)
                 {
                     var entry = _queue.Dequeue();

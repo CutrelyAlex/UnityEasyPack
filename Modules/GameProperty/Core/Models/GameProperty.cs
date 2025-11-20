@@ -149,14 +149,6 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        /// 添加简单依赖
-        /// </summary>
-        public IModifiableProperty<float> AddDependency(GameProperty dependency)
-        {
-            return AddDependency(dependency, null);
-        }
-
-        /// <summary>
         /// 移除依赖关系
         /// </summary>
         public IModifiableProperty<float> RemoveDependency(GameProperty dependency)

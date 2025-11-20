@@ -918,7 +918,7 @@ namespace EasyPack.InventorySystem
                 var slot = _slots[idx];
                 if (!slot.IsOccupied || slot.Item == null) continue;
 
-                int availSpace = isInfiniteStack ? remainingCount : (maxStack - slot.ItemCount);
+                int availSpace = isInfiniteStack ? remainingCount : maxStack - slot.ItemCount;
                 if (availSpace <= 0) continue;
 
                 stackableSlots.Add((idx, availSpace));
@@ -1039,7 +1039,7 @@ namespace EasyPack.InventorySystem
             // 可以添加的数量
             int addCount = isStackable && maxStack > 0
                 ? Math.Min(remainingCount, maxStack)
-                : (isStackable ? remainingCount : 1);
+                : isStackable ? remainingCount : 1;
 
             var emptySlotIndices = _cacheService.GetEmptySlotIndices();
 

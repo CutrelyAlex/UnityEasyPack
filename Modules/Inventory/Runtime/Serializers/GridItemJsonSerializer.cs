@@ -65,7 +65,7 @@ namespace EasyPack.InventorySystem
                 CustomData = item.CustomData != null && item.CustomData.Count > 0
                     ? new List<CustomDataEntry>(item.CustomData)
                     : null,
-                ContainerIds = (item.IsContainerItem && item.ContainerIds != null && item.ContainerIds.Count > 0)
+                ContainerIds = item.IsContainerItem && item.ContainerIds != null && item.ContainerIds.Count > 0
                     ? new List<string>(item.ContainerIds)
                     : null,
                 Shape = item.Shape != null

@@ -9,8 +9,7 @@ namespace EasyPack.CategoryService
     /// </summary>
     public static class RegexCache
     {
-        private static readonly ConcurrentDictionary<string, Regex> _cache =
-            new ConcurrentDictionary<string, Regex>();
+        private static readonly ConcurrentDictionary<string, Regex> _cache = new();
 
         /// <summary>
         /// 获取或创建正则表达式

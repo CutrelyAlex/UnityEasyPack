@@ -71,7 +71,10 @@ namespace EasyPack.CustomData
                         return true;
                     }
                 }
-                catch { }
+                catch
+                {
+                    Debug.LogWarning("从CustomDataEntries 获取值失败");
+                }
 
                 return false;
             }

@@ -29,7 +29,7 @@ namespace EasyPack.InventorySystem
                 CustomData = obj.CustomData != null && obj.CustomData.Count > 0
                     ? new List<CustomDataEntry>(obj.CustomData)
                     : null,
-                ContainerIds = (obj.IsContainerItem && obj.ContainerIds != null && obj.ContainerIds.Count > 0)
+                ContainerIds = obj.IsContainerItem && obj.ContainerIds != null && obj.ContainerIds.Count > 0
                     ? new List<string>(obj.ContainerIds)
                     : null
             };

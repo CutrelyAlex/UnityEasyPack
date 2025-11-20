@@ -255,7 +255,7 @@ namespace EasyPack.Tools.PathFinding
                         sharedService.RegisterTilemaps(allTilemaps, gridObjects);
 
                     _unifiedMap = sharedService.GetUnifiedMap();
-                    _conversionTilemap ??= (allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap);
+                    _conversionTilemap ??= allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap;
                     if (_usingSharedMap && allTilemaps.Count == 0 && _conversionTilemap != null)
                     {
                         // 确保本地也持有一个引用，避免 allTilemaps.Count==0 造成坐标恒为 (0,0,0)
@@ -378,7 +378,7 @@ namespace EasyPack.Tools.PathFinding
                 return single;
             }
 
-            List<Vector3Int> path = (options.useJps && allowDiagonalMovement)
+            List<Vector3Int> path = options.useJps && allowDiagonalMovement
                 ? ExecuteJumpPointSearch(startPos, targetPos, options)
                 : ExecuteAStar(startPos, targetPos, options);
 
@@ -472,7 +472,7 @@ namespace EasyPack.Tools.PathFinding
             if (_usingSharedMap)
             {
                 if (_conversionTilemap == null)
-                    _conversionTilemap = (allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap);
+                    _conversionTilemap = allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap;
                 if (allTilemaps.Count == 0 && _conversionTilemap != null)
                     allTilemaps.Add(_conversionTilemap);
             }
@@ -515,7 +515,7 @@ namespace EasyPack.Tools.PathFinding
         {
             if (!IsMoving || !pathfindingObject || targetObject is null) return;
 
-            Vector3Int startPos = (_currentPath.Count > 0 && _currentPathIndex < _currentPath.Count)
+            Vector3Int startPos = _currentPath.Count > 0 && _currentPathIndex < _currentPath.Count
                 ? _currentPath[_currentPathIndex]
                 : GetTilePositionFromGameObject(pathfindingObject);
 
@@ -541,10 +541,10 @@ namespace EasyPack.Tools.PathFinding
                 _hasInitializedTargetPosition = true;
             }
         }
-        public void SetAutoRefreshEnabled(bool enabled)
+        public void SetAutoRefreshEnabled(bool refreshEnabled)
         {
-            enableAutoRefresh = enabled;
-            if (enabled)
+            enableAutoRefresh = refreshEnabled;
+            if (refreshEnabled)
             {
                 _refreshTimer = 0f;
                 InitializeAutoRefresh();
@@ -666,7 +666,7 @@ namespace EasyPack.Tools.PathFinding
 
         private float GetMoveCost(Vector3Int direction, Vector3Int from, Vector3Int to)
         {
-            float baseCost = (direction.x != 0 && direction.y != 0) ? diagonalMoveCost : straightMoveCost;
+            float baseCost = direction.x != 0 && direction.y != 0 ? diagonalMoveCost : straightMoveCost;
             if (useTerrainCosts)
             {
                 var info = _unifiedMap.GetTileInfo(to);
@@ -865,8 +865,8 @@ namespace EasyPack.Tools.PathFinding
                         Vector3 startPos = _currentPathIndex > 0
                             ? GetWorldPosition(_currentPath[_currentPathIndex - 1])
                             : pathfindingObject.transform.position;
-                        float pathProgress = 1f - (Vector3.Distance(pathfindingObject.transform.position, targetWorld) /
-                                                   Mathf.Max(0.0001f, Vector3.Distance(startPos, targetWorld)));
+                        float pathProgress = 1f - Vector3.Distance(pathfindingObject.transform.position, targetWorld) /
+                            Mathf.Max(0.0001f, Vector3.Distance(startPos, targetWorld));
                         pathProgress = Mathf.Clamp01(pathProgress);
                         currentSpeed = moveSpeed * moveSpeedCurve.Evaluate(pathProgress);
                     }

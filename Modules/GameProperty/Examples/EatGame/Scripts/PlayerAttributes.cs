@@ -106,12 +106,12 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
                 float sanityRatio = Sanity.GetValue() / Mathf.Max(SanityCapacity.GetValue(), 1f);
 
                 // 基础评分：各属性占比的加权和
-                float baseScore = (satietyRatio * 25f) + (healthRatio * 35f) + (sanityRatio * 25f);
+                float baseScore = satietyRatio * 25f + healthRatio * 35f + sanityRatio * 25f;
 
                 // 每日变化影响：积极变化加分，消极变化减分
-                float dailyChangeBonus = (SatietyChangePerDay.GetValue() * 5f) +
-                                        (HealthChangePerDay.GetValue() * 7f) +
-                                        (SanityChangePerDay.GetValue() * 3f);
+                float dailyChangeBonus = SatietyChangePerDay.GetValue() * 5f +
+                                        HealthChangePerDay.GetValue() * 7f +
+                                        SanityChangePerDay.GetValue() * 3f;
 
                 // 平衡惩罚：如果某个属性过高或过低，给予惩罚
                 float balancePenalty = 0f;

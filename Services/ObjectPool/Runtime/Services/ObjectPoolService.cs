@@ -12,7 +12,7 @@ namespace EasyPack.ObjectPool
     /// </summary>
     public class ObjectPoolService : BaseService, IObjectPoolService
     {
-        private readonly ConcurrentDictionary<Type, object> _pools = new ConcurrentDictionary<Type, object>();
+        private readonly ConcurrentDictionary<Type, object> _pools = new();
         private bool _statisticsEnabled = false;
 
         /// <summary>
