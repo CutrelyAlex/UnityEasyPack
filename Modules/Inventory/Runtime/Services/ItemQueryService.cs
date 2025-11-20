@@ -408,13 +408,9 @@ namespace EasyPack.InventorySystem
                     string itemId = slot.Item.ID;
                     int count = slot.ItemCount;
 
-                    if (counts.ContainsKey(itemId))
+                    if (!counts.TryAdd(itemId, count))
                     {
                         counts[itemId] += count;
-                    }
-                    else
-                    {
-                        counts[itemId] = count;
                     }
                 }
             }

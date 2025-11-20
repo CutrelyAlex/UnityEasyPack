@@ -234,10 +234,7 @@ namespace EasyPack.ENekoFramework.Editor
                         {
                             var archName = arch.GetType().Name;
                             var archNamespace = arch.GetType().Namespace;
-                            if (!_cachedArchToNamespace.ContainsKey(archName))
-                            {
-                                _cachedArchToNamespace[archName] = archNamespace;
-                            }
+                            _cachedArchToNamespace.TryAdd(archName, archNamespace);
                         }
                         
                         _archCacheValid = true;
