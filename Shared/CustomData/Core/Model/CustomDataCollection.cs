@@ -17,8 +17,11 @@ namespace EasyPack.CustomData
         [SerializeField]
         private List<CustomDataEntry> _list = new();
 
+        /// <summary>
+        /// 缓存映射：key -> index
+        /// </summary>
         [NonSerialized]
-        private Dictionary<string, CustomDataEntry> _cache;
+        private Dictionary<string, int> _keyIndexMap;
 
         [NonSerialized]
         private bool _cacheDirty = true;
@@ -64,7 +67,7 @@ namespace EasyPack.CustomData
         public void Clear()
         {
             _list.Clear();
-            _cache?.Clear();
+            _keyIndexMap?.Clear();
             _cacheDirty = false;
         }
 
@@ -230,35 +233,38 @@ namespace EasyPack.CustomData
         #region 缓存管理
 
         /// <summary>
-        /// 重建缓存字典
+        /// 重建缓存索引映射 - 时间复杂度 O(N)
+        /// 将所有key映射到它们在列表中的索引位置
         /// </summary>
         private void RebuildCache()
         {
-            if (_cache == null)
+            if (_keyIndexMap == null)
             {
-                _cache = new Dictionary<string, CustomDataEntry>(_list.Count);
+                _keyIndexMap = new Dictionary<string, int>(_list.Count);
             }
             else
             {
-                _cache.Clear();
+                _keyIndexMap.Clear();
             }
 
-            foreach (var entry in _list)
+            // 构建 key -> index 映射
+            for (int i = 0; i < _list.Count; i++)
             {
+                var entry = _list[i];
                 if (!string.IsNullOrEmpty(entry.Key))
                 {
-                    _cache[entry.Key] = entry;
+                    _keyIndexMap[entry.Key] = i;
                 }
             }
             _cacheDirty = false;
         }
 
         /// <summary>
-        /// 确保缓存已初始化
+        /// 确保缓存索引已初始化
         /// </summary>
         private void EnsureCache()
         {
-            if (_cacheDirty || _cache == null)
+            if (_cacheDirty || _keyIndexMap == null)
             {
                 RebuildCache();
             }
@@ -274,7 +280,7 @@ namespace EasyPack.CustomData
 
         #endregion
 
-        #region 优化的查找方法
+        #region 查找方法
 
         /// <summary>
         /// 尝试获取指定键的值，如果存在则返回true并设置out参数
@@ -288,8 +294,10 @@ namespace EasyPack.CustomData
             value = default;
             EnsureCache();
 
-            if (_cache.TryGetValue(key, out var entry))
+            // 通过索引映射查找，避免存储entry对象
+            if (_keyIndexMap.TryGetValue(key, out int index))
             {
+                var entry = _list[index];
                 var obj = entry.GetValue();
                 if (obj is T t)
                 {
@@ -305,7 +313,10 @@ namespace EasyPack.CustomData
                         return true;
                     }
                 }
-                catch { }
+                catch(SystemException)
+                {
+                    Debug.LogWarning("从Key转换到值失败");
+                }
             }
             return false;
         }
@@ -324,6 +335,7 @@ namespace EasyPack.CustomData
 
         /// <summary>
         /// 设置指定键的值，如果键不存在则添加新条目
+        /// 时间复杂度：O(1) 平均情况（O(N)在哈希冲突严重时）
         /// </summary>
         /// <param name="key">要设置的键</param>
         /// <param name="value">要设置的值</param>
@@ -331,16 +343,19 @@ namespace EasyPack.CustomData
         {
             EnsureCache();
 
-            if (_cache.TryGetValue(key, out var entry))
+            if (_keyIndexMap.TryGetValue(key, out int index))
             {
-                entry.SetValue(value);
+                // 存在：直接更新
+                _list[index].SetValue(value);
             }
             else
             {
+                // 不存在：添加新条目
                 var newEntry = new CustomDataEntry { Key = key };
                 newEntry.SetValue(value);
+                int newIndex = _list.Count;  // 新条目会被添加到末尾
                 _list.Add(newEntry);
-                _cache[key] = newEntry;
+                _keyIndexMap[key] = newIndex;  // 缓存新索引
             }
         }
 
@@ -353,24 +368,90 @@ namespace EasyPack.CustomData
         {
             EnsureCache();
 
-            if (_cache.TryGetValue(key, out var entry))
+            if (!_keyIndexMap.TryGetValue(key, out int indexToRemove))
             {
-                _list.Remove(entry);
-                _cache.Remove(key);
-                return true;
+                return false; 
             }
-            return false;
+            
+            int lastIndex = _list.Count - 1;
+            
+            if (indexToRemove != lastIndex)
+            {
+                // 交换：将末尾元素移到删除位置
+                var lastEntry = _list[lastIndex];
+                _list[indexToRemove] = lastEntry;
+                
+                // 更新被交换元素的索引缓存
+                if (!string.IsNullOrEmpty(lastEntry.Key))
+                {
+                    _keyIndexMap[lastEntry.Key] = indexToRemove;
+                }
+            }
+            
+            // 移除末尾
+            _list.RemoveAt(lastIndex);
+            _keyIndexMap.Remove(key);
+            
+            return true;
+        }
+
+        /// <summary>
+        /// 批量删除指定键
+        /// </summary>
+        /// <param name="keys">要删除的键集合</param>
+        /// <returns>实际删除的元素个数</returns>
+        public int RemoveValues(IEnumerable<string> keys)
+        {
+            EnsureCache();
+            
+            var keysToRemove = new HashSet<string>(keys);
+            int removedCount = 0;
+            int writeIndex = 0;  // 写指针
+            
+            for (int i = 0; i < _list.Count; i++)
+            {
+                var entry = _list[i];
+                if (!keysToRemove.Contains(entry.Key))
+                {
+                    // 保留此元素
+                    if (writeIndex != i)
+                    {
+                        _list[writeIndex] = _list[i];
+                    }
+                    // 更新索引缓存
+                    if (!string.IsNullOrEmpty(entry.Key))
+                    {
+                        _keyIndexMap[entry.Key] = writeIndex;
+                    }
+                    writeIndex++;
+                }
+                else
+                {
+                    // 删除此元素
+                    removedCount++;
+                    _keyIndexMap.Remove(entry.Key);
+                }
+            }
+            
+            // 移除末尾多余元素
+            if (writeIndex < _list.Count)
+            {
+                _list.RemoveRange(writeIndex, _list.Count - writeIndex);
+            }
+            
+            return removedCount;
         }
 
         /// <summary>
         /// 检查指定键是否存在
+        /// 时间复杂度：O(1)
         /// </summary>
         /// <param name="key">要检查的键</param>
         /// <returns>如果键存在则返回true，否则返回false</returns>
         public bool HasValue(string key)
         {
             EnsureCache();
-            return _cache.ContainsKey(key);
+            return _keyIndexMap.ContainsKey(key);
         }
 
         #endregion
@@ -395,7 +476,7 @@ namespace EasyPack.CustomData
         {
             // 反序列化后标记缓存为脏，在下次访问时重建
             _cacheDirty = true;
-            _cache = null;
+            _keyIndexMap = null;
         }
 
         #endregion
