@@ -506,7 +506,7 @@ namespace EasyPack.CustomData
             foreach (var entry in _list)
             {
                 if (entry.Key == null) continue;
-                if (TryGetValue<T>(entry.Key, out T value) && predicate(entry.Key, value))
+                if (TryGetValue(entry.Key, out T value) && predicate(entry.Key, value))
                 {
                     return value;
                 }

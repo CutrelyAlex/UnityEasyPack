@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -84,9 +83,10 @@ namespace EasyPack.CustomData
             var dict = new Dictionary<string, T>();
             if (entries == null) return dict;
 
-            foreach (var e in entries)
+            var customDataEntries = entries as CustomDataEntry[] ?? entries.ToArray();
+            foreach (var e in customDataEntries)
             {
-                if (e.Key != null && entries.TryGetValue<T>(e.Key, out T value))
+                if (e.Key != null && customDataEntries.TryGetValue(e.Key, out T value))
                 {
                     dict[e.Key] = value;
                 }

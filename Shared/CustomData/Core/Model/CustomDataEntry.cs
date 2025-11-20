@@ -106,7 +106,7 @@ namespace EasyPack.CustomData
             if (value == null)
             {
                 var noneHandler = ValueHandlerRegistry.GetHandler(CustomDataType.None);
-                noneHandler.SetValue(this, value);
+                noneHandler.SetValue(this, null);
                 return;
             }
 
@@ -146,7 +146,7 @@ namespace EasyPack.CustomData
         void ISerializationCallbackReceiver.OnAfterDeserialize()
         {
             var handler = ValueHandlerRegistry.GetHandler(Type);
-            handler.TryDeserialize(this, Data ?? "", null);
+            handler.TryDeserialize(this, Data ?? "");
         }
         #endregion
     }
