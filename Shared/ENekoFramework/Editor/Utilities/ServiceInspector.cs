@@ -217,7 +217,7 @@ namespace EasyPack.ENekoFramework.Editor
                 RegisteredAt = descriptor.RegisteredAt,
                 LastAccessedAt = descriptor.LastAccessedAt ?? default(DateTime),
                 Dependencies = GetServiceDependencies(descriptor.ImplementationType),
-                HasCircularDependency = HasCircularDependency(descriptor.ImplementationType)
+                IsCircularDependency = HasCircularDependency(descriptor.ImplementationType)
             };
         }
 
@@ -247,7 +247,7 @@ namespace EasyPack.ENekoFramework.Editor
             public DateTime RegisteredAt { get; set; }
             public DateTime LastAccessedAt { get; set; }
             public List<Type> Dependencies { get; set; }
-            public bool HasCircularDependency { get; set; }
+            public bool IsCircularDependency { get; set; }
         }
     }
 }
