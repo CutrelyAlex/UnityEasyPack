@@ -27,7 +27,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         /// 每帧最大处理事件数
         /// 适用于：PumpFrameWithBudget()、PumpTimeLimitedBatch()
-        /// 默认值：3500
+        /// <remarks>默认值：3500</remarks>
         /// </summary>
         public int MaxEventsPerFrame { get; set; } = 3500;
 
@@ -51,12 +51,14 @@ namespace EasyPack.EmeCardSystem
     {
         /// <summary>
         /// 是否对聚合的 matched 去重
+        /// <remarks>默认值：true</remarks>
         /// </summary>
         public bool DistinctMatched { get; set; } = true;
 
         /// <summary>
         /// 该规则命中并执行后，是否中止本次事件的后续规则
+        /// <remarks>默认值：false</remarks>
         /// </summary>
-        public bool StopEventOnSuccess { get; set; } = false;
+        public bool StopEventOnSuccess { get; set; }
     }
 }
