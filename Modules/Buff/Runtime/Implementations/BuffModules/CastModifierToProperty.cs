@@ -117,12 +117,11 @@ namespace EasyPack.BuffSystem
             var property = GetProperty();
             if (property == null)
                 return;
-
-            var modifierClone = Modifier.Clone();
-            property.AddModifier(modifierClone);
+            
+            property.AddModifier(Modifier);
 
             // 记录已应用的修饰符以便后续移除
-            _appliedModifiers.Add(modifierClone);
+            _appliedModifiers.Add(Modifier);
         }
 
         /// <summary>

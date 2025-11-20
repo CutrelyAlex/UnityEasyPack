@@ -13,7 +13,7 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 物品查找缓存结果
         /// </summary>
-        private struct ItemLookupResult
+        public struct ItemLookupResult
         {
             public IItem Item;
             public int FirstSlotIndex;
@@ -26,12 +26,12 @@ namespace EasyPack.InventorySystem
         /// </summary>
         public struct MoveRequest
         {
-            public string FromContainerId;
-            public int FromSlot;
-            public string ToContainerId;
-            public int ToSlot;
-            public int Count;
-            public string ExpectedItemId;
+            public readonly string FromContainerId;
+            public readonly int FromSlot;
+            public readonly string ToContainerId;
+            public readonly int ToSlot;
+            public readonly int Count;
+            public readonly string ExpectedItemId;
 
             public MoveRequest(string fromContainerId, int fromSlot, string toContainerId, int toSlot = -1, int count = -1, string expectedItemId = null)
             {
@@ -65,7 +65,7 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 快速物品查找
         /// </summary>
-        private ItemLookupResult QuickFindItem(Container container, string itemId, int maxCount = int.MaxValue)
+        private static ItemLookupResult QuickFindItem(Container container, string itemId, int maxCount = int.MaxValue)
         {
             if (string.IsNullOrEmpty(itemId) || container == null)
                 return default;
@@ -268,7 +268,6 @@ namespace EasyPack.InventorySystem
             }
 
             Container sourceContainer;
-            Container targetContainer;
 
             lock (_lock)
             {
@@ -276,7 +275,7 @@ namespace EasyPack.InventorySystem
                 if (sourceContainer == null)
                     return (MoveResult.SourceContainerNotFound, 0);
 
-                targetContainer = GetContainer(toContainerId);
+                var targetContainer = GetContainer(toContainerId);
                 if (targetContainer == null)
                     return (MoveResult.TargetContainerNotFound, 0);
             }
@@ -316,7 +315,7 @@ namespace EasyPack.InventorySystem
                         // 指定数量移动
                         if (!string.IsNullOrEmpty(request.ExpectedItemId))
                         {
-                            var (result, transferredCount) = TransferItems(request.ExpectedItemId, request.Count,
+                            (var result, int transferredCount) = TransferItems(request.ExpectedItemId, request.Count,
                                 request.FromContainerId, request.ToContainerId);
                             results.Add((request, result, transferredCount));
                         }
@@ -334,7 +333,7 @@ namespace EasyPack.InventorySystem
                                 var slot = sourceContainer.Slots[request.FromSlot];
                                 if (slot.IsOccupied && slot.Item != null)
                                 {
-                                    var (result, transferredCount) = TransferItems(slot.Item.ID, request.Count,
+                                    (var result, int transferredCount) = TransferItems(slot.Item.ID, request.Count,
                                         request.FromContainerId, request.ToContainerId);
                                     results.Add((request, result, transferredCount));
                                 }
@@ -435,29 +434,31 @@ namespace EasyPack.InventorySystem
                 sortedContainers.Sort((a, b) => b.priority.CompareTo(a.priority));
 
                 // 按优先级分配物品
-                foreach (var (containerId, container, _) in sortedContainers)
+                foreach ((string containerId, var container, var _) in sortedContainers)
                 {
                     if (remainingCount <= 0) break;
 
-                    var (addResult, addedCount) = container.AddItems(item, remainingCount);
+                    (var addResult, int addedCount) = container.AddItems(item, remainingCount);
 
-                    if (addResult == AddItemResult.Success && addedCount > 0)
+                    switch (addResult)
                     {
-                        results[containerId] = addedCount;
-                        remainingCount -= addedCount;
-                    }
-                    else if (addResult == AddItemResult.ContainerIsFull && addedCount > 0)
-                    {
-                        // 部分添加成功
-                        results[containerId] = addedCount;
-                        remainingCount -= addedCount;
+                        case AddItemResult.Success when addedCount > 0:
+                            results[containerId] = addedCount;
+                            remainingCount -= addedCount;
+                            break;
+                        case AddItemResult.ContainerIsFull when addedCount > 0:
+                            // 部分添加成功
+                            results[containerId] = addedCount;
+                            remainingCount -= addedCount;
+                            break;
                     }
                 }
 
                 OnItemsDistributed?.Invoke(item, totalCount, results, remainingCount);
             }
-            catch
+            catch (System.Exception e)
             {
+                Debug.LogWarning($"分配物品失败! {e}");
             }
 
             return results;

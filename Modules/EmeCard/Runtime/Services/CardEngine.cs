@@ -101,12 +101,10 @@ namespace EasyPack.EmeCardSystem
         {
             public Card Source;
             public CardEvent Event;
-            public bool IsProcessed;
             public EventEntry(Card s, CardEvent e)
             {
                 Source = s;
                 Event = e;
-                IsProcessed = false;
             }
         }
         // 规则表

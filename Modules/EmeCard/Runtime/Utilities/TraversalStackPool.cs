@@ -17,7 +17,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="poolService">对象池服务实例。</param>
         /// <param name="maxCapacity">池的最大容量，默认为32。</param>
-        public static void Initialize(IObjectPoolService poolService, int maxCapacity = 32)
+        private static void Initialize(IObjectPoolService poolService, int maxCapacity = 32)
         {
             if (_isInitialized)
             {

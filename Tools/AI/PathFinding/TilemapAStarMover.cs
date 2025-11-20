@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Serialization;
 using UnityEngine.Tilemaps;
 namespace EasyPack.Tools.PathFinding
 {
@@ -82,7 +83,7 @@ namespace EasyPack.Tools.PathFinding
         [Tooltip("贝塞尔平滑：基础采样密度（每世界单位估算的采样倍率）")]
         public float bezierBaseDensity = 1.2f;
 
-        private int bezierMinSamples = 1;
+        private int _bezierMinSamples = 1;
 
         [Tooltip("贝塞尔平滑：每段最多采样点数限制")]
         [Range(4, 200)] public int bezierMaxSamples = 40;
@@ -95,7 +96,7 @@ namespace EasyPack.Tools.PathFinding
         public float diagonalMoveCost = 1.414f;
 
         [Tooltip("瓦片类型与移动代价的映射表，不同瓦片可以有不同的通过代价")]
-        public Dictionary<TileBase, float> tileCostMap = new();
+        public Dictionary<TileBase, float> TileCostMap = new();
 
         [Tooltip("是否启用地形代价系统，考虑不同瓦片的移动成本")]
         public bool useTerrainCosts = false;
@@ -143,24 +144,25 @@ namespace EasyPack.Tools.PathFinding
         [Tooltip("路径切换时的最大回退距离，超过此距离将直接切换到新路径")]
         public float maxBacktrackDistance = 2f;
 
+        [FormerlySerializedAs("OnPathFound")]
         [Header("事件")]
         [Tooltip("找到路径时触发的事件，参数为路径点列表")]
-        public PathfindingEvent OnPathFound = new();
+        public PathfindingEvent onPathFound = new();
 
-        [Tooltip("未找到路径时触发的事件")]
-        public UnityEvent OnPathNotFound = new();
+        [FormerlySerializedAs("OnPathNotFound")] [Tooltip("未找到路径时触发的事件")]
+        public UnityEvent onPathNotFound = new();
 
-        [Tooltip("开始移动时触发的事件，参数为起始位置")]
-        public MovementEvent OnMovementStart = new();
+        [FormerlySerializedAs("OnMovementStart")] [Tooltip("开始移动时触发的事件，参数为起始位置")]
+        public MovementEvent onMovementStart = new();
 
-        [Tooltip("移动过程中每帧触发的事件，参数为当前位置")]
-        public MovementEvent OnMovementUpdate = new();
+        [FormerlySerializedAs("OnMovementUpdate")] [Tooltip("移动过程中每帧触发的事件，参数为当前位置")]
+        public MovementEvent onMovementUpdate = new();
 
-        [Tooltip("移动完成时触发的事件，参数为最终位置")]
-        public MovementEvent OnMovementComplete = new();
+        [FormerlySerializedAs("OnMovementComplete")] [Tooltip("移动完成时触发的事件，参数为最终位置")]
+        public MovementEvent onMovementComplete = new();
 
-        [Tooltip("移动被停止时触发的事件")]
-        public UnityEvent OnMovementStopped = new();
+        [FormerlySerializedAs("OnMovementStopped")] [Tooltip("移动被停止时触发的事件")]
+        public UnityEvent onMovementStopped = new();
 
         [Header("调试设置")]
         [Tooltip("是否在Scene视图中显示寻路路径")]
@@ -202,34 +204,34 @@ namespace EasyPack.Tools.PathFinding
         #endregion
 
         #region 私有字段
-        private UnifiedMap unifiedMap;           // 可能来自共享服务
-        private bool usingSharedMap = false;     // 标记是否使用共享地图
+        private UnifiedMap _unifiedMap;           // 可能来自共享服务
+        private bool _usingSharedMap = false;     // 标记是否使用共享地图
         public bool localBuilt = false;         // 若未能获取服务则本地构建
 
-        private List<Vector3Int> currentPath = new();
-        private Coroutine moveCoroutine;
-        private int currentPathIndex = 0;
-        private Vector3 currentTarget = Vector3.zero;
+        private List<Vector3Int> _currentPath = new();
+        private Coroutine _moveCoroutine;
+        private int _currentPathIndex = 0;
+        private Vector3 _currentTarget = Vector3.zero;
         public bool isMovingToTarget = false;
-        private Vector3 currentJitterOffset = Vector3.zero;
-        private float jitterTimer = 0f;
-        private List<Vector3> jitterHistory = new();
-        private PathfindingStats lastStats = new();
+        private Vector3 _currentJitterOffset = Vector3.zero;
+        private float _jitterTimer = 0f;
+        private List<Vector3> _jitterHistory = new();
+        private PathfindingStats _lastStats = new();
 
-        private readonly Vector3Int[] directions8 = {
+        private readonly Vector3Int[] _directions8 = {
             Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right,
             new(1,1,0), new(-1,1,0),
             new(1,-1,0), new(-1,-1,0)
         };
-        private readonly Vector3Int[] directions4 = {
+        private readonly Vector3Int[] _directions4 = {
             Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right
         };
 
-        private Tilemap conversionTilemap;
+        private Tilemap _conversionTilemap;
 
-        private float refreshTimer = 0f;
-        private Vector3 lastTargetPosition;
-        private bool hasInitializedTargetPosition = false;
+        private float _refreshTimer = 0f;
+        private Vector3 _lastTargetPosition;
+        private bool _hasInitializedTargetPosition = false;
         #endregion
 
         #region Unity生命周期
@@ -252,16 +254,16 @@ namespace EasyPack.Tools.PathFinding
                     if (allTilemaps.Count > 0 || gridObjects.Count > 0)
                         sharedService.RegisterTilemaps(allTilemaps, gridObjects);
 
-                    unifiedMap = sharedService.GetUnifiedMap();
-                    conversionTilemap ??= (allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap);
-                    if (usingSharedMap && allTilemaps.Count == 0 && conversionTilemap != null)
+                    _unifiedMap = sharedService.GetUnifiedMap();
+                    _conversionTilemap ??= (allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap);
+                    if (_usingSharedMap && allTilemaps.Count == 0 && _conversionTilemap != null)
                     {
                         // 确保本地也持有一个引用，避免 allTilemaps.Count==0 造成坐标恒为 (0,0,0)
-                        allTilemaps.Add(conversionTilemap);
+                        allTilemaps.Add(_conversionTilemap);
                     }
-                    if (unifiedMap != null)
+                    if (_unifiedMap != null)
                     {
-                        usingSharedMap = true;
+                        _usingSharedMap = true;
                     }
                     else
                     {
@@ -275,14 +277,14 @@ namespace EasyPack.Tools.PathFinding
             }
 
             // 2. 本地构建（共享失败或未启用）
-            if (!usingSharedMap)
+            if (!_usingSharedMap)
             {
                 if (gridObjects.Count > 0)
                     GetTilemapsFromGrids();
                 BuildUnifiedMap();
                 localBuilt = true;
-                if (conversionTilemap == null && allTilemaps.Count > 0)
-                    conversionTilemap = allTilemaps[0];
+                if (_conversionTilemap == null && allTilemaps.Count > 0)
+                    _conversionTilemap = allTilemaps[0];
             }
 
             InitializeAutoRefresh();
@@ -320,7 +322,7 @@ namespace EasyPack.Tools.PathFinding
                 Debug.LogError($"[{name}] 没有设置 Tilemap，无法本地构建。");
                 return;
             }
-            unifiedMap = new UnifiedMap();
+            _unifiedMap = new UnifiedMap();
             foreach (var tilemap in allTilemaps)
             {
                 if (tilemap == null) continue;
@@ -330,10 +332,10 @@ namespace EasyPack.Tools.PathFinding
 
         public List<Vector3Int> FindPath(Vector3Int startPos, Vector3Int targetPos, PathfindingOptions options = null)
         {
-            if (unifiedMap == null || unifiedMap.walkableTiles.Count == 0)
+            if (_unifiedMap == null || _unifiedMap.walkableTiles.Count == 0)
             {
                 Debug.LogError($"[{name}] UnifiedMap 未构建或为空。");
-                OnPathNotFound?.Invoke();
+                onPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
 
@@ -344,39 +346,39 @@ namespace EasyPack.Tools.PathFinding
                     allowDiagonal = allowDiagonalMovement,
                     maxDistance = maxSearchDistance,
                     maxIterations = maxIterations,
-                    useJPS = useJumpPointSearch
+                    useJps = useJumpPointSearch
                 };
             }
 
             var startTime = System.DateTime.Now;
-            lastStats.Reset();
+            _lastStats.Reset();
 
             if (!IsPositionValid(startPos) || HasDynamicObstacle(startPos))
             {
-                OnPathNotFound?.Invoke();
+                onPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
             if (!IsPositionValid(targetPos) || HasDynamicObstacle(targetPos))
             {
-                OnPathNotFound?.Invoke();
+                onPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
 
             float dist = Vector3Int.Distance(startPos, targetPos);
             if (dist > options.maxDistance)
             {
-                OnPathNotFound?.Invoke();
+                onPathNotFound?.Invoke();
                 return new List<Vector3Int>();
             }
 
             if (startPos == targetPos)
             {
                 var single = new List<Vector3Int> { startPos };
-                OnPathFound?.Invoke(single);
+                onPathFound?.Invoke(single);
                 return single;
             }
 
-            List<Vector3Int> path = (options.useJPS && allowDiagonalMovement)
+            List<Vector3Int> path = (options.useJps && allowDiagonalMovement)
                 ? ExecuteJumpPointSearch(startPos, targetPos, options)
                 : ExecuteAStar(startPos, targetPos, options);
 
@@ -384,14 +386,14 @@ namespace EasyPack.Tools.PathFinding
             {
                 path = PostProcessPath(path);
                 var endTime = System.DateTime.Now;
-                lastStats.searchTime = (float)(endTime - startTime).TotalMilliseconds;
-                lastStats.pathLength = path.Count;
-                lastStats.success = true;
-                OnPathFound?.Invoke(path);
+                _lastStats.searchTime = (float)(endTime - startTime).TotalMilliseconds;
+                _lastStats.pathLength = path.Count;
+                _lastStats.success = true;
+                onPathFound?.Invoke(path);
             }
             else
             {
-                OnPathNotFound?.Invoke();
+                onPathNotFound?.Invoke();
             }
             return path;
         }
@@ -414,34 +416,34 @@ namespace EasyPack.Tools.PathFinding
         public void MoveAlongPath(List<Vector3Int> path)
         {
             if (pathfindingObject == null || path.Count == 0) return;
-            if (moveCoroutine != null)
+            if (_moveCoroutine != null)
             {
-                StopCoroutine(moveCoroutine);
-                OnMovementStopped?.Invoke();
+                StopCoroutine(_moveCoroutine);
+                onMovementStopped?.Invoke();
             }
-            currentPath = new List<Vector3Int>(path);
-            currentPathIndex = 0;
-            currentJitterOffset = Vector3.zero;
-            jitterTimer = 0f;
-            jitterHistory.Clear();
+            _currentPath = new List<Vector3Int>(path);
+            _currentPathIndex = 0;
+            _currentJitterOffset = Vector3.zero;
+            _jitterTimer = 0f;
+            _jitterHistory.Clear();
             isMovingToTarget = false;
-            moveCoroutine = StartCoroutine(MoveCoroutine());
-            OnMovementStart?.Invoke(pathfindingObject.transform.position);
+            _moveCoroutine = StartCoroutine(MoveCoroutine());
+            onMovementStart?.Invoke(pathfindingObject.transform.position);
         }
 
         [ContextMenu("停止移动")]
         public void StopMovement()
         {
-            if (moveCoroutine != null)
+            if (_moveCoroutine != null)
             {
-                StopCoroutine(moveCoroutine);
-                moveCoroutine = null;
-                OnMovementStopped?.Invoke();
+                StopCoroutine(_moveCoroutine);
+                _moveCoroutine = null;
+                onMovementStopped?.Invoke();
             }
-            currentPath.Clear();
-            currentPathIndex = 0;
-            currentJitterOffset = Vector3.zero;
-            jitterHistory.Clear();
+            _currentPath.Clear();
+            _currentPathIndex = 0;
+            _currentJitterOffset = Vector3.zero;
+            _jitterHistory.Clear();
             isMovingToTarget = false;
         }
 
@@ -451,8 +453,8 @@ namespace EasyPack.Tools.PathFinding
                 dynamicObstacles.Add(obstacle);
         }
         public void RemoveDynamicObstacle(Transform obstacle) => dynamicObstacles.Remove(obstacle);
-        public void SetTileCost(TileBase tile, float cost) => tileCostMap[tile] = cost;
-        public PathfindingStats GetLastPathfindingStats() => lastStats;
+        public void SetTileCost(TileBase tile, float cost) => TileCostMap[tile] = cost;
+        public PathfindingStats GetLastPathfindingStats() => _lastStats;
 
         /// <summary>
         /// 刷新引用
@@ -460,25 +462,25 @@ namespace EasyPack.Tools.PathFinding
         /// </summary>
         public void TryAttachSharedService(PathfindingService service = null)
         {
-            if (useSharedService == false) return;
+            if (!useSharedService) return;
             if (service != null) sharedService = service;
             if (sharedService == null)
                 sharedService = PathfindingService.Instance ?? FindFirstObjectByType<PathfindingService>();
             if (sharedService == null) return;
             sharedService.RegisterTilemaps(allTilemaps, gridObjects);
             var map = sharedService.GetUnifiedMap();
-            if (usingSharedMap)
+            if (_usingSharedMap)
             {
-                if (conversionTilemap == null)
-                    conversionTilemap = (allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap);
-                if (allTilemaps.Count == 0 && conversionTilemap != null)
-                    allTilemaps.Add(conversionTilemap);
+                if (_conversionTilemap == null)
+                    _conversionTilemap = (allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap);
+                if (allTilemaps.Count == 0 && _conversionTilemap != null)
+                    allTilemaps.Add(_conversionTilemap);
             }
 
             if (map != null)
             {
-                unifiedMap = map;
-                usingSharedMap = true;
+                _unifiedMap = map;
+                _usingSharedMap = true;
             }
         }
         #endregion
@@ -486,25 +488,25 @@ namespace EasyPack.Tools.PathFinding
         #region 自动刷新
         private void HandleAutoRefresh()
         {
-            refreshTimer += Time.deltaTime;
-            bool freq = refreshTimer >= 1f / refreshFrequency;
+            _refreshTimer += Time.deltaTime;
+            bool freq = _refreshTimer >= 1f / refreshFrequency;
             bool byMove = false;
             if (refreshOnTargetMove && targetObject != null)
             {
-                if (!hasInitializedTargetPosition)
+                if (!_hasInitializedTargetPosition)
                 {
-                    lastTargetPosition = targetObject.transform.position;
-                    hasInitializedTargetPosition = true;
+                    _lastTargetPosition = targetObject.transform.position;
+                    _hasInitializedTargetPosition = true;
                 }
-                else if (Vector3.Distance(targetObject.transform.position, lastTargetPosition) >= targetMoveThreshold)
+                else if (Vector3.Distance(targetObject.transform.position, _lastTargetPosition) >= targetMoveThreshold)
                 {
                     byMove = true;
-                    lastTargetPosition = targetObject.transform.position;
+                    _lastTargetPosition = targetObject.transform.position;
                 }
             }
             if (freq || byMove)
             {
-                if (freq) refreshTimer = 0f;
+                if (freq) _refreshTimer = 0f;
                 AutoRefreshPathfinding();
             }
         }
@@ -513,12 +515,12 @@ namespace EasyPack.Tools.PathFinding
         {
             if (!IsMoving || pathfindingObject == null || targetObject == null) return;
 
-            Vector3Int startPos = (currentPath.Count > 0 && currentPathIndex < currentPath.Count)
-                ? currentPath[currentPathIndex]
+            Vector3Int startPos = (_currentPath.Count > 0 && _currentPathIndex < _currentPath.Count)
+                ? _currentPath[_currentPathIndex]
                 : GetTilePositionFromGameObject(pathfindingObject);
 
             Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
-            if (currentPath.Count > 0 && targetPos == currentPath[currentPath.Count - 1])
+            if (_currentPath.Count > 0 && targetPos == _currentPath[_currentPath.Count - 1])
                 return;
 
             var newPath = FindPath(startPos, targetPos);
@@ -535,8 +537,8 @@ namespace EasyPack.Tools.PathFinding
         {
             if (targetObject != null)
             {
-                lastTargetPosition = targetObject.transform.position;
-                hasInitializedTargetPosition = true;
+                _lastTargetPosition = targetObject.transform.position;
+                _hasInitializedTargetPosition = true;
             }
         }
         public void SetAutoRefreshEnabled(bool enabled)
@@ -544,7 +546,7 @@ namespace EasyPack.Tools.PathFinding
             enableAutoRefresh = enabled;
             if (enabled)
             {
-                refreshTimer = 0f;
+                _refreshTimer = 0f;
                 InitializeAutoRefresh();
             }
         }
@@ -563,7 +565,7 @@ namespace EasyPack.Tools.PathFinding
                     if (tile != null && IsTileWalkable(tile, pos))
                     {
                         float cost = GetTileCost(tile);
-                        unifiedMap.AddWalkableTile(pos, tilemap, cost);
+                        _unifiedMap.AddWalkableTile(pos, tilemap, cost);
                     }
                 }
             }
@@ -572,14 +574,14 @@ namespace EasyPack.Tools.PathFinding
         protected virtual bool IsTileWalkable(TileBase tile, Vector3Int position) => tile != null;
         protected virtual float GetTileCost(TileBase tile)
         {
-            if (useTerrainCosts && tileCostMap.ContainsKey(tile))
-                return tileCostMap[tile];
+            if (useTerrainCosts && TileCostMap.ContainsKey(tile))
+                return TileCostMap[tile];
             return 1f;
         }
         #endregion
 
         #region 寻路算法
-        private bool IsPositionValid(Vector3Int position) => unifiedMap.IsWalkable(position);
+        private bool IsPositionValid(Vector3Int position) => _unifiedMap.IsWalkable(position);
         private bool HasDynamicObstacle(Vector3Int position)
         {
             if (!considerDynamicObstacles) return false;
@@ -603,19 +605,19 @@ namespace EasyPack.Tools.PathFinding
             openSet.Add(startNode);
             allNodes[start] = startNode;
 
-            Vector3Int[] dirs = options.allowDiagonal ? directions8 : directions4;
+            Vector3Int[] dirs = options.allowDiagonal ? _directions8 : _directions4;
             int iterations = 0;
 
             while (openSet.Count > 0 && iterations < options.maxIterations)
             {
                 iterations++;
                 var currentNode = openSet.Pop();
-                lastStats.nodesExplored++;
+                _lastStats.nodesExplored++;
                 closedSet.Add(currentNode.position);
 
                 if (currentNode.position == target)
                 {
-                    lastStats.iterations = iterations;
+                    _lastStats.iterations = iterations;
                     return ReconstructPath(currentNode);
                 }
                 foreach (var d in dirs)
@@ -652,7 +654,7 @@ namespace EasyPack.Tools.PathFinding
                     }
                 }
             }
-            lastStats.iterations = iterations;
+            _lastStats.iterations = iterations;
             return new List<Vector3Int>();
         }
 
@@ -667,7 +669,7 @@ namespace EasyPack.Tools.PathFinding
             float baseCost = (direction.x != 0 && direction.y != 0) ? diagonalMoveCost : straightMoveCost;
             if (useTerrainCosts)
             {
-                var info = unifiedMap.GetTileInfo(to);
+                var info = _unifiedMap.GetTileInfo(to);
                 if (info != null) baseCost *= info.cost;
             }
             return baseCost;
@@ -739,7 +741,7 @@ namespace EasyPack.Tools.PathFinding
                 Vector3 wb = GetWorldPosition(b);
                 Vector3 wc = GetWorldPosition(c);
                 float segLen = (wc - wa).magnitude;
-                int sampleCount = Mathf.Clamp(Mathf.CeilToInt(segLen * densityFactor), bezierMinSamples, bezierMaxSamples);
+                int sampleCount = Mathf.Clamp(Mathf.CeilToInt(segLen * densityFactor), _bezierMinSamples, bezierMaxSamples);
                 for (int s = 1; s <= sampleCount; s++)
                 {
                     float t = s / (float)sampleCount;
@@ -770,15 +772,15 @@ namespace EasyPack.Tools.PathFinding
             int dy = Mathf.Abs(end.y - start.y);
             int x = start.x;
             int y = start.y;
-            int x_inc = end.x > start.x ? 1 : -1;
-            int y_inc = end.y > start.y ? 1 : -1;
+            int xInc = end.x > start.x ? 1 : -1;
+            int yInc = end.y > start.y ? 1 : -1;
             int error = dx - dy;
             dx *= 2; dy *= 2;
             for (int n = 1 + dx + dy; n > 0; --n)
             {
                 pts.Add(new Vector3Int(x, y, 0));
-                if (error > 0) { x += x_inc; error -= dy; }
-                else { y += y_inc; error += dx; }
+                if (error > 0) { x += xInc; error -= dy; }
+                else { y += yInc; error += dx; }
             }
             return pts;
         }
@@ -794,9 +796,9 @@ namespace EasyPack.Tools.PathFinding
                 float backtrack = Vector3.Distance(curPos, connectWorld);
                 if (backtrack <= maxBacktrackDistance)
                 {
-                    currentPath = newPath;
-                    currentPathIndex = bestIndex;
-                    currentTarget = connectWorld;
+                    _currentPath = newPath;
+                    _currentPathIndex = bestIndex;
+                    _currentTarget = connectWorld;
                     return;
                 }
             }
@@ -807,8 +809,8 @@ namespace EasyPack.Tools.PathFinding
             if (path == null || path.Count == 0) return -1;
             float min = float.MaxValue;
             int best = -1;
-            int searchStart = Mathf.Max(0, currentPathIndex - 2);
-            int searchEnd = Mathf.Min(path.Count, currentPathIndex + 5);
+            int searchStart = Mathf.Max(0, _currentPathIndex - 2);
+            int searchEnd = Mathf.Min(path.Count, _currentPathIndex + 5);
             for (int i = searchStart; i < searchEnd; i++)
             {
                 float d = Vector3.Distance(currentPosition, GetWorldPosition(path[i]));
@@ -826,14 +828,14 @@ namespace EasyPack.Tools.PathFinding
         }
         private bool ShouldUpdatePath(List<Vector3Int> newPath)
         {
-            if (currentPath.Count == 0) return true;
+            if (_currentPath.Count == 0) return true;
             if (newPath.Count == 0) return false;
-            if (currentPath[^1] != newPath[^1]) return true;
-            float lengthDiff = Mathf.Abs(newPath.Count - currentPath.Count) / (float)currentPath.Count;
+            if (_currentPath[^1] != newPath[^1]) return true;
+            float lengthDiff = Mathf.Abs(newPath.Count - _currentPath.Count) / (float)_currentPath.Count;
             if (lengthDiff > 0.3f) return true;
-            int check = Mathf.Min(3, Mathf.Min(currentPath.Count, newPath.Count));
+            int check = Mathf.Min(3, Mathf.Min(_currentPath.Count, newPath.Count));
             for (int i = 0; i < check; i++)
-                if (currentPath[i] != newPath[i]) return true;
+                if (_currentPath[i] != newPath[i]) return true;
             return false;
         }
         #endregion
@@ -841,27 +843,27 @@ namespace EasyPack.Tools.PathFinding
         #region 移动相关
         private System.Collections.IEnumerator MoveCoroutine()
         {
-            while (currentPathIndex < currentPath.Count)
+            while (_currentPathIndex < _currentPath.Count)
             {
-                Vector3Int targetCell = currentPath[currentPathIndex];
+                Vector3Int targetCell = _currentPath[_currentPathIndex];
                 Vector3 targetWorld = GetWorldPosition(targetCell);
-                currentTarget = targetWorld;
+                _currentTarget = targetWorld;
                 isMovingToTarget = true;
 
-                while (Vector3.Distance(pathfindingObject.transform.position, targetWorld + currentJitterOffset) > 0.05f)
+                while (Vector3.Distance(pathfindingObject.transform.position, targetWorld + _currentJitterOffset) > 0.05f)
                 {
-                    if (currentPathIndex < currentPath.Count)
+                    if (_currentPathIndex < _currentPath.Count)
                     {
-                        targetCell = currentPath[currentPathIndex];
+                        targetCell = _currentPath[_currentPathIndex];
                         targetWorld = GetWorldPosition(targetCell);
-                        currentTarget = targetWorld;
+                        _currentTarget = targetWorld;
                     }
 
                     float currentSpeed = moveSpeed;
                     if (moveSpeedCurve.keys.Length > 1)
                     {
-                        Vector3 startPos = currentPathIndex > 0
-                            ? GetWorldPosition(currentPath[currentPathIndex - 1])
+                        Vector3 startPos = _currentPathIndex > 0
+                            ? GetWorldPosition(_currentPath[_currentPathIndex - 1])
                             : pathfindingObject.transform.position;
                         float pathProgress = 1f - (Vector3.Distance(pathfindingObject.transform.position, targetWorld) /
                                                    Mathf.Max(0.0001f, Vector3.Distance(startPos, targetWorld)));
@@ -871,17 +873,17 @@ namespace EasyPack.Tools.PathFinding
 
                     if (enableMovementJitter)
                     {
-                        jitterTimer += Time.deltaTime;
-                        if (jitterTimer >= 1f / jitterFrequency)
+                        _jitterTimer += Time.deltaTime;
+                        if (_jitterTimer >= 1f / jitterFrequency)
                         {
-                            jitterTimer = 0f;
-                            currentJitterOffset = GenerateJitterOffset(pathfindingObject.transform.position);
-                            if (showJitterDebug && jitterHistory.Count < 50)
-                                jitterHistory.Add(pathfindingObject.transform.position + currentJitterOffset);
+                            _jitterTimer = 0f;
+                            _currentJitterOffset = GenerateJitterOffset(pathfindingObject.transform.position);
+                            if (showJitterDebug && _jitterHistory.Count < 50)
+                                _jitterHistory.Add(pathfindingObject.transform.position + _currentJitterOffset);
                         }
                     }
 
-                    Vector3 jitteredTarget = targetWorld + currentJitterOffset;
+                    Vector3 jitteredTarget = targetWorld + _currentJitterOffset;
                     Vector3 newPos = Vector3.MoveTowards(pathfindingObject.transform.position, jitteredTarget, currentSpeed * Time.deltaTime);
 
                     if (autoRotateToDirection)
@@ -896,29 +898,29 @@ namespace EasyPack.Tools.PathFinding
                     }
 
                     pathfindingObject.transform.position = newPos;
-                    OnMovementUpdate?.Invoke(newPos);
+                    onMovementUpdate?.Invoke(newPos);
                     yield return null;
                 }
 
                 isMovingToTarget = false;
-                currentPathIndex++;
-                if (currentPathIndex < currentPath.Count)
-                    currentJitterOffset = GenerateJitterOffset(pathfindingObject.transform.position);
+                _currentPathIndex++;
+                if (_currentPathIndex < _currentPath.Count)
+                    _currentJitterOffset = GenerateJitterOffset(pathfindingObject.transform.position);
             }
 
-            Vector3 finalTarget = GetWorldPosition(currentPath[^1]);
+            Vector3 finalTarget = GetWorldPosition(_currentPath[^1]);
             while (Vector3.Distance(pathfindingObject.transform.position, finalTarget) > 0.01f)
             {
-                currentJitterOffset = Vector3.Lerp(currentJitterOffset, Vector3.zero, Time.deltaTime * 3f);
+                _currentJitterOffset = Vector3.Lerp(_currentJitterOffset, Vector3.zero, Time.deltaTime * 3f);
                 pathfindingObject.transform.position =
                     Vector3.MoveTowards(pathfindingObject.transform.position, finalTarget, moveSpeed * Time.deltaTime);
                 yield return null;
             }
             pathfindingObject.transform.position = finalTarget;
-            currentJitterOffset = Vector3.zero;
+            _currentJitterOffset = Vector3.zero;
             isMovingToTarget = false;
-            OnMovementComplete?.Invoke(finalTarget);
-            moveCoroutine = null;
+            onMovementComplete?.Invoke(finalTarget);
+            _moveCoroutine = null;
         }
         #endregion
 
@@ -963,7 +965,7 @@ namespace EasyPack.Tools.PathFinding
 
             Tilemap refMap = null;
             if (allTilemaps.Count > 0) refMap = allTilemaps[0];
-            else if (conversionTilemap != null) refMap = conversionTilemap;
+            else if (_conversionTilemap != null) refMap = _conversionTilemap;
 
             if (refMap == null)
             {
@@ -978,7 +980,7 @@ namespace EasyPack.Tools.PathFinding
         {
             Tilemap refMap = null;
             if (allTilemaps.Count > 0) refMap = allTilemaps[0];
-            else if (conversionTilemap != null) refMap = conversionTilemap;
+            else if (_conversionTilemap != null) refMap = _conversionTilemap;
 
             if (refMap == null)
                 return Vector3.zero;
@@ -994,8 +996,8 @@ namespace EasyPack.Tools.PathFinding
 
         public void SetTargetObject(GameObject target) => targetObject = target;
         public void SetPathfindingObject(GameObject pathfinder) => pathfindingObject = pathfinder;
-        public bool IsMoving => moveCoroutine != null;
-        public int GetWalkableTileCount() => unifiedMap?.walkableTiles.Count ?? 0;
+        public bool IsMoving => _moveCoroutine != null;
+        public int GetWalkableTileCount() => _unifiedMap?.walkableTiles.Count ?? 0;
         public void SetJitterEnabled(bool enabled) => enableMovementJitter = enabled;
         public void SetJitterStrength(float strength) => jitterStrength = Mathf.Clamp01(strength);
         public void SetJitterFrequency(float frequency) => jitterFrequency = Mathf.Max(0.1f, frequency);
@@ -1004,27 +1006,27 @@ namespace EasyPack.Tools.PathFinding
 
         private void OnDrawGizmos()
         {
-            if (unifiedMap == null) return;
+            if (_unifiedMap == null) return;
             if (showWalkableArea)
             {
                 Gizmos.color = walkableAreaColor;
-                foreach (var tile in unifiedMap.walkableTiles.Keys)
+                foreach (var tile in _unifiedMap.walkableTiles.Keys)
                 {
                     Gizmos.DrawWireCube(GetWorldPosition(tile), Vector3.one * 0.3f);
                 }
             }
-            if (showDebugPath && currentPath != null && currentPath.Count > 0)
+            if (showDebugPath && _currentPath != null && _currentPath.Count > 0)
             {
                 Gizmos.color = pathColor;
-                for (int i = 0; i < currentPath.Count - 1; i++)
+                for (int i = 0; i < _currentPath.Count - 1; i++)
                 {
-                    Gizmos.DrawLine(GetWorldPosition(currentPath[i]), GetWorldPosition(currentPath[i + 1]));
-                    Gizmos.DrawWireSphere(GetWorldPosition(currentPath[i]), 0.15f);
+                    Gizmos.DrawLine(GetWorldPosition(_currentPath[i]), GetWorldPosition(_currentPath[i + 1]));
+                    Gizmos.DrawWireSphere(GetWorldPosition(_currentPath[i]), 0.15f);
                 }
-                if (currentPathIndex < currentPath.Count)
+                if (_currentPathIndex < _currentPath.Count)
                 {
                     Gizmos.color = Color.yellow;
-                    Gizmos.DrawWireSphere(GetWorldPosition(currentPath[currentPathIndex]), 0.2f);
+                    Gizmos.DrawWireSphere(GetWorldPosition(_currentPath[_currentPathIndex]), 0.2f);
                 }
             }
             if (considerDynamicObstacles)
@@ -1043,12 +1045,12 @@ namespace EasyPack.Tools.PathFinding
                 Gizmos.color = targetPointColor;
                 Gizmos.DrawWireCube(GetWorldPosition(GetTilePositionFromGameObject(targetObject)), Vector3.one * 0.6f);
             }
-            if (showJitterDebug && enableMovementJitter && pathfindingObject != null && currentJitterOffset != Vector3.zero)
+            if (showJitterDebug && enableMovementJitter && pathfindingObject != null && _currentJitterOffset != Vector3.zero)
             {
                 Gizmos.color = jitterDebugColor;
                 Vector3 cp = pathfindingObject.transform.position;
-                Gizmos.DrawLine(cp, cp + currentJitterOffset);
-                Gizmos.DrawWireSphere(cp + currentJitterOffset, 0.1f);
+                Gizmos.DrawLine(cp, cp + _currentJitterOffset);
+                Gizmos.DrawWireSphere(cp + _currentJitterOffset, 0.1f);
             }
         }
         #endregion
@@ -1137,7 +1139,7 @@ namespace EasyPack.Tools.PathFinding
         public bool allowDiagonal = true;
         public float maxDistance = 100f;
         public int maxIterations = 10000;
-        public bool useJPS = false;
+        [FormerlySerializedAs("useJPS")] public bool useJps = false;
         public bool considerTerrain = false;
     }
 

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace EasyPack.Modifiers
@@ -10,11 +9,24 @@ namespace EasyPack.Modifiers
 
         public void Apply(ref float value, IEnumerable<IModifier> modifiers)
         {
-            var floatMods = modifiers.OfType<FloatModifier>().ToList();
-            var rangeMods = modifiers.OfType<RangeModifier>().ToList();
+            FloatModifier floatOverrideMod = null;
+            RangeModifier rangeOverrideMod = null;
+            int maxFloatPriority = int.MinValue;
+            int maxRangePriority = int.MinValue;
 
-            var floatOverrideMod = floatMods.OrderByDescending(m => m.Priority).FirstOrDefault();
-            var rangeOverrideMod = rangeMods.OrderByDescending(m => m.Priority).FirstOrDefault();
+            foreach (var mod in modifiers)
+            {
+                if (mod is FloatModifier fm && fm.Priority > maxFloatPriority)
+                {
+                    maxFloatPriority = fm.Priority;
+                    floatOverrideMod = fm;
+                }
+                else if (mod is RangeModifier rm && rm.Priority > maxRangePriority)
+                {
+                    maxRangePriority = rm.Priority;
+                    rangeOverrideMod = rm;
+                }
+            }
 
             if (floatOverrideMod != null && rangeOverrideMod != null)
             {

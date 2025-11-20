@@ -186,6 +186,7 @@ namespace EasyPack.GamePropertySystem
             // 更新分类索引（线程安全）
             lock (_categoryLock)
             {
+                if (category == null) return;
                 if (!_categories.ContainsKey(category))
                     _categories[category] = new HashSet<string>();
 
@@ -454,8 +455,7 @@ namespace EasyPack.GamePropertySystem
             {
                 try
                 {
-                    var clonedModifier = modifier.Clone();
-                    property.AddModifier(clonedModifier);
+                    property.AddModifier(modifier);
                     successIds.Add(property.ID);
                 }
                 catch (Exception ex)

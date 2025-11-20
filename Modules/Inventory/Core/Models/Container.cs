@@ -12,7 +12,7 @@ namespace EasyPack.InventorySystem
         #region 基本属性
         public string ID { get; }
         public string Name { get; }
-        public string Type { get; set; } = "";
+        public string Type { get; set; }
         public int Capacity { get; set; } // -1表示无限容量
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace EasyPack.InventorySystem
         public abstract Vector2 Grid { get; } // 网格容器形状
 
         public List<IItemCondition> ContainerCondition { get; set; }
-        protected List<ISlot> _slots = new();
+        protected readonly List<ISlot> _slots = new();
         public IReadOnlyList<ISlot> Slots => _slots.AsReadOnly();
 
         // 缓存管理器
@@ -57,30 +57,30 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 添加物品操作结果事件（统一处理成功和失败）
         /// </summary>
-        /// <param name="item">操作的物品</param>
-        /// <param name="requestedCount">请求添加的数量</param>
-        /// <param name="actualCount">实际添加的数量</param>
-        /// <param name="result">操作结果</param>
-        /// <param name="affectedSlots">涉及的槽位索引列表（失败时为空列表）</param>
+        /// <typeparam name="item">操作的物品</typeparam>
+        /// <typeparam name="requestedCount">请求添加的数量</typeparam>
+        /// <typeparam name="actualCount">实际添加的数量</typeparam>
+        /// <typeparam name="result">操作结果</typeparam>
+        /// <typeparam name="affectedSlots">涉及的槽位索引列表（失败时为空列表）</typeparam>
         public event Action<IItem, int, int, AddItemResult, List<int>> OnItemAddResult;
 
         /// <summary>
         /// 移除物品操作结果事件（统一处理成功和失败）
         /// </summary>
-        /// <param name="itemId">操作的物品ID</param>
-        /// <param name="requestedCount">请求移除的数量</param>
-        /// <param name="actualCount">实际移除的数量</param>
-        /// <param name="result">操作结果</param>
-        /// <param name="affectedSlots">涉及的槽位索引列表（失败时为空列表）</param>
+        /// <typeparam name="itemId">操作的物品ID</typeparam>
+        /// <typeparam name="requestedCount">请求移除的数量</typeparam>
+        /// <typeparam name="actualCount">实际移除的数量</typeparam>
+        /// <typeparam name="result">操作结果</typeparam>
+        /// <typeparam name="affectedSlots">涉及的槽位索引列表，失败时为空列表</typeparam>
         public event Action<string, int, int, RemoveItemResult, List<int>> OnItemRemoveResult;
 
         /// <summary>
         /// 槽位数量变更事件
         /// </summary>
-        /// <param name="slotIndex">变更的槽位索引</param>
-        /// <param name="item">变更的物品</param>
-        /// <param name="oldCount">原数量</param>
-        /// <param name="newCount">新数量</param>
+        /// <typeparam name="slotIndex">变更的槽位索引</typeparam>
+        /// <typeparam name="item">变更的物品</typeparam>
+        /// <typeparam name="oldCount">原数量</typeparam>
+        /// <typeparam name="newCount">新数量</typeparam>
         public event Action<int, IItem, int, int> OnSlotCountChanged;
 
         /// <summary>
@@ -107,10 +107,10 @@ namespace EasyPack.InventorySystem
         /// <summary>
         /// 物品总数变更事件
         /// </summary>
-        /// <param name="itemId">物品ID</param>
-        /// <param name="item">物品引用（可能为null，如果物品已完全移除）</param>
-        /// <param name="oldTotalCount">旧总数</param>
-        /// <param name="newTotalCount">新总数</param>
+        /// <typeparam name="itemId">物品ID</typeparam>
+        /// <typeparam name="item">物品引用，可能为null，如果物品已完全移除</typeparam>
+        /// <typeparam name="oldTotalCount">旧总数</typeparam>
+        /// <typeparam name="newTotalCount">新总数</typeparam>
         public event Action<string, IItem, int, int> OnItemTotalCountChanged;
 
         private readonly Dictionary<string, int> _itemTotalCounts = new();
@@ -187,8 +187,11 @@ namespace EasyPack.InventorySystem
         #endregion
 
         #region 状态检查
+        
         private int _notFullStackSlotsCount = 0;
-        // <summary>
+
+        
+        /// <summary>
         /// 检查容器是否已满
         /// 仅当所有槽位都被占用，且每个占用的槽位物品都不可堆叠或已达到堆叠上限时，容器才被认为是满的
         /// </summary>
@@ -1191,7 +1194,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 清空所有槽位
+        /// 清��所有槽位
         /// </summary>
         public virtual void ClearAllSlots()
         {

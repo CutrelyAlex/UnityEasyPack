@@ -7,7 +7,8 @@ namespace EasyPack.CustomData
 {
     /// <summary>
     /// CustomData 集合类
-    /// 实现 IList<CustomDataEntry> 接口 内部维护字典缓存
+    /// 实现 IList&lt;CustomDataEntry&gt;
+    /// 接口内部维护字典缓存
     /// 建议使用此类作为集合，因为性能是O(1)的
     /// </summary>
     [Serializable]

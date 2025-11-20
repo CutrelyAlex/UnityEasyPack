@@ -26,7 +26,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>过滤值（当 FilterMode 为 ByTag/ById/ByCategory 时填写）。</summary>
         public string FilterValue;
 
-        /// <summary>至少需要命中的数量（默认 1，<=0 视为无需命中）。</summary>
+        /// <summary>至少需要命中的数量（默认 1，小于 0 视为无需命中)</summary>
         public int MinCount = 1;
 
         /// <summary>
@@ -35,7 +35,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public int MaxMatched = -1;
 
-        /// <summary>递归深度限制（仅对 Scope=Descendants 生效，null 或 <=0 表示不限制）。</summary>
+        /// <summary>递归深度限制（仅对 Scope=Descendants 生效，null 或 小于 0 表示不限制)</summary>
         public int? MaxDepth = null;
 
         public bool TryMatch(CardRuleContext ctx, out List<Card> matched)
@@ -50,31 +50,20 @@ namespace EasyPack.EmeCardSystem
             int count = picks?.Count ?? 0;
 
             // 检查匹配条件：至少 MinCount 个
-            bool isMatch = MinCount > 0 ? count >= MinCount : true;
+            bool isMatch = MinCount <= 0 || count >= MinCount;
 
             if (isMatch && count > 0)
             {
                 // 确定返回数量
-                int maxReturn;
-                if (MaxMatched > 0)
+                int maxReturn = MaxMatched switch
                 {
-                    // 显式指定返回数量
-                    maxReturn = MaxMatched;
-                }
-                else if (MaxMatched == 0)
-                {
-                    // 0 表示返回所有选中卡牌
-                    maxReturn = count;
-                }
-                else
-                {
-                    // -1（默认）使用原逻辑：MinCount > 0 时取 MinCount，否则取 count
-                    maxReturn = MinCount > 0 ? MinCount : count;
-                }
-
+                    > 0 => MaxMatched,
+                    0 => count,
+                    _ => MinCount > 0 ? MinCount : count
+                };
 
                 int takeCount = Math.Min(maxReturn, count);
-                if (takeCount == count)
+                if (takeCount == count && picks != null)
                 {
                     matched.AddRange(picks);
                 }

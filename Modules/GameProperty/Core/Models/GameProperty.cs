@@ -4,14 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 
 
-/// <summary>
-/// 基于float数值的游戏属性类
-/// 支持修饰符系统，依赖系统，脏标记系统
-/// 可用于实现角色属性，装备属性，buff/debuff等各种游戏数值计算
-/// </summary>
-
 namespace EasyPack.GamePropertySystem
 {
+    /// <summary>
+    /// 基于float数值的游戏属性类
+    /// 支持修饰符系统，依赖系统，脏标记系统
+    /// 可用于实现角色属性，装备属性，buff/debuff等各种游戏数值计算
+    /// </summary>
     public class GameProperty : IModifiableProperty<float>, IDirtyTrackable
     {
         // 比较大小的静态常量

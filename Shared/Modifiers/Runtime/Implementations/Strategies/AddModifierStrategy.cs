@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace EasyPack.Modifiers
@@ -10,11 +9,19 @@ namespace EasyPack.Modifiers
 
         public void Apply(ref float value, IEnumerable<IModifier> modifiers)
         {
-            var floatMods = modifiers.OfType<FloatModifier>().ToList();
-            var rangeMods = modifiers.OfType<RangeModifier>().ToList();
-
-            var floatAdd = floatMods.Sum(m => m.Value);
-            var rangeAdd = rangeMods.Sum(m => Random.Range(m.Value.x, m.Value.y));
+            float floatAdd = 0;
+            float rangeAdd = 0;
+            foreach (var mod in modifiers)
+            {
+                if (mod is FloatModifier fm)
+                {
+                    floatAdd += fm.Value;
+                }
+                else if (mod is RangeModifier rm)
+                {
+                    rangeAdd += Random.Range(rm.Value.x, rm.Value.y);
+                }
+            }
             value += floatAdd + rangeAdd;
         }
     }

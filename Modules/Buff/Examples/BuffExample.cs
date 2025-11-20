@@ -765,12 +765,6 @@ namespace EasyPack.BuffSystem.Example
             _buffManager.RemoveAllBuffs(_dummyTarget);
             Debug.Log("错误处理和调试示例完成\n");
         }
-
-        private void Update()
-        {
-            // 在实际游戏中，需要在Update中调用BuffManager的Update方法
-            // _buffManager.Update(Time.deltaTime);
-        }
     }
 
     #region 自定义 Buff 模块示例
