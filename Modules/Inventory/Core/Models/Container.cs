@@ -970,12 +970,7 @@ namespace EasyPack.InventorySystem
             // 如果槽位已被占用，检查是否可以堆叠物品
             if (targetSlot.IsOccupied)
             {
-                if (targetSlot.Item.ID != item.ID)
-                {
-                    return (false, 0, remainingCount);
-                }
-
-                if (!item.IsStackable)
+                if (targetSlot.Item.ID != item.ID || !item.IsStackable)
                 {
                     return (false, 0, remainingCount);
                 }

@@ -353,12 +353,7 @@ namespace EasyPack.Tools.PathFinding
             var startTime = System.DateTime.Now;
             _lastStats.Reset();
 
-            if (!IsPositionValid(startPos) || HasDynamicObstacle(startPos))
-            {
-                onPathNotFound?.Invoke();
-                return new List<Vector3Int>();
-            }
-            if (!IsPositionValid(targetPos) || HasDynamicObstacle(targetPos))
+            if (!IsPositionValid(startPos) || HasDynamicObstacle(startPos) || !IsPositionValid(targetPos) || HasDynamicObstacle(targetPos))
             {
                 onPathNotFound?.Invoke();
                 return new List<Vector3Int>();

@@ -442,13 +442,14 @@ namespace EasyPack.EmeCardSystem
 
         public CardRuleBuilder LogContext() => DoInvoke((context, list) =>
         {
-            Debug.Log($"[Rule Debug] 规则触发上下文：\n" +
-                      $"- 规则名称：{context.EventId}\n" +
-                      $"- 事件类型：{context.Event.Type})\n" +
-                      $"- 事件数据：{context.Event.Data}\n" +
-                      $"- 源卡牌：{context.Source?.Name} (ID: {context.Source?.Id})\n" +
-                      $"- 容器卡牌：{context.MatchRoot?.Name} (ID: {context.MatchRoot?.Id})\n" +
-                      $"- 匹配卡牌数量：{list?.Count}");
+            Debug.Log(
+                $"[Rule Debug] 规则触发上下文：\n" +
+                $"- 规则名称：{context.EventId}\n" +
+                $"- 事件类型：{context.Event.Type})\n" +
+                $"- 事件数据：{context.Event.Data}\n" +
+                $"- 源卡牌：{context.Source?.Name} (ID: {context.Source?.Id})\n" +
+                $"- 容器卡牌：{context.MatchRoot?.Name} (ID: {context.MatchRoot?.Id})\n" +
+                $"- 匹配卡牌数量：{list?.Count}");
         });
 
         /// <summary>

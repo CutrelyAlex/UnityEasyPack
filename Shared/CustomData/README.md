@@ -2,7 +2,7 @@
 
 高性能的 Unity 自定义数据存储和查询系统。支持多种数据类型、O(1) 查询、智能缓存和灵活的序列化。
 
-## 📦 核心类
+## 核心类
 
 | 类 | 用途 |
 |-----|------|
@@ -10,7 +10,7 @@
 | `CustomDataEntry` | 单个数据条目 |
 | `CustomDataUtility` | 工具方法集 |
 
-## 🚀 快速开始
+## 快速开始
 
 ### 基础使用
 
@@ -27,16 +27,16 @@ float health = CustomDataUtility.GetValue(data, "health", 0f);
 int level = CustomDataUtility.GetValue(data, "level", 1);
 ```
 
-### 高性能查询
+### 查询
 
 ```csharp
-// 单个查询 - 17.46 ticks
+// 单个查询
 float value = CustomDataUtility.GetValue(data, "key", 0f);
 
-// 批量查询 - 1000 键 2ms ⭐
+// 批量查询
 var values = CustomDataUtility.GetValues(data, keys, 0f);
 
-// 热点缓存 - 1.65x 加速 ⭐⭐⭐
+// 热点缓存
 var cache = new Dictionary<string, float>();
 for (int i = 0; i < frames; i++)
 {
@@ -46,58 +46,34 @@ for (int i = 0; i < frames; i++)
 // 条件查询
 var valuable = CustomDataUtility.GetFirstValue(data, (k, v) => v > 1000, 0f);
 ```
+## 最佳实践
 
-## 📊 性能指标
-
-实际测试结果（10,000 条目规模）
-
-| 方法 | 延迟 | 吞吐 | 场景 |
-|------|------|------|------|
-| `GetValue<T>()` | 17.46t | 57K ops/sec | 单个查询 |
-| `GetValues<T>()` | 22.28t/key | 1000键2ms | 批量查询 |
-| `GetValueCached<T>()` | 10.57t | 39.5%↑ | 热点访问 (99% 命中) |
-| `GetFirstValue<T>()` | O(N) | 可控 | 条件查询 |
-
-**核心优势**：
-- ✅ O(1) 单键查询（17.46 ticks）
-- ✅ 27% 批量查询加速
-- ✅ 1.65x 热点缓存加速（缓存命中率 99%）
-- ✅ 1140x 性能差异（vs 线性遍历）
-
-## ⭐ 最佳实践
-
-### 1. 热点访问（UI 更新）- 最常见
-
+### 1. 热点访问（UI 更新），性能最好
+- 注意过期数据风险
+- 使用cache.remove(key)或cache.clear()刷新缓存
 ```csharp
 private Dictionary<string, float> statsCache = new();
 
 void Update()
 {
-    // 99% 缓存命中，快 1.65 倍
     float hp = CustomDataUtility.GetValueCached(playerData, "hp", statsCache);
     float mp = CustomDataUtility.GetValueCached(playerData, "mp", statsCache);
 }
 ```
 
-**性能提升**：39.5% | **推荐度**：⭐⭐⭐⭐⭐
-
 ### 2. 初始化多个属性
 
 ```csharp
-// 一次性查询 1000 个键只需 2ms
+// 一次性查询多个键比多次单查更快
 var keys = new[] { "hp", "mp", "speed", "attack" };
 var stats = CustomDataUtility.GetValues(playerData, keys, 0f);
 ```
-
-**性能提升**：27% | **推荐度**：⭐⭐⭐⭐⭐
 
 ### 3. 偶尔查询
 
 ```csharp
 float level = CustomDataUtility.GetValue(playerData, "level", 1);
 ```
-
-**性能**：已是最优 | **推荐度**：⭐⭐⭐⭐
 
 ### 4. 条件查询
 
@@ -110,9 +86,7 @@ var loot = CustomDataUtility.GetFirstValue(
 );
 ```
 
-**复杂度**：O(N) 通常早期返回 | **推荐度**：⭐⭐⭐
-
-## 🔧 支持的数据类型
+## 支持的数据类型
 
 - 原始类型：`int`, `float`, `bool`, `string`
 - Unity 类型：`Vector2`, `Vector3`, `Color`
@@ -129,7 +103,7 @@ var health = CustomDataUtility.GetFloat(data, "health", 100f);
 var pos = CustomDataUtility.GetVector3(data, "position");
 ```
 
-## 💾 批量操作
+## 批量操作
 
 ```csharp
 // 批量设置
@@ -152,7 +126,7 @@ CustomDataUtility.Merge(target, source);
 var cloned = CustomDataUtility.Clone(original);
 ```
 
-## 🔍 条件操作
+## 条件操作
 
 ```csharp
 // 如果存在则执行
@@ -168,9 +142,7 @@ CustomDataUtility.IfElse<int>(data, "gold",
 );
 ```
 
-## 📈 内部架构
-
-### 双缓存设计
+## 内部架构
 
 ```
 CustomDataCollection
@@ -178,8 +150,6 @@ CustomDataCollection
 ├─ _keyIndexMap       : Dict<string, int>          // 索引缓存（O(1) 删除）
 └─ _entryCache        : Dict<string, Entry>        // 对象缓存（O(1) 读取）
 ```
-
-**所有 CRUD 操作原子更新两个缓存，保证一致性**
 
 ### 性能特性
 

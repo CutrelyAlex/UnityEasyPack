@@ -314,10 +314,8 @@ namespace EasyPack.BuffSystem
         /// <returns>返回管理器自身以支持链式调用</returns>
         private BuffService DecreaseBuffStacks(Buff buff, int stack = 1)
         {
-            if (buff == null)
+            if (buff == null || stack <= 0)
                 return this;
-
-            if (stack <= 0) return this;
 
             // 先减少堆叠数
             buff.CurrentStacks -= stack;
