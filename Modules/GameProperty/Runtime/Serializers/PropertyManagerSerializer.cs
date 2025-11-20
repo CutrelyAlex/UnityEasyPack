@@ -136,18 +136,18 @@ namespace EasyPack.GamePropertySystem
         public GamePropertyService DeserializeFromJson(string json) =>
             FromSerializable(FromJson(json));
 
-        private string SerializeCustomData(List<CustomDataEntry> customData)
+        private string SerializeCustomData(CustomDataCollection customData)
         {
             if (customData == null || customData.Count == 0) return null;
             var wrapper = new CustomDataWrapper { Entries = customData.ToArray() };
             return JsonUtility.ToJson(wrapper);
         }
 
-        private List<CustomDataEntry> DeserializeCustomData(string json)
+        private CustomDataCollection DeserializeCustomData(string json)
         {
-            if (string.IsNullOrEmpty(json)) return new List<CustomDataEntry>();
+            if (string.IsNullOrEmpty(json)) return new CustomDataCollection();
             var wrapper = JsonUtility.FromJson<CustomDataWrapper>(json);
-            return wrapper?.Entries != null ? new List<CustomDataEntry>(wrapper.Entries) : new List<CustomDataEntry>();
+            return wrapper?.Entries != null ? new CustomDataCollection(wrapper.Entries) : new CustomDataCollection();
         }
 
         [Serializable]

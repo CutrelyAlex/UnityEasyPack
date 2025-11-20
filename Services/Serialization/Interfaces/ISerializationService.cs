@@ -113,12 +113,12 @@ namespace EasyPack.Serialization
         /// <summary>
         /// 序列化对象到 CustomDataEntry 列表
         /// </summary>
-        List<CustomDataEntry> SerializeToCustomData(object obj);
+        CustomDataCollection SerializeToCustomData(object obj);
 
         /// <summary>
         /// 从 CustomDataEntry 列表反序列化对象
         /// </summary>
-        object DeserializeFromCustomData(List<CustomDataEntry> entries, Type targetType);
+        object DeserializeFromCustomData(CustomDataCollection entries, Type targetType);
 
         /// <summary>
         /// 序列化对象到二进制数据
@@ -139,8 +139,8 @@ namespace EasyPack.Serialization
         string SerializeToJson(T obj);
         T DeserializeFromJson(string json);
 
-        List<CustomDataEntry> SerializeToCustomData(T obj);
-        T DeserializeFromCustomData(List<CustomDataEntry> entries);
+        CustomDataCollection SerializeToCustomData(T obj);
+        T DeserializeFromCustomData(CustomDataCollection entries);
 
         byte[] SerializeToBinary(T obj);
         T DeserializeFromBinary(byte[] data);
@@ -159,7 +159,7 @@ namespace EasyPack.Serialization
         /// <typeparam name="TOriginal">原始对象类型</typeparam>
         /// <typeparam name="TSerializable">可序列化 DTO 类型</typeparam>
         /// <param name="serializer">序列化器实例</param>
-        void RegisterSerializer<TOriginal, TSerializable>(ITypeSerializer<TOriginal, TSerializable> serializer) 
+        void RegisterSerializer<TOriginal, TSerializable>(ITypeSerializer<TOriginal, TSerializable> serializer)
             where TSerializable : ISerializable;
 
         /// <summary>
@@ -168,7 +168,7 @@ namespace EasyPack.Serialization
         /// <typeparam name="T">要序列化的类型</typeparam>
         /// <param name="serializer">序列化器实例</param>
         void RegisterSerializer<T>(ITypeSerializer<T> serializer);
-        
+
         /// <summary>
         /// 注册类型序列化器（非泛型版本）
         /// </summary>
@@ -182,7 +182,7 @@ namespace EasyPack.Serialization
         /// <param name="obj">要序列化的对象</param>
         /// <returns>JSON 字符串</returns>
         string SerializeToJson<T>(T obj);
-        
+
         /// <summary>
         /// 序列化对象到 JSON 字符串（非泛型版本）
         /// </summary>
@@ -190,7 +190,7 @@ namespace EasyPack.Serialization
         /// <param name="type">对象类型</param>
         /// <returns>JSON 字符串</returns>
         string SerializeToJson(object obj, Type type);
-        
+
         /// <summary>
         /// 从 JSON 字符串反序列化对象（泛型版本）
         /// </summary>
@@ -198,7 +198,7 @@ namespace EasyPack.Serialization
         /// <param name="json">JSON 字符串</param>
         /// <returns>反序列化后的对象</returns>
         T DeserializeFromJson<T>(string json);
-        
+
         /// <summary>
         /// 从 JSON 字符串反序列化对象（非泛型版本）
         /// </summary>
@@ -213,31 +213,31 @@ namespace EasyPack.Serialization
         /// <typeparam name="T">对象类型</typeparam>
         /// <param name="obj">要序列化的对象</param>
         /// <returns>CustomDataEntry 列表</returns>
-        List<CustomDataEntry> SerializeToCustomData<T>(T obj);
-        
+        CustomDataCollection SerializeToCustomData<T>(T obj);
+
         /// <summary>
         /// 序列化对象到 CustomDataEntry 列表（非泛型版本）
         /// </summary>
         /// <param name="obj">要序列化的对象</param>
         /// <param name="type">对象类型</param>
         /// <returns>CustomDataEntry 列表</returns>
-        List<CustomDataEntry> SerializeToCustomData(object obj, Type type);
-        
+        CustomDataCollection SerializeToCustomData(object obj, Type type);
+
         /// <summary>
         /// 从 CustomDataEntry 列表反序列化对象（泛型版本）
         /// </summary>
         /// <typeparam name="T">目标类型</typeparam>
         /// <param name="entries">CustomDataEntry 列表</param>
         /// <returns>反序列化后的对象</returns>
-        T DeserializeFromCustomData<T>(List<CustomDataEntry> entries);
-        
+        T DeserializeFromCustomData<T>(CustomDataCollection entries);
+
         /// <summary>
         /// 从 CustomDataEntry 列表反序列化对象（非泛型版本）
         /// </summary>
         /// <param name="entries">CustomDataEntry 列表</param>
         /// <param name="type">目标类型</param>
         /// <returns>反序列化后的对象</returns>
-        object DeserializeFromCustomData(List<CustomDataEntry> entries, Type type);
+        object DeserializeFromCustomData(CustomDataCollection entries, Type type);
 
         /// <summary>
         /// 序列化对象到二进制数据（泛型版本）
@@ -246,7 +246,7 @@ namespace EasyPack.Serialization
         /// <param name="obj">要序列化的对象</param>
         /// <returns>二进制数据</returns>
         byte[] SerializeToBinary<T>(T obj);
-        
+
         /// <summary>
         /// 序列化对象到二进制数据（非泛型版本）
         /// </summary>
@@ -254,7 +254,7 @@ namespace EasyPack.Serialization
         /// <param name="type">对象类型</param>
         /// <returns>二进制数据</returns>
         byte[] SerializeToBinary(object obj, Type type);
-        
+
         /// <summary>
         /// 从二进制数据反序列化对象（泛型版本）
         /// </summary>
@@ -262,7 +262,7 @@ namespace EasyPack.Serialization
         /// <param name="data">二进制数据</param>
         /// <returns>反序列化后的对象</returns>
         T DeserializeFromBinary<T>(byte[] data);
-        
+
         /// <summary>
         /// 从二进制数据反序列化对象（非泛型版本）
         /// </summary>
@@ -277,7 +277,7 @@ namespace EasyPack.Serialization
         /// <param name="type">要检查的类型</param>
         /// <returns>如果已注册返回 true，否则返回 false</returns>
         bool HasSerializer(Type type);
-        
+
         /// <summary>
         /// 检查是否已注册指定类型的序列化器（泛型版本）
         /// </summary>
@@ -291,14 +291,14 @@ namespace EasyPack.Serialization
         /// <param name="type">要查询的类型</param>
         /// <returns>序列化策略</returns>
         SerializationStrategy GetSupportedStrategy(Type type);
-        
+
         /// <summary>
         /// 获取指定类型支持的序列化策略（泛型版本）
         /// </summary>
         /// <typeparam name="T">要查询的类型</typeparam>
         /// <returns>序列化策略</returns>
         SerializationStrategy GetSupportedStrategy<T>();
-        
+
         /// <summary>
         /// 获取所有已注册的序列化器（用于编辑器显示）
         /// </summary>

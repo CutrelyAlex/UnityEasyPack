@@ -21,7 +21,7 @@ namespace EasyPack.CategoryService
         /// </summary>
         /// <param name="metadata">元数据条目列表</param>
         /// <returns>当前注册实例</returns>
-        IEntityRegistration WithMetadata(List<CustomDataEntry> metadata);
+        IEntityRegistration WithMetadata(CustomDataCollection metadata);
 
         /// <summary>
         /// 完成注册

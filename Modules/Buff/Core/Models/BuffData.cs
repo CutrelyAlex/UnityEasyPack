@@ -32,7 +32,7 @@ namespace EasyPack.BuffSystem
         /// <summary>
         /// 自定义数据条目列表
         /// </summary>
-        public List<CustomDataEntry> CustomData;
+        public CustomDataCollection CustomData;
 
         /// <summary>
         /// 最大堆叠层数，默认为 1
