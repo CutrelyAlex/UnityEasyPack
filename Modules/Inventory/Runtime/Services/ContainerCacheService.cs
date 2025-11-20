@@ -62,8 +62,7 @@ namespace EasyPack.InventorySystem
         {
             if (isEmpty)
             {
-                if (!_emptySlotIndices.Contains(slotIndex))
-                    _emptySlotIndices.Add(slotIndex);
+                _emptySlotIndices.Add(slotIndex);
             }
             else
             {

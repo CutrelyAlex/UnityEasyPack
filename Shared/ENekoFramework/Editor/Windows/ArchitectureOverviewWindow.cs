@@ -354,8 +354,7 @@ namespace EasyPack.ENekoFramework.Editor
                             _architectures = newArchitectures;
 
                             // 如果当前选择的架构不在新列表中，清除选择
-                            if (_selectedArchitecture != null &&
-                                !_architectures.Any(a => a.TypeName == _selectedArchitecture.TypeName))
+                            if (_selectedArchitecture != null && _architectures.All(a => a.TypeName != _selectedArchitecture.TypeName))
                             {
                                 _selectedArchitecture = null;
                             }

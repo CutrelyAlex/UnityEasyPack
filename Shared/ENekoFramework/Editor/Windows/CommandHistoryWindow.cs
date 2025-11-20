@@ -545,8 +545,7 @@ namespace EasyPack.ENekoFramework.Editor
                             _cachedArchToNamespace = null;
 
                             // 如果当前选择的命令不在新列表中，清除选择
-                            if (_selectedCommand != null &&
-                                !_commandHistory.Any(c => c.ExecutionId == _selectedCommand.ExecutionId))
+                            if (_selectedCommand != null && _commandHistory.All(c => c.ExecutionId != _selectedCommand.ExecutionId))
                             {
                                 _selectedCommand = null;
                             }

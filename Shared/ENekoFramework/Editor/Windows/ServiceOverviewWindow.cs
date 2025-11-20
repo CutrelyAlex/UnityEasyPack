@@ -438,8 +438,7 @@ namespace EasyPack.ENekoFramework.Editor
                             _cachedArchToNamespace = null;
                             
                             // 如果当前选择的服务不在新列表中，清除选择
-                            if (_selectedService != null && 
-                                !_services.Any(s => s.ServiceType == _selectedService.ServiceType))
+                            if (_selectedService != null && _services.All(s => s.ServiceType != _selectedService.ServiceType))
                             {
                                 _selectedService = null;
                             }

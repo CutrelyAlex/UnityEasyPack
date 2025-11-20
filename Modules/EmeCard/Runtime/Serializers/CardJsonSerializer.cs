@@ -114,13 +114,12 @@ namespace EasyPack.EmeCardSystem
 
         private SerializableCard SerializeCardRecursive(Card card, HashSet<Card> visited, List<Card> path)
         {
-            if (visited.Contains(card))
+            if (!visited.Add(card))
             {
                 var message = $"检测到循环引用：{BuildPath(path)} → Card[ID={card.Id}, Index={card.Index}]";
                 throw new SerializationException(message, typeof(Card), SerializationErrorCode.SerializationFailed);
             }
 
-            visited.Add(card);
             path.Add(card);
             try
             {
