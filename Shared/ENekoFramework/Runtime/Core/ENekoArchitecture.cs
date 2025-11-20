@@ -37,7 +37,11 @@ namespace EasyPack.ENekoFramework
                         }
                     }
                 }
-                return _instance;
+
+                lock (_lock)
+                {
+                    return _instance;
+                }
             }
         }
 

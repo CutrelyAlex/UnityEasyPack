@@ -835,10 +835,7 @@ namespace EasyPack.InventorySystem
             {
                 foreach (var container in _containers.Values)
                 {
-                    if (container is Container containerImpl)
-                    {
-                        containerImpl.RebuildCaches();
-                    }
+                    container?.RebuildCaches();
                 }
             }
 
@@ -859,10 +856,7 @@ namespace EasyPack.InventorySystem
             {
                 foreach (var container in _containers.Values)
                 {
-                    if (container is Container containerImpl)
-                    {
-                        containerImpl.ValidateCaches();
-                    }
+                    container?.ValidateCaches();
                 }
             }
 

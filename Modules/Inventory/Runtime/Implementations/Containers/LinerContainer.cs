@@ -118,11 +118,11 @@ namespace EasyPack.InventorySystem
             sourceCount = sourceSlot.ItemCount;
             return true;
         }
-
+        
         private bool ValidateTargetContainer(Container targetContainer, IItem sourceItem)
         {
-            return !(targetContainer is Container targetContainerImpl) ||
-                   targetContainerImpl.ValidateItemCondition(sourceItem);
+            return targetContainer == null ||
+                   targetContainer.ValidateItemCondition(sourceItem);
         }
 
         private bool ExecuteItemMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem,

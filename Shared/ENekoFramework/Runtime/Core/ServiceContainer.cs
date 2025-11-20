@@ -29,7 +29,16 @@ namespace EasyPack.ENekoFramework
         /// <summary>
         /// 当前已注册的服务数量。
         /// </summary>
-        public int RegisteredServiceCount => _services.Count;
+        public int RegisteredServiceCount
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _services.Count;
+                }
+            }
+        }
 
         /// <summary>
         /// 注册服务及其实现类型。
