@@ -72,7 +72,7 @@ namespace EasyPack.GamePropertySystem.Editor
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[GamePropertyManagerWindow] 解析 Manager 失败: {ex.Message}");
+                Debug.LogWarning($"[GamePropertyManagerWindow] 解析 Manager 失败: {e.Message}");
             }
         }
 
