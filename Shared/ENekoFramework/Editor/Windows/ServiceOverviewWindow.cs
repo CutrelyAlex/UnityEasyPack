@@ -401,7 +401,7 @@ namespace EasyPack.ENekoFramework.Editor
             {
                 EditorGUILayout.LabelField("依赖数量", metadata.Dependencies?.Count.ToString() ?? "0");
                 
-                if (metadata.HasCircularDependency)
+                if (metadata.IsCircularDependency)
                 {
                     EditorGUILayout.HelpBox("⚠️ 此服务存在循环依赖！", MessageType.Warning);
                 }

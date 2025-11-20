@@ -266,7 +266,7 @@ namespace EasyPack.ENekoFramework.Editor
                 // 刷新间隔设置
                 GUILayout.Label("间隔:", EditorStyles.toolbarButton, GUILayout.Width(35));
                 float newInterval = EditorGUILayout.FloatField(_refreshInterval, EditorStyles.toolbarTextField, GUILayout.Width(40));
-                if (newInterval != _refreshInterval)
+                if (!Mathf.Approximately(newInterval, _refreshInterval))
                 {
                     _refreshInterval = Mathf.Max(0.1f, newInterval); // 最小0.1秒
                 }
