@@ -33,7 +33,7 @@ namespace EasyPack.InventorySystem
         /// <returns>找到的值或默认值</returns>
         public static T GetCustomData<T>(this IItem item, string id, T defaultValue = default)
         {
-            return CustomDataUtility.GetValue(item.CustomData, id, defaultValue);
+            return item.CustomData.GetValue(id, defaultValue);
         }
 
         /// <summary>设置自定义数据值</summary>
@@ -44,7 +44,7 @@ namespace EasyPack.InventorySystem
         {
             item.CustomData ??= new CustomDataCollection();
 
-            CustomDataUtility.SetValue(item.CustomData, id, value);
+            item.CustomData.SetValue(id, value);
         }
 
         /// <summary>移除自定义数据</summary>
@@ -53,7 +53,7 @@ namespace EasyPack.InventorySystem
         /// <returns>是否成功移除</returns>
         public static bool RemoveCustomData(this IItem item, string id)
         {
-            return CustomDataUtility.RemoveValue(item.CustomData, id);
+            return item.CustomData.RemoveValue(id);
         }
 
         /// <summary>检查是否存在自定义数据</summary>
@@ -62,7 +62,7 @@ namespace EasyPack.InventorySystem
         /// <returns>是否存在</returns>
         public static bool HasCustomData(this IItem item, string id)
         {
-            return CustomDataUtility.HasValue(item.CustomData, id);
+            return item.CustomData.HasValue(id);
         }
     }
 
@@ -108,7 +108,7 @@ namespace EasyPack.InventorySystem
                 IsContainerItem = IsContainerItem
             };
 
-            clone.CustomData = CustomDataUtility.Clone(CustomData);
+            clone.CustomData = CustomData.Clone();
 
             if (ContainerIds is { Count: > 0 })
             {
@@ -122,7 +122,7 @@ namespace EasyPack.InventorySystem
         #region CustomData 辅助方法
 
         /// <summary>获取自定义数据值</summary>
-        public T GetCustomData<T>(string id, T defaultValue = default) => CustomDataUtility.GetValue(CustomData, id, defaultValue);
+        public T GetCustomData<T>(string id, T defaultValue = default) => CustomData.GetValue(id, defaultValue);
 
         /// <summary>设置自定义数据值</summary>
         public void SetCustomData(string id, object value)
@@ -130,14 +130,14 @@ namespace EasyPack.InventorySystem
             if (CustomData == null)
                 CustomData = new CustomDataCollection();
 
-            CustomDataUtility.SetValue(CustomData, id, value);
+            CustomData.SetValue(id, value);
         }
 
         /// <summary>移除自定义数据</summary>
-        public bool RemoveCustomData(string id) => CustomDataUtility.RemoveValue(CustomData, id);
+        public bool RemoveCustomData(string id) => CustomData.RemoveValue( id);
 
         /// <summary>检查是否存在自定义数据</summary>
-        public bool HasCustomData(string id) => CustomDataUtility.HasValue(CustomData, id);
+        public bool HasCustomData(string id) => CustomData.HasValue(id);
 
         #endregion
     }

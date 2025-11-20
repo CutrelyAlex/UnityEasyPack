@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace EasyPack.CustomData
@@ -12,7 +13,7 @@ namespace EasyPack.CustomData
     /// 建议使用此类作为集合，因为性能是O(1)的
     /// </summary>
     [Serializable]
-    public class CustomDataCollection : IList<CustomDataEntry>, IEnumerable<CustomDataEntry>, ISerializationCallbackReceiver
+    public class CustomDataCollection : IList<CustomDataEntry>, ISerializationCallbackReceiver
     {
         [SerializeField]
         private List<CustomDataEntry> _list = new();
@@ -309,6 +310,8 @@ namespace EasyPack.CustomData
         public bool TryGetValue<T>(string key, out T value)
         {
             value = default;
+            if (string.IsNullOrEmpty(key)) return false;
+            
             EnsureCache();
             
             if (_entryCache.TryGetValue(key, out var entry))
@@ -345,6 +348,7 @@ namespace EasyPack.CustomData
         /// <returns>键对应的值或默认值</returns>
         public T GetValue<T>(string key, T defaultValue = default)
         {
+            if (key == null) return defaultValue;
             return TryGetValue(key, out T value) ? value : defaultValue;
         }
 
@@ -384,6 +388,8 @@ namespace EasyPack.CustomData
         /// <returns>如果键存在并成功移除则返回true，否则返回false</returns>
         public bool RemoveValue(string key)
         {
+            if (string.IsNullOrEmpty(key)) return false;
+            
             EnsureCache();
 
             if (!_keyIndexMap.TryGetValue(key, out int indexToRemove))
@@ -470,8 +476,241 @@ namespace EasyPack.CustomData
         /// <returns>如果键存在则返回true，否则返回false</returns>
         public bool HasValue(string key)
         {
+            if (string.IsNullOrEmpty(key)) return false;
             EnsureCache();
             return _entryCache.ContainsKey(key);  // 使用entry缓存查询
+        }
+
+        /// <summary>
+        /// 缓存式获取
+        /// </summary>
+        public T GetValueCached<T>(string id, Dictionary<string, T> cache, T defaultValue = default)
+        {
+            if (cache == null || string.IsNullOrEmpty(id)) return defaultValue;
+
+            if (cache.TryGetValue(id, out T cached))
+            {
+                return cached;
+            }
+
+            T value = GetValue(id, defaultValue);
+            cache[id] = value;
+            return value;
+        }
+
+        /// <summary>
+        /// 批量获取多个值
+        /// </summary>
+        public Dictionary<string, T> GetValues<T>(IEnumerable<string> ids, T defaultValue = default)
+        {
+            var result = new Dictionary<string, T>();
+            if (ids == null) return result;
+
+            foreach (var id in ids)
+            {
+                result[id] = GetValue(id, defaultValue);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 获取第一个匹配条件的值
+        /// </summary>
+        public T GetFirstValue<T>(System.Func<string, T, bool> predicate, T defaultValue = default)
+        {
+            if (predicate == null) return defaultValue;
+
+            foreach (var entry in _list)
+            {
+                if (entry.Key == null) continue;
+                if (TryGetValue<T>(entry.Key, out T value) && predicate(entry.Key, value))
+                {
+                    return value;
+                }
+            }
+            return defaultValue;
+        }
+
+        /// <summary>
+        /// 批量设置多个自定义数据值
+        /// </summary>
+        public void SetValues(Dictionary<string, object> values)
+        {
+            if (values == null) return;
+
+            foreach (var kv in values)
+            {
+                SetValue(kv.Key, kv.Value);
+            }
+        }
+
+        /// <summary>
+        /// 获取所有数据的键
+        /// </summary>
+        public IEnumerable<string> GetKeys()
+        {
+            return _list.Select(e => e.Key);
+        }
+
+        /// <summary>
+        /// 获取指定类型的所有数据键
+        /// </summary>
+        public IEnumerable<string> GetKeysByType(CustomDataType type)
+        {
+            return _list.Where(e => e.Type == type).Select(e => e.Key);
+        }
+
+        /// <summary>
+        /// 获取满足条件的所有数据条目
+        /// </summary>
+        public IEnumerable<CustomDataEntry> GetEntriesWhere(System.Func<CustomDataEntry, bool> predicate)
+        {
+            if (predicate == null) return System.Linq.Enumerable.Empty<CustomDataEntry>();
+            return _list.Where(predicate);
+        }
+
+        /// <summary>
+        /// 判断列表是否为空
+        /// </summary>
+        public bool IsEmpty => _list.Count == 0;
+
+        /// <summary>
+        /// 将另一个 CustomData 列表合并到当前列表（覆盖模式）
+        /// </summary>
+        public void Merge(CustomDataCollection other)
+        {
+            if (other == null) return;
+
+            foreach (var entry in other)
+            {
+                SetValue(entry.Key, entry.GetValue());
+            }
+        }
+
+        /// <summary>
+        /// 获取差异（返回在 other 中存在但在当前列表中不存在的键）
+        /// </summary>
+        public IEnumerable<string> GetDifference(CustomDataCollection other)
+        {
+            var thisKeys = new HashSet<string>(GetKeys());
+            var otherKeys = new HashSet<string>(other?.GetKeys() ?? System.Linq.Enumerable.Empty<string>());
+            otherKeys.ExceptWith(thisKeys);
+            return otherKeys;
+        }
+
+        /// <summary>
+        /// 深拷贝当前列表
+        /// </summary>
+        public CustomDataCollection Clone()
+        {
+            if (Count == 0)
+                return new CustomDataCollection();
+
+            var cloned = new CustomDataCollection();
+            foreach (var entry in _list)
+            {
+                var clonedEntry = new CustomDataEntry
+                {
+                    Key = entry.Key,
+                    Type = entry.Type,
+                    IntValue = entry.IntValue,
+                    FloatValue = entry.FloatValue,
+                    BoolValue = entry.BoolValue,
+                    StringValue = entry.StringValue,
+                    Vector2Value = entry.Vector2Value,
+                    Vector3Value = entry.Vector3Value,
+                    ColorValue = entry.ColorValue,
+                    JsonValue = entry.JsonValue,
+                    JsonClrType = entry.JsonClrType,
+                    Serializer = entry.Serializer
+                };
+                cloned.Add(clonedEntry);
+            }
+            return cloned;
+        }
+
+        /// <summary>
+        /// 增加 int 值
+        /// </summary>
+        public int AddInt(string id, int delta = 1)
+        {
+            int current = GetValue(id, 0);
+            int newValue = current + delta;
+            SetValue(id, newValue);
+            return newValue;
+        }
+
+        /// <summary>
+        /// 增加 float 值
+        /// </summary>
+        public float AddFloat(string id, float delta = 1f)
+        {
+            float current = GetValue(id, 0f);
+            float newValue = current + delta;
+            SetValue(id, newValue);
+            return newValue;
+        }
+
+        /// <summary>快速设置 int 值</summary>
+        public void SetInt(string id, int value) => SetValue(id, value);
+
+        /// <summary>快速设置 float 值</summary>
+        public void SetFloat(string id, float value) => SetValue(id, value);
+
+        /// <summary>快速设置 bool 值</summary>
+        public void SetBool(string id, bool value) => SetValue(id, value);
+
+        /// <summary>快速设置 string 值</summary>
+        public void SetString(string id, string value) => SetValue(id, value);
+
+        /// <summary>快速设置 Vector2 值</summary>
+        public void SetVector2(string id, Vector2 value) => SetValue(id, value);
+
+        /// <summary>快速设置 Vector3 值</summary>
+        public void SetVector3(string id, Vector3 value) => SetValue(id, value);
+
+        /// <summary>快速设置 Color 值</summary>
+        public void SetColor(string id, Color value) => SetValue(id, value);
+
+        /// <summary>快速获取 int 值</summary>
+        public int GetInt(string id, int defaultValue = 0) => GetValue(id, defaultValue);
+
+        /// <summary>快速获取 float 值</summary>
+        public float GetFloat(string id, float defaultValue = 0f) => GetValue(id, defaultValue);
+
+        /// <summary>快速获取 bool 值</summary>
+        public bool GetBool(string id, bool defaultValue = false) => GetValue(id, defaultValue);
+
+        /// <summary>快速获取 string 值</summary>
+        public string GetString(string id, string defaultValue = "") => GetValue(id, defaultValue);
+
+        /// <summary>快速获取 Vector2 值</summary>
+        public Vector2 GetVector2(string id, Vector2? defaultValue = null) => GetValue(id, defaultValue ?? Vector2.zero);
+
+        /// <summary>快速获取 Vector3 值</summary>
+        public Vector3 GetVector3(string id, Vector3? defaultValue = null) => GetValue(id, defaultValue ?? Vector3.zero);
+
+        /// <summary>快速获取 Color 值</summary>
+        public Color GetColor(string id, Color? defaultValue = null) => GetValue(id, defaultValue ?? Color.white);
+
+        /// <summary>如果数据存在则执行操作</summary>
+        public bool IfHasValue<T>(string id, System.Action<T> action)
+        {
+            if (TryGetValue(id, out T value))
+            {
+                action?.Invoke(value);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>如果数据存在则执行操作，否则执行默认操作</summary>
+        public void IfElse<T>(string id, System.Action<T> onExists, System.Action onNotExists)
+        {
+            if (TryGetValue(id, out T value))
+                onExists?.Invoke(value);
+            else
+                onNotExists?.Invoke();
         }
 
         #endregion
