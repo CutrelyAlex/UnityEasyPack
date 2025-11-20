@@ -1,4 +1,5 @@
 using EasyPack.BuffSystem;
+using EasyPack.CategoryService;
 using EasyPack.ENekoFramework;
 using EasyPack.GamePropertySystem;
 using EasyPack.InventorySystem;
@@ -16,15 +17,15 @@ namespace EasyPack.Architecture
     {
         protected override void OnInit()
         {
-            // 02_Foundation
-            Container.Register<ISerializationService, SerializationService>();
 
-            // 03_CoreSystems
+            // Moules
             Container.Register<IGamePropertyService, GamePropertyService>();
             Container.Register<IBuffService, BuffService>();
             Container.Register<IInventoryService, InventoryService>();
 
-            // 05_Services
+            // Services
+            Container.Register<ICategoryService, CategoryService.CategoryService>();
+            Container.Register<ISerializationService, SerializationService>();
             Container.Register<IObjectPoolService, ObjectPoolService>();
         }
 
