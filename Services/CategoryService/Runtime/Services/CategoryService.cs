@@ -15,7 +15,7 @@ namespace EasyPack.Category
     /// </summary>
     public class CategoryService : BaseService, ICategoryService
     {
-        private readonly Dictionary<Type, object> _managers = new();
+        private readonly Dictionary<Type, ICategoryManager> _managers = new();
         private ISerializationService _serializationService;
         private readonly Dictionary<Type, object> _serializers = new();
 
@@ -142,6 +142,30 @@ namespace EasyPack.Category
             return new List<Type>(_managers.Keys);
         }
 
+        /// <summary>
+        /// 删除所有 CategoryManager 实例
+        /// </summary>
+        public bool RemoveAllManagers()
+        {
+            try
+            {
+                foreach (var manager in _managers.Values)
+                {
+                    if (manager is IDisposable disposable)
+                    {
+                        disposable.Dispose();
+                    }
+                }
+
+                _managers.Clear();
+                return true;
+            }
+            catch(SystemException e)
+            {
+                Debug.LogError($"移除所有 CategoryManager 时候发射了错误: {e}");
+                return false;
+            }
+        }
         #endregion
 
         #region 序列化支持

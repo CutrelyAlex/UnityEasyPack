@@ -12,9 +12,14 @@ namespace EasyPack.Category
     /// 提供实体的分类管理、标签系统和元数据管理功能
     /// </summary>
     /// <typeparam name="T">实体类型（必须可序列化）</typeparam>
-    public class CategoryManager<T>
+    public class CategoryManager<T> : ICategoryManager<T>
     {
         #region 属性
+
+        /// <summary>
+        /// 实体类型
+        /// </summary>
+        public Type EntityType => typeof(T);
 
         private readonly Func<T, string> _idExtractor;
         private readonly StringComparison _comparisonMode;
@@ -235,13 +240,14 @@ namespace EasyPack.Category
         /// <summary>
         /// 获取所有分类名称
         /// </summary>
+        /// <remarks>返回的是直接包含实体的分类，不包括仅作为父节点的中间分类</remarks>
         /// <returns>分类名称列表</returns>
         public IReadOnlyList<string> GetAllCategories()
         {
             _treeLock.EnterReadLock();
             try
             {
-                return _categoryTree.Keys.ToList();
+                return _categoryIndex.Keys.ToList();
             }
             finally
             {
@@ -663,8 +669,25 @@ namespace EasyPack.Category
         /// 获取实体元数据
         /// </summary>
         /// <param name="id">实体 ID</param>
+        /// <returns>元数据集合，如果不存在则返回新的空集合</returns>
+        public CustomDataCollection GetMetadata(string id)
+        {
+            if (!_entities.ContainsKey(id))
+            {
+                return new CustomDataCollection();
+            }
+
+            return _metadataStore.TryGetValue(id, out var metadata)
+                ? metadata
+                : new CustomDataCollection();
+        }
+
+        /// <summary>
+        /// 获取实体元数据的操作结果版本
+        /// </summary>
+        /// <param name="id">实体 ID</param>
         /// <returns>元数据操作结果</returns>
-        public OperationResult<CustomDataCollection> GetMetadata(string id)
+        public OperationResult<CustomDataCollection> GetMetadataResult(string id)
         {
             if (!_entities.ContainsKey(id))
             {
@@ -1266,6 +1289,18 @@ namespace EasyPack.Category
         private void ReturnListToPool(List<T> list)
         {
             CollectionPool.ReturnList(list);
+        }
+
+        #endregion
+
+        #region 缓存管理
+
+        /// <summary>
+        /// 清除所有缓存
+        /// </summary>
+        public void ClearCache()
+        {
+            _cacheStrategy.Clear();
         }
 
         #endregion

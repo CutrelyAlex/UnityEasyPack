@@ -274,7 +274,6 @@ namespace EasyPack.ENekoFramework
                 // 如果实例已存在，直接返回
                 if (descriptor.Instance != null)
                 {
-                    Debug.Log("位点1：" + descriptor.Instance.GetType().Name);
                     return descriptor.Instance as TService;
                 }
 
