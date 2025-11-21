@@ -76,7 +76,7 @@ namespace EasyPack.Category
         /// <returns>CategoryManager 实例</returns>
         public CategoryManager<T> GetOrCreateManager<T>(
             Func<T, string> idExtractor,
-            CacheStrategy cacheStrategy = CacheStrategy.Balanced)
+            CacheStrategy cacheStrategy = CacheStrategy.LRUFrequencyHybrid)
         {
             var entityType = typeof(T);
 

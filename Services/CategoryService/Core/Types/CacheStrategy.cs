@@ -7,21 +7,18 @@ namespace EasyPack.Category
     public enum CacheStrategy
     {
         /// <summary>
-        /// 基础缓存（Loose）：缓存所有查询，无淘汰策略
-        /// 适用：查询频率低，数据集小，内存充足的场景
+        /// 追踪热点数据，基于访问频率阈值缓存
         /// </summary>
-        Loose,
+        HotspotTracking,
 
         /// <summary>
-        /// 平衡缓存（Balanced）：自动缓存 + LRU 淘汰
-        /// 适用：通用场景，平衡内存和性能
+        /// LRU频率混合，结合LRU时间衰减和访问频率评分，本缓存策略可能出错
         /// </summary>
-        Balanced,
+        LRUFrequencyHybrid,
 
         /// <summary>
-        /// 高级缓存（Premium）：多层次缓存 + 预热 + 智能淘汰
-        /// 适用：高频查询，数据集大，需要最佳性能的场景
+        /// 分片无驱逐
         /// </summary>
-        Premium
+        ShardedNoEviction
     }
 }

@@ -16,9 +16,9 @@ namespace EasyPack.Category
         {
             return strategy switch
             {
-                CacheStrategy.Loose => new HotpointLooseCacheStrategy<T>(),
-                CacheStrategy.Balanced => new HybridBalancedCacheStrategy<T>(),
-                CacheStrategy.Premium => new ShardedPremiumCacheStrategy<T>(),
+                CacheStrategy.HotspotTracking => new HotpointLooseCacheStrategy<T>(),
+                CacheStrategy.LRUFrequencyHybrid => new HybridBalancedCacheStrategy<T>(),
+                CacheStrategy.ShardedNoEviction => new ShardedPremiumCacheStrategy<T>(),
                 _ => new HybridBalancedCacheStrategy<T>()
             };
         }

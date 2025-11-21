@@ -284,7 +284,7 @@ namespace EasyPack.Category.Editor
                 // 创建一个测试 Manager
                 var testManager = service.GetOrCreateManager<string>(
                     idExtractor: s => s,
-                    cacheStrategy: CacheStrategy.Balanced
+                    cacheStrategy: CacheStrategy.LRUFrequencyHybrid
                 );
 
                 if (testManager != null)

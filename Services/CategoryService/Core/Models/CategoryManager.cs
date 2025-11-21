@@ -51,7 +51,7 @@ namespace EasyPack.Category
         /// <param name="cacheStrategy">缓存策略</param>
         public CategoryManager(
             Func<T, string> idExtractor,
-            CacheStrategy cacheStrategy = CacheStrategy.Balanced)
+            CacheStrategy cacheStrategy = CacheStrategy.LRUFrequencyHybrid)
         {
             _idExtractor = idExtractor ?? throw new ArgumentNullException(nameof(idExtractor));
             _cacheStrategy = CacheStrategyFactory.Create<T>(cacheStrategy);
