@@ -192,8 +192,7 @@ namespace EasyPack.Category.Editor
                         foreach (var category in categories)
                         {
                             var entities = getByCategoryMethod.Invoke(manager, new object[] { category, false });
-                            if (entities == null) continue;
-                            
+
                             // 使用反射获取实体列表的 Count
                             if (entities is not ICollection entitiesCollection) continue;
                             

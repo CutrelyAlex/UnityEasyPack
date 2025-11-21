@@ -142,7 +142,7 @@ namespace EasyPack.Category.Editor
             EditorGUILayout.EndVertical();
         }
 
-        private void DrawStatField(string label, string value)
+        private static void DrawStatField(string label, string value)
         {
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField(label, GUILayout.Width(120));
