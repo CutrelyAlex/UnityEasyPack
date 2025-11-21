@@ -7,7 +7,7 @@ namespace EasyPack.ObjectPool
     /// 泛型对象池，提供对象复用功能以减少 GC 压力。
     /// </summary>
     /// <typeparam name="T">对象类型，必须是引用类型。</typeparam>
-    public class ObjectPool<T> where T : class
+    public class ObjectPool<T> : IPoolStatisticsProvider where T : class
     {
         private readonly Stack<T> _pool;
         private readonly Func<T> _factory;
@@ -49,6 +49,11 @@ namespace EasyPack.ObjectPool
         /// 获取池的最大容量。
         /// </summary>
         public int MaxCapacity { get; }
+
+        /// <summary>
+        /// 获取或设置池的标记，用于在 PoolManagerBase 中标识不同配置的池。
+        /// </summary>
+        public PoolTag PoolTag { get; set; }
 
         /// <summary>
         /// 创建对象池实例。

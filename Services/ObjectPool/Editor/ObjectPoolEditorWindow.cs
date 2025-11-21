@@ -24,7 +24,7 @@ namespace EasyPack.ObjectPool
         /// <summary>
         /// 从菜单打开监控窗口。
         /// </summary>
-        [MenuItem("EasyPack/Services/ObjectPool/ObjectPool Monitor")]
+        [MenuItem("EasyPack/Services/ObjectPool (对象池)/Monitor (监控)")]
         public static void ShowWindow()
         {
             GetWindow<ObjectPoolEditorWindow>("ObjectPool Monitor");
