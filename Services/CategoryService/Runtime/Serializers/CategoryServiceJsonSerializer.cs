@@ -77,7 +77,14 @@ namespace EasyPack.Category
         /// </summary>
         private async void EnsureSerializationService()
         {
-            _serializationService ??= await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+            try
+            {
+                _serializationService ??= await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"初始化 SerializationService 失败: {e.Message}");
+            }
         }
 
         /// <summary>
@@ -119,20 +126,18 @@ namespace EasyPack.Category
                         var id = _idExtractor(entity);
                         
                         // 避免重复添加实体
-                        if (!data.Entities.Any(e => e.Id == id))
-                        {
-                            // 使用 SerializationService 序列化实体
-                            string entityJson = _serializationService != null
-                                ? _serializationService.SerializeToJson(entity)
-                                : JsonUtility.ToJson(entity);
+                        if (data.Entities.Any(e => e.Id == id)) continue;
+                        // 使用 SerializationService 序列化实体
+                        string entityJson = _serializationService != null
+                            ? _serializationService.SerializeToJson(entity)
+                            : JsonUtility.ToJson(entity);
 
-                            data.Entities.Add(new SerializableCategoryManagerState<T>.SerializedEntity
-                            {
-                                Id = id,
-                                EntityJson = entityJson,
-                                Category = category
-                            });
-                        }
+                        data.Entities.Add(new SerializableCategoryManagerState<T>.SerializedEntity
+                        {
+                            Id = id,
+                            EntityJson = entityJson,
+                            Category = category
+                        });
                     }
                 }
 
@@ -205,11 +210,10 @@ namespace EasyPack.Category
                     try
                     {
                         // 使用 SerializationService 反序列化实体
-                        T entity;
-                        entity = _serializationService != null
+                        var entity = _serializationService != null
                             ? _serializationService.DeserializeFromJson<T>(serializedEntity.EntityJson)
                             : JsonUtility.FromJson<T>(serializedEntity.EntityJson);
-                        
+
                         // 查找实体的标签
                         var tags = data.Tags
                             .Where(t => t.EntityIds.Contains(serializedEntity.Id))

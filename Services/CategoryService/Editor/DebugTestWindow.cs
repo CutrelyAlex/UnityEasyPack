@@ -38,14 +38,7 @@ namespace EasyPack.Category.Editor
         private void RefreshService()
         {
             _categoryService = EasyPackArchitecture.Instance.Resolve<ICategoryService>() as CategoryService;
-            if (_categoryService == null)
-            {
-                AddTestResult("⚠️ CategoryService 未初始化或未注册");
-            }
-            else
-            {
-                AddTestResult("✓ CategoryService 已连接");
-            }
+            AddTestResult(_categoryService == null ? "⚠️ CategoryService 未初始化或未注册" : "✓ CategoryService 已连接");
         }
 
         private void OnGUI()
@@ -326,18 +319,16 @@ namespace EasyPack.Category.Editor
                 var deleteMethod = _currentManager.GetType()
                     .GetMethod("DeleteEntity", BindingFlags.Public | BindingFlags.Instance);
 
-                if (deleteMethod != null)
+                if (deleteMethod == null) return;
+                
+                var result = deleteMethod.Invoke(_currentManager, new object[] { _testEntityId });
+                AddTestResult($"✓ DeleteEntity('{_testEntityId}')");
+
+                if (result is OperationResult operationResult)
                 {
-                    var result = deleteMethod.Invoke(_currentManager, new object[] { _testEntityId });
-                    AddTestResult($"✓ DeleteEntity('{_testEntityId}')");
-                    
-                    var operationResult = result as OperationResult;
-                    if (operationResult != null)
-                    {
-                        AddTestResult($"  IsSuccess: {operationResult.IsSuccess}");
-                        if (!operationResult.IsSuccess)
-                            AddTestResult($"  Error: {operationResult.ErrorMessage}");
-                    }
+                    AddTestResult($"  IsSuccess: {operationResult.IsSuccess}");
+                    if (!operationResult.IsSuccess)
+                        AddTestResult($"  Error: {operationResult.ErrorMessage}");
                 }
             }
             catch (System.Exception ex)
@@ -439,19 +430,17 @@ namespace EasyPack.Category.Editor
                 var statsMethod = _currentManager.GetType()
                     .GetMethod("GetStatistics", BindingFlags.Public | BindingFlags.Instance);
 
-                if (statsMethod != null)
-                {
-                    var stats = statsMethod.Invoke(_currentManager, null) as Statistics;
+                if (statsMethod == null) return;
+                var stats = statsMethod.Invoke(_currentManager, null) as Statistics;
                     
-                    AddTestResult($"✓ GetStatistics()");
-                    if (stats != null)
-                    {
-                        AddTestResult($"  实体数: {stats.TotalEntities}");
-                        AddTestResult($"  分类数: {stats.TotalCategories}");
-                        AddTestResult($"  标签数: {stats.TotalTags}");
-                        AddTestResult($"  缓存命中率: {stats.CacheHitRate:P2}");
-                        AddTestResult($"  内存使用: {stats.MemoryUsageMB:F2} MB");
-                    }
+                AddTestResult($"✓ GetStatistics()");
+                if (stats != null)
+                {
+                    AddTestResult($"  实体数: {stats.TotalEntities}");
+                    AddTestResult($"  分类数: {stats.TotalCategories}");
+                    AddTestResult($"  标签数: {stats.TotalTags}");
+                    AddTestResult($"  缓存命中率: {stats.CacheHitRate:P2}");
+                    AddTestResult($"  内存使用: {stats.MemoryUsageMB:F2} MB");
                 }
             }
             catch (System.Exception ex)

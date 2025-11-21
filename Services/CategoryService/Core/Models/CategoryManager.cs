@@ -289,13 +289,12 @@ namespace EasyPack.Category
             try
             {
                 var leafCategories = new List<string>();
-                foreach (var kvp in _categoryTree)
+                foreach ((string key, var node) in _categoryTree)
                 {
-                    var node = kvp.Value;
                     // 如果没有子分类，则为叶子分类
                     if (node.Children.Count == 0)
                     {
-                        leafCategories.Add(kvp.Key);
+                        leafCategories.Add(key);
                     }
                 }
                 return leafCategories;
@@ -336,17 +335,15 @@ namespace EasyPack.Category
             // 从标签索引中移除
             foreach (var kvp in _tagIndex.ToList())
             {
-                if (kvp.Value.Contains(id))
+                if (!kvp.Value.Contains(id)) continue;
+                AcquireTagWriteLock(kvp.Key);
+                try
                 {
-                    AcquireTagWriteLock(kvp.Key);
-                    try
-                    {
-                        kvp.Value.Remove(id);
-                    }
-                    finally
-                    {
-                        ReleaseTagLock(kvp.Key);
-                    }
+                    kvp.Value.Remove(id);
+                }
+                finally
+                {
+                    ReleaseTagLock(kvp.Key);
                 }
             }
 
@@ -605,27 +602,21 @@ namespace EasyPack.Category
             AcquireTagWriteLock(tag);
             try
             {
-                if (_tagIndex.TryGetValue(tag, out var entityIds))
+                if (!_tagIndex.TryGetValue(tag, out var entityIds) || !entityIds.Remove(entityId))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"实体 '{entityId}' 不具有标签 '{tag}'");
+
+                // 如果标签已经没有实体了，可以删除这个标签
+                if (entityIds.Count == 0)
                 {
-                    var removed = entityIds.Remove(entityId);
-                    
-                    if (removed)
-                    {
-                        // 如果标签已经没有实体了，可以删除这个标签
-                        if (entityIds.Count == 0)
-                        {
-                            _tagIndex.Remove(tag);
-                        }
-
-                        // 清除相关缓存
-                        var cacheKey = $"tag:{tag}";
-                        _cacheStrategy.Invalidate(cacheKey);
-
-                        return OperationResult.Success();
-                    }
+                    _tagIndex.Remove(tag);
                 }
 
-                return OperationResult.Failure(ErrorCode.NotFound, $"实体 '{entityId}' 不具有标签 '{tag}'");
+                // 清除相关缓存
+                var cacheKey = $"tag:{tag}";
+                _cacheStrategy.Invalidate(cacheKey);
+
+                return OperationResult.Success();
+
             }
             finally
             {

@@ -162,24 +162,22 @@ namespace EasyPack.Category.Editor
                         var getTagIndexMethod = manager.GetType().GetMethod("GetTagIndex", 
                             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
                         
-                        if (getTagIndexMethod != null)
+                        // 若无法获取标签索引则跳过
+                        if (getTagIndexMethod == null 
+                            ||  getTagIndexMethod.Invoke(manager, null) is not 
+                                IReadOnlyDictionary<string, HashSet<string>> tagIndex) continue;
+                        
+                        foreach (var kvp in tagIndex)
                         {
-                            var tagIndex = getTagIndexMethod.Invoke(manager, null) as IReadOnlyDictionary<string, HashSet<string>>;
-                            if (tagIndex != null)
+                            if (!_tagData.ContainsKey(kvp.Key))
                             {
-                                foreach (var kvp in tagIndex)
-                                {
-                                    if (!_tagData.ContainsKey(kvp.Key))
-                                    {
-                                        _tagData[kvp.Key] = new List<string>();
-                                    }
+                                _tagData[kvp.Key] = new List<string>();
+                            }
                                     
-                                    // 添加实体ID（带类型前缀）
-                                    foreach (var entityId in kvp.Value)
-                                    {
-                                        _tagData[kvp.Key].Add($"[{entityType.Name}] {entityId}");
-                                    }
-                                }
+                            // 添加实体ID（带类型前缀）
+                            foreach (var entityId in kvp.Value)
+                            {
+                                _tagData[kvp.Key].Add($"[{entityType.Name}] {entityId}");
                             }
                         }
                     }

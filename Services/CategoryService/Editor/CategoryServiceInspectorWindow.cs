@@ -197,7 +197,7 @@ namespace EasyPack.Category.Editor
             
             var parts = category.Split('.');
             var displayName = parts.Length > 0 ? parts[^1] : category;
-            var entityCount = _categoryData.ContainsKey(category) ? _categoryData[category].Count : 0;
+            var entityCount = _categoryData.TryGetValue(category, out var value) ? value.Count : 0;
             
             var isSelected = category == _selectedCategory;
             var style = isSelected ? new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleLeft } : new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleLeft };
@@ -321,44 +321,38 @@ namespace EasyPack.Category.Editor
                         var getStatsMethod = manager.GetType().GetMethod("GetStatistics");
                         if (getStatsMethod != null)
                         {
-                            var stats = getStatsMethod.Invoke(manager, null) as Statistics;
-                            if (stats != null)
+                            if (getStatsMethod.Invoke(manager, null) is Statistics stats)
                             {
                                 totalEntities += stats.TotalEntities;
                                 totalCategories += stats.TotalCategories;
                                 totalTags += stats.TotalTags;
                                 
                                 // 使用第一个 Manager 的统计作为总体统计
-                                if (_statistics == null)
-                                {
-                                    _statistics = stats;
-                                }
+                                _statistics ??= stats;
                             }
                         }
                         
                         // 获取分类数据
                         var getAllCategoriesMethod = manager.GetType().GetMethod("GetAllCategories");
-                        if (getAllCategoriesMethod != null)
+                        if (getAllCategoriesMethod == null) continue;
+
+                        if (getAllCategoriesMethod.Invoke(manager, null) is not IReadOnlyList<string> categories)
+                            continue;
+                        
+                        var getByCategoryMethod = manager.GetType().GetMethod("GetByCategory");
+                        foreach (var category in categories)
                         {
-                            var categories = getAllCategoriesMethod.Invoke(manager, null) as IReadOnlyList<string>;
-                            if (categories != null)
+                            var entities = getByCategoryMethod?.Invoke(manager, new object[] { category, false });
+                            var entitiesCollection = entities as System.Collections.ICollection;
+                                    
+                            if (!_categoryData.ContainsKey(category))
                             {
-                                var getByCategoryMethod = manager.GetType().GetMethod("GetByCategory");
-                                foreach (var category in categories)
-                                {
-                                    var entities = getByCategoryMethod?.Invoke(manager, new object[] { category, false });
-                                    var entitiesCollection = entities as System.Collections.ICollection;
+                                _categoryData[category] = new List<string>();
+                            }
                                     
-                                    if (!_categoryData.ContainsKey(category))
-                                    {
-                                        _categoryData[category] = new List<string>();
-                                    }
-                                    
-                                    if (entitiesCollection != null)
-                                    {
-                                        _categoryData[category].Add($"{entityType.Name}:{entitiesCollection.Count}");
-                                    }
-                                }
+                            if (entitiesCollection != null)
+                            {
+                                _categoryData[category].Add($"{entityType.Name}:{entitiesCollection.Count}");
                             }
                         }
                     }

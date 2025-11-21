@@ -22,7 +22,7 @@ namespace EasyPack.Category
         /// <summary>
         /// 父节点
         /// </summary>
-        public CategoryNode Parent { get; internal set; }
+        public CategoryNode Parent { get; private set; }
 
         /// <summary>
         /// 子节点集合
@@ -37,7 +37,7 @@ namespace EasyPack.Category
         /// <summary>
         /// 读写锁
         /// </summary>
-        public ReaderWriterLockSlim Lock { get; }
+        private ReaderWriterLockSlim Lock { get; }
 
         public CategoryNode(string name, string fullPath)
         {

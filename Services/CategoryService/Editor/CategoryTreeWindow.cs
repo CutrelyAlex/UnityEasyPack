@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System.Collections;
 using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
@@ -82,13 +83,11 @@ namespace EasyPack.Category.Editor
             var prefix = parent + ".";
             foreach (var cat in _categoryData.Keys)
             {
-                if (cat.StartsWith(prefix))
+                if (!cat.StartsWith(prefix)) continue;
+                var remainder = cat[prefix.Length..];
+                if (!remainder.Contains("."))
                 {
-                    var remainder = cat.Substring(prefix.Length);
-                    if (!remainder.Contains("."))
-                    {
-                        children.Add(cat);
-                    }
+                    children.Add(cat);
                 }
             }
             return children.OrderBy(x => x).ToList();
@@ -105,10 +104,7 @@ namespace EasyPack.Category.Editor
 
             if (hasChildren)
             {
-                if (!_expandedNodes.ContainsKey(category))
-                {
-                    _expandedNodes[category] = false;
-                }
+                _expandedNodes.TryAdd(category, false);
 
                 _expandedNodes[category] = EditorGUILayout.Foldout(_expandedNodes[category], "");
             }
@@ -119,7 +115,7 @@ namespace EasyPack.Category.Editor
 
             var parts = category.Split('.');
             var displayName = parts.Length > 0 ? parts[^1] : category;
-            var entityCount = _categoryData.ContainsKey(category) ? _categoryData[category].Count : 0;
+            var entityCount = _categoryData.TryGetValue(category, out var value) ? value.Count : 0;
 
             EditorGUILayout.LabelField($"{displayName} ({entityCount})", GUILayout.MinWidth(200));
 
@@ -199,8 +195,7 @@ namespace EasyPack.Category.Editor
                             if (entities == null) continue;
                             
                             // 使用反射获取实体列表的 Count
-                            var entitiesCollection = entities as System.Collections.ICollection;
-                            if (entitiesCollection == null) continue;
+                            if (entities is not ICollection entitiesCollection) continue;
                             
                             // 创建或累加分类数据
                             if (!_categoryData.ContainsKey(category))
