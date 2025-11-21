@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 分类服务
@@ -68,7 +68,7 @@ namespace EasyPack.CategoryService
 
         /// <summary>
         /// 创建或获取指定实体类型的 CategoryManager
-        /// 自动注册 CategoryManager<T> 的序列化器到 SerializationService
+        /// 自动注册 CategoryManager&lt;T&gt; 的序列化器到 SerializationService
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="idExtractor">实体 ID 提取函数</param>
@@ -93,7 +93,7 @@ namespace EasyPack.CategoryService
             _managers[entityType] = manager;
 
             // 自动注册该实体类型的 CategoryManager 序列化器
-            RegisterManagerSerializer<T>(idExtractor);
+            RegisterManagerSerializer(idExtractor);
 
             return manager;
         }
@@ -147,7 +147,7 @@ namespace EasyPack.CategoryService
         #region 序列化支持
 
         /// <summary>
-        /// 注册 CategoryManager<T> 的序列化器
+        /// 注册 CategoryManager&lt;T&gt; 的序列化器
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="idExtractor">实体 ID 提取函数</param>

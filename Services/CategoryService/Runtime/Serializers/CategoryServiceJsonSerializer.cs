@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// CategoryManager 状态数据的可序列化表示
@@ -77,10 +77,7 @@ namespace EasyPack.CategoryService
         /// </summary>
         private async void EnsureSerializationService()
         {
-            if (_serializationService == null)
-            {
-                _serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
-            }
+            _serializationService ??= await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
         }
 
         /// <summary>
@@ -209,14 +206,9 @@ namespace EasyPack.CategoryService
                     {
                         // 使用 SerializationService 反序列化实体
                         T entity;
-                        if (_serializationService != null)
-                        {
-                            entity = _serializationService.DeserializeFromJson<T>(serializedEntity.EntityJson);
-                        }
-                        else
-                        {
-                            entity = JsonUtility.FromJson<T>(serializedEntity.EntityJson);
-                        }
+                        entity = _serializationService != null
+                            ? _serializationService.DeserializeFromJson<T>(serializedEntity.EntityJson)
+                            : JsonUtility.FromJson<T>(serializedEntity.EntityJson);
                         
                         // 查找实体的标签
                         var tags = data.Tags
@@ -250,7 +242,7 @@ namespace EasyPack.CategoryService
                 {
                     var registration = manager.RegisterEntity(entity, category);
                     
-                    if (tags != null && tags.Count > 0)
+                    if (tags is { Count: > 0 })
                     {
                         registration.WithTags(tags.ToArray());
                     }
@@ -259,8 +251,9 @@ namespace EasyPack.CategoryService
                     {
                         registration.WithMetadata(metadata);
                     }
-
+                    
                     var result = registration.Complete();
+                    
                     if (!result.IsSuccess)
                     {
                         Debug.LogWarning($"注册实体失败: {result.ErrorMessage}");

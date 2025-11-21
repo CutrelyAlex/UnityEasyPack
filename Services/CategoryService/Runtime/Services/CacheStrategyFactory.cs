@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 缓存策略工厂
@@ -34,12 +34,7 @@ namespace EasyPack.CategoryService
     /// </summary>
     internal class LooseCacheStrategy<T> : ICacheStrategy<T>
     {
-        private readonly Dictionary<string, IReadOnlyList<T>> _cache;
-
-        public LooseCacheStrategy()
-        {
-            _cache = new Dictionary<string, IReadOnlyList<T>>();
-        }
+        private readonly Dictionary<string, IReadOnlyList<T>> _cache = new();
 
         public bool Get(string key, out IReadOnlyList<T> result)
         {
@@ -163,6 +158,12 @@ namespace EasyPack.CategoryService
             _entityResolver = entityResolver;
         }
 
+        /// <summary>
+        /// 从缓存获取结果
+        /// </summary>
+        /// <param name="key">缓存键</param>
+        /// <param name="result">缓存结果</param>
+        /// <returns>是否命中缓存</returns>
         public bool Get(string key, out IReadOnlyList<T> result)
         {
             // 高效策略不缓存完整实体，总是返回 false
@@ -196,12 +197,11 @@ namespace EasyPack.CategoryService
     internal class AggressiveCacheStrategy<T> : ICacheStrategy<T>
     {
         private readonly Dictionary<string, IReadOnlyList<T>> _cache;
-        private readonly HashSet<string> _preloadedPatterns;
+        private readonly HashSet<string> _preloadedPatterns = new();
 
         public AggressiveCacheStrategy()
         {
             _cache = new Dictionary<string, IReadOnlyList<T>>();
-            _preloadedPatterns = new HashSet<string>();
         }
 
         public bool Get(string key, out IReadOnlyList<T> result)
