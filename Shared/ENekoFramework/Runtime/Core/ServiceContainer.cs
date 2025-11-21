@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace EasyPack.ENekoFramework
 {
@@ -99,12 +100,12 @@ namespace EasyPack.ENekoFramework
                     // 检查实例是否已创建
                     descriptor.Instance ??= (IService)Activator.CreateInstance(descriptor.ImplementationType);
                 }
-
                 // 异步初始化IService的实例
                 if (descriptor.Instance is IService service)
                 {
                     await service.InitializeAsync();
                 }
+
             }
 
             return descriptor.Instance as TService;
@@ -273,6 +274,7 @@ namespace EasyPack.ENekoFramework
                 // 如果实例已存在，直接返回
                 if (descriptor.Instance != null)
                 {
+                    Debug.Log("位点1：" + descriptor.Instance.GetType().Name);
                     return descriptor.Instance as TService;
                 }
 
@@ -291,7 +293,8 @@ namespace EasyPack.ENekoFramework
                         }
                     }
                 }
-
+                var service = descriptor.Instance as BaseService;
+                service?.InitializeAsync().GetAwaiter().GetResult();
                 return descriptor.Instance as TService;
             }
             finally

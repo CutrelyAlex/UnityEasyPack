@@ -1,5 +1,5 @@
 using EasyPack.BuffSystem;
-using EasyPack.CategoryService;
+using EasyPack.Category;
 using EasyPack.ENekoFramework;
 using EasyPack.GamePropertySystem;
 using EasyPack.InventorySystem;
@@ -24,7 +24,7 @@ namespace EasyPack.Architecture
             Container.Register<IInventoryService, InventoryService>();
 
             // Services
-            Container.Register<ICategoryService, CategoryService.CategoryService>();
+            Container.Register<ICategoryService, CategoryService>();
             Container.Register<ISerializationService, SerializationService>();
             Container.Register<IObjectPoolService, ObjectPoolService>();
         }
