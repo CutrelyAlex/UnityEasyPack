@@ -6,155 +6,427 @@ namespace EasyPack.Category
 {
     /// <summary>
     /// 缓存策略工厂
-    /// 提供三级缓存架构的实现
     /// </summary>
     public static class CacheStrategyFactory
     {
         /// <summary>
         /// 创建缓存策略实例
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="strategy">策略类型</param>
-        /// <returns>缓存策略实例</returns>
-        public static ICacheStrategy<T> Create<T>(CacheStrategy strategy)
+        public static ICacheStrategyBase<T> Create<T>(CacheStrategy strategy)
         {
             return strategy switch
             {
-                CacheStrategy.Loose => new LooseCacheStrategy<T>(),
-                CacheStrategy.Balanced => new BalancedCacheStrategy<T>(),
-                CacheStrategy.Premium => new PremiumCacheStrategy<T>(),
-                _ => new BalancedCacheStrategy<T>()
+                CacheStrategy.Loose => new HotpointLooseCacheStrategy<T>(),
+                CacheStrategy.Balanced => new HybridBalancedCacheStrategy<T>(),
+                CacheStrategy.Premium => new ShardedPremiumCacheStrategy<T>(),
+                _ => new HybridBalancedCacheStrategy<T>()
             };
         }
     }
 
     /// <summary>
-    /// 基础缓存策略（Loose）
-    /// 特点：缓存所有查询结果，无驱逐策略
-    /// 优点：查询性能最优，无额外开销
-    /// 缺点：内存占用可能很大
-    /// 适用场景：内存充足，查询模式稳定的场景
+    /// 缓存策略接口
     /// </summary>
-    internal class LooseCacheStrategy<T> : ICacheStrategy<T>
+    public interface ICacheStrategyBase<T> : ICacheStrategy<T>
     {
-        private readonly Dictionary<string, IReadOnlyList<T>> _cache = new();
+        /// <summary>
+        /// 获取缓存统计信息
+        /// </summary>
+        CacheStatistics GetStatistics();
 
-        public bool Get(string key, out IReadOnlyList<T> result)
-        {
-            return _cache.TryGetValue(key, out result);
-        }
-
-        public void Set(string key, IReadOnlyList<T> value)
-        {
-            _cache[key] = value;
-        }
-
-        public void Invalidate(string key)
-        {
-            _cache.Remove(key);
-        }
-
-        public void Clear()
-        {
-            _cache.Clear();
-        }
+        /// <summary>
+        /// 尝试从缓存获取，并记录访问统计
+        /// </summary>
+        bool TryGetOptimized(string key, out IReadOnlyList<T> result);
     }
 
     /// <summary>
-    /// 平衡缓存策略（Balanced）
-    /// 特点：自动缓存所有查询 + LRU 驱逐算法
-    /// 优点：平衡内存占用和查询性能
-    /// 缺点：达到上限时需要驱逐最少使用的项
-    /// 适用场景：通用场景，既需要好的性能又需要控制内存占用
+    /// 缓存统计信息
     /// </summary>
-    internal class BalancedCacheStrategy<T> : ICacheStrategy<T>
+    public class CacheStatistics
     {
-        private readonly Dictionary<string, CacheEntry> _cache;
-        private readonly int _maxCacheSize;
+        public int TotalEntries { get; set; }
+        public int HitCount { get; set; }
+        public int MissCount { get; set; }
+        public double HitRate => TotalEntries > 0 ? (double)HitCount / (HitCount + MissCount) : 0;
+        public long MemoryUsageBytes { get; set; }
+    }
 
-        private class CacheEntry
-        {
-            public IReadOnlyList<T> Data;
-            public long LastAccessTick;
-        }
+    #region Loose: 热点追踪缓存
 
-        public BalancedCacheStrategy(int maxCacheSize = 1000)
-        {
-            _cache = new Dictionary<string, CacheEntry>();
-            _maxCacheSize = maxCacheSize;
-        }
+    /// <summary>
+    /// Loose 缓存策略
+    /// 特点：只缓存访问频繁的数据（热点数据）
+    /// 内存占用：最小
+    /// 性能：中等（热点命中时快，冷数据需要重新计算）
+    /// 准确性：100%
+    /// </summary>
+    internal class HotpointLooseCacheStrategy<T> : ICacheStrategyBase<T>
+    {
+        private readonly Dictionary<string, IReadOnlyList<T>> _hotCache = new();
+        private readonly Dictionary<string, int> _accessCounter = new();
+        private const int HOTPOINT_THRESHOLD = 10; // 访问次数 >= 10 才缓存 // TODO: 此类设置转为可配置
+        private const int COUNTER_CLEANUP_INTERVAL = 1000; // 每 1000 次操作清理一次计数器
+        private int _operationCount = 0;
+
+        private int _hits = 0;
+        private int _misses = 0;
 
         public bool Get(string key, out IReadOnlyList<T> result)
         {
-            if (_cache.TryGetValue(key, out var entry))
+            _operationCount++;
+
+            if (_hotCache.TryGetValue(key, out result))
             {
-                entry.LastAccessTick = DateTime.UtcNow.Ticks;
-                result = entry.Data;
+                _hits++;
                 return true;
             }
 
-            result = null;
+            // 记录冷数据访问
+            if (_accessCounter.TryGetValue(key, out var count))
+            {
+                _accessCounter[key] = count + 1;
+
+                // 访问次数达到阈值，晋升为热点数据
+                if (count + 1 >= HOTPOINT_THRESHOLD)
+                {
+                    // 标记，等待下次 Set 时缓存
+                }
+            }
+            else
+            {
+                _accessCounter[key] = 1;
+            }
+
+            _misses++;
+
+            // 定期清理计数器
+            if (_operationCount % COUNTER_CLEANUP_INTERVAL == 0)
+            {
+                CleanupCounters();
+            }
+
             return false;
         }
 
         public void Set(string key, IReadOnlyList<T> value)
         {
-            // 如果达到最大缓存大小且不存在此键，执行 LRU 驱逐
-            if (_cache.Count >= _maxCacheSize && !_cache.ContainsKey(key))
+            // 检查是否应该缓存此数据
+            if (_accessCounter.TryGetValue(key, out var count) && count >= HOTPOINT_THRESHOLD)
             {
-                var lruKey = _cache.OrderBy(kvp => kvp.Value.LastAccessTick).First().Key;
-                _cache.Remove(lruKey);
+                _hotCache[key] = value;
+            }
+            else if (_hotCache.ContainsKey(key))
+            {
+                // 已缓存的热点数据更新
+                _hotCache[key] = value;
             }
 
-            _cache[key] = new CacheEntry
-            {
-                Data = value,
-                LastAccessTick = DateTime.UtcNow.Ticks
-            };
+            // 否则不缓存冷数据
         }
 
         public void Invalidate(string key)
         {
-            _cache.Remove(key);
+            _hotCache.Remove(key);
+            _accessCounter.Remove(key);
         }
 
         public void Clear()
         {
-            _cache.Clear();
+            _hotCache.Clear();
+            _accessCounter.Clear();
+            _hits = 0;
+            _misses = 0;
+            _operationCount = 0;
+        }
+
+        public CacheStatistics GetStatistics()
+        {
+            return new CacheStatistics
+            {
+                TotalEntries = _hotCache.Count,
+                HitCount = _hits,
+                MissCount = _misses,
+                MemoryUsageBytes = _hotCache.Count * 1000 // 粗略估计
+            };
+        }
+
+        public bool TryGetOptimized(string key, out IReadOnlyList<T> result)
+        {
+            return Get(key, out result);
+        }
+
+        private void CleanupCounters()
+        {
+            // 移除不在热缓存中且访问次数较低的计数器
+            var keysToRemove = _accessCounter
+                .Where(kvp => !_hotCache.ContainsKey(kvp.Key) && kvp.Value < HOTPOINT_THRESHOLD)
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            foreach (var key in keysToRemove)
+            {
+                _accessCounter.Remove(key);
+            }
         }
     }
 
+    #endregion
+
+    #region Balanced 混合LRU频率缓存
+
     /// <summary>
-    /// 高级缓存策略（Premium）
-    /// 特点：完全缓存，永久存储，无驱逐
-    /// 优点：最高性能，所有查询都命中缓存
-    /// 缺点：内存占用最大，无法限制缓存大小
-    /// 适用场景：高频查询，数据集确定且较小，需要最佳性能的场景
+    /// 混合缓存策略
+    /// 结合 LRU 时间衰减和访问频率
+    /// 内存占用：中等
+    /// 性能：快速
+    /// 准确性：可能出错（
     /// </summary>
-    internal class PremiumCacheStrategy<T> : ICacheStrategy<T>
+    internal class HybridBalancedCacheStrategy<T> : ICacheStrategyBase<T>
     {
-        private readonly Dictionary<string, IReadOnlyList<T>> _cache = new();
+        private readonly Dictionary<string, CacheEntryV2> _cache = new();
+        private readonly int _maxCacheSize;
+        private const int FREQUENCY_DECAY_INTERVAL = 500; // 频率衰减间隔
+        private int _operationCount = 0;
+        private int _hits = 0;
+        private int _misses = 0;
+
+        private class CacheEntryV2
+        {
+            public IReadOnlyList<T> Data;
+            public long LastAccessTick;
+            public int AccessFrequency; // 访问频率计数
+            public long CreatedTick;
+        }
+
+        public HybridBalancedCacheStrategy(int maxCacheSize = 2000)
+        {
+            _maxCacheSize = maxCacheSize;
+        }
 
         public bool Get(string key, out IReadOnlyList<T> result)
         {
-            return _cache.TryGetValue(key, out result);
+            _operationCount++;
+
+            if (_cache.TryGetValue(key, out var entry))
+            {
+                entry.LastAccessTick = DateTime.UtcNow.Ticks;
+                entry.AccessFrequency = Math.Min(entry.AccessFrequency + 1, 255); // 上限 255
+                result = entry.Data;
+                _hits++;
+                return true;
+            }
+
+            _misses++;
+            result = null;
+
+            // 定期衰减频率
+            if (_operationCount % FREQUENCY_DECAY_INTERVAL == 0)
+            {
+                DecayFrequencies();
+            }
+
+            return false;
         }
 
         public void Set(string key, IReadOnlyList<T> value)
         {
-            // Premium 缓存永久存储，不驱逐
-            _cache[key] = value;
+            if (_cache.ContainsKey(key))
+            {
+                // 更新现有项
+                _cache[key].Data = value;
+                _cache[key].LastAccessTick = DateTime.UtcNow.Ticks;
+            }
+            else
+            {
+                // 新增项检查是否需要驱逐
+                if (_cache.Count >= _maxCacheSize)
+                {
+                    EvictLRUFrequency();
+                }
+
+                _cache[key] = new CacheEntryV2
+                {
+                    Data = value,
+                    LastAccessTick = DateTime.UtcNow.Ticks,
+                    AccessFrequency = 1,
+                    CreatedTick = DateTime.UtcNow.Ticks
+                };
+            }
         }
 
         public void Invalidate(string key)
         {
-            // Premium 缓存通常不主动失效
             _cache.Remove(key);
         }
 
         public void Clear()
         {
             _cache.Clear();
+            _hits = 0;
+            _misses = 0;
+            _operationCount = 0;
+        }
+
+        public CacheStatistics GetStatistics()
+        {
+            return new CacheStatistics
+            {
+                TotalEntries = _cache.Count,
+                HitCount = _hits,
+                MissCount = _misses,
+                MemoryUsageBytes = _cache.Count * 2000
+            };
+        }
+
+        public bool TryGetOptimized(string key, out IReadOnlyList<T> result)
+        {
+            return Get(key, out result);
+        }
+
+        private void EvictLRUFrequency()
+        {
+            var now = DateTime.UtcNow.Ticks;
+            const long TICK_PER_SECOND = 10_000_000;
+
+            // 计算每个项的驱逐分数：访问时间距离 × 频率倒数
+            var evictionScores = _cache.Select(kvp =>
+            {
+                var age = (now - kvp.Value.LastAccessTick) / TICK_PER_SECOND; // 秒
+                var score = age / (double)(kvp.Value.AccessFrequency + 1); // 时间 / 频率
+                return (kvp.Key, Score: score);
+            }).OrderByDescending(x => x.Score); // 分数高的优先驱逐
+
+            var keyToRemove = evictionScores.First().Key;
+            _cache.Remove(keyToRemove);
+        }
+
+        private void DecayFrequencies()
+        {
+            // 频率衰减：所有项的频率减半，以适应工作集变化
+            foreach (var entry in _cache.Values)
+            {
+                entry.AccessFrequency = Math.Max(1, entry.AccessFrequency / 2);
+            }
         }
     }
+
+    #endregion
+
+    #region Premium 分片多级缓存
+
+    /// <summary>
+    /// 分片缓存策略
+    /// 分片设计 + 本地缓存 + 无驱逐
+    /// 内存占用：最大
+    /// 性能：最快
+    /// 准确性：100%
+    /// </summary>
+    internal class ShardedPremiumCacheStrategy<T> : ICacheStrategyBase<T>
+    {
+        private const int SHARD_COUNT = 8; // 分片数量（2的幂）
+        private const int SHARD_MASK = SHARD_COUNT - 1;
+        private readonly Dictionary<string, IReadOnlyList<T>>[] _shards;
+        private string _lastAccessKey = "";
+        private IReadOnlyList<T> _lastAccessValue;
+        private int _hits = 0;
+        private int _misses = 0;
+
+        public ShardedPremiumCacheStrategy()
+        {
+            _shards = new Dictionary<string, IReadOnlyList<T>>[SHARD_COUNT];
+            for (int i = 0; i < SHARD_COUNT; i++)
+            {
+                _shards[i] = new Dictionary<string, IReadOnlyList<T>>();
+            }
+        }
+
+        public bool Get(string key, out IReadOnlyList<T> result)
+        {
+            // 快速路径：检查本地缓存（最近访问）
+            if (_lastAccessKey == key && _lastAccessValue != null)
+            {
+                result = _lastAccessValue;
+                _hits++;
+                return true;
+            }
+
+            // 分片查询
+            int shardIndex = GetShardIndex(key);
+            var shard = _shards[shardIndex];
+
+            if (shard.TryGetValue(key, out result))
+            {
+                // 更新本地缓存
+                _lastAccessKey = key;
+                _lastAccessValue = result;
+                _hits++;
+                return true;
+            }
+
+            _misses++;
+            return false;
+        }
+
+        public void Set(string key, IReadOnlyList<T> value)
+        {
+            int shardIndex = GetShardIndex(key);
+            var shard = _shards[shardIndex];
+            shard[key] = value;
+
+            // 更新本地缓存
+            _lastAccessKey = key;
+            _lastAccessValue = value;
+        }
+
+        public void Invalidate(string key)
+        {
+            int shardIndex = GetShardIndex(key);
+            var shard = _shards[shardIndex];
+            shard.Remove(key);
+
+            if (key == _lastAccessKey)
+            {
+                _lastAccessKey = "";
+                _lastAccessValue = null;
+            }
+        }
+
+        public void Clear()
+        {
+            for (int i = 0; i < SHARD_COUNT; i++)
+            {
+                _shards[i].Clear();
+            }
+            _lastAccessKey = "";
+            _lastAccessValue = null;
+            _hits = 0;
+            _misses = 0;
+        }
+
+        public CacheStatistics GetStatistics()
+        {
+            int totalEntries = _shards.Sum(s => s.Count);
+            return new CacheStatistics
+            {
+                TotalEntries = totalEntries,
+                HitCount = _hits,
+                MissCount = _misses,
+                MemoryUsageBytes = totalEntries * 3000 // TODO: 粗略估计 
+            };
+        }
+
+        public bool TryGetOptimized(string key, out IReadOnlyList<T> result)
+        {
+            return Get(key, out result);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private int GetShardIndex(string key)
+        {
+            return key.GetHashCode() & int.MaxValue & SHARD_MASK;
+        }
+    }
+
+    #endregion
 }
