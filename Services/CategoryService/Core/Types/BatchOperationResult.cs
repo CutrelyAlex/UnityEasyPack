@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 批量操作结果

@@ -1,4 +1,4 @@
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 操作结果包装器（无返回值）

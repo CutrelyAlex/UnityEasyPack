@@ -1,6 +1,6 @@
 using System;
 
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 分类名称规范化工具

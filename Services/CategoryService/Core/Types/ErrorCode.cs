@@ -1,4 +1,4 @@
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 错误代码枚举

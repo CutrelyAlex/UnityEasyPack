@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 正则表达式缓存

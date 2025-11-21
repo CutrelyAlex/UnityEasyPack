@@ -1,4 +1,4 @@
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 缓存策略枚举
