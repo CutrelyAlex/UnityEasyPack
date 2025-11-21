@@ -72,12 +72,11 @@ namespace EasyPack.Category
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="idExtractor">实体 ID 提取函数</param>
-        /// <param name="comparisonMode">字符串比较模式</param>
+        /// <param name="comparisonMode">字符串比较模式（严格匹配）</param>
         /// <param name="cacheStrategy">缓存策略</param>
         /// <returns>CategoryManager 实例</returns>
         public CategoryManager<T> GetOrCreateManager<T>(
             Func<T, string> idExtractor,
-            StringComparison comparisonMode = StringComparison.OrdinalIgnoreCase,
             CacheStrategy cacheStrategy = CacheStrategy.Balanced)
         {
             var entityType = typeof(T);
@@ -89,7 +88,7 @@ namespace EasyPack.Category
             }
 
             // 创建新的 Manager
-            var manager = new CategoryManager<T>(idExtractor, comparisonMode, cacheStrategy);
+            var manager = new CategoryManager<T>(idExtractor, cacheStrategy);
             _managers[entityType] = manager;
 
             // 自动注册该实体类型的 CategoryManager 序列化器

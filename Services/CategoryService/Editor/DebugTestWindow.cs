@@ -15,7 +15,6 @@ namespace EasyPack.Category.Editor
         private string _testCategory = "Combat.Physical";
         private string _testTag = "Debuff";
         private string _newEntityId = "";
-        private string _newTag = "";
         private List<string> _testResults = new();
         private CategoryService _categoryService;
         private object _currentManager;
@@ -292,7 +291,6 @@ namespace EasyPack.Category.Editor
                 // 创建一个测试 Manager
                 var testManager = service.GetOrCreateManager<string>(
                     idExtractor: s => s,
-                    comparisonMode: System.StringComparison.OrdinalIgnoreCase,
                     cacheStrategy: CacheStrategy.Balanced
                 );
 
@@ -495,12 +493,11 @@ namespace EasyPack.Category.Editor
                 if (_currentManager == null)
                 {
                     AddTestResult("⚠️ 请先选择一个实体类型");
-                    return;
                 }
             }
             catch (System.Exception ex)
             {
-                AddTestResult($"✗ 创建失败: {ex.Message}");
+                AddTestResult($"✗{entityId} 创建失败: {ex.Message}");
             }
         }
 

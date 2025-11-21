@@ -15,9 +15,8 @@ namespace EasyPack.Category
         /// 规范化分类名称
         /// </summary>
         /// <param name="categoryName">原始分类名称</param>
-        /// <param name="comparisonMode">字符串比较模式</param>
         /// <returns>规范化后的分类名称</returns>
-        public static string Normalize(string categoryName, StringComparison comparisonMode)
+        public static string Normalize(string categoryName)
         {
             if (string.IsNullOrWhiteSpace(categoryName))
             {
@@ -26,12 +25,6 @@ namespace EasyPack.Category
 
             // 去除首尾空白
             categoryName = categoryName.Trim();
-
-            // 根据比较模式处理大小写
-            if (comparisonMode is StringComparison.OrdinalIgnoreCase or StringComparison.InvariantCultureIgnoreCase)
-            {
-                categoryName = categoryName.ToLowerInvariant();
-            }
 
             return categoryName;
         }

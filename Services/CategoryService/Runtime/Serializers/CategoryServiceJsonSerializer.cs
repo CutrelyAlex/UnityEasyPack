@@ -104,7 +104,7 @@ namespace EasyPack.Category
                 };
 
                 // 序列化实体和分类
-                var categories = manager.GetAllCategories();
+                var categories = manager.GetCategoriesNodes();
                 foreach (var category in categories)
                 {
                     var entities = manager.GetByCategory(category, includeChildren: false);
@@ -240,7 +240,7 @@ namespace EasyPack.Category
                 // 注册所有实体
                 foreach (var (entity, category, tags, metadata) in entityRegistrations)
                 {
-                    var registration = manager.RegisterEntity(entity, category);
+                    var registration = manager.RegisterEntitySafe(entity, category);
                     
                     if (tags is { Count: > 0 })
                     {

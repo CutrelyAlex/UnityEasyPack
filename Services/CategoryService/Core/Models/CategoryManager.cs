@@ -22,7 +22,6 @@ namespace EasyPack.Category
         public Type EntityType => typeof(T);
 
         private readonly Func<T, string> _idExtractor;
-        private readonly StringComparison _comparisonMode;
         private readonly ICacheStrategy<T> _cacheStrategy;
 
         // 核心存储
@@ -48,15 +47,13 @@ namespace EasyPack.Category
         /// 构造函数
         /// </summary>
         /// <param name="idExtractor">实体 ID 提取函数</param>
-        /// <param name="comparisonMode">字符串比较模式</param>
+
         /// <param name="cacheStrategy">缓存策略</param>
         public CategoryManager(
             Func<T, string> idExtractor,
-            StringComparison comparisonMode = StringComparison.OrdinalIgnoreCase,
             CacheStrategy cacheStrategy = CacheStrategy.Balanced)
         {
             _idExtractor = idExtractor ?? throw new ArgumentNullException(nameof(idExtractor));
-            _comparisonMode = comparisonMode;
             _cacheStrategy = CacheStrategyFactory.Create<T>(cacheStrategy);
 
             _entities = new Dictionary<string, T>();
@@ -72,31 +69,57 @@ namespace EasyPack.Category
 
         #region 实体注册
 
+        public OperationResult RegisterEntityComplete(T entity, string category)
+        {
+            return RegisterEntity(entity, category).Complete();
+        }
+        
         /// <summary>
-        /// 注册实体到指定分类
+        /// 注册一个实体到指定分类
         /// </summary>
-        /// <param name="entity">实体对象</param>
-        /// <param name="category">分类名称</param>
-        /// <returns>实体注册流畅接口</returns>
+        /// <param name="entity">实体</param>
+        /// <param name="category">类别</param>
+        /// <returns></returns>
         public IEntityRegistration RegisterEntity(T entity, string category)
         {
             var id = _idExtractor(entity);
-
-            // 验证分类名称
-            category = CategoryNameNormalizer.Normalize(category, _comparisonMode);
+            return RegisterEntityInternal(entity, id, category);
+        }
+        /// <summary>
+        /// 安全注册一个实体到指定分类（包含分类名称验证）
+        /// </summary>
+        /// <param name="entity">实体</param>
+        /// <param name="category">类别</param>
+        /// <returns></returns>
+        public IEntityRegistration RegisterEntitySafe(T entity, string category)
+        {
+            var id = _idExtractor(entity);
+    
+            // 规范化分类名称
+            category = CategoryNameNormalizer.Normalize(category);
             if (!CategoryNameNormalizer.IsValid(category, out var errorMessage))
             {
                 return new EntityRegistration(this, id, entity, category,
                     OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage));
             }
-
+            return RegisterEntityInternal(entity, id, category);
+        }
+        
+        /// <summary>
+        /// 内部注册实体方法
+        /// </summary>
+        /// <param name="entity">实体</param>
+        /// <param name="id">id</param>
+        /// <param name="category">类别</param>
+        /// <returns></returns>
+        private IEntityRegistration RegisterEntityInternal(T entity, string id, string category)
+        {
             // 检查重复 ID
             if (_entities.ContainsKey(id))
             {
                 return new EntityRegistration(this, id, entity, category,
                     OperationResult.Failure(ErrorCode.DuplicateId, $"实体 ID '{id}' 已存在"));
             }
-
             return new EntityRegistration(this, id, entity, category, OperationResult.Success());
         }
 
@@ -114,7 +137,7 @@ namespace EasyPack.Category
             foreach (var entity in entities)
             {
                 var id = _idExtractor(entity);
-                var registration = RegisterEntity(entity, category);
+                var registration = RegisterEntitySafe(entity, category);
                 var result = registration.Complete();
 
                 results.Add((id, result.IsSuccess, result.ErrorCode, result.ErrorMessage));
@@ -145,7 +168,7 @@ namespace EasyPack.Category
         /// <returns>实体列表</returns>
         public IReadOnlyList<T> GetByCategory(string pattern, bool includeChildren = false)
         {
-            pattern = CategoryNameNormalizer.Normalize(pattern, _comparisonMode);
+            pattern = CategoryNameNormalizer.Normalize(pattern);
 
             // 检查缓存
             var cacheKey = $"cat:{pattern}:{includeChildren}";
@@ -238,16 +261,44 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 获取所有分类名称
+        /// 获取所有分类名称（包括所有级别，包括仅作为父节点的中间分类）
         /// </summary>
-        /// <remarks>返回的是直接包含实体的分类，不包括仅作为父节点的中间分类</remarks>
+        /// <remarks>返回_categoryTree中的所有分类，包括中间节点</remarks>
         /// <returns>分类名称列表</returns>
-        public IReadOnlyList<string> GetAllCategories()
+        public IReadOnlyList<string> GetCategoriesNodes()
         {
             _treeLock.EnterReadLock();
             try
             {
-                return _categoryIndex.Keys.ToList();
+                return _categoryTree.Keys.ToList();
+            }
+            finally
+            {
+                _treeLock.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        /// 获取所有叶子级分类（只返回没有子分类的分类）
+        /// </summary>
+        /// <remarks>返回的是实际包含实体的叶子级分类，不包括仅作为父节点的中间分类</remarks>
+        /// <returns>叶子级分类名称列表</returns>
+        public IReadOnlyList<string> GetLeafCategories()
+        {
+            _treeLock.EnterReadLock();
+            try
+            {
+                var leafCategories = new List<string>();
+                foreach (var kvp in _categoryTree)
+                {
+                    var node = kvp.Value;
+                    // 如果没有子分类，则为叶子分类
+                    if (node.Children.Count == 0)
+                    {
+                        leafCategories.Add(kvp.Key);
+                    }
+                }
+                return leafCategories;
             }
             finally
             {
@@ -338,7 +389,7 @@ namespace EasyPack.Category
         /// <returns>操作结果</returns>
         public OperationResult DeleteCategory(string category)
         {
-            category = CategoryNameNormalizer.Normalize(category, _comparisonMode);
+            category = CategoryNameNormalizer.Normalize(category);
 
             _treeLock.EnterWriteLock();
             try
@@ -377,7 +428,7 @@ namespace EasyPack.Category
         /// <returns>操作结果</returns>
         public OperationResult DeleteCategoryRecursive(string category)
         {
-            category = CategoryNameNormalizer.Normalize(category, _comparisonMode);
+            category = CategoryNameNormalizer.Normalize(category);
 
             _treeLock.EnterWriteLock();
             try
@@ -437,7 +488,7 @@ namespace EasyPack.Category
         /// </summary>
         private CategoryNode GetOrCreateNode(string fullPath)
         {
-            fullPath = CategoryNameNormalizer.Normalize(fullPath, _comparisonMode);
+            fullPath = CategoryNameNormalizer.Normalize(fullPath);
 
             if (_categoryTree.TryGetValue(fullPath, out var existingNode))
             {
@@ -473,9 +524,8 @@ namespace EasyPack.Category
         private Regex ConvertWildcardToRegex(string pattern)
         {
             var regexPattern = "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$";
-            var options = _comparisonMode == StringComparison.OrdinalIgnoreCase
-                ? RegexOptions.IgnoreCase | RegexOptions.Compiled
-                : RegexOptions.Compiled;
+            // 严格匹配，不使用忽略大小写选项
+            var options = RegexOptions.Compiled;
 
             return RegexCache.GetOrCreate(regexPattern, options);
         }
@@ -771,11 +821,26 @@ namespace EasyPack.Category
         #region 语法糖操作
 
         /// <summary>
-        /// 将实体移动到新分类
+        /// 将实体移动到新分类并规范化和验证新分类名称
         /// </summary>
         /// <param name="entityId">实体 ID</param>
         /// <param name="newCategory">新分类名称</param>
         /// <returns>操作结果</returns>
+        public OperationResult MoveEntityToCategorySafe(string entityId, string newCategory)
+        {
+            // 验证并规范化新分类名称
+            newCategory = CategoryNameNormalizer.Normalize(newCategory);
+            return !CategoryNameNormalizer.IsValid(newCategory, out var errorMessage)
+                ? OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage)
+                : MoveEntityToCategory(entityId, newCategory);
+        }
+        
+        /// <summary>
+        /// 将实体移动到新分类
+        /// </summary>
+        /// <param name="entityId">实体 ID</param>
+        /// <param name="newCategory">新分类名称</param>
+        /// <returns></returns>
         public OperationResult MoveEntityToCategory(string entityId, string newCategory)
         {
             // 验证实体存在
@@ -783,14 +848,7 @@ namespace EasyPack.Category
             {
                 return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
             }
-
-            // 验证并规范化新分类名称
-            newCategory = CategoryNameNormalizer.Normalize(newCategory, _comparisonMode);
-            if (!CategoryNameNormalizer.IsValid(newCategory, out var errorMessage))
-            {
-                return OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage);
-            }
-
+            
             _treeLock.EnterWriteLock();
             try
             {
@@ -824,25 +882,9 @@ namespace EasyPack.Category
             }
         }
 
-        /// <summary>
-        /// 重命名分类
-        /// </summary>
-        /// <param name="oldName">旧分类名称</param>
-        /// <param name="newName">新分类名称</param>
-        /// <returns>操作结果</returns>
         public OperationResult RenameCategory(string oldName, string newName)
         {
-            // 规范化分类名称
-            oldName = CategoryNameNormalizer.Normalize(oldName, _comparisonMode);
-            newName = CategoryNameNormalizer.Normalize(newName, _comparisonMode);
-
-            // 验证新分类名称
-            if (!CategoryNameNormalizer.IsValid(newName, out var errorMessage))
-            {
-                return OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage);
-            }
-
-            _treeLock.EnterWriteLock();
+             _treeLock.EnterWriteLock();
             try
             {
                 // 检查旧分类是否存在
@@ -921,6 +963,26 @@ namespace EasyPack.Category
             {
                 _treeLock.ExitWriteLock();
             }
+        }
+        
+        
+        /// <summary>
+        /// 规范化分类名称和验证并重命名分类
+        /// </summary>
+        /// <param name="oldName">旧分类名称</param>
+        /// <param name="newName">新分类名称</param>
+
+        /// <returns>操作结果</returns>
+        public OperationResult RenameCategorySafe(string oldName, string newName)
+        {
+            // 规范化分类名称
+            oldName = CategoryNameNormalizer.Normalize(oldName);
+            newName = CategoryNameNormalizer.Normalize(newName);
+
+            // 验证新分类名称
+            return !CategoryNameNormalizer.IsValid(newName, out var errorMessage)
+                ? OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage)
+                : RenameCategory(oldName, newName);
         }
 
         #endregion
@@ -1170,15 +1232,15 @@ namespace EasyPack.Category
                 long memoryUsage = 0;
                 
                 // 实体存储内存
-                memoryUsage += _entities.Count * 64; // 估算每个实体引用64字节
+                memoryUsage += _entities.Count * 64; // 估算每个实体引用64个字节
                 
                 // 分类树内存
-                memoryUsage += _categoryTree.Count * 128; // 估算每个节点128字节
+                memoryUsage += _categoryTree.Count * 128; // 估算每个节点128个字节
                 
                 // 索引内存
                 foreach (var kvp in _categoryIndex)
                 {
-                    memoryUsage += kvp.Value.Count * 16; // 估算每个索引项16字节
+                    memoryUsage += kvp.Value.Count * 16; // 估算每个索引项16个字节
                 }
                 
                 // 标签索引内存
@@ -1225,14 +1287,14 @@ namespace EasyPack.Category
         /// <param name="isHit">是否命中缓存</param>
         private void RecordCacheQuery(bool isHit)
         {
-            System.Threading.Interlocked.Increment(ref _totalCacheQueries);
+            Interlocked.Increment(ref _totalCacheQueries);
             if (isHit)
             {
-                System.Threading.Interlocked.Increment(ref _cacheHits);
+                Interlocked.Increment(ref _cacheHits);
             }
             else
             {
-                System.Threading.Interlocked.Increment(ref _cacheMisses);
+                Interlocked.Increment(ref _cacheMisses);
             }
             
             // 统计信息缓存失效

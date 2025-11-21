@@ -101,7 +101,6 @@ namespace EasyPack.Category.Editor
             {
                 return service.GetOrCreateManager<T>(
                     idExtractor: obj => obj?.GetHashCode().ToString() ?? "unknown",
-                    comparisonMode: System.StringComparison.OrdinalIgnoreCase,
                     cacheStrategy: CacheStrategy.Balanced
                 );
             }

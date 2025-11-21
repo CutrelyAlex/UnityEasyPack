@@ -18,7 +18,7 @@ namespace EasyPack.Category
         /// <summary>
         /// 获取所有已注册的分类名称
         /// </summary>
-        IReadOnlyList<string> GetAllCategories();
+        IReadOnlyList<string> GetCategoriesNodes();
 
         /// <summary>
         /// 清除所有缓存
@@ -46,7 +46,7 @@ namespace EasyPack.Category
         /// <summary>
         /// 注册实体到指定分类
         /// </summary>
-        IEntityRegistration RegisterEntity(T entity, string category);
+        IEntityRegistration RegisterEntitySafe(T entity, string category);
 
         /// <summary>
         /// 批量注册实体
