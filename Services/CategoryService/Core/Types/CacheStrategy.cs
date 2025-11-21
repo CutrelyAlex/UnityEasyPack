@@ -12,7 +12,8 @@ namespace EasyPack.Category
         HotspotTracking,
 
         /// <summary>
-        /// LRU频率混合，结合LRU时间衰减和访问频率评分，本缓存策略可能出错
+        /// LRU频率混合，结合LRU时间衰减和访问频率评分
+        /// 本缓存策略可能出错
         /// </summary>
         LRUFrequencyHybrid,
 

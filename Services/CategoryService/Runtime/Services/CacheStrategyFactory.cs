@@ -16,7 +16,7 @@ namespace EasyPack.Category
         {
             return strategy switch
             {
-                CacheStrategy.HotspotTracking => new HotspotTrackingCacheStrategy<T>(),
+                CacheStrategy.HotspotTracking => new HotspotTrackingStrategy<T>(),
                 CacheStrategy.LRUFrequencyHybrid => new LRUFrequencyHybridStrategy<T>(),
                 CacheStrategy.ShardedNoEviction => new ShardedNoEvictionStrategy<T>(),
                 _ => new LRUFrequencyHybridStrategy<T>()
@@ -54,7 +54,7 @@ namespace EasyPack.Category
 
     #region HotspotTracking
 
-    internal class HotspotTrackingCacheStrategy<T> : ICacheStrategyBase<T>
+    internal class HotspotTrackingStrategy<T> : ICacheStrategyBase<T>
     {
         private readonly Dictionary<string, IReadOnlyList<T>> _hotCache = new();
         private readonly Dictionary<string, int> _accessCounter = new();
@@ -79,12 +79,6 @@ namespace EasyPack.Category
             if (_accessCounter.TryGetValue(key, out var count))
             {
                 _accessCounter[key] = count + 1;
-
-                // 访问次数达到阈值，晋升为热点数据
-                if (count + 1 >= HOTPOINT_THRESHOLD)
-                {
-                    // 标记，等待下次 Set 时缓存
-                }
             }
             else
             {
@@ -104,8 +98,18 @@ namespace EasyPack.Category
 
         public void Set(string key, IReadOnlyList<T> value)
         {
+            // 更新访问计数
+            if (_accessCounter.TryGetValue(key, out var count))
+            {
+                _accessCounter[key] = count + 1;
+            }
+            else
+            {
+                _accessCounter[key] = 1;
+            }
+
             // 检查是否应该缓存此数据
-            if (_accessCounter.TryGetValue(key, out var count) && count >= HOTPOINT_THRESHOLD)
+            if (_accessCounter[key] >= HOTPOINT_THRESHOLD)
             {
                 _hotCache[key] = value;
             }
