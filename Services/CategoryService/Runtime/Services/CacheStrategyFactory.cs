@@ -16,10 +16,10 @@ namespace EasyPack.Category
         {
             return strategy switch
             {
-                CacheStrategy.HotspotTracking => new HotpointLooseCacheStrategy<T>(),
-                CacheStrategy.LRUFrequencyHybrid => new HybridBalancedCacheStrategy<T>(),
-                CacheStrategy.ShardedNoEviction => new ShardedPremiumCacheStrategy<T>(),
-                _ => new HybridBalancedCacheStrategy<T>()
+                CacheStrategy.HotspotTracking => new HotspotTrackingCacheStrategy<T>(),
+                CacheStrategy.LRUFrequencyHybrid => new LRUFrequencyHybridStrategy<T>(),
+                CacheStrategy.ShardedNoEviction => new ShardedNoEvictionStrategy<T>(),
+                _ => new LRUFrequencyHybridStrategy<T>()
             };
         }
     }
@@ -52,16 +52,9 @@ namespace EasyPack.Category
         public long MemoryUsageBytes { get; set; }
     }
 
-    #region Loose: 热点追踪缓存
+    #region HotspotTracking
 
-    /// <summary>
-    /// Loose 缓存策略
-    /// 特点：只缓存访问频繁的数据（热点数据）
-    /// 内存占用：最小
-    /// 性能：中等（热点命中时快，冷数据需要重新计算）
-    /// 准确性：100%
-    /// </summary>
-    internal class HotpointLooseCacheStrategy<T> : ICacheStrategyBase<T>
+    internal class HotspotTrackingCacheStrategy<T> : ICacheStrategyBase<T>
     {
         private readonly Dictionary<string, IReadOnlyList<T>> _hotCache = new();
         private readonly Dictionary<string, int> _accessCounter = new();
@@ -173,16 +166,9 @@ namespace EasyPack.Category
 
     #endregion
 
-    #region Balanced 混合LRU频率缓存
+    #region LRUFrequencyHybrid
 
-    /// <summary>
-    /// 混合缓存策略
-    /// 结合 LRU 时间衰减和访问频率
-    /// 内存占用：中等
-    /// 性能：快速
-    /// 准确性：可能出错（
-    /// </summary>
-    internal class HybridBalancedCacheStrategy<T> : ICacheStrategyBase<T>
+    internal class LRUFrequencyHybridStrategy<T> : ICacheStrategyBase<T>
     {
         private readonly Dictionary<string, CacheEntryV2> _cache = new();
         private readonly int _maxCacheSize;
@@ -199,7 +185,7 @@ namespace EasyPack.Category
             public long CreatedTick;
         }
 
-        public HybridBalancedCacheStrategy(int maxCacheSize = 2000)
+        public LRUFrequencyHybridStrategy(int maxCacheSize = 2000)
         {
             _maxCacheSize = maxCacheSize;
         }
@@ -313,7 +299,7 @@ namespace EasyPack.Category
 
     #endregion
 
-    #region Premium 分片多级缓存
+    #region ShardedNoEviction
 
     /// <summary>
     /// 分片缓存策略
@@ -322,7 +308,7 @@ namespace EasyPack.Category
     /// 性能：最快
     /// 准确性：100%
     /// </summary>
-    internal class ShardedPremiumCacheStrategy<T> : ICacheStrategyBase<T>
+    internal class ShardedNoEvictionStrategy<T> : ICacheStrategyBase<T>
     {
         private const int SHARD_COUNT = 8; // 分片数量（2的幂）
         private const int SHARD_MASK = SHARD_COUNT - 1;
@@ -332,7 +318,7 @@ namespace EasyPack.Category
         private int _hits = 0;
         private int _misses = 0;
 
-        public ShardedPremiumCacheStrategy()
+        public ShardedNoEvictionStrategy()
         {
             _shards = new Dictionary<string, IReadOnlyList<T>>[SHARD_COUNT];
             for (int i = 0; i < SHARD_COUNT; i++)
