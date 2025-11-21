@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 通用分类管理器
@@ -440,7 +440,7 @@ namespace EasyPack.CategoryService
 
             // 创建新节点
             var parts = fullPath.Split('.');
-            var name = parts[parts.Length - 1];
+            var name = parts[^1];
             var node = new CategoryNode(name, fullPath);
 
             _categoryTree[fullPath] = node;
@@ -479,6 +479,105 @@ namespace EasyPack.CategoryService
         #region Tag系统
 
         /// <summary>
+        /// 添加标签到实体
+        /// </summary>
+        /// <param name="entityId">实体 ID</param>
+        /// <param name="tag">标签名称</param>
+        /// <returns>操作结果</returns>
+        public OperationResult AddTag(string entityId, string tag)
+        {
+            // 验证实体存在
+            if (!_entities.ContainsKey(entityId))
+            {
+                return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
+            }
+
+            // 验证标签名称
+            if (string.IsNullOrWhiteSpace(tag))
+            {
+                return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
+            }
+
+            tag = tag.Trim();
+
+            AcquireTagWriteLock(tag);
+            try
+            {
+                // 创建或获取标签集合
+                if (!_tagIndex.TryGetValue(tag, out var entityIds))
+                {
+                    entityIds = new HashSet<string>();
+                    _tagIndex[tag] = entityIds;
+                }
+
+                // 添加实体 ID
+                entityIds.Add(entityId);
+
+                // 清除相关缓存
+                var cacheKey = $"tag:{tag}";
+                _cacheStrategy.Invalidate(cacheKey);
+
+                return OperationResult.Success();
+            }
+            finally
+            {
+                ReleaseTagLock(tag);
+            }
+        }
+
+        /// <summary>
+        /// 从实体移除标签
+        /// </summary>
+        /// <param name="entityId">实体 ID</param>
+        /// <param name="tag">标签名称</param>
+        /// <returns>操作结果</returns>
+        public OperationResult RemoveTag(string entityId, string tag)
+        {
+            // 验证实体存在
+            if (!_entities.ContainsKey(entityId))
+            {
+                return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
+            }
+
+            if (string.IsNullOrWhiteSpace(tag))
+            {
+                return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
+            }
+
+            tag = tag.Trim();
+
+            AcquireTagWriteLock(tag);
+            try
+            {
+                if (_tagIndex.TryGetValue(tag, out var entityIds))
+                {
+                    var removed = entityIds.Remove(entityId);
+                    
+                    if (removed)
+                    {
+                        // 如果标签已经没有实体了，可以删除这个标签
+                        if (entityIds.Count == 0)
+                        {
+                            _tagIndex.Remove(tag);
+                        }
+
+                        // 清除相关缓存
+                        var cacheKey = $"tag:{tag}";
+                        _cacheStrategy.Invalidate(cacheKey);
+
+                        return OperationResult.Success();
+                    }
+                }
+
+                return OperationResult.Failure(ErrorCode.NotFound, $"实体 '{entityId}' 不具有标签 '{tag}'");
+            }
+            finally
+            {
+                ReleaseTagLock(tag);
+            }
+        }
+
+        /// <summary>
         /// 根据标签获取实体
         /// </summary>
         /// <param name="tag">标签名称</param>
@@ -488,8 +587,11 @@ namespace EasyPack.CategoryService
             var cacheKey = $"tag:{tag}";
             if (_cacheStrategy.Get(cacheKey, out var cachedResult))
             {
+                RecordCacheQuery(true); // 缓存命中
                 return cachedResult;
             }
+            
+            RecordCacheQuery(false); // 缓存未命中
 
             AcquireTagReadLock(tag);
             try
@@ -654,7 +756,7 @@ namespace EasyPack.CategoryService
         public OperationResult MoveEntityToCategory(string entityId, string newCategory)
         {
             // 验证实体存在
-            if (!_entities.TryGetValue(entityId, out var entity))
+            if (!_entities.ContainsKey(entityId))
             {
                 return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
             }
@@ -879,7 +981,7 @@ namespace EasyPack.CategoryService
         /// <param name="json">JSON 字符串</param>
         /// <param name="idExtractor">实体 ID 提取函数</param>
         /// <returns>新的 CategoryManager 实例</returns>
-        public static CategoryManager<T> CreateFromJson(string json, System.Func<T, string> idExtractor)
+        public static CategoryManager<T> CreateFromJson(string json, Func<T, string> idExtractor)
         {
             var serializer = new CategoryManagerJsonSerializer<T>(idExtractor);
             return serializer.DeserializeFromJson(json);
@@ -997,6 +1099,173 @@ namespace EasyPack.CategoryService
                     return OperationResult.Failure(ErrorCode.ConcurrencyConflict, ex.Message);
                 }
             }
+        }
+
+        #endregion
+
+        #region 统计与监控
+
+#if UNITY_EDITOR
+        private Statistics _cachedStatistics;
+        private long _lastStatisticsUpdate;
+        private const long StatisticsCacheTimeout = 10000000; // 1秒的Ticks
+
+        private long _totalCacheQueries;
+        private long _cacheHits;
+        private long _cacheMisses;
+
+        /// <summary>
+        /// 获取运行时统计信息（仅编辑器环境可用）
+        /// </summary>
+        /// <returns>统计信息对象</returns>
+        public Statistics GetStatistics()
+        {
+            var currentTicks = DateTime.UtcNow.Ticks;
+            
+            // 如果缓存未过期，返回缓存的统计信息
+            if (_cachedStatistics != null && (currentTicks - _lastStatisticsUpdate) < StatisticsCacheTimeout)
+            {
+                return _cachedStatistics;
+            }
+
+            _treeLock.EnterReadLock();
+            try
+            {
+                // 计算最大分类深度
+                int maxDepth = 0;
+                foreach (var category in _categoryTree.Keys)
+                {
+                    int depth = category.Split('.').Length;
+                    if (depth > maxDepth)
+                    {
+                        maxDepth = depth;
+                    }
+                }
+
+                // TODO: 性能监控转为实际值
+                // 计算内存使用（估算）
+                long memoryUsage = 0;
+                
+                // 实体存储内存
+                memoryUsage += _entities.Count * 64; // 估算每个实体引用64字节
+                
+                // 分类树内存
+                memoryUsage += _categoryTree.Count * 128; // 估算每个节点128字节
+                
+                // 索引内存
+                foreach (var kvp in _categoryIndex)
+                {
+                    memoryUsage += kvp.Value.Count * 16; // 估算每个索引项16字节
+                }
+                
+                // 标签索引内存
+                foreach (var kvp in _tagIndex)
+                {
+                    memoryUsage += kvp.Value.Count * 16;
+                }
+
+                // 元数据存储内存
+                memoryUsage += _metadataStore.Count * 64;
+
+                // 计算缓存命中率
+                float cacheHitRate = 0f;
+                if (_totalCacheQueries > 0)
+                {
+                    cacheHitRate = (float)_cacheHits / _totalCacheQueries;
+                }
+
+                _cachedStatistics = new Statistics
+                {
+                    TotalEntities = _entities.Count,
+                    TotalCategories = _categoryTree.Count,
+                    TotalTags = _tagIndex.Count,
+                    CacheHitRate = cacheHitRate,
+                    MemoryUsageBytes = memoryUsage,
+                    MaxCategoryDepth = maxDepth,
+                    TotalCacheQueries = _totalCacheQueries,
+                    CacheHits = _cacheHits,
+                    CacheMisses = _cacheMisses
+                };
+
+                _lastStatisticsUpdate = currentTicks;
+                return _cachedStatistics;
+            }
+            finally
+            {
+                _treeLock.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        /// 记录缓存查询结果（仅编辑器环境）
+        /// </summary>
+        /// <param name="isHit">是否命中缓存</param>
+        private void RecordCacheQuery(bool isHit)
+        {
+            System.Threading.Interlocked.Increment(ref _totalCacheQueries);
+            if (isHit)
+            {
+                System.Threading.Interlocked.Increment(ref _cacheHits);
+            }
+            else
+            {
+                System.Threading.Interlocked.Increment(ref _cacheMisses);
+            }
+            
+            // 统计信息缓存失效
+            _cachedStatistics = null;
+        }
+#else
+        /// <summary>
+        /// TODO:获取运行时统计信息
+        /// </summary>
+        /// <returns>空统计信息对象</returns>
+        public Statistics GetStatistics()
+        {
+            return new Statistics();
+        }
+
+        /// <summary>
+        /// TODO:记录缓存查询
+        /// </summary>
+        /// <param name="isHit">是否命中缓存</param>
+        private void RecordCacheQuery(bool isHit)
+        {
+            // 生产环境不记录统计信息
+        }
+#endif
+
+        #endregion
+
+        #region 对象池优化
+
+        /// <summary>
+        /// 使用对象池构建查询结果
+        /// </summary>
+        /// <param name="entityIds">实体 ID 集合</param>
+        /// <returns>实体列表</returns>
+        private List<T> BuildResultWithPool(IEnumerable<string> entityIds)
+        {
+            var result = CollectionPool.GetList<T>();
+            
+            foreach (var id in entityIds)
+            {
+                if (_entities.TryGetValue(id, out var entity))
+                {
+                    result.Add(entity);
+                }
+            }
+            
+            return result;
+        }
+
+        /// <summary>
+        /// 归还列表到对象池
+        /// </summary>
+        /// <param name="list">要归还的列表</param>
+        private void ReturnListToPool(List<T> list)
+        {
+            CollectionPool.ReturnList(list);
         }
 
         #endregion

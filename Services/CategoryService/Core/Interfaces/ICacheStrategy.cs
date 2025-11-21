@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 缓存策略接口

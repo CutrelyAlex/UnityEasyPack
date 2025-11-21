@@ -1,7 +1,7 @@
 using EasyPack.ENekoFramework;
 using System;
 
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 分类服务接口

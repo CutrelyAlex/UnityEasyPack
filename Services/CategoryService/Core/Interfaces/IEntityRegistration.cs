@@ -1,6 +1,6 @@
 using EasyPack.CustomData;
 
-namespace EasyPack.CategoryService
+namespace EasyPack.Category
 {
     /// <summary>
     /// 实体注册接口
