@@ -71,7 +71,7 @@ namespace EasyPack.Category
         /// <summary>
         /// 根据分类和标签获取实体交集
         /// </summary>
-        IReadOnlyList<T> GetByCategoryAndTag(string category, string tag);
+        IReadOnlyList<T> GetByCategoryAndTag(string category, string tag, bool includeChildren = true);
 
         /// <summary>
         /// 获取元数据

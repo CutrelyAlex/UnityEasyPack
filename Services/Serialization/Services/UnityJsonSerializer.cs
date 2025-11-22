@@ -22,6 +22,7 @@ namespace EasyPack.Serialization
 
         public string SerializeToJson(object obj)
         {
+            Debug.Log("Trying to serialize object of type: " + obj.GetType().FullName + "Json : " + JsonUtility.ToJson(obj));
             return JsonUtility.ToJson(obj);
         }
 

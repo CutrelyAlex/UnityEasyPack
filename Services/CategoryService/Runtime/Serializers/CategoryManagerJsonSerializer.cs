@@ -367,6 +367,17 @@ namespace EasyPack.Category
                 EnsureSerializationService();
 
                 var data = JsonUtility.FromJson<SerializableCategoryManagerState<T>>(json);
+                
+                // 检查并初始化可能为 null 的集合字段
+                if (data == null)
+                {
+                    throw new InvalidOperationException("无法反序列化 JSON 数据");
+                }
+
+                data.Entities ??= new List<SerializableCategoryManagerState<T>.SerializedEntity>();
+                data.Categories ??= new List<SerializableCategoryManagerState<T>.SerializedCategory>();
+                data.Tags ??= new List<SerializableCategoryManagerState<T>.SerializedTag>();
+                data.Metadata ??= new List<SerializableCategoryManagerState<T>.SerializedMetadata>();
 
                 // 版本兼容性检查
                 if (data.Version > CurrentVersion)
@@ -379,7 +390,7 @@ namespace EasyPack.Category
                 var manager = new CategoryManager<T>(_idExtractor);
 
                 // 反序列化实体
-                var entityRegistrations = new List<(T entity, string category, List<string> tags, CustomDataCollection metadata)>();
+                var entityRegistrations = new List<(string id, T entity, string category, List<string> tags, CustomDataCollection metadata)>();
 
                 foreach (var serializedEntity in data.Entities)
                 {
@@ -389,6 +400,13 @@ namespace EasyPack.Category
                         var entity = _serializationService != null
                             ? _serializationService.DeserializeFromJson<T>(serializedEntity.EntityJson)
                             : JsonUtility.FromJson<T>(serializedEntity.EntityJson);
+
+                        // 检查反序列化是否成功
+                        if (entity == null)
+                        {
+                            Debug.LogWarning($"反序列化实体 '{serializedEntity.Id}' 失败: 反序列化结果为 null");
+                            continue;
+                        }
 
                         // 查找实体的标签
                         var tags = data.Tags
@@ -402,14 +420,17 @@ namespace EasyPack.Category
                         if (metadataEntry != null)
                         {
                             var wrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(metadataEntry.MetadataJson);
-                            metadata = new CustomDataCollection();
-                            foreach (var entry in wrapper.Entries)
+                            if (wrapper != null && wrapper.Entries != null)
                             {
-                                metadata.Add(entry);
+                                metadata = new CustomDataCollection();
+                                foreach (var entry in wrapper.Entries)
+                                {
+                                    metadata.Add(entry);
+                                }
                             }
                         }
 
-                        entityRegistrations.Add((entity, serializedEntity.Category, tags, metadata));
+                        entityRegistrations.Add((serializedEntity.Id, entity, serializedEntity.Category, tags, metadata));
                     }
                     catch (Exception ex)
                     {
@@ -418,9 +439,9 @@ namespace EasyPack.Category
                 }
 
                 // 注册所有实体
-                foreach (var (entity, category, tags, metadata) in entityRegistrations)
+                foreach (var (id, entity, category, tags, metadata) in entityRegistrations)
                 {
-                    var registration = manager.RegisterEntitySafe(entity, category);
+                    var registration = manager.RegisterEntitySafeWithId(entity, id, category);
                     
                     if (tags is { Count: > 0 })
                     {

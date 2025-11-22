@@ -124,6 +124,24 @@ namespace EasyPack.Category
         }
 
         /// <summary>
+        /// 注册实体，指定ID和分类名称，自动验证分类格式。
+        /// </summary>
+        /// <param name="entity">要注册的实体。</param>
+        /// <param name="id">实体ID。</param>
+        /// <param name="category">目标分类名称（将自动规范化）。</param>
+        /// <returns>链式注册对象；若分类名称无效，返回失败结果。</returns>
+        public IEntityRegistration RegisterEntitySafeWithId(T entity, string id, string category)
+        {
+            category = CategoryNameNormalizer.Normalize(category);
+            if (!CategoryNameNormalizer.IsValid(category, out var errorMessage))
+            {
+                return new EntityRegistration(this, id, entity, category,
+                    OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage));
+            }
+            return RegisterEntityInternal(entity, id, category);
+        }
+
+        /// <summary>
         /// 内部注册逻辑，验证实体ID唯一性。
         /// </summary>
         /// <param name="entity">要注册的实体。</param>
@@ -132,6 +150,12 @@ namespace EasyPack.Category
         /// <returns>链式注册对象；若ID已存在，返回失败结果。</returns>
         private IEntityRegistration RegisterEntityInternal(T entity, string id, string category)
         {
+            if (string.IsNullOrEmpty(id))
+            {
+                return new EntityRegistration(this, id, entity, category,
+                    OperationResult.Failure(ErrorCode.InvalidCategory, $"实体 ID 不能为空"));
+            }
+            
             if (_entities.ContainsKey(id))
             {
                 return new EntityRegistration(this, id, entity, category,
@@ -743,9 +767,9 @@ namespace EasyPack.Category
         /// <param name="category">分类名称。</param>
         /// <param name="tag">标签名称。</param>
         /// <returns>同时满足两个条件的实体列表。</returns>
-        public IReadOnlyList<T> GetByCategoryAndTag(string category, string tag)
+        public IReadOnlyList<T> GetByCategoryAndTag(string category, string tag, bool includeChildren = true)
         {
-            var categoryEntities = GetByCategory(category);
+            var categoryEntities = GetByCategory(category, includeChildren);
             var tagEntities = GetByTag(tag);
 
             return categoryEntities.Intersect(tagEntities).ToList();
@@ -1167,9 +1191,28 @@ namespace EasyPack.Category
                     {
                         _categoryIdToName[kvp.Key] = kvp.Value;
                     }
+                    foreach (var kvp in newManager._tagToEntityIds)
+                    {
+                        _tagToEntityIds[kvp.Key] = new HashSet<string>(kvp.Value);
+                    }
+                    foreach (var kvp in newManager._entityToTagIds)
+                    {
+                        _entityToTagIds[kvp.Key] = new HashSet<int>(kvp.Value);
+                    }
                     foreach (var kvp in newManager._metadataStore)
                     {
                         _metadataStore[kvp.Key] = kvp.Value;
+                    }
+                    // 复制标签映射器状态
+                    var tagSnapshot = newManager._tagMapper.GetSnapshot();
+                    foreach (var kvp in tagSnapshot)
+                    {
+                        _tagMapper.GetOrAssignId(kvp.Value);
+                    }
+                    var categorySnapshot = newManager._categoryTermMapper.GetSnapshot();
+                    foreach (var kvp in categorySnapshot)
+                    {
+                        _categoryTermMapper.GetOrAssignId(kvp.Value);
                     }
                 }
                 finally
@@ -1516,7 +1559,6 @@ namespace EasyPack.Category
                 {
                     // 存储实体
                     _manager._entities[_entityId] = _entity;
-
                     // 创建分类节点
                     _manager._treeLock.EnterWriteLock();
                     try
@@ -1540,6 +1582,11 @@ namespace EasyPack.Category
                     {
                         _manager._metadataStore[_entityId] = _metadata;
                     }
+
+                    // 清除统计缓存（数据已改变）
+#if UNITY_EDITOR
+                    _manager._cachedStatistics = null;
+#endif
 
                     return OperationResult.Success();
                 }
