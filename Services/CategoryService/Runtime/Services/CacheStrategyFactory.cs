@@ -58,7 +58,7 @@ namespace EasyPack.Category
     {
         private readonly Dictionary<string, IReadOnlyList<T>> _hotCache = new();
         private readonly Dictionary<string, int> _accessCounter = new();
-        private const int HOTPOINT_THRESHOLD = 10; // 访问次数 >= 10 才缓存 // TODO: 此类设置转为可配置
+        private const int HOTPOINT_THRESHOLD = 3; // 访问次数 >= 3 才缓存 // TODO: 此类设置转为可配置
         private const int COUNTER_CLEANUP_INTERVAL = 1000; // 每 1000 次操作清理一次计数器
         private int _operationCount = 0;
 

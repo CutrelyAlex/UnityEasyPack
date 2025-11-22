@@ -27,7 +27,7 @@ namespace EasyPack.Category
         // 核心存储
         private readonly Dictionary<string, T> _entities;
         private readonly Dictionary<string, CategoryNode> _categoryTree;
-        private readonly Dictionary<string, HashSet<string>> _categoryIndex;
+        private readonly Dictionary<string, HashSet<string>> _categoryToEntityIds;
 
         // 标签系统
         private readonly Dictionary<string, HashSet<string>> _tagIndex;
@@ -58,7 +58,7 @@ namespace EasyPack.Category
 
             _entities = new Dictionary<string, T>();
             _categoryTree = new Dictionary<string, CategoryNode>();
-            _categoryIndex = new Dictionary<string, HashSet<string>>();
+            _categoryToEntityIds = new Dictionary<string, HashSet<string>>();
             _tagIndex = new Dictionary<string, HashSet<string>>();
             _tagLocks = new Dictionary<string, ReaderWriterLockSlim>();
             _metadataStore = new Dictionary<string, CustomDataCollection>();
@@ -192,18 +192,15 @@ namespace EasyPack.Category
                         if (!regex.IsMatch(kvp.Key)) continue;
                         if (includeChildren)
                         {
-                            // 获取所有后代节点
-                            var descendants = kvp.Value.GetDescendants();
-                            foreach (var node in descendants)
+                            // 使用预计算的子树索引
+                            foreach (var id in kvp.Value.SubtreeEntityIds)
                             {
-                                foreach (var id in node.EntityIds)
-                                {
-                                    entityIds.Add(id);
-                                }
+                                entityIds.Add(id);
                             }
                         }
                         else
                         {
+                            // 仅当前节点的实体
                             foreach (var id in kvp.Value.EntityIds)
                             {
                                 entityIds.Add(id);
@@ -221,22 +218,20 @@ namespace EasyPack.Category
                 // 精确匹配
                 if (_categoryTree.TryGetValue(pattern, out var node))
                 {
-                    // 总是包含当前节点的实体
-                    foreach (var id in node.EntityIds)
-                    {
-                        entityIds.Add(id);
-                    }
-
-                    // 如果需要包含子节点
                     if (includeChildren)
                     {
-                        var descendants = node.GetDescendants();
-                        foreach (var desc in descendants)
+                        // 使用预计算的子树索引
+                        foreach (var id in node.SubtreeEntityIds)
                         {
-                            foreach (var id in desc.EntityIds)
-                            {
-                                entityIds.Add(id);
-                            }
+                            entityIds.Add(id);
+                        }
+                    }
+                    else
+                    {
+                        // 仅当前节点的实体
+                        foreach (var id in node.EntityIds)
+                        {
+                            entityIds.Add(id);
                         }
                     }
                 }
@@ -321,13 +316,17 @@ namespace EasyPack.Category
                 return;
             }
             
-            // 从分类索引中移除（假定已持有写锁）
+            // 从分类索引中移除，并更新预计算的子树索引
             foreach (var kvp in _categoryTree)
             {
-                kvp.Value.EntityIds.Remove(id);
+                if (kvp.Value.EntityIds.Remove(id))
+                {
+                    // 如果从该节点移除了实体，更新其祖先的子树索引
+                    kvp.Value.RemoveEntityAndPropagate(id);
+                }
             }
 
-            foreach (var kvp in _categoryIndex)
+            foreach (var kvp in _categoryToEntityIds)
             {
                 kvp.Value.Remove(id);
             }
@@ -404,7 +403,7 @@ namespace EasyPack.Category
 
                 // 从树中移除节点
                 _categoryTree.Remove(category);
-                _categoryIndex.Remove(category);
+                _categoryToEntityIds.Remove(category);
 
                 // 从父节点移除引用
                 node.Parent?.RemoveChild(node.Name);
@@ -451,7 +450,7 @@ namespace EasyPack.Category
 
                     // 从树中移除
                     _categoryTree.Remove(desc.FullPath);
-                    _categoryIndex.Remove(desc.FullPath);
+                    _categoryToEntityIds.Remove(desc.FullPath);
                 }
 
                 // 删除根节点的实体
@@ -462,7 +461,7 @@ namespace EasyPack.Category
 
                 // 从树中移除根节点
                 _categoryTree.Remove(category);
-                _categoryIndex.Remove(category);
+                _categoryToEntityIds.Remove(category);
 
                 // 从父节点移除引用
                 node.Parent?.RemoveChild(node.Name);
@@ -499,9 +498,9 @@ namespace EasyPack.Category
 
             _categoryTree[fullPath] = node;
 
-            if (!_categoryIndex.ContainsKey(fullPath))
+            if (!_categoryToEntityIds.ContainsKey(fullPath))
             {
-                _categoryIndex[fullPath] = new HashSet<string>();
+                _categoryToEntityIds[fullPath] = new HashSet<string>();
             }
 
             // 处理父节点关系
@@ -848,7 +847,7 @@ namespace EasyPack.Category
                 {
                     if (kvp.Value.EntityIds.Remove(entityId))
                     {
-                        _categoryIndex[kvp.Key]?.Remove(entityId);
+                        _categoryToEntityIds[kvp.Key]?.Remove(entityId);
                     }
                 }
 
@@ -856,11 +855,11 @@ namespace EasyPack.Category
                 var node = GetOrCreateNode(newCategory);
                 node.EntityIds.Add(entityId);
 
-                if (!_categoryIndex.ContainsKey(newCategory))
+                if (!_categoryToEntityIds.ContainsKey(newCategory))
                 {
-                    _categoryIndex[newCategory] = new HashSet<string>();
+                    _categoryToEntityIds[newCategory] = new HashSet<string>();
                 }
-                _categoryIndex[newCategory].Add(entityId);
+                _categoryToEntityIds[newCategory].Add(entityId);
 
                 // 清除缓存
                 _cacheStrategy.Clear();
@@ -907,7 +906,7 @@ namespace EasyPack.Category
                     
                     // 从旧路径移除
                     _categoryTree.Remove(oldFullPath);
-                    _categoryIndex.Remove(oldFullPath);
+                    _categoryToEntityIds.Remove(oldFullPath);
 
                     // 创建新节点
                     var newNode = new CategoryNode(
@@ -942,7 +941,7 @@ namespace EasyPack.Category
 
                     // 添加到新路径
                     _categoryTree[newFullPath] = newNode;
-                    _categoryIndex[newFullPath] = entityIds;
+                    _categoryToEntityIds[newFullPath] = entityIds;
                 }
 
                 // 清除缓存
@@ -1010,7 +1009,7 @@ namespace EasyPack.Category
                 {
                     _entities.Clear();
                     _categoryTree.Clear();
-                    _categoryIndex.Clear();
+                    _categoryToEntityIds.Clear();
                     _tagIndex.Clear();
                     _metadataStore.Clear();
                     _cacheStrategy.Clear();
@@ -1024,9 +1023,9 @@ namespace EasyPack.Category
                     {
                         _categoryTree[kvp.Key] = kvp.Value;
                     }
-                    foreach (var kvp in newManager._categoryIndex)
+                    foreach (var kvp in newManager._categoryToEntityIds)
                     {
-                        _categoryIndex[kvp.Key] = kvp.Value;
+                        _categoryToEntityIds[kvp.Key] = kvp.Value;
                     }
                     foreach (var kvp in newManager._tagIndex)
                     {
@@ -1128,13 +1127,15 @@ namespace EasyPack.Category
                     try
                     {
                         var node = _manager.GetOrCreateNode(_category);
-                        node.EntityIds.Add(_entityId);
+                        
+                        // 添加到该节点的直接实体集合，并自动向上传播到祖先
+                        node.AddEntityAndPropagate(_entityId);
 
-                        if (!_manager._categoryIndex.ContainsKey(_category))
+                        if (!_manager._categoryToEntityIds.ContainsKey(_category))
                         {
-                            _manager._categoryIndex[_category] = new HashSet<string>();
+                            _manager._categoryToEntityIds[_category] = new HashSet<string>();
                         }
-                        _manager._categoryIndex[_category].Add(_entityId);
+                        _manager._categoryToEntityIds[_category].Add(_entityId);
                     }
                     finally
                     {
@@ -1229,7 +1230,7 @@ namespace EasyPack.Category
                 memoryUsage += _categoryTree.Count * 128; // 估算每个节点128个字节
                 
                 // 索引内存
-                foreach (var kvp in _categoryIndex)
+                foreach (var kvp in _categoryToEntityIds)
                 {
                     memoryUsage += kvp.Value.Count * 16; // 估算每个索引项16个字节
                 }
@@ -1463,6 +1464,43 @@ namespace EasyPack.Category
         }
 
         /// <summary>
+        /// 重建所有子树索引（用于数据修复或同步）
+        /// 从根节点开始重新计算所有预计算的子树实体集合
+        /// </summary>
+        /// <returns>操作结果</returns>
+        public OperationResult RebuildSubtreeIndices()
+        {
+            try
+            {
+                _treeLock.EnterWriteLock();
+                try
+                {
+                    // 获取所有根节点（没有父节点的节点）
+                    var rootNodes = _categoryTree.Values.Where(n => n.Parent == null).ToList();
+
+                    // 从每个根节点开始重建
+                    foreach (var root in rootNodes)
+                    {
+                        root.RebuildSubtreeIndex();
+                    }
+
+                    // 清除缓存，因为结果可能已改变
+                    _cacheStrategy.Clear();
+
+                    return OperationResult.Success();
+                }
+                finally
+                {
+                    _treeLock.ExitWriteLock();
+                }
+            }
+            catch (Exception ex)
+            {
+                return OperationResult.Failure(ErrorCode.ConcurrencyConflict, $"重建子树索引失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// 清空所有数据（实体、分类、标签、元数据、缓存）
         /// </summary>
         public void Clear()
@@ -1472,7 +1510,7 @@ namespace EasyPack.Category
             {
                 _entities.Clear();
                 _categoryTree.Clear();
-                _categoryIndex.Clear();
+                _categoryToEntityIds.Clear();
                 _tagIndex.Clear();
                 _metadataStore.Clear();
                 _cacheStrategy.Clear();

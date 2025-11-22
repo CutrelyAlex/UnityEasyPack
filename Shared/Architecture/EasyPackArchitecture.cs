@@ -40,8 +40,10 @@ namespace EasyPack.Architecture
             // 预热常用类型的专用池
             await ListPool<int>.InitializeAsync(1024*16);
             await ListPool<string>.InitializeAsync(1024*16);
+            await ListPool<double>.InitializeAsync(1024*16);
             await HashSetPool<int>.InitializeAsync(1024*16);
             await HashSetPool<string>.InitializeAsync(1024*16);
+            await HashSetPool<double>.InitializeAsync(1024*16);
             await StackPool<int>.InitializeAsync(1024*16);
         }
 
