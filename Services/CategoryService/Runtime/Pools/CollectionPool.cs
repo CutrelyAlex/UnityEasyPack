@@ -87,29 +87,6 @@ namespace EasyPack.Category
 
         #endregion
 
-        #region 池统计信息
-
-        /// <summary>
-        /// 获取指定类型 List 池的统计信息
-        /// </summary>
-        /// <typeparam name="T">列表元素类型</typeparam>
-        /// <returns>池的统计信息，未初始化时返回 null</returns>
-        public static ObjectPool.PoolStatistics GetListPoolStatistics<T>()
-        {
-            return ObjectPool.ListPool<T>.GetStatistics();
-        }
-
-        /// <summary>
-        /// 获取指定类型 HashSet 池的统计信息
-        /// </summary>
-        /// <typeparam name="T">集合元素类型</typeparam>
-        /// <returns>池的统计信息，未初始化时返回 null</returns>
-        public static ObjectPool.PoolStatistics GetHashSetPoolStatistics<T>()
-        {
-            return ObjectPool.HashSetPool<T>.GetStatistics();
-        }
-
-        #endregion
     }
 }
 

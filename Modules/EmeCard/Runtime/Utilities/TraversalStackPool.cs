@@ -75,13 +75,5 @@ namespace EasyPack.EmeCardSystem
             }
             _pool.Return(stack);
         }
-
-        /// <summary>
-        /// 获取池的统计信息。
-        /// </summary>
-        public static PoolStatistics GetStatistics()
-        {
-            return _pool?.GetStatistics();
-        }
     }
 }

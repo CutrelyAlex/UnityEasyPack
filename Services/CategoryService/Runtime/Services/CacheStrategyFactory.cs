@@ -314,7 +314,7 @@ namespace EasyPack.Category
     /// </summary>
     internal class ShardedNoEvictionStrategy<T> : ICacheStrategyBase<T>
     {
-        private const int SHARD_COUNT = 8; // 分片数量（2的幂）
+        private const int SHARD_COUNT = 4; // 分片数量（2的幂）
         private const int SHARD_MASK = SHARD_COUNT - 1;
         private readonly Dictionary<string, IReadOnlyList<T>>[] _shards;
         private string _lastAccessKey = "";

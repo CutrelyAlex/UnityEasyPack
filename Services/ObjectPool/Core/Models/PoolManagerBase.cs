@@ -83,30 +83,6 @@ namespace EasyPack.ObjectPool
         }
 
         /// <summary>
-        /// 获取所有池的统计信息。
-        /// </summary>
-        public IEnumerable<PoolStatistics> GetAllStatistics()
-        {
-            var results = new List<PoolStatistics>();
-            foreach (var byType in _pools.Values)
-            {
-                foreach (var pool in byType.Values)
-                {
-                    // 直接调用 GetStatistics() 方法而不依赖接口
-                    var getStatsMethod = pool.GetType().GetMethod("GetStatistics");
-                    if (getStatsMethod != null && getStatsMethod.ReturnType == typeof(PoolStatistics))
-                    {
-                        if (getStatsMethod.Invoke(pool, null) is PoolStatistics stat)
-                        {
-                            results.Add(stat);
-                        }
-                    }
-                }
-            }
-            return results;
-        }
-
-        /// <summary>
         /// 清空所有池。
         /// </summary>
         public void Clear()

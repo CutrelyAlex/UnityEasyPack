@@ -1,59 +1,32 @@
 using System;
-using System.Collections.Generic;
+using UnityEngine.Pool;
 
 namespace EasyPack.ObjectPool
 {
     /// <summary>
-    /// 泛型对象池，提供对象复用功能以减少 GC 压力。
+    /// 对象池包装器，基于 UnityEngine.Pool.ObjectPool 实现。
     /// </summary>
     /// <typeparam name="T">对象类型，必须是引用类型。</typeparam>
-    public class ObjectPool<T> : IPoolStatisticsProvider where T : class
+    public class ObjectPool<T> where T : class
     {
-        private readonly Stack<T> _pool;
-        private readonly Func<T> _factory;
-        private readonly Action<T> _cleanup;
-
-        // 统计数据（仅在启用统计时收集）
-
-        /// <summary>
-        /// 获取或设置是否启用统计收集。默认为 false。
-        /// </summary>
-        public bool CollectStatistics { get; set; }
-
-        /// <summary>
-        /// 获取总租用次数。
-        /// </summary>
-        public int RentCount { get; private set; }
-
-        /// <summary>
-        /// 获取对象创建次数。
-        /// </summary>
-        public int CreateCount { get; private set; }
-
-        /// <summary>
-        /// 获取池命中次数（从池中成功获取对象的次数）。
-        /// </summary>
-        public int HitCount { get; private set; }
-
-        /// <summary>
-        /// 获取池的峰值大小。
-        /// </summary>
-        public int PeakPoolSize { get; private set; }
+        private readonly UnityEngine.Pool.ObjectPool<T> _pool;
+        private readonly int _maxCapacity;
 
         /// <summary>
         /// 获取当前池中的对象数量。
         /// </summary>
-        public int CurrentPoolSize => _pool.Count;
+        public int CountInactive => _pool.CountInactive;
 
         /// <summary>
         /// 获取池的最大容量。
         /// </summary>
-        public int MaxCapacity { get; }
+        public int MaxCapacity => _maxCapacity;
 
         /// <summary>
-        /// 获取或设置池的标记，用于在 PoolManagerBase 中标识不同配置的池。
+        /// 该池的标记。用于区分同类型不同配置的池。
+        /// 默认值为 <see cref="PoolTag.Default"/>。
         /// </summary>
-        public PoolTag PoolTag { get; set; }
+        public PoolTag PoolTag { get; internal set; } = PoolTag.Default;
 
         /// <summary>
         /// 创建对象池实例。
@@ -66,11 +39,21 @@ namespace EasyPack.ObjectPool
             if (maxCapacity <= 0)
                 throw new ArgumentOutOfRangeException(nameof(maxCapacity), "最大容量必须大于0");
 
-            _factory = factory ?? throw new ArgumentNullException(nameof(factory));
-            _cleanup = cleanup;
-            MaxCapacity = maxCapacity;
-            _pool = new Stack<T>(Math.Min(maxCapacity, 16)); // 初始容量避免过早扩容
-            CollectStatistics = false; // 默认不收集统计，性能优先
+            if (factory == null)
+                throw new ArgumentNullException(nameof(factory));
+
+            _maxCapacity = maxCapacity;
+
+            // 使用 Unity 官方 ObjectPool，传入清理方法
+            _pool = new UnityEngine.Pool.ObjectPool<T>(
+                createFunc: factory,
+                actionOnGet: null,
+                actionOnRelease: cleanup,
+                actionOnDestroy: cleanup,
+                collectionCheck: false,
+                defaultCapacity: Math.Min(maxCapacity, 16),
+                maxSize: maxCapacity
+            );
         }
 
         /// <summary>
@@ -79,25 +62,7 @@ namespace EasyPack.ObjectPool
         /// <returns>可用的对象实例。</returns>
         public T Rent()
         {
-            if (CollectStatistics)
-            {
-                RentCount++;
-            }
-
-            if (_pool.Count > 0)
-            {
-                if (CollectStatistics)
-                {
-                    HitCount++;
-                }
-                return _pool.Pop();
-            }
-
-            if (CollectStatistics)
-            {
-                CreateCount++;
-            }
-            return _factory();
+            return _pool.Get();
         }
 
         /// <summary>
@@ -109,20 +74,7 @@ namespace EasyPack.ObjectPool
             if (obj == null)
                 return;
 
-            // 执行清理逻辑
-            _cleanup?.Invoke(obj);
-
-            // 检查容量限制
-            if (_pool.Count >= MaxCapacity)
-                return; // 丢弃对象，防止内存无限增长
-
-            _pool.Push(obj);
-
-            // 更新峰值
-            if (CollectStatistics && _pool.Count > PeakPoolSize)
-            {
-                PeakPoolSize = _pool.Count;
-            }
+            _pool.Release(obj);
         }
 
         /// <summary>
@@ -130,53 +82,7 @@ namespace EasyPack.ObjectPool
         /// </summary>
         public void Clear()
         {
-            while (_pool.Count > 0)
-            {
-                var obj = _pool.Pop();
-                _cleanup?.Invoke(obj);
-            }
-
-            // 重置统计信息
-            if (CollectStatistics)
-            {
-                RentCount = 0;
-                CreateCount = 0;
-                HitCount = 0;
-                PeakPoolSize = 0;
-            }
-        }
-
-        /// <summary>
-        /// 重置统计信息。仅在启用统计时有效。
-        /// </summary>
-        public void ResetStatistics()
-        {
-            if (!CollectStatistics)
-                return;
-
-            RentCount = 0;
-            CreateCount = 0;
-            HitCount = 0;
-            PeakPoolSize = 0;
-        }
-
-        /// <summary>
-        /// 获取池的统计信息。
-        /// </summary>
-        /// <returns>包含统计数据的对象。</returns>
-        public PoolStatistics GetStatistics()
-        {
-            return new PoolStatistics
-            {
-                TypeName = typeof(T).Name,
-                RentCount = RentCount,
-                CreateCount = CreateCount,
-                HitCount = HitCount,
-                HitRate = RentCount > 0 ? (float)HitCount / RentCount : 0f,
-                PeakPoolSize = PeakPoolSize,
-                CurrentPoolSize = _pool.Count,
-                MaxCapacity = MaxCapacity
-            };
+            _pool.Clear();
         }
     }
 }

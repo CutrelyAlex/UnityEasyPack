@@ -86,12 +86,5 @@ namespace EasyPack.ObjectPool
             _pool.Return(list);
         }
 
-        /// <summary>
-        /// 获取池的统计信息。
-        /// </summary>
-        public static PoolStatistics GetStatistics()
-        {
-            return _pool?.GetStatistics();
-        }
     }
 }

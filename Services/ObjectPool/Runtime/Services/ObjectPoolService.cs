@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using EasyPack.ENekoFramework;
 using UnityEngine;
@@ -9,31 +8,11 @@ namespace EasyPack.ObjectPool
 {
     /// <summary>
     /// 对象池服务，提供全局对象池管理功能。
+    /// 基于 UnityEngine.Pool.ObjectPool 实现。
     /// </summary>
     public class ObjectPoolService : BaseService, IObjectPoolService
     {
         private readonly ConcurrentDictionary<Type, object> _pools = new();
-        private bool _statisticsEnabled = false;
-
-        /// <summary>
-        /// 获取或设置是否启用统计收集。默认为 false。
-        /// 仅在编辑器监控窗口打开时启用。
-        /// </summary>
-        public bool StatisticsEnabled
-        {
-            get => _statisticsEnabled;
-            set
-            {
-                _statisticsEnabled = value;
-                // 同步到所有现有的池
-                foreach (var kvp in _pools)
-                {
-                    var poolType = kvp.Value.GetType();
-                    var property = poolType.GetProperty("CollectStatistics");
-                    property?.SetValue(kvp.Value, value);
-                }
-            }
-        }
 
         /// <summary>
         /// 服务初始化时调用。
@@ -69,14 +48,16 @@ namespace EasyPack.ObjectPool
 
             foreach (var kvp in _pools)
             {
-                var poolType = kvp.Value.GetType();
-                var clearMethod = poolType.GetMethod("Clear");
-                clearMethod?.Invoke(kvp.Value, null);
-
-                var stats = poolType.GetMethod("GetStatistics")?.Invoke(kvp.Value, null);
-                if (stats != null)
+                if (kvp.Value is IDisposable disposable)
                 {
-                    Debug.Log($"[ObjectPoolService] 池统计: {stats}");
+                    disposable.Dispose();
+                }
+                else
+                {
+                    // 尝试调用 Clear 方法
+                    var poolType = kvp.Value.GetType();
+                    var clearMethod = poolType.GetMethod("Clear");
+                    clearMethod?.Invoke(kvp.Value, null);
                 }
             }
 
@@ -98,8 +79,6 @@ namespace EasyPack.ObjectPool
             }
 
             var pool = new ObjectPool<T>(factory, cleanup, maxCapacity);
-            // 新池继承当前的统计设置
-            pool.CollectStatistics = _statisticsEnabled;
             _pools[type] = pool;
             return pool;
         }
@@ -124,38 +103,6 @@ namespace EasyPack.ObjectPool
         {
             var pool = GetPool<T>();
             return pool ?? CreatePool(factory, cleanup, maxCapacity);
-        }
-
-        /// <summary>
-        /// 获取所有活跃的池的统计信息。
-        /// </summary>
-        public IEnumerable<PoolStatistics> GetAllStatistics()
-        {
-            var stats = new List<PoolStatistics>();
-            foreach (var kvp in _pools)
-            {
-                var poolType = kvp.Value.GetType();
-                var method = poolType.GetMethod("GetStatistics");
-                if (method == null) continue;
-                if (method.Invoke(kvp.Value, null) is PoolStatistics stat)
-                {
-                    stats.Add(stat);
-                }
-            }
-            return stats;
-        }
-
-        /// <summary>
-        /// 重置所有池的统计信息。
-        /// </summary>
-        public void ResetAllStatistics()
-        {
-            foreach (var kvp in _pools)
-            {
-                var poolType = kvp.Value.GetType();
-                var method = poolType.GetMethod("ResetStatistics");
-                method?.Invoke(kvp.Value, null);
-            }
         }
 
         /// <summary>
