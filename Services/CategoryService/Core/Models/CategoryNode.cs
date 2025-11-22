@@ -1,261 +1,254 @@
+using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Linq;
 
 namespace EasyPack.Category
 {
     /// <summary>
-    /// 分类树节点
-    /// 表示层级分类结构中的一个节点
+    /// 分类节点，表示分类树中的一个节点
     /// </summary>
     public class CategoryNode
     {
         /// <summary>
-        /// 节点名称（不含路径）
+        /// 词汇 ID（分类名称的整数映射）
         /// </summary>
-        public string Name { get; }
+        public int TermId { get; private set; }
 
         /// <summary>
-        /// 完整路径
+        /// 父节点的引用
+        /// 为 null 表示根节点
         /// </summary>
-        public string FullPath { get; }
+        public CategoryNode ParentNode { get; }
 
         /// <summary>
-        /// 父节点
+        /// 子节点字典，键为子节点的 TermId，值为 CategoryNode 实例
         /// </summary>
-        public CategoryNode Parent { get; private set; }
+        private readonly Dictionary<int, CategoryNode> _children;
 
         /// <summary>
-        /// 子节点集合
+        /// 该节点下关联的实体 ID 列表
         /// </summary>
-        public Dictionary<string, CategoryNode> Children { get; }
+        private readonly List<string> _entityIds;
 
         /// <summary>
-        /// 实体 ID 集合（仅该节点直接包含的实体）
+        /// 初始化根节点或叶子节点
         /// </summary>
-        public HashSet<string> EntityIds { get; }
-
-        /// <summary>
-        /// 子树实体 ID 集合（该节点及其所有后代节点的实体，预计算缓存）
-        /// 用于加速 includeChildren=true 的查询
-        /// </summary>
-        public HashSet<string> SubtreeEntityIds { get; private set; }
-
-        /// <summary>
-        /// 读写锁
-        /// </summary>
-        private ReaderWriterLockSlim Lock { get; }
-
-        public CategoryNode(string name, string fullPath)
+        /// <param name="termId">词汇 ID，应从 IntegerMapper 获取</param>
+        /// <param name="parentNode">父节点，根节点为 null</param>
+        public CategoryNode(int termId, CategoryNode parentNode = null)
         {
-            Name = name;
-            FullPath = fullPath;
-            Children = new Dictionary<string, CategoryNode>();
-            EntityIds = new HashSet<string>();
-            SubtreeEntityIds = new HashSet<string>();
-            Lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+            if (termId < 0)
+                throw new ArgumentException($"TermId must be >= 0, got {termId}", nameof(termId));
+
+            TermId = termId;
+            ParentNode = parentNode;
+            _children = new Dictionary<int, CategoryNode>();
+            _entityIds = new List<string>();
         }
 
         /// <summary>
-        /// 添加子节点
+        /// 获取或创建子节点
+        /// 用于构建分类树
         /// </summary>
-        public void AddChild(CategoryNode child)
+        /// <param name="childTermId">子节点词汇 ID</param>
+        /// <returns>子节点实例</returns>
+        public CategoryNode GetOrCreateChild(int childTermId)
         {
-            Lock.EnterWriteLock();
-            try
+            if (childTermId < 0)
+                throw new ArgumentException($"ChildTermId must be >= 0, got {childTermId}", nameof(childTermId));
+
+            if (!_children.TryGetValue(childTermId, out var child))
             {
-                child.Parent = this;
-                Children[child.Name] = child;
+                child = new CategoryNode(childTermId, this);
+                _children[childTermId] = child;
             }
-            finally
-            {
-                Lock.ExitWriteLock();
-            }
+
+            return child;
         }
 
         /// <summary>
-        /// 移除子节点
+        /// 尝试获取子节点（不创建）
         /// </summary>
-        public bool RemoveChild(string childName)
+        /// <param name="childTermId">子节点词汇 ID</param>
+        /// <param name="child">输出的子节点</param>
+        /// <returns>是否存在</returns>
+        public bool TryGetChild(int childTermId, out CategoryNode child)
         {
-            Lock.EnterWriteLock();
-            try
-            {
-                if (Children.TryGetValue(childName, out var child))
-                {
-                    child.Parent = null;
-                    return Children.Remove(childName);
-                }
-                return false;
-            }
-            finally
-            {
-                Lock.ExitWriteLock();
-            }
+            return _children.TryGetValue(childTermId, out child);
         }
 
         /// <summary>
-        /// 获取所有后代节点（包括自身）
+        /// 检查是否存在指定的子节点
         /// </summary>
-        public List<CategoryNode> GetDescendants()
+        public bool HasChild(int childTermId)
         {
-            var result = new List<CategoryNode> { this };
-
-            Lock.EnterReadLock();
-            try
-            {
-                foreach (var child in Children.Values)
-                {
-                    result.AddRange(child.GetDescendants());
-                }
-            }
-            finally
-            {
-                Lock.ExitReadLock();
-            }
-
-            return result;
+            return _children.ContainsKey(childTermId);
         }
 
         /// <summary>
-        /// 添加实体到该节点，并更新所有祖先的子树索引
+        /// 获取所有子节点
+        /// </summary>
+        public IReadOnlyCollection<CategoryNode> Children => _children.Values;
+
+        /// <summary>
+        /// 删除指定的子节点
+        /// </summary>
+        /// <param name="childTermId">子节点词汇 ID</param>
+        /// <returns>是否成功删除</returns>
+        public bool RemoveChild(int childTermId)
+        {
+            if (_children.TryGetValue(childTermId, out var child))
+            {
+                _children.Remove(childTermId);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 添加实体 ID 到该分类节点
         /// </summary>
         /// <param name="entityId">实体 ID</param>
-        public void AddEntityAndPropagate(string entityId)
+        public void AddEntity(string entityId)
         {
-            Lock.EnterWriteLock();
-            try
+            if (!_entityIds.Contains(entityId))
             {
-                EntityIds.Add(entityId);
-                SubtreeEntityIds.Add(entityId);
+                _entityIds.Add(entityId);
             }
-            finally
-            {
-                Lock.ExitWriteLock();
-            }
-
-            // 向上传播到祖先节点
-            Parent?.PropagateEntityToAncestors(entityId);
         }
 
         /// <summary>
-        /// 向祖先节点传播实体 ID（仅在子树索引中记录）
-        /// 内部方法，假定调用者已持有该节点的写锁
-        /// </summary>
-        private void PropagateEntityToAncestors(string entityId)
-        {
-            Lock.EnterWriteLock();
-            try
-            {
-                SubtreeEntityIds.Add(entityId);
-            }
-            finally
-            {
-                Lock.ExitWriteLock();
-            }
-
-            // 继续向上传播
-            Parent?.PropagateEntityToAncestors(entityId);
-        }
-
-        /// <summary>
-        /// 移除实体，并更新所有祖先的子树索引
+        /// 移除实体 ID
         /// </summary>
         /// <param name="entityId">实体 ID</param>
-        public void RemoveEntityAndPropagate(string entityId)
+        /// <returns>是否成功移除</returns>
+        public bool RemoveEntity(string entityId)
         {
-            Lock.EnterWriteLock();
-            try
-            {
-                EntityIds.Remove(entityId);
-                SubtreeEntityIds.Remove(entityId);
-            }
-            finally
-            {
-                Lock.ExitWriteLock();
-            }
-
-            // 向上传播到祖先节点
-            Parent?.RemoveEntityFromAncestors(entityId);
+            return _entityIds.Remove(entityId);
         }
 
         /// <summary>
-        /// 从祖先节点移除实体 ID
-        /// 内部方法，假定调用者已持有该节点的写锁
+        /// 检查实体是否属于该分类
         /// </summary>
-        private void RemoveEntityFromAncestors(string entityId)
+        /// <param name="entityId">实体 ID</param>
+        /// <returns>是否存在</returns>
+        public bool ContainsEntity(string entityId)
         {
-            Lock.EnterWriteLock();
-            try
-            {
-                SubtreeEntityIds.Remove(entityId);
-            }
-            finally
-            {
-                Lock.ExitWriteLock();
-            }
-
-            // 继续向上传播
-            Parent?.RemoveEntityFromAncestors(entityId);
-        }
-        
-        /// <summary>
-        /// 重新计算子树索引（从该节点开始的所有后代）
-        /// 用于数据修复或同步
-        /// </summary>
-        public void RebuildSubtreeIndex()
-        {
-            Lock.EnterWriteLock();
-            try
-            {
-                SubtreeEntityIds.Clear();
-                SubtreeEntityIds.UnionWith(EntityIds);
-
-                // 添加所有直接子节点的子树实体
-                foreach (var child in Children.Values)
-                {
-                    child.RebuildSubtreeIndex();
-                    SubtreeEntityIds.UnionWith(child.SubtreeEntityIds);
-                }
-            }
-            finally
-            {
-                Lock.ExitWriteLock();
-            }
-
-            // 向上同步祖先
-            Parent?.RebuildSubtreeIndexFromParent(SubtreeEntityIds);
+            return _entityIds.Contains(entityId);
         }
 
         /// <summary>
-        /// 从子节点更新本节点的子树索引
-        /// 内部方法，用于自下而上的索引更新
+        /// 获取该节点直接关联的实体 ID 列表
         /// </summary>
-        private void RebuildSubtreeIndexFromParent(HashSet<string> childSubtreeIds)
+        public IReadOnlyList<string> EntityIds => _entityIds.AsReadOnly();
+
+        /// <summary>
+        /// 获取该节点及其所有子孙节点关联的所有实体 ID
+        /// 递归查询整个子树
+        /// </summary>
+        /// <returns>所有实体 ID 的列表</returns>
+        public IReadOnlyList<string> GetSubtreeEntityIds()
         {
-            Lock.EnterWriteLock();
-            try
+            var result = new List<string>(_entityIds);
+
+            // 递归遍历所有子节点
+            foreach (var child in _children.Values)
             {
-                SubtreeEntityIds.UnionWith(childSubtreeIds);
-            }
-            finally
-            {
-                Lock.ExitWriteLock();
+                result.AddRange(child.GetSubtreeEntityIds());
             }
 
-            // 继续向上
-            Parent?.RebuildSubtreeIndexFromParent(SubtreeEntityIds);
+            return result.AsReadOnly();
         }
 
         /// <summary>
-        /// 释放资源
+        /// 获取从根节点到当前节点的完整路径（使用词汇 ID）
+        /// 示例：root -> category1 -> category2 -> leaf = "0.1.2"
         /// </summary>
-        public void Dispose()
+        /// <returns>路径字符串，用 CategoryConstants.CATEGORY_SEPARATOR 分隔</returns>
+        public string GetFullPath()
         {
-            Lock?.Dispose();
-            foreach (var child in Children.Values)
+            var path = new List<int>();
+            var current = this;
+
+            while (current != null)
             {
-                child.Dispose();
+                path.Add(current.TermId);
+                current = current.ParentNode;
             }
+
+            path.Reverse();
+            return string.Join(CategoryConstants.CATEGORY_SEPARATOR, path);
+        }
+
+        /// <summary>
+        /// 获取从根节点到当前节点的所有词汇 ID
+        /// 用于序列化或路径表示
+        /// </summary>
+        public int[] GetPathAsIds()
+        {
+            var path = new List<int>();
+            var current = this;
+
+            while (current != null)
+            {
+                path.Add(current.TermId);
+                current = current.ParentNode;
+            }
+
+            path.Reverse();
+            return path.ToArray();
+        }
+
+        /// <summary>
+        /// 获取节点的深度（0 = 根节点）
+        /// </summary>
+        public int GetDepth()
+        {
+            int depth = 0;
+            var current = ParentNode;
+
+            while (current != null)
+            {
+                depth++;
+                current = current.ParentNode;
+            }
+
+            return depth;
+        }
+
+        /// <summary>
+        /// 获取子节点数量
+        /// </summary>
+        public int ChildCount => _children.Count;
+
+        /// <summary>
+        /// 获取该节点直接关联的实体数量
+        /// </summary>
+        public int EntityCount => _entityIds.Count;
+
+        /// <summary>
+        /// 清除所有实体关联（不删除子节点）
+        /// </summary>
+        public void ClearEntities()
+        {
+            _entityIds.Clear();
+        }
+
+        /// <summary>
+        /// 清除所有子节点和实体
+        /// </summary>
+        public void Clear()
+        {
+            _children.Clear();
+            _entityIds.Clear();
+        }
+
+        /// <summary>
+        /// 字符串表示调试
+        /// </summary>
+        public override string ToString()
+        {
+            return $"CategoryNode(TermId={TermId}, Children={ChildCount}, Entities={EntityCount}, Path={GetFullPath()})";
         }
     }
 }

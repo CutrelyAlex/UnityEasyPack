@@ -14,10 +14,8 @@ namespace EasyPack.Category
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="idExtractor">实体 ID 提取函数</param>
-        /// <param name="cacheStrategy">缓存策略</param>
         /// <returns>CategoryManager 实例</returns>
         CategoryManager<T> GetOrCreateManager<T>(
-            Func<T, string> idExtractor,
-            CacheStrategy cacheStrategy = CacheStrategy.LRUFrequencyHybrid);
+            Func<T, string> idExtractor);
     }
 }

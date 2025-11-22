@@ -72,11 +72,9 @@ namespace EasyPack.Category
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="idExtractor">实体 ID 提取函数</param>
-        /// <param name="cacheStrategy">缓存策略</param>
         /// <returns>CategoryManager 实例</returns>
         public CategoryManager<T> GetOrCreateManager<T>(
-            Func<T, string> idExtractor,
-            CacheStrategy cacheStrategy = CacheStrategy.LRUFrequencyHybrid)
+            Func<T, string> idExtractor)
         {
             var entityType = typeof(T);
 
@@ -87,7 +85,7 @@ namespace EasyPack.Category
             }
 
             // 创建新的 Manager
-            var manager = new CategoryManager<T>(idExtractor, cacheStrategy);
+            var manager = new CategoryManager<T>(idExtractor);
             _managers[entityType] = manager;
 
             // 自动注册该实体类型的 CategoryManager 序列化器
