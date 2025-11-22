@@ -190,7 +190,7 @@ namespace EasyPack.Category
             try
             {
                 var serializer = new CategoryManagerJsonSerializer<T>(idExtractor);
-                _serializationService.RegisterSerializer(serializer);
+                _serializationService.RegisterSerializer<CategoryManager<T>, SerializableCategoryManagerState<T>>(serializer);
                 _serializers[categoryManagerType] = serializer;
                 
                 Debug.Log($"[CategoryService] 已注册 CategoryManager<{entityType.Name}> 序列化器到 SerializationService");

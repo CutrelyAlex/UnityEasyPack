@@ -1215,6 +1215,14 @@ namespace EasyPack.Category
             _entityToTagIds.Clear();
             _tagCache.Clear();
             _metadataStore.Clear();
+
+#if UNITY_EDITOR
+            _cachedStatistics = null;
+            _lastStatisticsUpdate = 0;
+            _totalCacheQueries = 0;
+            _cacheHits = 0;
+            _cacheMisses = 0;
+#endif
             
             foreach (var lockObj in _tagLocks.Values)
             {
@@ -1267,14 +1275,16 @@ namespace EasyPack.Category
         {
             var currentTicks = DateTime.UtcNow.Ticks;
 
-            if (_cachedStatistics != null && currentTicks - _lastStatisticsUpdate < StatisticsCacheTimeout)
-            {
-                return _cachedStatistics;
-            }
-
             _treeLock.EnterReadLock();
             try
             {
+                // 检查缓存 
+                var cachedStats = Volatile.Read(ref _cachedStatistics);
+                if (cachedStats != null && currentTicks - _lastStatisticsUpdate < StatisticsCacheTimeout)
+                {
+                    return cachedStats;
+                }
+
                 int maxDepth = 0;
                 foreach (var kvp in _categoryIdToName)
                 {
@@ -1312,7 +1322,6 @@ namespace EasyPack.Category
                 };
 
                 _lastStatisticsUpdate = currentTicks;
-                Debug.Log("TotalEntities: " + _cachedStatistics.TotalEntities);
                 return _cachedStatistics;
             }
             finally
