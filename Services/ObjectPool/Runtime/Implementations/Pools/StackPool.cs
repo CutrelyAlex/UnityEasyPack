@@ -40,27 +40,26 @@ namespace EasyPack.ObjectPool
         }
 
         /// <summary>
-        /// 自动初始化（如果尚未初始化）。
+        /// 异步初始化栈池。在 EasyPackArchitecture 启动时集中调用。
+        /// </summary>
+        /// <param name="maxCapacity">池的最大容量，默认为32。</param>
+        public static async System.Threading.Tasks.Task InitializeAsync(int maxCapacity = 32)
+        {
+            if (_isInitialized) return;
+
+            var poolService = await EasyPackArchitecture.GetObjectPoolServiceAsync();
+            Initialize(poolService, maxCapacity);
+        }
+
+        /// <summary>
+        /// 确保池已初始化，否则抛出异常。
         /// </summary>
         private static void EnsureInitialized()
         {
             if (_isInitialized) return;
 
-            lock (_lockObj)
-            {
-                if (_isInitialized) return;
-
-                try
-                {
-                    var poolService = EasyPackArchitecture.GetObjectPoolServiceAsync().GetAwaiter().GetResult();
-                    Initialize(poolService);
-                }
-                catch (System.Exception ex)
-                {
-                    throw new System.InvalidOperationException(
-                        $"StackPool<{typeof(T).Name}> 自动初始化失败。请确保 EasyPackArchitecture 已正确初始化，或手动调用 StackPool<T>.Initialize()", ex);
-                }
-            }
+            throw new System.InvalidOperationException(
+                $"StackPool<{typeof(T).Name}> 尚未初始化。请在 EasyPackArchitecture.OnInit() 或启动阶段调用 StackPool<T>.InitializeAsync()");
         }
 
         /// <summary>
