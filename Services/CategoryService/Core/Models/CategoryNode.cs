@@ -197,7 +197,7 @@ namespace EasyPack.Category
             // 继续向上传播
             Parent?.RemoveEntityFromAncestors(entityId);
         }
-
+        
         /// <summary>
         /// 重新计算子树索引（从该节点开始的所有后代）
         /// 用于数据修复或同步
