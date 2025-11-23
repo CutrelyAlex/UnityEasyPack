@@ -57,6 +57,11 @@ namespace EasyPack.Architecture
             return await Instance.Container.ResolveAsync<IInventoryService>();
         }
 
+        public static async Task<ICategoryService> GetCategoryServiceAsync()
+        {
+            return await Instance.Container.ResolveAsync<ICategoryService>();
+        }
+        
         public static async Task<IGamePropertyService> GetGamePropertyServiceAsync()
         {
             return await Instance.Container.ResolveAsync<IGamePropertyService>();
