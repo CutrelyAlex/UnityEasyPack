@@ -82,6 +82,21 @@ namespace EasyPack.Category
         IReadOnlyList<T> GetByCategoryRegex(string pattern, bool includeChildren = false);
 
         /// <summary>
+        /// 根据实体 ID 获取其所在分类的可读路径字符串。
+        /// 示例：如果实体在 "Equipment.Weapon.Sword" 分类中，返回该字符串。
+        /// </summary>
+        /// <param name="entityId">实体 ID</param>
+        /// <returns>可读的分类路径字符串；若实体不存在，返回空字符串</returns>
+        string GetReadableCategoryPath(string entityId);
+
+        /// <summary>
+        /// 根据路径 ID 数组转换为可读的分类路径字符串。
+        /// </summary>
+        /// <param name="pathIds">路径 ID 数组（从 CategoryNode.GetPathAsIds() 获取）</param>
+        /// <returns>可读的分类路径字符串，如 "Equipment.Weapon.Sword"</returns>
+        string GetReadablePathFromIds(int[] pathIds);
+
+        /// <summary>
         /// 获取元数据
         /// </summary>
         CustomDataCollection GetMetadata(string entityId);

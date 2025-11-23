@@ -27,7 +27,7 @@ namespace EasyPack.Category
         private readonly Func<T, string> _idExtractor;
 
         // 实体存储
-        private readonly Dictionary<string, T> _entities;
+        private readonly Dictionary<string, T> _entities; // 实体ID->实体对象
 
         // 分类树
         private readonly Dictionary<int, CategoryNode> _categoryNodes;
@@ -39,6 +39,9 @@ namespace EasyPack.Category
         private readonly Dictionary<string, HashSet<int>> _entityToTagIds; // entityId → tagIds
         private readonly Dictionary<int, ReaderWriterLockSlim> _tagLocks;
         private readonly Dictionary<int, List<T>> _tagCache; // 整数键缓存
+
+        // 反向索引缓存
+        private readonly Dictionary<string, CategoryNode> _entityIdToNode; // entityId → 所属分类节点
 
         // 映射层
         private readonly IntegerMapper _tagMapper;
@@ -67,6 +70,8 @@ namespace EasyPack.Category
             _entityToTagIds = new Dictionary<string, HashSet<int>>();
             _tagLocks = new Dictionary<int, ReaderWriterLockSlim>();
             _tagCache = new Dictionary<int, List<T>>();
+
+            _entityIdToNode = new Dictionary<string, CategoryNode>(StringComparer.Ordinal);
 
             _tagMapper = new IntegerMapper();
             _categoryTermMapper = new IntegerMapper();
@@ -193,6 +198,7 @@ namespace EasyPack.Category
                 // 获取或创建分类节点
                 var node = GetOrCreateNode(category);
                 node.AddEntity(id);
+                _entityIdToNode[id] = node; // 缓存 entityId -> node 映射
 
                 // 添加标签
                 if (tags is { Count: > 0 })
@@ -347,15 +353,33 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     按ID查询实体。
+        /// 按 ID 查询实体。
         /// </summary>
-        /// <param name="id">实体ID。</param>
+        /// <param name="id">实体 ID。</param>
         /// <returns>包含实体的操作结果；若没有找到，返回失败。</returns>
         public OperationResult<T> GetById(string id)
         {
             return _entities.TryGetValue(id, out var entity)
                 ? OperationResult<T>.Success(entity)
                 : OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+        }
+
+        /// <summary>
+        /// 按 ID 查询实体并获取其分类路径。
+        /// </summary>
+        /// <param name="id">实体 ID。</param>
+        /// <returns>
+        /// 包含 (T entity, string categoryPath, bool success)
+        /// </returns>
+        public (T entity, string categoryPath, bool success) GetByIdWithCategory(string id)
+        {
+            if (!_entities.TryGetValue(id, out var entity))
+            {
+                return (default, string.Empty, false);
+            }
+
+            var categoryPath = GetReadableCategoryPath(id);
+            return (entity, categoryPath, true);
         }
 
         /// <summary>
@@ -428,6 +452,7 @@ namespace EasyPack.Category
                     }
 
                     kvp.Value.RemoveEntity(id);
+                    _entityIdToNode.Remove(id); // 移除缓存
                     //affectedNodePaths.Add(_categoryIdToName[kvp.Key]);
 
                     var parent = kvp.Value.ParentNode;
@@ -1123,6 +1148,7 @@ namespace EasyPack.Category
                         continue;
                     }
 
+                    _entityIdToNode.Remove(entityId); // 清除旧缓存
                     //affectedNodePaths.Add(_categoryIdToName[kvp.Key]);
 
                     var parent = kvp.Value.ParentNode;
@@ -1136,6 +1162,7 @@ namespace EasyPack.Category
                 // 添加到新分类
                 var node = GetOrCreateNode(newCategory);
                 node.AddEntity(entityId);
+                _entityIdToNode[entityId] = node; // 缓存新映射
 
                 // affectedNodePaths.Add(newCategory);
                 var newParent = node.ParentNode;
@@ -1264,6 +1291,36 @@ namespace EasyPack.Category
                 }
 
             return tagIndex;
+        }
+
+        /// <summary>
+        /// 根据实体 ID 获取其所在分类的可读路径字符串。
+        /// 示例：如果实体在 "Equipment.Weapon.Sword" 分类中，返回该字符串。
+        /// </summary>
+        /// <param name="entityId">实体 ID</param>
+        /// <returns>可读的分类路径字符串；若实体不存在，返回空字符串</returns>
+        public string GetReadableCategoryPath(string entityId)
+        {
+            if (string.IsNullOrEmpty(entityId))
+            {
+                return string.Empty;
+            }
+
+            _treeLock.EnterReadLock();
+            try
+            {
+                if (_entityIdToNode.TryGetValue(entityId, out var node))
+                {
+                    return GetNodeReadablePath(node);
+                }
+
+                // 实体不存在于任何分类
+                return string.Empty;
+            }
+            finally
+            {
+                _treeLock.ExitReadLock();
+            }
         }
 
         public string GetNodeReadablePath(CategoryNode node)
@@ -1443,6 +1500,7 @@ namespace EasyPack.Category
             _tagToEntityIds.Clear();
             _entityToTagIds.Clear();
             _tagCache.Clear();
+            _entityIdToNode.Clear(); // 清空反向索引缓存
             _metadataStore.Clear();
 
 #if UNITY_EDITOR
