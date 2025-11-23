@@ -10,19 +10,17 @@ namespace EasyPack.Serialization
     /// </summary>
     internal class UnityJsonSerializer : ITypeSerializer
     {
-        private readonly Type _targetType;
-
         public UnityJsonSerializer(Type targetType)
         {
-            _targetType = targetType;
+            TargetType = targetType;
         }
 
-        public Type TargetType => _targetType;
+        public Type TargetType { get; }
+
         public SerializationStrategy SupportedStrategy => SerializationStrategy.Json;
 
         public string SerializeToJson(object obj)
         {
-            Debug.Log("Trying to serialize object of type: " + obj.GetType().FullName + "Json : " + JsonUtility.ToJson(obj));
             return JsonUtility.ToJson(obj);
         }
 

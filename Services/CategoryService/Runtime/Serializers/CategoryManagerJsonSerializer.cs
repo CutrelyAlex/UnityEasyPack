@@ -16,7 +16,11 @@ namespace EasyPack.Category
     [Serializable]
     public class SerializableCategoryManagerState<T> : ISerializable
     {
-        public int Version;
+        /// <summary>
+        /// 标记此序列化数据是否包含 Entity 对象数据
+        /// 为 false 时表示仅包含分类、标签、元数据等结构，不包含 Entity 对象
+        /// </summary>
+        public bool IncludeEntities;
         public List<SerializedEntity> Entities;
         public List<SerializedCategory> Categories;
         public List<SerializedTag> Tags;
@@ -100,7 +104,6 @@ namespace EasyPack.Category
 
             var data = new SerializableCategoryManagerState<T>
             {
-                Version = CurrentVersion,
                 Entities = new List<SerializableCategoryManagerState<T>.SerializedEntity>(),
                 Categories = new List<SerializableCategoryManagerState<T>.SerializedCategory>(),
                 Tags = new List<SerializableCategoryManagerState<T>.SerializedTag>(),
@@ -279,7 +282,6 @@ namespace EasyPack.Category
 
                 var data = new SerializableCategoryManagerState<T>
                 {
-                    Version = CurrentVersion,
                     Entities = new List<SerializableCategoryManagerState<T>.SerializedEntity>(),
                     Categories = new List<SerializableCategoryManagerState<T>.SerializedCategory>(),
                     Tags = new List<SerializableCategoryManagerState<T>.SerializedTag>(),
@@ -378,14 +380,7 @@ namespace EasyPack.Category
                 data.Categories ??= new List<SerializableCategoryManagerState<T>.SerializedCategory>();
                 data.Tags ??= new List<SerializableCategoryManagerState<T>.SerializedTag>();
                 data.Metadata ??= new List<SerializableCategoryManagerState<T>.SerializedMetadata>();
-
-                // 版本兼容性检查
-                if (data.Version > CurrentVersion)
-                {
-                    throw new InvalidOperationException(
-                        $"不支持的序列化版本: {data.Version} (当前版本: {CurrentVersion})");
-                }
-
+                
                 // 创建新的 CategoryManager 实例
                 var manager = new CategoryManager<T>(_idExtractor);
 
