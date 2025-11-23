@@ -66,11 +66,6 @@ namespace EasyPack.Category
         private readonly Func<T, string> _idExtractor;
         private ISerializationService _serializationService;
 
-        /// <summary>
-        /// 序列化数据版本号
-        /// </summary>
-        private const int CurrentVersion = 1;
-
         public CategoryManagerJsonSerializer(Func<T, string> idExtractor)
         {
             _idExtractor = idExtractor ?? throw new ArgumentNullException(nameof(idExtractor));
@@ -92,7 +87,7 @@ namespace EasyPack.Category
         }
 
         #region 实现
-
+        
         /// <summary>
         /// 将 CategoryManager 转换为可序列化的状态对象
         /// </summary>
@@ -113,14 +108,14 @@ namespace EasyPack.Category
             // 序列化实体和分类
             var categories = manager.GetCategoriesNodes();
             foreach (var category in categories)
-            {
-                var entities = manager.GetByCategory(category, includeChildren: false);
+            {   
                 
                 data.Categories.Add(new SerializableCategoryManagerState<T>.SerializedCategory
                 {
                     Name = category
                 });
-
+                
+                var entities = manager.GetByCategory(category, includeChildren: false);
                 foreach (var entity in entities)
                 {
                     var id = _idExtractor(entity);
@@ -250,8 +245,7 @@ namespace EasyPack.Category
         /// </summary>
         public string ToJson(SerializableCategoryManagerState<T> dto)
         {
-            if (dto == null) return null;
-            return JsonUtility.ToJson(dto, prettyPrint: true);
+            return dto == null ? null : JsonUtility.ToJson(dto, prettyPrint: true);
         }
 
         /// <summary>
@@ -259,9 +253,9 @@ namespace EasyPack.Category
         /// </summary>
         public SerializableCategoryManagerState<T> FromJson(string json)
         {
-            if (string.IsNullOrEmpty(json))
-                throw new InvalidOperationException("JSON 字符串为空");
-            return JsonUtility.FromJson<SerializableCategoryManagerState<T>>(json);
+            return string.IsNullOrEmpty(json)
+                ? throw new InvalidOperationException("JSON 字符串为空")
+                : JsonUtility.FromJson<SerializableCategoryManagerState<T>>(json);
         }
 
         #endregion
@@ -305,10 +299,20 @@ namespace EasyPack.Category
                         
                         // 避免重复添加实体
                         if (data.Entities.Any(e => e.Id == id)) continue;
-                        // 使用 SerializationService 序列化实体
-                        string entityJson = _serializationService != null
-                            ? _serializationService.SerializeToJson(entity)
-                            : JsonUtility.ToJson(entity);
+                        
+                        // 尝试序列化实体，如果失败则保留空EntityJson
+                        string entityJson;
+                        try
+                        {
+                            entityJson = _serializationService != null
+                                ? _serializationService.SerializeToJson(entity)
+                                : JsonUtility.ToJson(entity);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"序列化实体 '{id}' 失败: {ex.Message}，将保留空EntityJson");
+                            entityJson = string.Empty;
+                        }
 
                         data.Entities.Add(new SerializableCategoryManagerState<T>.SerializedEntity
                         {
@@ -391,16 +395,30 @@ namespace EasyPack.Category
                 {
                     try
                     {
-                        // 使用 SerializationService 反序列化实体
-                        var entity = _serializationService != null
-                            ? _serializationService.DeserializeFromJson<T>(serializedEntity.EntityJson)
-                            : JsonUtility.FromJson<T>(serializedEntity.EntityJson);
-
-                        // 检查反序列化是否成功
-                        if (entity == null)
+                        T entity = default;
+                        
+                        // 仅当EntityJson非空时才尝试反序列化实体
+                        if (!string.IsNullOrEmpty(serializedEntity.EntityJson))
                         {
-                            Debug.LogWarning($"反序列化实体 '{serializedEntity.Id}' 失败: 反序列化结果为 null");
-                            continue;
+                            try
+                            {
+                                // 使用 SerializationService 反序列化实体
+                                entity = _serializationService != null
+                                    ? _serializationService.DeserializeFromJson<T>(serializedEntity.EntityJson)
+                                    : JsonUtility.FromJson<T>(serializedEntity.EntityJson);
+
+                                // 检查反序列化是否成功
+                                if (entity == null)
+                                {
+                                    Debug.LogWarning($"反序列化实体 '{serializedEntity.Id}' 失败: 反序列化结果为 null");
+                                    continue;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.LogWarning($"反序列化实体 '{serializedEntity.Id}' 失败: {ex.Message}");
+                                continue;
+                            }
                         }
 
                         // 查找实体的标签
@@ -415,7 +433,7 @@ namespace EasyPack.Category
                         if (metadataEntry != null)
                         {
                             var wrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(metadataEntry.MetadataJson);
-                            if (wrapper != null && wrapper.Entries != null)
+                            if (wrapper is { Entries: not null })
                             {
                                 metadata = new CustomDataCollection();
                                 foreach (var entry in wrapper.Entries)
@@ -429,30 +447,45 @@ namespace EasyPack.Category
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogWarning($"反序列化实体 '{serializedEntity.Id}' 失败: {ex.Message}");
+                        Debug.LogWarning($"处理实体 '{serializedEntity.Id}' 时发生异常: {ex.Message}");
                     }
                 }
 
                 // 注册所有实体
-                foreach (var (id, entity, category, tags, metadata) in entityRegistrations)
+                foreach ((string id, var entity, string category, var tags, var metadata) in entityRegistrations)
                 {
-                    var registration = manager.RegisterEntitySafeWithId(entity, id, category);
+                    // 检查entity是否为默认值（null对于引用类型）
+                    bool hasEntity = !EqualityComparer<T>.Default.Equals(entity, default(T));
                     
-                    if (tags is { Count: > 0 })
+                    if (!hasEntity)
                     {
-                        registration.WithTags(tags.ToArray());
+                        var result = manager.RegisterCategoryAssociationOnly(id, category, tags, metadata);
+                        if (!result.IsSuccess)
+                        {
+                            Debug.LogWarning($"注册分类关联失败: {result.ErrorMessage}");
+                        }
                     }
+                    else
+                    {
+                        // 正常注册实体
+                        var registration = manager.RegisterEntitySafeWithId(entity, id, category);
+                        
+                        if (tags is { Count: > 0 })
+                        {
+                            registration.WithTags(tags.ToArray());
+                        }
 
-                    if (metadata != null)
-                    {
-                        registration.WithMetadata(metadata);
-                    }
-                    
-                    var result = registration.Complete();
-                    
-                    if (!result.IsSuccess)
-                    {
-                        Debug.LogWarning($"注册实体失败: {result.ErrorMessage}");
+                        if (metadata != null)
+                        {
+                            registration.WithMetadata(metadata);
+                        }
+                        
+                        var result = registration.Complete();
+                        
+                        if (!result.IsSuccess)
+                        {
+                            Debug.LogWarning($"注册实体失败: {result.ErrorMessage}");
+                        }
                     }
                 }
 
