@@ -16,10 +16,7 @@ namespace EasyPack.Category
         /// <returns>规范化后的分类名称</returns>
         public static string Normalize(string categoryName)
         {
-            if (string.IsNullOrWhiteSpace(categoryName))
-            {
-                return string.Empty;
-            }
+            if (string.IsNullOrWhiteSpace(categoryName)) return string.Empty;
 
             // 去除首尾空白
             categoryName = categoryName.Trim();
@@ -42,7 +39,7 @@ namespace EasyPack.Category
             }
 
             // 检查深度
-            var parts = categoryName.Split(Separator);
+            string[] parts = categoryName.Split(Separator);
             if (parts.Length > MaxCategoryDepth)
             {
                 errorMessage = $"分类深度不能超过 {MaxCategoryDepth} 层";
@@ -50,10 +47,10 @@ namespace EasyPack.Category
             }
 
             // 检查每个部分是否有效
-            foreach (var part in parts)
+            foreach (string part in parts)
             {
                 if (!string.IsNullOrWhiteSpace(part)) continue;
-                
+
                 errorMessage = "分类名称部分不能为空";
                 return false;
             }
@@ -69,12 +66,9 @@ namespace EasyPack.Category
         /// <returns>父分类名称，如果没有父分类则返回 null</returns>
         public static string GetParentCategory(string categoryName)
         {
-            if (string.IsNullOrWhiteSpace(categoryName))
-            {
-                return null;
-            }
+            if (string.IsNullOrWhiteSpace(categoryName)) return null;
 
-            var lastDotIndex = categoryName.LastIndexOf(Separator);
+            int lastDotIndex = categoryName.LastIndexOf(Separator);
             return lastDotIndex < 0 ? null : categoryName[..lastDotIndex];
         }
 

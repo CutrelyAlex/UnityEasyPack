@@ -32,13 +32,9 @@ namespace EasyPack.Category
             _serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
 
             if (_serializationService != null)
-            {
                 Debug.Log("[CategoryService] 已连接 SerializationService");
-            }
             else
-            {
                 Debug.LogWarning("[CategoryService] SerializationService 未初始化");
-            }
         }
 
         /// <summary>
@@ -48,12 +44,9 @@ namespace EasyPack.Category
         {
             // 释放所有 Manager
             foreach (var manager in _managers.Values)
-            {
                 if (manager is IDisposable disposable)
-                {
                     disposable.Dispose();
-                }
-            }
+
             _managers.Clear();
             _serializers.Clear();
 
@@ -80,9 +73,7 @@ namespace EasyPack.Category
 
             // 如果已存在，直接返回
             if (_managers.TryGetValue(entityType, out var existingManager))
-            {
                 return existingManager as CategoryManager<T>;
-            }
 
             // 创建新的 Manager
             var manager = new CategoryManager<T>(idExtractor);
@@ -102,10 +93,7 @@ namespace EasyPack.Category
         public CategoryManager<T> GetManager<T>()
         {
             var entityType = typeof(T);
-            if (_managers.TryGetValue(entityType, out var manager))
-            {
-                return manager as CategoryManager<T>;
-            }
+            if (_managers.TryGetValue(entityType, out var manager)) return manager as CategoryManager<T>;
             return null;
         }
 
@@ -118,11 +106,8 @@ namespace EasyPack.Category
         {
             var entityType = typeof(T);
             if (!_managers.TryGetValue(entityType, out var manager)) return false;
-            
-            if (manager is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
+
+            if (manager is IDisposable disposable) disposable.Dispose();
             _managers.Remove(entityType);
             return true;
         }
@@ -144,22 +129,19 @@ namespace EasyPack.Category
             try
             {
                 foreach (var manager in _managers.Values)
-                {
                     if (manager is IDisposable disposable)
-                    {
                         disposable.Dispose();
-                    }
-                }
 
                 _managers.Clear();
                 return true;
             }
-            catch(SystemException e)
+            catch (SystemException e)
             {
                 Debug.LogError($"移除所有 CategoryManager 时候发射了错误: {e}");
                 return false;
             }
         }
+
         #endregion
 
         #region 序列化支持
@@ -171,26 +153,21 @@ namespace EasyPack.Category
         /// <param name="idExtractor">实体 ID 提取函数</param>
         private void RegisterManagerSerializer<T>(Func<T, string> idExtractor)
         {
-            if (_serializationService == null)
-            {
-                return;
-            }
+            if (_serializationService == null) return;
 
             var entityType = typeof(T);
             var categoryManagerType = typeof(CategoryManager<T>);
 
             // 避免重复注册
-            if (_serializers.ContainsKey(categoryManagerType))
-            {
-                return;
-            }
+            if (_serializers.ContainsKey(categoryManagerType)) return;
 
             try
             {
                 var serializer = new CategoryManagerJsonSerializer<T>(idExtractor);
-                _serializationService.RegisterSerializer<CategoryManager<T>, SerializableCategoryManagerState<T>>(serializer);
+                _serializationService.
+                    RegisterSerializer<CategoryManager<T>, SerializableCategoryManagerState<T>>(serializer);
                 _serializers[categoryManagerType] = serializer;
-                
+
                 Debug.Log($"[CategoryService] 已注册 CategoryManager<{entityType.Name}> 序列化器到 SerializationService");
             }
             catch (Exception ex)
@@ -229,14 +206,12 @@ namespace EasyPack.Category
             {
                 // 创建新的 Manager 并加载数据
                 var manager = CategoryManager<T>.CreateFromJson(json, idExtractor);
-                
+
                 // 替换现有 Manager
                 var entityType = typeof(T);
                 if (_managers.TryGetValue(entityType, out var oldManager) && oldManager is IDisposable disposable)
-                {
                     disposable.Dispose();
-                }
-                
+
                 _managers[entityType] = manager;
 
                 // 注册序列化器
@@ -246,7 +221,7 @@ namespace EasyPack.Category
             }
             catch (Exception ex)
             {
-                return OperationResult.Failure(ErrorCode.InvalidCategory, 
+                return OperationResult.Failure(ErrorCode.InvalidCategory,
                     $"加载 Manager 失败: {ex.Message}");
             }
         }

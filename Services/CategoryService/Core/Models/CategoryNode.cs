@@ -30,6 +30,14 @@ namespace EasyPack.Category
         private readonly List<string> _entityIds;
 
         /// <summary>
+        /// 子树实体 ID 缓存
+        /// 当实体添加/删除或子节点变化时失效
+        /// </summary>
+        private List<string> _subtreeEntityIdsCache;
+
+        private bool _subtreeEntityIdsCacheValid;
+
+        /// <summary>
         /// 初始化根节点或叶子节点
         /// </summary>
         /// <param name="termId">词汇 ID，应从 IntegerMapper 获取</param>
@@ -43,6 +51,8 @@ namespace EasyPack.Category
             ParentNode = parentNode;
             _children = new Dictionary<int, CategoryNode>();
             _entityIds = new List<string>();
+            _subtreeEntityIdsCache = new List<string>();
+            _subtreeEntityIdsCacheValid = false;
         }
 
         /// <summary>
@@ -96,7 +106,13 @@ namespace EasyPack.Category
         /// <returns>是否成功删除</returns>
         public bool RemoveChild(int childTermId)
         {
-            return _children.Remove(childTermId, out _);
+            if (_children.Remove(childTermId, out _))
+            {
+                InvalidateSubtreeCache();
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -108,6 +124,7 @@ namespace EasyPack.Category
             if (!_entityIds.Contains(entityId))
             {
                 _entityIds.Add(entityId);
+                InvalidateSubtreeCache();
             }
         }
 
@@ -118,7 +135,13 @@ namespace EasyPack.Category
         /// <returns>是否成功移除</returns>
         public bool RemoveEntity(string entityId)
         {
-            return _entityIds.Remove(entityId);
+            if (_entityIds.Remove(entityId))
+            {
+                InvalidateSubtreeCache();
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -138,46 +161,84 @@ namespace EasyPack.Category
 
         /// <summary>
         /// 获取该节点及其所有子孙节点关联的所有实体 ID
-        /// 递归查询整个子树
         /// </summary>
         /// <returns>所有实体 ID 的列表</returns>
         public IReadOnlyList<string> GetSubtreeEntityIds()
         {
-            var result = new List<string>(_entityIds);
+            // 如果缓存有效，直接返回
+            if (_subtreeEntityIdsCacheValid) return _subtreeEntityIdsCache.AsReadOnly();
 
-            // 递归遍历所有子节点
-            foreach (var child in _children.Values)
+            var result = new List<string>(_entityIds);
+            var queue = new Queue<CategoryNode>();
+
+            // 初始化队列：将所有直接子节点加入
+            foreach (var child in _children.Values) queue.Enqueue(child);
+
+            // 广度优先遍历所有子孙节点
+            while (queue.Count > 0)
             {
-                result.AddRange(child.GetSubtreeEntityIds());
+                var node = queue.Dequeue();
+
+                // 添加当前节点的实体
+                result.AddRange(node._entityIds);
+
+                // 将其子节点加入队列
+                foreach (var child in node._children.Values) queue.Enqueue(child);
             }
+
+            // 更新缓存
+            _subtreeEntityIdsCache = result;
+            _subtreeEntityIdsCacheValid = true;
 
             return result.AsReadOnly();
         }
 
         /// <summary>
-        /// 获取从根节点到当前节点的完整路径（使用词汇 ID）
-        /// 示例：root -> category1 -> category2 -> leaf = "0.1.2"
+        /// 失效子树实体 ID 缓存
+        /// 当该节点或子节点的实体关联发生变化时调用
+        /// 级联失效所有父节点的缓存
         /// </summary>
-        /// <returns>路径字符串，用 CategoryConstants.CATEGORY_SEPARATOR 分隔</returns>
-        public string GetFullPath()
+        private void InvalidateSubtreeCache()
         {
-            var path = new List<int>();
-            var current = this;
+            _subtreeEntityIdsCacheValid = false;
 
-            while (current != null)
+            // 级联失效父节点的缓存
+            var parent = ParentNode;
+            while (parent != null)
             {
-                path.Add(current.TermId);
-                current = current.ParentNode;
+                parent._subtreeEntityIdsCacheValid = false;
+                parent = parent.ParentNode;
             }
-
-            path.Reverse();
-            return string.Join(CategoryConstants.CATEGORY_SEPARATOR, path);
         }
 
         /// <summary>
-        /// 获取从根节点到当前节点的所有词汇 ID
-        /// 用于序列化或路径表示
+        ///  <para>获取从根节点到当前节点的完整路径（使用词汇 ID） </para>
+        ///  <example>示例：root -> category1 -> category2 -> leaf = "0.1.2"</example>
+        /// 
+        /// <para>方法用于调试，生产环境建议：</para>
+        /// <para>1. 使用 GetPathAsIds() 获取高效的 int[]</para>
+        /// <para>2. 在 CategoryManager 中调用 GetReadablePathFromIds()</para>
         /// </summary>
+        /// <returns>路径字符串，用 CategoryConstants.CATEGORY_SEPARATOR 分隔</returns>
+        public string GetFullIntPath()
+        {
+            int[] pathIds = GetPathAsIds();
+
+            // 使用 StringBuilder 高效构造字符串
+            var sb = new System.Text.StringBuilder();
+            for (var i = 0; i < pathIds.Length; i++)
+            {
+                if (i > 0) sb.Append(CategoryConstants.CATEGORY_SEPARATOR);
+                sb.Append(pathIds[i]);
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// 获取从根节点到当前节点的所有词汇 ID 数组
+        /// </summary>
+        /// <returns>路径 ID 数组</returns>
         public int[] GetPathAsIds()
         {
             var path = new List<int>();
@@ -190,6 +251,7 @@ namespace EasyPack.Category
             }
 
             path.Reverse();
+            
             return path.ToArray();
         }
 
@@ -198,7 +260,7 @@ namespace EasyPack.Category
         /// </summary>
         public int GetDepth()
         {
-            int depth = 0;
+            var depth = 0;
             var current = ParentNode;
 
             while (current != null)
@@ -226,6 +288,7 @@ namespace EasyPack.Category
         public void ClearEntities()
         {
             _entityIds.Clear();
+            InvalidateSubtreeCache();
         }
 
         /// <summary>
@@ -235,6 +298,7 @@ namespace EasyPack.Category
         {
             _children.Clear();
             _entityIds.Clear();
+            InvalidateSubtreeCache();
         }
 
         /// <summary>
@@ -242,7 +306,8 @@ namespace EasyPack.Category
         /// </summary>
         public override string ToString()
         {
-            return $"CategoryNode(TermId={TermId}, Children={ChildCount}, Entities={EntityCount}, Path={GetFullPath()})";
+            return
+                $"CategoryNode(TermId={TermId}, Children={ChildCount}, Entities={EntityCount}, Path={GetFullIntPath()})";
         }
     }
 }
