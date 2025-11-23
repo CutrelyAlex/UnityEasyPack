@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using EasyPack.CustomData;
-using UnityEngine;
 
 namespace EasyPack.Category
 {
@@ -42,8 +42,8 @@ namespace EasyPack.Category
         private readonly Dictionary<int, List<T>> _tagCache;                      // 整数键缓存
 
         // 映射层
-        private readonly IntegerMapper<Tag> _tagMapper;
-        private readonly IntegerMapper<CategoryTerm> _categoryTermMapper;
+        private readonly IntegerMapper _tagMapper;
+        private readonly IntegerMapper _categoryTermMapper;
 
         // 元数据与根锁
         private readonly Dictionary<string, CustomDataCollection> _metadataStore;
@@ -70,8 +70,8 @@ namespace EasyPack.Category
             _tagLocks = new Dictionary<int, ReaderWriterLockSlim>();
             _tagCache = new Dictionary<int, List<T>>();
 
-            _tagMapper = new IntegerMapper<Tag>(CategoryConstants.DEFAULT_MAPPER_CAPACITY);
-            _categoryTermMapper = new IntegerMapper<CategoryTerm>(CategoryConstants.DEFAULT_MAPPER_CAPACITY);
+            _tagMapper = new IntegerMapper(CategoryConstants.DEFAULT_MAPPER_CAPACITY);
+            _categoryTermMapper = new IntegerMapper(CategoryConstants.DEFAULT_MAPPER_CAPACITY);
 
             _metadataStore = new Dictionary<string, CustomDataCollection>();
             _treeLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
@@ -165,6 +165,81 @@ namespace EasyPack.Category
         }
 
         /// <summary>
+        /// 仅注册分类关联
+        /// 适用于Entity无法序列化的场景，此时只保留ID、分类、标签和元数据的关联。
+        /// </summary>
+        /// <param name="id">实体ID。</param>
+        /// <param name="category">分类名称。</param>
+        /// <param name="tags">标签列表（可选）。</param>
+        /// <param name="metadata">元数据（可选）。</param>
+        /// <returns>OperationResult</returns>
+        public OperationResult RegisterCategoryAssociationOnly(
+            string id,
+            string category,
+            List<string> tags = null,
+            CustomDataCollection metadata = null)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return OperationResult.Failure(ErrorCode.InvalidCategory, "实体 ID 不能为空");
+            }
+
+            category = CategoryNameNormalizer.Normalize(category);
+            if (!CategoryNameNormalizer.IsValid(category, out var errorMessage))
+            {
+                return OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage);
+            }
+
+            _treeLock.EnterWriteLock();
+            try
+            {
+                // 获取或创建分类节点
+                var node = GetOrCreateNode(category);
+                node.AddEntity(id);
+
+                // 添加标签
+                if (tags is { Count: > 0 })
+                {
+                    foreach (var tag in tags)
+                    {
+                        if (string.IsNullOrWhiteSpace(tag)) continue;
+
+                        int tagId = _tagMapper.GetOrAssignId(tag);
+                        if (!_tagToEntityIds.TryGetValue(tagId, out var entityIds))
+                        {
+                            entityIds = new HashSet<string>();
+                            _tagToEntityIds[tagId] = entityIds;
+                        }
+                        entityIds.Add(id);
+
+                        if (!_entityToTagIds.TryGetValue(id, out var tagIds))
+                        {
+                            tagIds = new HashSet<int>();
+                            _entityToTagIds[id] = tagIds;
+                        }
+                        tagIds.Add(tagId);
+                    }
+                }
+
+                // 添加元数据
+                if (metadata != null)
+                {
+                    _metadataStore[id] = metadata;
+                }
+
+#if UNITY_EDITOR
+                _cachedStatistics = null;
+#endif
+
+                return OperationResult.Success();
+            }
+            finally
+            {
+                _treeLock.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
         /// 批量注册多个实体到同一分类。
         /// </summary>
         /// <param name="entities">实体列表。</param>
@@ -221,15 +296,14 @@ namespace EasyPack.Category
                     // 通配符查询编译正则表达式，遍历所有节点
                     var regex = ConvertWildcardToRegex(pattern);
 
-                    foreach (var kvp in _categoryNodes)
+                    foreach ((int key, var node) in _categoryNodes)
                     {
-                        if (!_categoryIdToName.TryGetValue(kvp.Key, out var nodePath))
+                        if (!_categoryIdToName.TryGetValue(key, out var nodePath))
                             continue;
 
                         if (!regex.IsMatch(nodePath))
                             continue;
 
-                        var node = kvp.Value;
                         if (includeChildren)
                         {
                             foreach (var id in node.GetSubtreeEntityIds())
@@ -356,17 +430,16 @@ namespace EasyPack.Category
                 // 从分类中移除
                 foreach (var kvp in _categoryNodes.ToList())
                 {
-                    if (kvp.Value.EntityIds.Contains(id))
-                    {
-                        kvp.Value.RemoveEntity(id);
-                        affectedNodePaths.Add(_categoryIdToName[kvp.Key]);
+                    if (!kvp.Value.EntityIds.Contains(id)) continue;
+                    
+                    kvp.Value.RemoveEntity(id);
+                    affectedNodePaths.Add(_categoryIdToName[kvp.Key]);
 
-                        var parent = kvp.Value.ParentNode;
-                        while (parent != null)
-                        {
-                            affectedNodePaths.Add(_categoryIdToName[parent.TermId]);
-                            parent = parent.ParentNode;
-                        }
+                    var parent = kvp.Value.ParentNode;
+                    while (parent != null)
+                    {
+                        affectedNodePaths.Add(_categoryIdToName[parent.TermId]);
+                        parent = parent.ParentNode;
                     }
                 }
 
@@ -498,6 +571,7 @@ namespace EasyPack.Category
 
                     _categoryNodes.Remove(nodeId);
                     _categoryIdToName.TryGetValue(nodeId, out var nodeName);
+
                     if (nodeName != null)
                     {
                         _categoryNameToId.Remove(nodeName);
@@ -764,8 +838,9 @@ namespace EasyPack.Category
         /// <summary>
         /// 同时按分类和标签查询实体。
         /// </summary>
-        /// <param name="category">分类名称。</param>
-        /// <param name="tag">标签名称。</param>
+        /// <param name="category">分类名称</param>
+        /// <param name="tag">标签名称</param>
+        /// <param name="includeChildren">是否要包含子类</param>
         /// <returns>同时满足两个条件的实体列表。</returns>
         public IReadOnlyList<T> GetByCategoryAndTag(string category, string tag, bool includeChildren = true)
         {
@@ -979,16 +1054,15 @@ namespace EasyPack.Category
                 // 从旧分类移除
                 foreach (var kvp in _categoryNodes.ToList())
                 {
-                    if (kvp.Value.RemoveEntity(entityId))
-                    {
-                        affectedNodePaths.Add(_categoryIdToName[kvp.Key]);
+                    if (!kvp.Value.RemoveEntity(entityId)) continue;
+                    
+                    affectedNodePaths.Add(_categoryIdToName[kvp.Key]);
 
-                        var parent = kvp.Value.ParentNode;
-                        while (parent != null)
-                        {
-                            affectedNodePaths.Add(_categoryIdToName[parent.TermId]);
-                            parent = parent.ParentNode;
-                        }
+                    var parent = kvp.Value.ParentNode;
+                    while (parent != null)
+                    {
+                        affectedNodePaths.Add(_categoryIdToName[parent.TermId]);
+                        parent = parent.ParentNode;
                     }
                 }
 
@@ -1061,7 +1135,7 @@ namespace EasyPack.Category
                 CollectNodesToRename(oldNode, oldName, newName, nodesToRename);
 
                 // 执行重命名
-                foreach ((int id, var node, string oldPath, string newPath) in nodesToRename)
+                foreach ((int id, _, string oldPath, string newPath) in nodesToRename)
                 {
                     _categoryNameToId.Remove(oldPath);
                     _categoryIdToName[id] = newPath;
@@ -1118,11 +1192,8 @@ namespace EasyPack.Category
         {
             var tagIndex = new Dictionary<string, IEnumerable<string>>();
             
-            foreach (var kvp in _tagToEntityIds)
+            foreach ((int tagId, var entityIds) in _tagToEntityIds)
             {
-                var tagId = kvp.Key;
-                var entityIds = kvp.Value;
-                
                 // 从 _tagMapper 获取标签名称
                 if (_tagMapper.TryGetString(tagId, out var tagName))
                 {
