@@ -8,7 +8,7 @@ namespace EasyPack.Category
     /// 双向字符串↔整数映射器，用于将词汇（标签、分类）映射为整数 ID。
     /// 使用 ReaderWriterLockSlim
     /// </summary>
-    public class IntegerMapper<T> where T : struct
+    public class IntegerMapper
     {
         /// <summary>
         /// 字符串 → 整数 ID 的映射表

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace EasyPack.Category
 {
@@ -12,7 +11,7 @@ namespace EasyPack.Category
         /// <summary>
         /// 词汇 ID（分类名称的整数映射）
         /// </summary>
-        public int TermId { get; private set; }
+        public int TermId { get; }
 
         /// <summary>
         /// 父节点的引用
@@ -97,12 +96,7 @@ namespace EasyPack.Category
         /// <returns>是否成功删除</returns>
         public bool RemoveChild(int childTermId)
         {
-            if (_children.TryGetValue(childTermId, out var child))
-            {
-                _children.Remove(childTermId);
-                return true;
-            }
-            return false;
+            return _children.Remove(childTermId, out _);
         }
 
         /// <summary>

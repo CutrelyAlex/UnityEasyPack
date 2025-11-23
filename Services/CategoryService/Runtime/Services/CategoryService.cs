@@ -117,16 +117,14 @@ namespace EasyPack.Category
         public bool RemoveManager<T>()
         {
             var entityType = typeof(T);
-            if (_managers.TryGetValue(entityType, out var manager))
+            if (!_managers.TryGetValue(entityType, out var manager)) return false;
+            
+            if (manager is IDisposable disposable)
             {
-                if (manager is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
-                _managers.Remove(entityType);
-                return true;
+                disposable.Dispose();
             }
-            return false;
+            _managers.Remove(entityType);
+            return true;
         }
 
         /// <summary>

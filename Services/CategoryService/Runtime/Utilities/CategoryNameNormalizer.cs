@@ -52,11 +52,10 @@ namespace EasyPack.Category
             // 检查每个部分是否有效
             foreach (var part in parts)
             {
-                if (string.IsNullOrWhiteSpace(part))
-                {
-                    errorMessage = "分类名称部分不能为空";
-                    return false;
-                }
+                if (!string.IsNullOrWhiteSpace(part)) continue;
+                
+                errorMessage = "分类名称部分不能为空";
+                return false;
             }
 
             errorMessage = null;
