@@ -28,10 +28,7 @@ namespace EasyPack.Category
         /// <param name="list">要归还的列表</param>
         public static void ReturnList<T>(List<T> list)
         {
-            if (list == null)
-            {
-                return;
-            }
+            if (list == null) return;
             ObjectPool.ListPool<T>.Return(list);
         }
 
@@ -56,10 +53,7 @@ namespace EasyPack.Category
         /// <param name="hashSet">要归还的集合</param>
         public static void ReturnHashSet<T>(HashSet<T> hashSet)
         {
-            if (hashSet == null)
-            {
-                return;
-            }
+            if (hashSet == null) return;
             ObjectPool.HashSetPool<T>.Return(hashSet);
         }
 
@@ -78,15 +72,10 @@ namespace EasyPack.Category
         /// <param name="hashSet">要归还的集合</param>
         public static void ReturnHashSet(HashSet<string> hashSet)
         {
-            if (hashSet == null)
-            {
-                return;
-            }
+            if (hashSet == null) return;
             ObjectPool.HashSetPool<string>.Return(hashSet);
         }
 
         #endregion
-
     }
 }
-

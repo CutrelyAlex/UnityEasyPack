@@ -44,10 +44,14 @@ namespace EasyPack.Category
     /// <summary>
     /// 分类词汇类型标记（用于 IntegerMapper&lt;CategoryTerm&gt; 泛型参数）
     /// </summary>
-    internal struct CategoryTerm { }
+    internal struct CategoryTerm
+    {
+    }
 
     /// <summary>
     /// 标签类型标记（用于 IntegerMapper&lt;Tag&gt; 泛型参数）
     /// </summary>
-    internal struct Tag { }
+    internal struct Tag
+    {
+    }
 }
