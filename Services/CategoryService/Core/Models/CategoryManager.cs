@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using EasyPack.CustomData;
@@ -1212,6 +1211,39 @@ namespace EasyPack.Category
         internal Dictionary<string, CustomDataCollection> GetMetadataStore()
         {
             return new Dictionary<string, CustomDataCollection>(_metadataStore);
+        }
+
+        /// <summary>
+        /// 获取序列化索引
+        /// </summary>
+        /// <param name="entityTagIndex">输出参数：EntityId -> TagNames 字典</param>
+        /// <param name="entityMetadataIndex">输出参数：EntityId -> CustomDataCollection 字典</param>
+        internal void GetOptimizedSerializationIndices(
+            out Dictionary<string, List<string>> entityTagIndex,
+            out Dictionary<string, CustomDataCollection> entityMetadataIndex)
+        {
+            entityTagIndex = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            entityMetadataIndex = new Dictionary<string, CustomDataCollection>(_metadataStore);
+
+            foreach (var kvp in _entityToTagIds)
+            {
+                var entityId = kvp.Key;
+                var tagIds = kvp.Value;
+                
+                var tagNames = new List<string>(tagIds.Count);
+                foreach (var tagId in tagIds)
+                {
+                    if (_tagMapper.TryGetString(tagId, out var tagName))
+                    {
+                        tagNames.Add(tagName);
+                    }
+                }
+                
+                if (tagNames.Count > 0)
+                {
+                    entityTagIndex[entityId] = tagNames;
+                }
+            }
         }
 
         #endregion

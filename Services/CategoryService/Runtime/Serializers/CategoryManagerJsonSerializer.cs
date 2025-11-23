@@ -120,7 +120,7 @@ namespace EasyPack.Category
                 {
                     var id = _idExtractor(entity);
                     
-                    // 避免重复添加实体
+                        // 避免重复添加实体
                     if (data.Entities.Any(e => e.Id == id)) continue;
 
                     // 使用 SerializationService 序列化实体
@@ -282,8 +282,13 @@ namespace EasyPack.Category
                     Metadata = new List<SerializableCategoryManagerState<T>.SerializedMetadata>()
                 };
 
-                // 序列化实体和分类
+                manager.GetOptimizedSerializationIndices(out var entityTagIndex, out var entityMetadataIndex);
+
+                var serializedEntityIds = new HashSet<string>(StringComparer.Ordinal);
+
                 var categories = manager.GetCategoriesNodes();
+                var tagIndex = manager.GetTagIndex();
+
                 foreach (var category in categories)
                 {
                     var entities = manager.GetByCategory(category, includeChildren: false);
@@ -296,9 +301,8 @@ namespace EasyPack.Category
                     foreach (var entity in entities)
                     {
                         var id = _idExtractor(entity);
-                        
-                        // 避免重复添加实体
-                        if (data.Entities.Any(e => e.Id == id)) continue;
+                        if (serializedEntityIds.Contains(id)) continue;
+                        serializedEntityIds.Add(id);
                         
                         // 尝试序列化实体，如果失败则保留空EntityJson
                         string entityJson;
@@ -323,20 +327,18 @@ namespace EasyPack.Category
                     }
                 }
 
-                // 序列化标签
-                var tagIndex = manager.GetTagIndex();
+                // 序列化 Tag
                 foreach (var kvp in tagIndex)
                 {
                     data.Tags.Add(new SerializableCategoryManagerState<T>.SerializedTag
                     {
                         TagName = kvp.Key,
-                        EntityIds = kvp.Value.ToList()
+                        EntityIds = new List<string>(kvp.Value)
                     });
                 }
 
-                // 序列化元数据
-                var metadataStore = manager.GetMetadataStore();
-                foreach (var kvp in metadataStore)
+                // 序列化元数据 
+                foreach (var kvp in entityMetadataIndex)
                 {
                     data.Metadata.Add(new SerializableCategoryManagerState<T>.SerializedMetadata
                     {
@@ -385,6 +387,37 @@ namespace EasyPack.Category
                 data.Tags ??= new List<SerializableCategoryManagerState<T>.SerializedTag>();
                 data.Metadata ??= new List<SerializableCategoryManagerState<T>.SerializedMetadata>();
                 
+                // 预构建 EntityId -> Tags 字典
+                var entityTagIndex = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+                foreach (var tag in data.Tags)
+                {
+                    foreach (var entityId in tag.EntityIds)
+                    {
+                        if (!entityTagIndex.TryGetValue(entityId, out var tags))
+                        {
+                            tags = new List<string>();
+                            entityTagIndex[entityId] = tags;
+                        }
+                        tags.Add(tag.TagName);
+                    }
+                }
+
+                // 预构建 EntityId -> Metadata 字典
+                var entityMetadataIndex = new Dictionary<string, CustomDataCollection>(StringComparer.Ordinal);
+                foreach (var metadataEntry in data.Metadata)
+                {
+                    var wrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(metadataEntry.MetadataJson);
+                    if (wrapper?.Entries != null)
+                    {
+                        var metadata = new CustomDataCollection();
+                        foreach (var entry in wrapper.Entries)
+                        {
+                            metadata.Add(entry);
+                        }
+                        entityMetadataIndex[metadataEntry.EntityId] = metadata;
+                    }
+                }
+                
                 // 创建新的 CategoryManager 实例
                 var manager = new CategoryManager<T>(_idExtractor);
 
@@ -421,27 +454,13 @@ namespace EasyPack.Category
                             }
                         }
 
-                        // 查找实体的标签
-                        var tags = data.Tags
-                            .Where(t => t.EntityIds.Contains(serializedEntity.Id))
-                            .Select(t => t.TagName)
-                            .ToList();
+                        var tags = entityTagIndex.TryGetValue(serializedEntity.Id, out var entityTags)
+                            ? entityTags
+                            : new List<string>();
 
-                        // 查找实体的元数据
-                        CustomDataCollection metadata = null;
-                        var metadataEntry = data.Metadata.FirstOrDefault(m => m.EntityId == serializedEntity.Id);
-                        if (metadataEntry != null)
-                        {
-                            var wrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(metadataEntry.MetadataJson);
-                            if (wrapper is { Entries: not null })
-                            {
-                                metadata = new CustomDataCollection();
-                                foreach (var entry in wrapper.Entries)
-                                {
-                                    metadata.Add(entry);
-                                }
-                            }
-                        }
+                        var metadata = entityMetadataIndex.TryGetValue(serializedEntity.Id, out var entityMetadata)
+                            ? entityMetadata
+                            : null;
 
                         entityRegistrations.Add((serializedEntity.Id, entity, serializedEntity.Category, tags, metadata));
                     }
@@ -454,16 +473,14 @@ namespace EasyPack.Category
                 // 注册所有实体
                 foreach ((string id, var entity, string category, var tags, var metadata) in entityRegistrations)
                 {
-                    // 检查entity是否为默认值（null对于引用类型）
-                    bool hasEntity = !EqualityComparer<T>.Default.Equals(entity, default(T));
+                    // 检查entity是否为默认值
+                    bool hasEntity = !EqualityComparer<T>.Default.Equals(entity, default);
                     
                     if (!hasEntity)
                     {
                         var result = manager.RegisterCategoryAssociationOnly(id, category, tags, metadata);
-                        if (!result.IsSuccess)
-                        {
-                            Debug.LogWarning($"注册分类关联失败: {result.ErrorMessage}");
-                        }
+                        if (result.IsSuccess) continue;
+                        Debug.LogWarning($"注册分类关联失败: {result.ErrorMessage}");
                     }
                     else
                     {
