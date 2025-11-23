@@ -74,9 +74,16 @@ namespace EasyPack.Category
         IReadOnlyList<T> GetByCategoryAndTag(string category, string tag, bool includeChildren = true);
 
         /// <summary>
+        /// 根据正则表达式匹配分类名称并获取实体。
+        /// </summary>
+        /// <param name="pattern">正则表达式模式，其中点分割符需转义为\.</param>
+        /// <param name="includeChildren">是否包含子分类中的实体</param>
+        /// <returns>匹配分类中的实体列表</returns>
+        IReadOnlyList<T> GetByCategoryRegex(string pattern, bool includeChildren = false);
+
+        /// <summary>
         /// 获取元数据
         /// </summary>
         CustomDataCollection GetMetadata(string entityId);
     }
 }
-
