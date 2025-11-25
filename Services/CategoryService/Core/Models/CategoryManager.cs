@@ -50,6 +50,8 @@ namespace EasyPack.Category
         // 元数据与根锁
         private readonly Dictionary<string, CustomDataCollection> _metadataStore;
         private readonly ReaderWriterLockSlim _treeLock;
+        private readonly ReaderWriterLockSlim _entitiesLock; // 保护 _entities 字典
+        private readonly ReaderWriterLockSlim _metadataLock; // 保护 _metadataStore 字典
 
         #endregion
 
@@ -78,6 +80,8 @@ namespace EasyPack.Category
 
             _metadataStore = new Dictionary<string, CustomDataCollection>();
             _treeLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+            _entitiesLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+            _metadataLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         }
 
         #endregion
@@ -161,10 +165,18 @@ namespace EasyPack.Category
                     OperationResult.Failure(ErrorCode.InvalidCategory, $"实体 ID 不能为空"));
             }
 
-            if (_entities.ContainsKey(id))
+            _entitiesLock.EnterReadLock();
+            try
             {
-                return new EntityRegistration(this, id, entity, category,
-                    OperationResult.Failure(ErrorCode.DuplicateId, $"实体 ID '{id}' 已存在"));
+                if (_entities.ContainsKey(id))
+                {
+                    return new EntityRegistration(this, id, entity, category,
+                        OperationResult.Failure(ErrorCode.DuplicateId, $"实体 ID '{id}' 已存在"));
+                }
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
             }
 
             return new EntityRegistration(this, id, entity, category, OperationResult.Success());
@@ -232,7 +244,15 @@ namespace EasyPack.Category
                 // 添加元数据
                 if (metadata != null)
                 {
-                    _metadataStore[id] = metadata;
+                    _metadataLock.EnterWriteLock();
+                    try
+                    {
+                        _metadataStore[id] = metadata;
+                    }
+                    finally
+                    {
+                        _metadataLock.ExitWriteLock();
+                    }
                 }
 
 #if UNITY_EDITOR
@@ -348,8 +368,16 @@ namespace EasyPack.Category
                 _treeLock.ExitReadLock();
             }
 
-            var result = entityIds.Select(id => _entities[id]).ToList();
-            return result;
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                var result = entityIds.Select(id => _entities[id]).ToList();
+                return result;
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -359,9 +387,17 @@ namespace EasyPack.Category
         /// <returns>包含实体的操作结果；若没有找到，返回失败。</returns>
         public OperationResult<T> GetById(string id)
         {
-            return _entities.TryGetValue(id, out var entity)
-                ? OperationResult<T>.Success(entity)
-                : OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                return _entities.TryGetValue(id, out var entity)
+                    ? OperationResult<T>.Success(entity)
+                    : OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -373,13 +409,21 @@ namespace EasyPack.Category
         /// </returns>
         public (T entity, string categoryPath, bool success) GetByIdWithCategory(string id)
         {
-            if (!_entities.TryGetValue(id, out var entity))
+            _entitiesLock.EnterReadLock();
+            try
             {
-                return (default, string.Empty, false);
-            }
+                if (!_entities.TryGetValue(id, out var entity))
+                {
+                    return (default, string.Empty, false);
+                }
 
-            var categoryPath = GetReadableCategoryPath(id);
-            return (entity, categoryPath, true);
+                var categoryPath = GetReadableCategoryPath(id);
+                return (entity, categoryPath, true);
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -433,9 +477,17 @@ namespace EasyPack.Category
         /// <returns>操作结果。</returns>
         public OperationResult DeleteEntity(string id)
         {
-            if (!_entities.ContainsKey(id))
+            _entitiesLock.EnterReadLock();
+            try
             {
-                return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+                if (!_entities.ContainsKey(id))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+                }
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
             }
 
             _treeLock.EnterWriteLock();
@@ -464,7 +516,15 @@ namespace EasyPack.Category
                 }
 
                 // 从实体存储移除
-                _entities.Remove(id);
+                _entitiesLock.EnterWriteLock();
+                try
+                {
+                    _entities.Remove(id);
+                }
+                finally
+                {
+                    _entitiesLock.ExitWriteLock();
+                }
 
                 // 从标签中移除
                 if (_entityToTagIds.TryGetValue(id, out var tagIds))
@@ -490,7 +550,15 @@ namespace EasyPack.Category
                 }
 
                 // 从元数据移除
-                _metadataStore.Remove(id);
+                _metadataLock.EnterWriteLock();
+                try
+                {
+                    _metadataStore.Remove(id);
+                }
+                finally
+                {
+                    _metadataLock.ExitWriteLock();
+                }
 
                 return OperationResult.Success();
             }
@@ -709,9 +777,17 @@ namespace EasyPack.Category
         /// <returns>操作结果。</returns>
         public OperationResult AddTag(string entityId, string tag)
         {
-            if (!_entities.ContainsKey(entityId))
+            _entitiesLock.EnterReadLock();
+            try
             {
-                return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
+                if (!_entities.ContainsKey(entityId))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
+                }
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
             }
 
             if (string.IsNullOrWhiteSpace(tag))
@@ -762,9 +838,17 @@ namespace EasyPack.Category
         /// <returns>操作结果。</returns>
         public OperationResult RemoveTag(string entityId, string tag)
         {
-            if (!_entities.ContainsKey(entityId))
+            _entitiesLock.EnterReadLock();
+            try
             {
-                return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
+                if (!_entities.ContainsKey(entityId))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
+                }
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
             }
 
             if (string.IsNullOrWhiteSpace(tag))
@@ -844,9 +928,17 @@ namespace EasyPack.Category
             {
                 if (_tagToEntityIds.TryGetValue(tagId, out var entityIds))
                 {
-                    var result = entityIds.Select(id => _entities[id]).ToList();
-                    _tagCache[tagId] = result;
-                    return result;
+                    _entitiesLock.EnterReadLock();
+                    try
+                    {
+                        var result = entityIds.Select(id => _entities[id]).ToList();
+                        _tagCache[tagId] = result;
+                        return result;
+                    }
+                    finally
+                    {
+                        _entitiesLock.ExitReadLock();
+                    }
                 }
 
                 return new List<T>();
@@ -922,8 +1014,16 @@ namespace EasyPack.Category
                 _treeLock.ExitReadLock();
             }
 
-            var result = entityIds.Select(id => _entities[id]).ToList();
-            return result;
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                var result = entityIds.Select(id => _entities[id]).ToList();
+                return result;
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -984,11 +1084,19 @@ namespace EasyPack.Category
                 }
             }
 
-            var result = resultIds != null
-                ? resultIds.Select(id => _entities[id]).ToList()
-                : new List<T>();
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                var result = resultIds != null
+                    ? resultIds.Select(id => _entities[id]).ToList()
+                    : new List<T>();
 
-            return result;
+                return result;
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
         }
 
         #endregion
@@ -1002,14 +1110,30 @@ namespace EasyPack.Category
         /// <returns>元数据集合，不存在则返回空集。</returns>
         public CustomDataCollection GetMetadata(string id)
         {
-            if (!_entities.ContainsKey(id))
+            _entitiesLock.EnterReadLock();
+            try
             {
-                return new CustomDataCollection();
+                if (!_entities.ContainsKey(id))
+                {
+                    return new CustomDataCollection();
+                }
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
             }
 
-            return _metadataStore.TryGetValue(id, out var metadata)
-                ? metadata
-                : new CustomDataCollection();
+            _metadataLock.EnterReadLock();
+            try
+            {
+                return _metadataStore.TryGetValue(id, out var metadata)
+                    ? metadata
+                    : new CustomDataCollection();
+            }
+            finally
+            {
+                _metadataLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -1019,16 +1143,32 @@ namespace EasyPack.Category
         /// <returns>包含元数据的操作结果。</returns>
         public OperationResult<CustomDataCollection> GetMetadataResult(string id)
         {
-            if (!_entities.ContainsKey(id))
+            _entitiesLock.EnterReadLock();
+            try
             {
-                return OperationResult<CustomDataCollection>.Failure(
-                    ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+                if (!_entities.ContainsKey(id))
+                {
+                    return OperationResult<CustomDataCollection>.Failure(
+                        ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+                }
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
             }
 
-            return OperationResult<CustomDataCollection>.Success(
-                _metadataStore.TryGetValue(id, out var metadata)
-                    ? metadata
-                    : new CustomDataCollection());
+            _metadataLock.EnterReadLock();
+            try
+            {
+                return OperationResult<CustomDataCollection>.Success(
+                    _metadataStore.TryGetValue(id, out var metadata)
+                        ? metadata
+                        : new CustomDataCollection());
+            }
+            finally
+            {
+                _metadataLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -1039,13 +1179,29 @@ namespace EasyPack.Category
         /// <returns>操作结果。</returns>
         public OperationResult UpdateMetadata(string id, CustomDataCollection metadata)
         {
-            if (!_entities.ContainsKey(id))
+            _entitiesLock.EnterReadLock();
+            try
             {
-                return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+                if (!_entities.ContainsKey(id))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+                }
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
             }
 
-            _metadataStore[id] = metadata;
-            return OperationResult.Success();
+            _metadataLock.EnterWriteLock();
+            try
+            {
+                _metadataStore[id] = metadata;
+                return OperationResult.Success();
+            }
+            finally
+            {
+                _metadataLock.ExitWriteLock();
+            }
         }
 
         #endregion
@@ -1726,6 +1882,8 @@ namespace EasyPack.Category
         public void Dispose()
         {
             _treeLock?.Dispose();
+            _entitiesLock?.Dispose();
+            _metadataLock?.Dispose();
 
             foreach (var lockObj in _tagLocks.Values) lockObj?.Dispose();
         }
@@ -1789,7 +1947,16 @@ namespace EasyPack.Category
                 try
                 {
                     // 存储实体
-                    _manager._entities[_entityId] = _entity;
+                    _manager._entitiesLock.EnterWriteLock();
+                    try
+                    {
+                        _manager._entities[_entityId] = _entity;
+                    }
+                    finally
+                    {
+                        _manager._entitiesLock.ExitWriteLock();
+                    }
+                    
                     // 创建分类节点
                     _manager._treeLock.EnterWriteLock();
                     try
@@ -1808,7 +1975,15 @@ namespace EasyPack.Category
                     // 存储元数据
                     if (_metadata != null)
                     {
-                        _manager._metadataStore[_entityId] = _metadata;
+                        _manager._metadataLock.EnterWriteLock();
+                        try
+                        {
+                            _manager._metadataStore[_entityId] = _metadata;
+                        }
+                        finally
+                        {
+                            _manager._metadataLock.ExitWriteLock();
+                        }
                     }
 
                     // 清除统计缓存（数据已改变）
