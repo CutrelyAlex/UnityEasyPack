@@ -8,9 +8,17 @@ namespace EasyPack.EmeCardSystem
     public class CardRule
     {
         /// <summary>
-        /// 事件触发类型。
+        /// 事件触发类型（字符串标识符，如 "Tick"、"Use"、"Collision"）。
+        /// <para>
+        /// 使用字符串而非枚举，支持任意自定义事件类型。
+        /// 标准事件类型定义在 <see cref="CardEventTypes"/> 中。
+        /// </para>
         /// </summary>
-        public CardEventType Trigger;
+        public string EventType = CardEventTypes.ADDED_TO_OWNER;
+
+        /// <summary>
+        /// 自定义事件 ID（可选，用于更精确的事件匹配）。
+        /// </summary>
         public string CustomId;
 
         /// <summary>容器锚点选择：0=Self，1=Owner（默认），N>1 上溯，-1=Root。</summary>
@@ -32,5 +40,19 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>规则执行策略。</summary>
         public RulePolicy Policy { get; set; } = new RulePolicy();
+
+        /// <summary>
+        /// 创建空规则。
+        /// </summary>
+        public CardRule() { }
+
+        /// <summary>
+        /// 创建指定事件类型的规则。
+        /// </summary>
+        /// <param name="eventType">事件类型标识符。</param>
+        public CardRule(string eventType)
+        {
+            EventType = eventType;
+        }
     }
 }
