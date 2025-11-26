@@ -98,20 +98,14 @@ namespace EasyPack.Category
 
             var data = new SerializableCategoryManagerState<T>
             {
-                Entities = new(),
-                Categories = new(),
-                Tags = new(),
-                Metadata = new(),
+                Entities = new(), Categories = new(), Tags = new(), Metadata = new(),
             };
 
             // 序列化实体和分类
             var categories = manager.GetCategoriesNodes();
             foreach (string category in categories)
             {
-                data.Categories.Add(new()
-                {
-                    Name = category,
-                });
+                data.Categories.Add(new() { Name = category });
 
                 var entities = manager.GetByCategory(category, false);
                 foreach (T entity in entities)
@@ -126,23 +120,14 @@ namespace EasyPack.Category
                         ? _serializationService.SerializeToJson(entity)
                         : JsonUtility.ToJson(entity);
 
-                    data.Entities.Add(new()
-                    {
-                        Id = id,
-                        EntityJson = entityJson,
-                        Category = category,
-                    });
+                    data.Entities.Add(new() { Id = id, EntityJson = entityJson, Category = category });
                 }
             }
 
             // 序列化标签
             var tagIndex = manager.GetTagIndex();
             foreach (var kvp in tagIndex)
-                data.Tags.Add(new()
-                {
-                    TagName = kvp.Key,
-                    EntityIds = kvp.Value.ToList(),
-                });
+                data.Tags.Add(new() { TagName = kvp.Key, EntityIds = kvp.Value.ToList() });
 
             // 序列化元数据
             var metadataStore = manager.GetMetadataStore();
@@ -150,7 +135,8 @@ namespace EasyPack.Category
                 data.Metadata.Add(new()
                 {
                     EntityId = kvp.Key,
-                    MetadataJson = JsonUtility.ToJson(new CustomDataCollectionWrapper { Entries = kvp.Value.ToList() }),
+                    MetadataJson =
+                        JsonUtility.ToJson(new CustomDataCollectionWrapper { Entries = kvp.Value.ToList() }),
                 });
 
             return data;
@@ -251,10 +237,7 @@ namespace EasyPack.Category
 
                 var data = new SerializableCategoryManagerState<T>
                 {
-                    Entities = new(),
-                    Categories = new(),
-                    Tags = new(),
-                    Metadata = new(),
+                    Entities = new(), Categories = new(), Tags = new(), Metadata = new(),
                 };
 
                 manager.GetOptimizedSerializationIndices(out var entityTagIndex, out var entityMetadataIndex);
@@ -268,10 +251,7 @@ namespace EasyPack.Category
                 {
                     var entities = manager.GetByCategory(category, false);
 
-                    data.Categories.Add(new()
-                    {
-                        Name = category,
-                    });
+                    data.Categories.Add(new() { Name = category });
 
                     foreach (T entity in entities)
                     {
@@ -293,22 +273,13 @@ namespace EasyPack.Category
                             entityJson = string.Empty;
                         }
 
-                        data.Entities.Add(new()
-                        {
-                            Id = id,
-                            EntityJson = entityJson,
-                            Category = category,
-                        });
+                        data.Entities.Add(new() { Id = id, EntityJson = entityJson, Category = category });
                     }
                 }
 
                 // 序列化 Tag
                 foreach (var kvp in tagIndex)
-                    data.Tags.Add(new()
-                    {
-                        TagName = kvp.Key,
-                        EntityIds = new(kvp.Value),
-                    });
+                    data.Tags.Add(new() { TagName = kvp.Key, EntityIds = new(kvp.Value) });
 
                 // 序列化元数据 
                 foreach (var kvp in entityMetadataIndex)
@@ -316,7 +287,9 @@ namespace EasyPack.Category
                     {
                         EntityId = kvp.Key,
                         MetadataJson = JsonUtility.ToJson(new CustomDataCollectionWrapper
-                            { Entries = kvp.Value.ToList() }),
+                        {
+                            Entries = kvp.Value.ToList(),
+                        }),
                     });
 
                 return JsonUtility.ToJson(data, true);

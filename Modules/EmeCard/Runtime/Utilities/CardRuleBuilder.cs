@@ -12,9 +12,7 @@ namespace EasyPack.EmeCardSystem
     {
         private readonly CardRule _rule = new()
         {
-            Requirements = new(),
-            Effects = new(),
-            Policy = new() { DistinctMatched = true },
+            Requirements = new(), Effects = new(), Policy = new() { DistinctMatched = true },
         };
 
         #region 基础配置
@@ -162,16 +160,10 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>要求源卡牌为对象类别</summary>
-        public CardRuleBuilder WhenSourceIsObject()
-        {
-            return When(ctx => ctx.Source?.Category == CardCategory.Object);
-        }
+        public CardRuleBuilder WhenSourceIsObject() { return When(ctx => ctx.Source?.Category == CardCategory.Object); }
 
         /// <summary>要求源卡牌为动作类别</summary>
-        public CardRuleBuilder WhenSourceIsAction()
-        {
-            return When(ctx => ctx.Source?.Category == CardCategory.Action);
-        }
+        public CardRuleBuilder WhenSourceIsAction() { return When(ctx => ctx.Source?.Category == CardCategory.Action); }
 
         /// <summary>要求源卡牌为属性类别</summary>
         public CardRuleBuilder WhenSourceIsAttribute()
@@ -180,10 +172,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>要求源卡牌有指定标签</summary>
-        public CardRuleBuilder WhenSourceHasTag(string tag)
-        {
-            return When(ctx => ctx.Source?.HasTag(tag) ?? false);
-        }
+        public CardRuleBuilder WhenSourceHasTag(string tag) { return When(ctx => ctx.Source?.HasTag(tag) ?? false); }
 
         /// <summary>要求源卡牌没有指定标签</summary>
         public CardRuleBuilder WhenSourceNotHasTag(string tag)
@@ -234,16 +223,10 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>要求事件数据为指定类型</summary>
-        public CardRuleBuilder WhenEventDataIs<T>() where T : class
-        {
-            return When(ctx => ctx.Event.DataObject is T);
-        }
+        public CardRuleBuilder WhenEventDataIs<T>() where T : class { return When(ctx => ctx.Event.DataObject is T); }
 
         /// <summary>要求事件数据不为空</summary>
-        public CardRuleBuilder WhenEventDataNotNull()
-        {
-            return When(ctx => ctx.Event.DataObject != null);
-        }
+        public CardRuleBuilder WhenEventDataNotNull() { return When(ctx => ctx.Event.DataObject != null); }
 
         #endregion
 
@@ -402,11 +385,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>创建卡牌效果</summary>
         public CardRuleBuilder DoCreate(string cardId, int count = 1)
         {
-            _rule.Effects.Add(new CreateCardsEffect
-            {
-                CardIds = new() { cardId },
-                CountPerId = count,
-            });
+            _rule.Effects.Add(new CreateCardsEffect { CardIds = new() { cardId }, CountPerId = count });
             return this;
         }
 

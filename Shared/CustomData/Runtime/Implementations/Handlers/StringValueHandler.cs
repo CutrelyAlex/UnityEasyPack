@@ -25,10 +25,7 @@ namespace EasyPack.CustomData
 
         public string Serialize(CustomDataEntry entry) => entry.StringValue ?? string.Empty;
 
-        public void Clear(CustomDataEntry entry)
-        {
-            entry.StringValue = null;
-        }
+        public void Clear(CustomDataEntry entry) { entry.StringValue = null; }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

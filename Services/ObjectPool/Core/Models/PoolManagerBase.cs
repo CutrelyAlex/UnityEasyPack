@@ -32,10 +32,7 @@ namespace EasyPack.ObjectPool
 
             return (ObjectPool<T>)poolsByType.GetOrAdd(tag.Value, _ =>
             {
-                var pool = new ObjectPool<T>(factory, cleanup, maxCapacity)
-                {
-                    PoolTag = tag,
-                };
+                var pool = new ObjectPool<T>(factory, cleanup, maxCapacity) { PoolTag = tag };
                 return pool;
             });
         }

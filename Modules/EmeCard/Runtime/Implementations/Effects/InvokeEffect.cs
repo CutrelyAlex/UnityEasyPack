@@ -57,9 +57,6 @@ namespace EasyPack.EmeCardSystem
         public InvokeEffect(System.Action<CardRuleContext, IReadOnlyList<Card>> action) => _action = action;
 
         /// <inheritdoc />
-        public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
-        {
-            _action?.Invoke(ctx, matched);
-        }
+        public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched) { _action?.Invoke(ctx, matched); }
     }
 }

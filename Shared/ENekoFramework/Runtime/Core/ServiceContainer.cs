@@ -343,9 +343,6 @@ namespace EasyPack.ENekoFramework
         /// <summary>
         ///     实现 IDisposable 接口
         /// </summary>
-        public void Dispose()
-        {
-            Clear();
-        }
+        public void Dispose() { Clear(); }
     }
 }

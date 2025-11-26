@@ -24,10 +24,7 @@ namespace EasyPack.GamePropertySystem.Editor
         private Vector2 _scrollPosition;
         private bool _initialized = false;
 
-        private void OnEnable()
-        {
-            TryResolveManager();
-        }
+        private void OnEnable() { TryResolveManager(); }
 
         [MenuItem("EasyPack/Modules/GameProperty (游戏属性)/Manager Window (管理器窗口)")]
         public static void OpenGamePropertyManagerWindow()

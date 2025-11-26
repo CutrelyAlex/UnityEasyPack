@@ -19,11 +19,7 @@ namespace EasyPack.Modifiers
         {
             if (obj == null) return null;
 
-            var serializable = new SerializableModifier
-            {
-                Type = obj.Type,
-                Priority = obj.Priority,
-            };
+            var serializable = new SerializableModifier { Type = obj.Type, Priority = obj.Priority };
 
             if (obj is FloatModifier floatModifier)
             {
@@ -82,10 +78,7 @@ namespace EasyPack.Modifiers
 
             var serializable = new SerializableModifier
             {
-                Type = obj.Type,
-                Priority = obj.Priority,
-                IsRangeModifier = false,
-                FloatValue = obj.Value,
+                Type = obj.Type, Priority = obj.Priority, IsRangeModifier = false, FloatValue = obj.Value,
             };
 
             return JsonUtility.ToJson(serializable);
@@ -117,10 +110,7 @@ namespace EasyPack.Modifiers
 
             var serializable = new SerializableModifier
             {
-                Type = obj.Type,
-                Priority = obj.Priority,
-                IsRangeModifier = true,
-                RangeValue = obj.Value,
+                Type = obj.Type, Priority = obj.Priority, IsRangeModifier = true, RangeValue = obj.Value,
             };
 
             return JsonUtility.ToJson(serializable);
@@ -150,20 +140,13 @@ namespace EasyPack.Modifiers
         {
             if (obj == null || obj.Count == 0) return null;
 
-            var wrapper = new ModifierListWrapper
-            {
-                Modifiers = new(),
-            };
+            var wrapper = new ModifierListWrapper { Modifiers = new() };
 
             foreach (IModifier modifier in obj)
             {
                 if (modifier == null) continue;
 
-                var serializable = new SerializableModifier
-                {
-                    Type = modifier.Type,
-                    Priority = modifier.Priority,
-                };
+                var serializable = new SerializableModifier { Type = modifier.Type, Priority = modifier.Priority };
 
                 if (modifier is FloatModifier floatModifier)
                 {

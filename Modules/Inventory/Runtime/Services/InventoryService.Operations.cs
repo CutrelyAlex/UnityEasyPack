@@ -95,12 +95,7 @@ namespace EasyPack.InventorySystem
             }
 
             return foundItem != null
-                ? new ItemLookupResult
-                {
-                    Item = foundItem,
-                    FirstSlotIndex = firstSlotIndex,
-                    TotalCount = totalCount,
-                }
+                ? new ItemLookupResult { Item = foundItem, FirstSlotIndex = firstSlotIndex, TotalCount = totalCount }
                 : default;
         }
 

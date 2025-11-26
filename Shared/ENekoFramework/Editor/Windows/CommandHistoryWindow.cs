@@ -473,10 +473,7 @@ namespace EasyPack.ENekoFramework.Editor
             }
         }
 
-        private void RefreshHistory()
-        {
-            RefreshHistoryAsync();
-        }
+        private void RefreshHistory() { RefreshHistoryAsync(); }
 
         private void RefreshHistoryAsync()
         {
@@ -547,8 +544,8 @@ namespace EasyPack.ENekoFramework.Editor
             foreach (object arch in architectures)
             {
                 PropertyInfo dispatcherProp = arch.GetType().GetProperty("CommandDispatcher",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance |
-                    System.Reflection.BindingFlags.Public);
+                    BindingFlags.NonPublic | BindingFlags.Instance |
+                    BindingFlags.Public);
 
                 if (dispatcherProp != null)
                 {
@@ -572,8 +569,8 @@ namespace EasyPack.ENekoFramework.Editor
                 foreach (object arch in architectures)
                 {
                     PropertyInfo dispatcherProp = arch.GetType().GetProperty("CommandDispatcher",
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance |
-                        System.Reflection.BindingFlags.Public);
+                        BindingFlags.NonPublic | BindingFlags.Instance |
+                        BindingFlags.Public);
 
                     if (dispatcherProp != null)
                     {

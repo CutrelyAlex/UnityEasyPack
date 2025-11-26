@@ -227,10 +227,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             StartNewDay();
         }
 
-        private void OnAttributeChanged(float oldValue, float newValue)
-        {
-            UpdateUI();
-        }
+        private void OnAttributeChanged(float oldValue, float newValue) { UpdateUI(); }
 
         private void UpdateUI()
         {

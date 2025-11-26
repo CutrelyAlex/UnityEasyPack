@@ -147,10 +147,7 @@ namespace EasyPack.ENekoFramework
         ///     适用于初始化场景。
         /// </summary>
         /// <param name="value">新值</param>
-        public void SetValueWithoutNotify(T value)
-        {
-            _value = value;
-        }
+        public void SetValueWithoutNotify(T value) { _value = value; }
 
         private void NotifyListeners()
         {

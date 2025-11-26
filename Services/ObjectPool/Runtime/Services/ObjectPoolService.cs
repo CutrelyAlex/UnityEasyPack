@@ -27,18 +27,12 @@ namespace EasyPack.ObjectPool
         /// <summary>
         ///     服务暂停时调用。
         /// </summary>
-        protected override void OnPause()
-        {
-            Debug.Log("[ObjectPoolService] 对象池服务已暂停");
-        }
+        protected override void OnPause() { Debug.Log("[ObjectPoolService] 对象池服务已暂停"); }
 
         /// <summary>
         ///     服务恢复时调用。
         /// </summary>
-        protected override void OnResume()
-        {
-            Debug.Log("[ObjectPoolService] 对象池服务已恢复");
-        }
+        protected override void OnResume() { Debug.Log("[ObjectPoolService] 对象池服务已恢复"); }
 
         /// <summary>
         ///     服务释放时调用，清空所有对象池。

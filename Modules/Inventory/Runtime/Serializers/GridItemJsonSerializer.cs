@@ -61,7 +61,6 @@ namespace EasyPack.InventorySystem
                 IsStackable = item.IsStackable,
                 Weight = item.Weight,
                 isContanierItem = item.IsContainerItem,
-
                 CustomData = item.CustomData is { Count: > 0 }
                     ? new List<CustomDataEntry>(item.CustomData)
                     : null,

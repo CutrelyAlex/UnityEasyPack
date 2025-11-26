@@ -34,10 +34,7 @@ namespace EasyPack.GamePropertySystem
         public static OperationResult<T> Success(T data, int count) =>
             new()
             {
-                IsFullSuccess = true,
-                SuccessCount = count,
-                SuccessData = data,
-                Failures = new(),
+                IsFullSuccess = true, SuccessCount = count, SuccessData = data, Failures = new(),
             };
 
         /// <summary>
@@ -46,10 +43,7 @@ namespace EasyPack.GamePropertySystem
         public static OperationResult<T> PartialSuccess(T data, int successCount, List<FailureRecord> failures) =>
             new()
             {
-                IsFullSuccess = false,
-                SuccessCount = successCount,
-                SuccessData = data,
-                Failures = failures,
+                IsFullSuccess = false, SuccessCount = successCount, SuccessData = data, Failures = failures,
             };
     }
 

@@ -11,9 +11,7 @@ namespace EasyPack.InventorySystem
     {
         public IItemCondition Inner { get; set; }
 
-        public NotCondition()
-        {
-        }
+        public NotCondition() { }
 
         public NotCondition(IItemCondition inner) => Inner = inner;
 

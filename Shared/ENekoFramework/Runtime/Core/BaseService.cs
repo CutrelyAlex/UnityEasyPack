@@ -68,17 +68,13 @@ namespace EasyPack.ENekoFramework
         ///     服务暂停时调用的钩子方法。
         ///     派生类可重写此方法以实现自定义暂停逻辑。
         /// </summary>
-        protected virtual void OnPause()
-        {
-        }
+        protected virtual void OnPause() { }
 
         /// <summary>
         ///     服务恢复时调用的钩子方法。
         ///     派生类可重写此方法以实现自定义恢复逻辑。
         /// </summary>
-        protected virtual void OnResume()
-        {
-        }
+        protected virtual void OnResume() { }
 
         /// <summary>
         ///     服务释放时调用的钩子方法。

@@ -61,10 +61,7 @@ namespace EasyPack.InventorySystem
 
                 dto.Slots.Add(new()
                 {
-                    Index = slot.Index,
-                    ItemJson = itemJson,
-                    ItemCount = slot.ItemCount,
-                    SlotCondition = null,
+                    Index = slot.Index, ItemJson = itemJson, ItemCount = slot.ItemCount, SlotCondition = null,
                 });
             }
 

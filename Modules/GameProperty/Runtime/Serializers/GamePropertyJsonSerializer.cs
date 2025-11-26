@@ -55,9 +55,7 @@ namespace EasyPack.GamePropertySystem
 
             var data = new SerializableGameProperty
             {
-                ID = gameProperty.ID,
-                BaseValue = gameProperty.GetBaseValue(),
-                Modifiers = modifiersList.ToArray(),
+                ID = gameProperty.ID, BaseValue = gameProperty.GetBaseValue(), Modifiers = modifiersList.ToArray(),
             };
 
             return JsonUtility.ToJson(data);

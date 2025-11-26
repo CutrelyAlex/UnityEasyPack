@@ -6,16 +6,11 @@ namespace EasyPack.InventorySystem
     {
         public string ItemType { get; set; }
 
-        public ItemTypeCondition() : this(string.Empty)
-        {
-        }
+        public ItemTypeCondition() : this(string.Empty) { }
 
         public ItemTypeCondition(string itemType) => ItemType = itemType;
 
-        public void SetItemType(string itemType)
-        {
-            ItemType = itemType;
-        }
+        public void SetItemType(string itemType) { ItemType = itemType; }
 
         public bool CheckCondition(IItem item) => item != null && item.Type == ItemType;
 

@@ -136,10 +136,7 @@ namespace EasyPack.ENekoFramework
         /// <summary>
         ///     清空所有订阅
         /// </summary>
-        public void ClearAllSubscriptions()
-        {
-            _subscriptions.Clear();
-        }
+        public void ClearAllSubscriptions() { _subscriptions.Clear(); }
 
         /// <summary>
         ///     获取指定事件类型的订阅者数量（仅包含存活的订阅者）

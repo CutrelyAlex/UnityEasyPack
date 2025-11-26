@@ -362,10 +362,7 @@ namespace EasyPack.ENekoFramework.Editor
             }
         }
 
-        private void RefreshServices()
-        {
-            RefreshServicesAsync();
-        }
+        private void RefreshServices() { RefreshServicesAsync(); }
 
         private void RefreshServicesAsync()
         {

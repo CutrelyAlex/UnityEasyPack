@@ -203,10 +203,7 @@ namespace EasyPack.EmeCardSystem
                 null
             );
 
-            var card = new Card(cardData)
-            {
-                Index = data.Index,
-            };
+            var card = new Card(cardData) { Index = data.Index };
 
             // 恢复属性
             if (data.Properties != null)

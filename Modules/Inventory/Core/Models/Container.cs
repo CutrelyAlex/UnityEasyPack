@@ -1078,11 +1078,7 @@ namespace EasyPack.InventorySystem
             if (Capacity <= 0 || _slots.Count < Capacity)
             {
                 int newSlotIndex = _slots.Count;
-                var newSlot = new Slot
-                {
-                    Index = newSlotIndex,
-                    Container = this,
-                };
+                var newSlot = new Slot { Index = newSlotIndex, Container = this };
 
                 int addCount = item.IsStackable && item.MaxStackCount > 0
                     ? Mathf.Min(remainingCount, item.MaxStackCount)
@@ -1144,18 +1140,12 @@ namespace EasyPack.InventorySystem
         /// <summary>
         ///     获取所有被占用的槽位
         /// </summary>
-        public virtual List<ISlot> GetOccupiedSlots()
-        {
-            return _slots.Where(s => s.IsOccupied).ToList();
-        }
+        public virtual List<ISlot> GetOccupiedSlots() { return _slots.Where(s => s.IsOccupied).ToList(); }
 
         /// <summary>
         ///     获取所有空闲槽位
         /// </summary>
-        public virtual List<ISlot> GetFreeSlots()
-        {
-            return _slots.Where(s => !s.IsOccupied).ToList();
-        }
+        public virtual List<ISlot> GetFreeSlots() { return _slots.Where(s => !s.IsOccupied).ToList(); }
 
         /// <summary>
         ///     清空指定槽位

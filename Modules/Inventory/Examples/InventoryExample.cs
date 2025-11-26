@@ -500,8 +500,7 @@ namespace EasyPack.InventorySystem.Example
             // BatchMove （构造一个移动列表 - 这里移动 dst 的第0槽到 extra）
             var batch = new List<InventoryService.MoveRequest>
             {
-                new("dst_bag", 0, "extra_bag"),
-                new("dst_bag", 1, "extra_bag"),
+                new("dst_bag", 0, "extra_bag"), new("dst_bag", 1, "extra_bag"),
             };
             var batchResults = _inventoryService.BatchMoveItems(batch);
             Debug.Log($"BatchMove 条目数={batchResults.Count}");

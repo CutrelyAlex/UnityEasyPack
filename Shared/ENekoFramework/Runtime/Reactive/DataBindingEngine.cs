@@ -107,9 +107,6 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         public event Action OnDestroyed;
 
-        private void OnDestroy()
-        {
-            OnDestroyed?.Invoke();
-        }
+        private void OnDestroy() { OnDestroyed?.Invoke(); }
     }
 }

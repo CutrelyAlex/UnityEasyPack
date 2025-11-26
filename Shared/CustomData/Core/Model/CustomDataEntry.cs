@@ -39,7 +39,9 @@ namespace EasyPack.CustomData
         #region 静态工厂方法
 
         public static CustomDataEntry CreateString(string key, string value) => new()
-            { Key = key, Type = CustomDataType.String, StringValue = value ?? "" };
+        {
+            Key = key, Type = CustomDataType.String, StringValue = value ?? "",
+        };
 
         public static CustomDataEntry CreateInt(string key, int value) =>
             new() { Key = key, Type = CustomDataType.Int, IntValue = value };
@@ -51,10 +53,14 @@ namespace EasyPack.CustomData
             new() { Key = key, Type = CustomDataType.Bool, BoolValue = value };
 
         public static CustomDataEntry CreateVector2(string key, Vector2 value) => new()
-            { Key = key, Type = CustomDataType.Vector2, Vector2Value = value };
+        {
+            Key = key, Type = CustomDataType.Vector2, Vector2Value = value,
+        };
 
         public static CustomDataEntry CreateVector3(string key, Vector3 value) => new()
-            { Key = key, Type = CustomDataType.Vector3, Vector3Value = value };
+        {
+            Key = key, Type = CustomDataType.Vector3, Vector3Value = value,
+        };
 
         public static CustomDataEntry CreateColor(string key, Color value) =>
             new() { Key = key, Type = CustomDataType.Color, ColorValue = value };

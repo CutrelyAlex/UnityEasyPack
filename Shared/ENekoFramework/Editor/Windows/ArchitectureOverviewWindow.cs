@@ -91,22 +91,11 @@ namespace EasyPack.ENekoFramework.Editor
         {
             if (_stylesInitialized) return;
 
-            _headerStyle = new(EditorStyles.boldLabel)
-            {
-                fontSize = 14,
-                margin = new(5, 5, 5, 5),
-            };
+            _headerStyle = new(EditorStyles.boldLabel) { fontSize = 14, margin = new(5, 5, 5, 5) };
 
-            _boxStyle = new(GUI.skin.box)
-            {
-                padding = new(10, 10, 10, 10),
-                margin = new(5, 5, 5, 5),
-            };
+            _boxStyle = new(GUI.skin.box) { padding = new(10, 10, 10, 10), margin = new(5, 5, 5, 5) };
 
-            _labelStyle = new(EditorStyles.label)
-            {
-                richText = true,
-            };
+            _labelStyle = new(EditorStyles.label) { richText = true };
 
             _stylesInitialized = true;
         }
@@ -301,10 +290,7 @@ namespace EasyPack.ENekoFramework.Editor
             }
         }
 
-        private void RefreshArchitectures()
-        {
-            RefreshArchitecturesAsync();
-        }
+        private void RefreshArchitectures() { RefreshArchitecturesAsync(); }
 
         private void RefreshArchitecturesAsync()
         {
@@ -362,11 +348,7 @@ namespace EasyPack.ENekoFramework.Editor
 
             foreach (object instance in instances)
             {
-                var info = new ArchitectureInfo
-                {
-                    Instance = instance,
-                    TypeName = instance.GetType().Name,
-                };
+                var info = new ArchitectureInfo { Instance = instance, TypeName = instance.GetType().Name };
 
                 // 获取IsInitialized属性
                 PropertyInfo isInitProp = instance.GetType().GetProperty("IsInitialized");
@@ -394,7 +376,7 @@ namespace EasyPack.ENekoFramework.Editor
                     {
                         // 尝试获取注册的事件数量
                         FieldInfo subscribersField = eventBus.GetType().GetField("_subscribers",
-                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                            BindingFlags.NonPublic | BindingFlags.Instance);
                         if (subscribersField != null)
                         {
                             object subscribers = subscribersField.GetValue(eventBus);
@@ -413,9 +395,9 @@ namespace EasyPack.ENekoFramework.Editor
         private bool HasProperty(object instance, string propertyName)
         {
             PropertyInfo prop = instance.GetType().GetProperty(propertyName,
-                System.Reflection.BindingFlags.Public |
-                System.Reflection.BindingFlags.NonPublic |
-                System.Reflection.BindingFlags.Instance);
+                BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Instance);
 
             return prop != null && prop.GetValue(instance) != null;
         }

@@ -42,9 +42,8 @@ namespace EasyPack.GamePropertySystem.Example
         {
             string[] exampleIds = new[]
             {
-                "hp", "mp", "strength",
-                "hp_meta", "hp_batch", "mp_batch", "stamina_batch",
-                "hp_adv", "mp_adv", "crit_adv",
+                "hp", "mp", "strength", "hp_meta", "hp_batch", "mp_batch", "stamina_batch", "hp_adv", "mp_adv",
+                "crit_adv",
             };
 
             foreach (string id in exampleIds) _manager.Unregister(id);
@@ -128,8 +127,7 @@ namespace EasyPack.GamePropertySystem.Example
             // 批量注册
             var properties = new[]
             {
-                new GameProperty("hp_batch", 100),
-                new GameProperty("mp_batch", 50),
+                new GameProperty("hp_batch", 100), new GameProperty("mp_batch", 50),
                 new GameProperty("stamina_batch", 80),
             };
             _manager.RegisterRange(properties, "Character.Resources");
@@ -222,9 +220,6 @@ namespace EasyPack.GamePropertySystem.Example
             Debug.Log($"提升力量后伤害: {finalDamage.GetValue()}"); // 50 + 20*2 = 90
         }
 
-        private void OnDestroy()
-        {
-            _manager?.Dispose();
-        }
+        private void OnDestroy() { _manager?.Dispose(); }
     }
 }

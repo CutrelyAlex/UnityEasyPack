@@ -75,9 +75,6 @@ namespace EasyPack.Architecture
         /// </summary>
         /// <typeparam name="T">事件类型</typeparam>
         /// <param name="e">事件实例</param>
-        protected void PublishEvent<T>(T e) where T : IEvent
-        {
-            GetArchitecture().PublishEvent(e);
-        }
+        protected void PublishEvent<T>(T e) where T : IEvent { GetArchitecture().PublishEvent(e); }
     }
 }

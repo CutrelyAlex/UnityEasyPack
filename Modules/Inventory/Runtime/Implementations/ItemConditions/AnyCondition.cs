@@ -12,9 +12,7 @@ namespace EasyPack.InventorySystem
     {
         public List<IItemCondition> Children { get; } = new();
 
-        public AnyCondition()
-        {
-        }
+        public AnyCondition() { }
 
         public AnyCondition(params IItemCondition[] children)
         {

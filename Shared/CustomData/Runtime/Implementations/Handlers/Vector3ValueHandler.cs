@@ -43,10 +43,7 @@ namespace EasyPack.CustomData
 
         public string Serialize(CustomDataEntry entry) => JsonUtility.ToJson(entry.Vector3Value);
 
-        public void Clear(CustomDataEntry entry)
-        {
-            entry.Vector3Value = default;
-        }
+        public void Clear(CustomDataEntry entry) { entry.Vector3Value = default; }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

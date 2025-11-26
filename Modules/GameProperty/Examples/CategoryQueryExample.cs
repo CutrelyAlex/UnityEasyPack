@@ -38,10 +38,9 @@ namespace EasyPack.GamePropertySystem.Example
         {
             string[] exampleIds = new[]
             {
-                "hp", "hpRegen", "mp", "mpRegen", "strength", "intelligence",
-                "hp_tag", "mp_tag", "level_tag", "tempBuff",
-                "hp_comb", "mp_comb", "attack_comb", "defense_comb",
-                "crit_wild", "critDamage_wild", "armor_wild", "magicResist_wild",
+                "hp", "hpRegen", "mp", "mpRegen", "strength", "intelligence", "hp_tag", "mp_tag", "level_tag",
+                "tempBuff", "hp_comb", "mp_comb", "attack_comb", "defense_comb", "crit_wild", "critDamage_wild",
+                "armor_wild", "magicResist_wild",
             };
 
             foreach (string id in exampleIds) _manager.Unregister(id);
@@ -211,8 +210,7 @@ namespace EasyPack.GamePropertySystem.Example
             // 注册UI显示属性
             var uiProps = new[]
             {
-                ("hp_ui", 100f, "生命值", "Icons/HP", 1),
-                ("mp_ui", 50f, "魔法值", "Icons/MP", 2),
+                ("hp_ui", 100f, "生命值", "Icons/HP", 1), ("mp_ui", 50f, "魔法值", "Icons/MP", 2),
                 ("stamina_ui", 80f, "耐力", "Icons/Stamina", 3),
             };
 
@@ -221,9 +219,7 @@ namespace EasyPack.GamePropertySystem.Example
                 var property = new GameProperty(id, value);
                 var metadata = new PropertyMetadata
                 {
-                    DisplayName = displayName,
-                    IconPath = icon,
-                    Tags = new[] { "displayInUI" },
+                    DisplayName = displayName, IconPath = icon, Tags = new[] { "displayInUI" },
                 };
 
                 // 设置排序顺序
@@ -248,9 +244,6 @@ namespace EasyPack.GamePropertySystem.Example
             return Task.CompletedTask;
         }
 
-        private void OnDestroy()
-        {
-            _manager?.Dispose();
-        }
+        private void OnDestroy() { _manager?.Dispose(); }
     }
 }

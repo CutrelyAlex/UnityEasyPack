@@ -322,9 +322,8 @@ namespace EasyPack.Category
                 }
                 else
                 {
-                    // 精确查询一次字典查询
-                    if (_categoryTermMapper.Contains(pattern) &&
-                        _categoryNodes.TryGetValue(_categoryTermMapper.GetOrAssignId(pattern), out CategoryNode node))
+                    if (_categoryTermMapper.TryGetId(pattern, out int nodeId) &&
+                        _categoryNodes.TryGetValue(nodeId, out CategoryNode node))
                     {
                         if (includeChildren)
                             foreach (string id in node.GetSubtreeEntityIds())
@@ -541,8 +540,8 @@ namespace EasyPack.Category
             _treeLock.EnterWriteLock();
             try
             {
-                if (!_categoryTermMapper.Contains(category) ||
-                    !_categoryNodes.TryGetValue(_categoryTermMapper.GetOrAssignId(category), out CategoryNode node))
+                if (!_categoryTermMapper.TryGetId(category, out int nodeId) ||
+                    !_categoryNodes.TryGetValue(nodeId, out CategoryNode node))
                     return OperationResult.Failure(ErrorCode.NotFound, $"未找到分类 '{category}'");
 
                 //var affectedNodePaths = new HashSet<string> { category };
@@ -588,8 +587,8 @@ namespace EasyPack.Category
             _treeLock.EnterWriteLock();
             try
             {
-                if (!_categoryTermMapper.Contains(category) ||
-                    !_categoryNodes.TryGetValue(_categoryTermMapper.GetOrAssignId(category), out CategoryNode node))
+                if (!_categoryTermMapper.TryGetId(category, out int nodeId) ||
+                    !_categoryNodes.TryGetValue(nodeId, out CategoryNode node))
                     return OperationResult.Failure(ErrorCode.NotFound, $"未找到分类 '{category}'");
 
                 var affectedNodePaths = new HashSet<string>();
@@ -799,10 +798,8 @@ namespace EasyPack.Category
 
             if (string.IsNullOrWhiteSpace(tag)) return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
 
-            // 映射到整数
-            if (!_tagMapper.Contains(tag)) return OperationResult.Failure(ErrorCode.NotFound, $"标签 '{tag}' 不存在");
-
-            int tagId = _tagMapper.GetOrAssignId(tag);
+            if (!_tagMapper.TryGetId(tag, out int tagId))
+                return OperationResult.Failure(ErrorCode.NotFound, $"标签 '{tag}' 不存在");
 
             AcquireTagWriteLock(tagId);
             try
@@ -838,9 +835,9 @@ namespace EasyPack.Category
         {
             if (string.IsNullOrWhiteSpace(tag)) return new List<T>();
 
-
-            // 获取标签整数ID
-            int tagId = _tagMapper.GetOrAssignId(tag);
+            // 查询时不应创建新 ID，使用 TryGetId
+            if (!_tagMapper.TryGetId(tag, out int tagId))
+                return new List<T>();
 
             // 检查缓存快速路径
             if (_tagCache.TryGetValue(tagId, out var cachedResult))
@@ -1538,10 +1535,7 @@ namespace EasyPack.Category
         /// <summary>
         ///     清除缓存清空所有缓存（不清除实体数据）
         /// </summary>
-        public void ClearCache()
-        {
-            _tagCache.Clear();
-        }
+        public void ClearCache() { _tagCache.Clear(); }
 
         #endregion
 
@@ -1627,14 +1621,9 @@ namespace EasyPack.Category
         /// <summary>
         /// 预业业场准。
         /// </summary>
-        public Statistics GetStatistics()
-        {
-            return new Statistics();
-        }
+        public Statistics GetStatistics() { return new Statistics(); }
 
-        private void RecordCacheQuery(bool isHit)
-        {
-        }
+        private void RecordCacheQuery(bool isHit) { }
 #endif
 
         #endregion
@@ -1649,9 +1638,8 @@ namespace EasyPack.Category
         {
             if (string.IsNullOrEmpty(tag)) return;
 
-            if (_tagMapper.Contains(tag))
+            if (_tagMapper.TryGetId(tag, out int tagId))
             {
-                int tagId = _tagMapper.GetOrAssignId(tag);
                 _tagCache.Remove(tagId);
             }
         }

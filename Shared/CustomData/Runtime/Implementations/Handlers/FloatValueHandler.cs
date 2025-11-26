@@ -29,10 +29,7 @@ namespace EasyPack.CustomData
 
         public string Serialize(CustomDataEntry entry) => entry.FloatValue.ToString("R", CultureInfo.InvariantCulture);
 
-        public void Clear(CustomDataEntry entry)
-        {
-            entry.FloatValue = 0;
-        }
+        public void Clear(CustomDataEntry entry) { entry.FloatValue = 0; }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

@@ -37,12 +37,7 @@ namespace EasyPack.GamePropertySystem
                         break;
                     }
 
-                propertiesList.Add(new()
-                {
-                    ID = propertyId,
-                    Category = category,
-                    SerializedProperty = propertyJson,
-                });
+                propertiesList.Add(new() { ID = propertyId, Category = category, SerializedProperty = propertyJson });
 
                 PropertyMetadata metadata = obj.GetMetadata(propertyId);
                 if (metadata != null)
@@ -57,11 +52,7 @@ namespace EasyPack.GamePropertySystem
                     });
             }
 
-            return new()
-            {
-                Properties = propertiesList.ToArray(),
-                Metadata = metadataList.ToArray(),
-            };
+            return new() { Properties = propertiesList.ToArray(), Metadata = metadataList.ToArray() };
         }
 
         public GamePropertyService FromSerializable(PropertyManagerDTO dto)

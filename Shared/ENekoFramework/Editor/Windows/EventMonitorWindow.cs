@@ -520,8 +520,7 @@ namespace EasyPack.ENekoFramework.Editor
 
                 string jsonData = JsonUtility.ToJson(new SerializableEventLogData
                 {
-                    Entries = serializableEntries.ToArray(),
-                    SaveTime = DateTime.Now,
+                    Entries = serializableEntries.ToArray(), SaveTime = DateTime.Now,
                 });
 
                 EditorPrefs.SetString(EventLogDataKey, jsonData);

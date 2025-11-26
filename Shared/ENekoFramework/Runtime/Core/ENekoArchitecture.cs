@@ -257,10 +257,7 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         /// <typeparam name="TEvent">事件类型</typeparam>
         /// <param name="eventData">事件数据</param>
-        public void PublishEvent<TEvent>(TEvent eventData) where TEvent : IEvent
-        {
-            EventBus.Publish(eventData);
-        }
+        public void PublishEvent<TEvent>(TEvent eventData) where TEvent : IEvent { EventBus.Publish(eventData); }
 
         /// <summary>
         ///     订阅事件

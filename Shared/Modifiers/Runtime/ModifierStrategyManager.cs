@@ -9,13 +9,8 @@ namespace EasyPack.Modifiers
 
         public static readonly ModifierType[] MODIFIER_TYPE_ORDER = new ModifierType[]
         {
-            ModifierType.Add,
-            ModifierType.PriorityAdd,
-            ModifierType.Mul,
-            ModifierType.PriorityMul,
-            ModifierType.AfterAdd,
-            ModifierType.Override,
-            ModifierType.Clamp,
+            ModifierType.Add, ModifierType.PriorityAdd, ModifierType.Mul, ModifierType.PriorityMul,
+            ModifierType.AfterAdd, ModifierType.Override, ModifierType.Clamp,
         };
 
         static ModifierStrategyManager()
@@ -29,10 +24,7 @@ namespace EasyPack.Modifiers
             RegisterStrategy(new OverrideModifierStrategy());
         }
 
-        public static void RegisterStrategy(IModifierStrategy strategy)
-        {
-            _strategies[strategy.Type] = strategy;
-        }
+        public static void RegisterStrategy(IModifierStrategy strategy) { _strategies[strategy.Type] = strategy; }
 
         public static IModifierStrategy GetStrategy(ModifierType type)
         {

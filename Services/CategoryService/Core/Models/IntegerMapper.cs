@@ -112,19 +112,21 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     检查映射表是否包含指定的字符串
+        ///     尝试获取词汇对应的整数 ID
         /// </summary>
         /// <param name="term">词汇字符串</param>
-        /// <returns>是否存在</returns>
-        public bool Contains(string term)
+        /// <param name="id">返回的整数 ID（若失败则为 -1）</param>
+        /// <returns>是否成功获取</returns>
+        public bool TryGetId(string term, out int id)
         {
+            id = -1;
             if (string.IsNullOrEmpty(term))
                 return false;
 
             _lock.EnterReadLock();
             try
             {
-                return _stringToInt.ContainsKey(term);
+                return _stringToInt.TryGetValue(term, out id);
             }
             finally
             {
@@ -279,9 +281,6 @@ namespace EasyPack.Category
         /// <summary>
         ///     释放所有资源
         /// </summary>
-        public void Dispose()
-        {
-            _lock?.Dispose();
-        }
+        public void Dispose() { _lock?.Dispose(); }
     }
 }

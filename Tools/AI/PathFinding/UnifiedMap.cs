@@ -14,12 +14,7 @@ namespace EasyPack.Tools.PathFinding
 
         public void AddWalkableTile(Vector3Int position, Tilemap tilemap, float cost = 1f)
         {
-            var tileInfo = new TileInfo
-            {
-                tilemap = tilemap,
-                cost = cost,
-                position = position,
-            };
+            var tileInfo = new TileInfo { tilemap = tilemap, cost = cost, position = position };
 
             walkableTiles[position] = tileInfo;
             UpdateBounds(position);

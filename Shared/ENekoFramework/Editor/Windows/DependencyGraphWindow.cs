@@ -52,10 +52,7 @@ namespace EasyPack.ENekoFramework.Editor
 
         private void CreateGraphView()
         {
-            _graphView = new()
-            {
-                name = "Dependency Graph",
-            };
+            _graphView = new() { name = "Dependency Graph" };
 
             _graphView.StretchToParentSize();
             rootVisualElement.Add(_graphView);
@@ -92,10 +89,7 @@ namespace EasyPack.ENekoFramework.Editor
             rootVisualElement.Add(toolbar);
         }
 
-        private void RefreshGraph()
-        {
-            _graphView?.RefreshGraph();
-        }
+        private void RefreshGraph() { _graphView?.RefreshGraph(); }
     }
 
     /// <summary>
@@ -194,11 +188,7 @@ namespace EasyPack.ENekoFramework.Editor
 
         private static Edge CreateEdge(ServiceNode from, ServiceNode to)
         {
-            var edge = new Edge
-            {
-                output = from.OutputPort,
-                input = to.InputPort,
-            };
+            var edge = new Edge { output = from.OutputPort, input = to.InputPort };
 
             edge.output.Connect(edge);
             edge.input.Connect(edge);
@@ -334,12 +324,7 @@ namespace EasyPack.ENekoFramework.Editor
             // 实现类型标签
             var implLabel = new Label(service.ImplementationType.Name)
             {
-                style =
-                {
-                    fontSize = 10,
-                    color = new Color(0.7f, 0.7f, 0.7f),
-                    marginBottom = 5,
-                },
+                style = { fontSize = 10, color = new Color(0.7f, 0.7f, 0.7f), marginBottom = 5 },
             };
             mainContainer.Add(implLabel);
 
@@ -354,12 +339,7 @@ namespace EasyPack.ENekoFramework.Editor
 
             var warningLabel = new Label("⚠ 循环依赖")
             {
-                style =
-                {
-                    color = Color.red,
-                    unityFontStyleAndWeight = FontStyle.Bold,
-                    fontSize = 11,
-                },
+                style = { color = Color.red, unityFontStyleAndWeight = FontStyle.Bold, fontSize = 11 },
             };
             mainContainer.Add(warningLabel);
         }
