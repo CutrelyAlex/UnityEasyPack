@@ -122,6 +122,8 @@ namespace EasyPack.EmeCardSystem
         private readonly Dictionary<string, List<Card>> _cardsById = new();
         // Custom规则按ID分组缓存
         private readonly Dictionary<string, List<CardRule>> _customRulesById = new();
+        // UID->Card缓存，支持 O(1) UID 查询
+        private readonly Dictionary<int, Card> _cardsByUID = new();
 
         #endregion
 
@@ -568,11 +570,22 @@ namespace EasyPack.EmeCardSystem
         {
             return GetCardByKey(card.Id, card.Index) == card;
         }
+
+        /// <summary>
+        /// 根据 UID 获取卡牌，O(1) 时间复杂度。
+        /// </summary>
+        /// <param name="uid">卡牌的唯一标识符。</param>
+        /// <returns>找到的卡牌，或 null 如果未找到。</returns>
+        public Card GetCardByUID(int uid)
+        {
+            _cardsByUID.TryGetValue(uid, out var card);
+            return card;
+        }
         #endregion
 
         #region 卡牌缓存处理
         /// <summary>
-        /// 添加卡牌到引擎，分配唯一Index并订阅事件。
+        /// 添加卡牌到引擎，分配唯一Index、UID并订阅事件。
         /// </summary>
         public CardEngine AddCard(Card c)
         {
@@ -580,7 +593,17 @@ namespace EasyPack.EmeCardSystem
 
             var id = c.Id;
 
-            // 第一步: 分配索引（如果还未分配）
+            // 第一步: 分配 UID（如果还未分配）
+            if (c.UID < 0)
+            {
+                CardFactory.AssignUID(c);
+            }
+            else if (_cardsByUID.ContainsKey(c.UID))
+            {
+                throw new InvalidOperationException($"UID {c.UID} 已被另一张卡牌占用");
+            }
+
+            // 第二步: 分配索引（如果还未分配）
             if (!_idIndexes.TryGetValue(id, out var indexes))
             {
                 indexes = new HashSet<int>();
@@ -596,17 +619,20 @@ namespace EasyPack.EmeCardSystem
                 c.Index = assignedIndex;
             }
 
-            // 第二步: 检查是否已在实际存储中（这时Index经已正常分配）
+            // 第三步: 检查是否已在实际存储中（这时Index经已正常分配）
             var key = new CardKey(c.Id, c.Index);
             if (_cardMap.ContainsKey(key))
                 return this; // 已存在，不重复添加
 
             c.OnEvent += OnCardEvent;
 
-            // 第三步: 添加到索引
+            // 第四步: 添加到索引
             indexes.Add(c.Index);
             var actualKey = new CardKey(c.Id, c.Index);
             _cardMap[actualKey] = c;
+
+            // 添加到 UID 索引
+            _cardsByUID[c.UID] = c;
 
             // 更新_cardsById缓存
             if (!_cardsById.TryGetValue(id, out var cardList))
@@ -616,7 +642,7 @@ namespace EasyPack.EmeCardSystem
             }
             cardList.Add(c);
 
-            // 第四步: 将卡牌的所有标签加入TargetSelector缓存（确保新创建的卡牌标签也被缓存）
+            // 第五步: 将卡牌的所有标签加入TargetSelector缓存（确保新创建的卡牌标签也被缓存）
             foreach (var tag in c.Tags)
             {
                 TargetSelector.OnCardTagAdded(c, tag);
@@ -626,7 +652,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 移除卡牌，移除事件订阅与索引。
+        /// 移除卡牌，移除事件订阅、UID 映射与索引。
         /// </summary>
         public CardEngine RemoveCard(Card c)
         {
@@ -637,6 +663,12 @@ namespace EasyPack.EmeCardSystem
             {
                 _cardMap.Remove(key);
                 c.OnEvent -= OnCardEvent;
+
+                // 从 UID 索引中移除
+                if (c.UID >= 0)
+                {
+                    _cardsByUID.Remove(c.UID);
+                }
 
                 if (_idIndexes.TryGetValue(c.Id, out var indexes))
                 {
@@ -671,6 +703,7 @@ namespace EasyPack.EmeCardSystem
             _cardMap.Clear();
             _idIndexes.Clear();
             _cardsById.Clear();
+            _cardsByUID.Clear();
         }
         #endregion
     }
