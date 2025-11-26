@@ -22,7 +22,7 @@ namespace EasyPack.EmeCardSystem
         DateTime EventTimestamp { get; }
 
         /// <summary>
-        ///     事件优先级（数值越大优先级越高）。
+        ///     事件优先级（数值越小优先级越高）。
         /// </summary>
         int Priority { get; }
 
