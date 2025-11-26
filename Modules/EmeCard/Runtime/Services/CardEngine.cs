@@ -647,9 +647,7 @@ namespace EasyPack.EmeCardSystem
 
             if (card == null) return null;
 
-            // 设置卡牌的Engine引用以支持缓存清除
-            card.Engine = this;
-
+            // AddCard 会设置 Engine 引用并注册到 CategoryManager
             AddCard(card);
 
             return card;
@@ -761,6 +759,9 @@ namespace EasyPack.EmeCardSystem
         public CardEngine AddCard(Card c)
         {
             if (c == null) return this;
+
+            // 设置卡牌的Engine引用
+            c.Engine = this;
 
             string id = c.Id;
 
