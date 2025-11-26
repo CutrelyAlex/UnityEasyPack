@@ -138,6 +138,12 @@ namespace EasyPack.EmeCardSystem
         // UID->Card缓存，支持 O(1) UID 查询
         private readonly Dictionary<int, Card> _cardsByUID = new();
 
+        // 全局效果池，跨事件收集效果，确保全局优先级排序
+        private readonly EffectPool _globalEffectPool = new();
+
+        // 全局效果池的规则顺序计数器
+        private int _globalOrderIndex = 0;
+
         #endregion
 
         #region 规则处理
@@ -232,6 +238,12 @@ namespace EasyPack.EmeCardSystem
             finally
             {
                 _isPumping = false;
+                
+                // 如果启用全局效果池且模式为 AfterPump，刷新效果池
+                if (Policy.EnableEffectPool && Policy.EffectPoolFlushMode == EffectPoolFlushMode.AfterPump)
+                {
+                    FlushEffectPool();
+                }
             }
         }
 
@@ -277,6 +289,12 @@ namespace EasyPack.EmeCardSystem
                 try
                 {
                     float elapsedMs = Time.realtimeSinceStartup * 1000f - _frameStartTime;
+                    
+                    // 如果启用全局效果池且模式为 AfterFrame，在本帧结束时刷新
+                    if (Policy.EnableEffectPool && Policy.EffectPoolFlushMode == EffectPoolFlushMode.AfterFrame)
+                    {
+                        FlushEffectPool();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -310,6 +328,7 @@ namespace EasyPack.EmeCardSystem
 
             float elapsed = Time.realtimeSinceStartup - _batchStartTime;
             float remaining = _batchTimeLimit - elapsed;
+            bool batchCompleted = false;
 
             if (remaining > 0)
             {
@@ -329,7 +348,19 @@ namespace EasyPack.EmeCardSystem
                 }
 
                 // 处理后检查队列是否已清空
-                if (_queue.Count == 0) _isBatchProcessing = false;
+                if (_queue.Count == 0)
+                {
+                    _isBatchProcessing = false;
+                    batchCompleted = true;
+                }
+                else
+                {
+                    // 分帧模式下，每帧结束时刷新效果池（如果配置为 AfterFrame）
+                    if (Policy.EnableEffectPool && Policy.EffectPoolFlushMode == EffectPoolFlushMode.AfterFrame)
+                    {
+                        FlushEffectPool();
+                    }
+                }
             }
             else
             {
@@ -341,6 +372,13 @@ namespace EasyPack.EmeCardSystem
                 }
 
                 _isBatchProcessing = false;
+                batchCompleted = true;
+            }
+
+            // 批次完成时刷新效果池（如果配置为 AfterPump）
+            if (batchCompleted && Policy.EnableEffectPool && Policy.EffectPoolFlushMode == EffectPoolFlushMode.AfterPump)
+            {
+                FlushEffectPool();
             }
         }
 
@@ -396,15 +434,8 @@ namespace EasyPack.EmeCardSystem
             else
                 evals.Sort((a, b) => a.orderIndex.CompareTo(b.orderIndex));
 
-            // 根据配置选择效果池模式或即时执行模式
-            if (Policy.EnableEffectPool)
-            {
-                ExecuteWithEffectPool(evals);
-            }
-            else
-            {
-                ExecuteImmediate(evals);
-            }
+            // 执行规则效果
+            ExecuteRules(evals);
         }
 
         /// <summary>
@@ -470,26 +501,30 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     使用效果池执行
+        ///     执行规则效果。
+        ///     <para>
+        ///         如果启用了全局效果池，效果会被收集到池中而非立即执行。
+        ///         池中的效果将在 Pump 结束时或手动刷新时按全局优先级执行。
+        ///     </para>
         /// </summary>
-        private void ExecuteWithEffectPool(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+        private void ExecuteRules(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
         {
-            var pool = new EffectPool();
-
-            // 收集所有效果到池中
-            foreach (var e in evals)
+            if (Policy.EnableEffectPool)
             {
-                pool.AddRuleEffects(e.rule, e.ctx, e.matched, e.orderIndex);
+                // 收集效果到全局池
+                CollectEffectsToPool(evals);
             }
-
-            // 统一执行
-            pool.ExecuteAll();
+            else
+            {
+                // 直接执行效果（原有逻辑）
+                ExecuteRulesDirect(evals);
+            }
         }
 
         /// <summary>
-        ///     即时执行模式。
+        ///     直接执行规则效果（不使用效果池）。
         /// </summary>
-        private void ExecuteImmediate(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+        private void ExecuteRulesDirect(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
         {
             if (Policy.FirstMatchOnly)
             {
@@ -505,6 +540,41 @@ namespace EasyPack.EmeCardSystem
                 }
             }
         }
+
+        /// <summary>
+        ///     收集效果到全局效果池。
+        /// </summary>
+        private void CollectEffectsToPool(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+        {
+            foreach (var e in evals)
+            {
+                if (e.matched == null || e.rule.Effects == null || e.rule.Effects.Count == 0)
+                    continue;
+
+                // 使用全局顺序索引确保跨事件的顺序一致性
+                _globalEffectPool.AddRuleEffects(e.rule, e.ctx, e.matched, _globalOrderIndex++);
+            }
+        }
+
+        /// <summary>
+        ///     刷新全局效果池，按优先级执行所有收集的效果。
+        /// </summary>
+        /// <returns>执行的效果数量</returns>
+        public int FlushEffectPool()
+        {
+            if (_globalEffectPool.Count == 0) return 0;
+
+            int count = _globalEffectPool.ExecuteAll();
+            _globalEffectPool.Clear();
+            _globalOrderIndex = 0; // 重置顺序计数器
+
+            return count;
+        }
+
+        /// <summary>
+        ///     获取全局效果池中待执行的效果数量。
+        /// </summary>
+        public int PendingEffectCount => _globalEffectPool.Count;
 
         private bool ExecuteOne((CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex) e)
         {
@@ -541,16 +611,6 @@ namespace EasyPack.EmeCardSystem
         #endregion
 
         #region 容器方法
-
-        /// <summary>
-        ///     [已弃用] 根据跳数选择容器卡牌。
-        ///     请使用 <see cref="CardRule.ResolveRootCard"/> 方法代替。
-        /// </summary>
-        [System.Obsolete("使用 CardRule.ResolveRootCard() 代替。此方法将在未来版本移除。")]
-        private static Card SelectContainer(int ownerHops, Card source)
-        {
-            return CardRule.ResolveRootCard(source, ownerHops);
-        }
 
         private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements,
                                           out List<Card> matchedAll, int ruleId = -1)

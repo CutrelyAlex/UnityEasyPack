@@ -126,7 +126,7 @@ namespace EasyPack.EmeCardSystem
                     ID = card.Data.ID,
                     Name = card.Data.Name,
                     Description = card.Data.Description,
-                    Category = card.Data.Category,
+                    DefaultCategory = card.Data.DefaultCategory,
                     DefaultTags = card.Data.DefaultTags,
                     Index = card.Index,
                     Properties = Array.Empty<SerializableGameProperty>(),
@@ -200,7 +200,7 @@ namespace EasyPack.EmeCardSystem
                 data.ID,
                 data.Name ?? "Default",
                 data.Description ?? string.Empty,
-                data.Category,
+                data.DefaultCategory,
                 data.DefaultTags ?? Array.Empty<string>(),
                 null
             );

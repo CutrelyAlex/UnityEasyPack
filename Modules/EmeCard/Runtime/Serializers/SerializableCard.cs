@@ -14,7 +14,7 @@ namespace EasyPack.EmeCardSystem
         public string ID;
         public string Name;
         public string Description;
-        public CardCategory Category;
+        public string DefaultCategory;
         public string[] DefaultTags;
 
         // 运行时实例字段

@@ -164,6 +164,70 @@ namespace EasyPack.EmeCardSystem
         public IReadOnlyCollection<string> Tags => _tags;
 
         /// <summary>
+        ///     检查卡牌是否包含指定标签。
+        ///     <para>优先使用 CategoryManager（如果引擎已设置），否则使用内部标签集。</para>
+        /// </summary>
+        /// <param name="tag">要检查的标签。</param>
+        /// <returns>如果包含该标签返回 true。</returns>
+        public bool HasTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return false;
+            
+            // 优先使用 CategoryManager
+            if (Engine?.CategoryManager != null)
+            {
+                return Engine.CategoryManager.HasTag(this, tag);
+            }
+            
+            // 回退到内部标签集
+            return _tags.Contains(tag);
+        }
+
+        /// <summary>
+        ///     添加标签到卡牌。
+        ///     <para>同时更新 CategoryManager（如果引擎已设置）和内部标签集。</para>
+        /// </summary>
+        /// <param name="tag">要添加的标签。</param>
+        /// <returns>如果成功添加返回 true（标签之前不存在）。</returns>
+        public bool AddTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return false;
+            
+            bool added = _tags.Add(tag);
+            
+            // 同步到 CategoryManager
+            if (added && Engine?.CategoryManager != null)
+            {
+                string entityId = $"{Id}#{Index}";
+                Engine.CategoryManager.AddTag(entityId, tag);
+            }
+            
+            return added;
+        }
+
+        /// <summary>
+        ///     从卡牌移除标签。
+        ///     <para>同时更新 CategoryManager（如果引擎已设置）和内部标签集。</para>
+        /// </summary>
+        /// <param name="tag">要移除的标签。</param>
+        /// <returns>如果成功移除返回 true（标签之前存在）。</returns>
+        public bool RemoveTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return false;
+            
+            bool removed = _tags.Remove(tag);
+            
+            // 同步到 CategoryManager
+            if (removed && Engine?.CategoryManager != null)
+            {
+                string entityId = $"{Id}#{Index}";
+                Engine.CategoryManager.RemoveTag(entityId, tag);
+            }
+            
+            return removed;
+        }
+
+        /// <summary>
         ///     当前卡牌的持有者（父卡）。
         /// </summary>
         public Card Owner { get; private set; }

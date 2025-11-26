@@ -37,12 +37,6 @@ namespace EasyPack.EmeCardSystem
         public string DefaultCategory { get; }
 
         /// <summary>
-        ///     卡牌类别（物品/动作/环境等），用于规则匹配或统计
-        /// </summary>
-        [Obsolete("使用 DefaultCategory 和 CategoryManager 进行分类管理。此属性将在未来版本移除。")]
-        public CardCategory Category { get; }
-
-        /// <summary>
         ///     卡牌图标
         /// </summary>
         public Sprite Sprite { get; set; }
@@ -70,47 +64,8 @@ namespace EasyPack.EmeCardSystem
             Name = name;
             Description = desc;
             DefaultCategory = defaultCategory ?? DEFAULT_CATEGORY;
-            Category = CardCategory.Object; // 保持向后兼容
             DefaultTags = defaultTags ?? Array.Empty<string>();
             Sprite = sprite ?? Resources.Load<Sprite>(ID);
-        }
-
-        /// <summary>
-        ///     创建一条卡牌静态数据（旧版构造函数，保持向后兼容）。
-        /// </summary>
-        /// <param name="id">逻辑ID</param>
-        /// <param name="name">展示名。默认为 "Default"</param>
-        /// <param name="desc">描述文本</param>
-        /// <param name="category">类别（默认 Object）</param>
-        /// <param name="defaultTags">默认标签集合；null 时使用空数组。</param>
-        /// <param name="sprite">卡牌图标。</param>
-        [Obsolete("使用新的构造函数 CardData(id, name, desc, defaultCategory, defaultTags, sprite)。此构造函数将在未来版本移除。")]
-        public CardData(string id, string name, string desc,
-                        CardCategory category, string[] defaultTags = null, Sprite sprite = null)
-        {
-            ID = id;
-            Name = name;
-            Description = desc;
-            Category = category;
-            // 从旧枚举转换为新的字符串分类
-            DefaultCategory = ConvertCategoryEnumToPath(category);
-            DefaultTags = defaultTags ?? Array.Empty<string>();
-            Sprite = sprite ?? Resources.Load<Sprite>(ID);
-        }
-
-        /// <summary>
-        ///     将旧的 CardCategory 枚举转换为新的分类路径字符串
-        /// </summary>
-        private static string ConvertCategoryEnumToPath(CardCategory category)
-        {
-            return category switch
-            {
-                CardCategory.Object => "Card.Object",
-                CardCategory.Attribute => "Card.Attribute",
-                CardCategory.Action => "Card.Action",
-                CardCategory.Environment => "Card.Environment",
-                _ => DEFAULT_CATEGORY
-            };
         }
     }
 }

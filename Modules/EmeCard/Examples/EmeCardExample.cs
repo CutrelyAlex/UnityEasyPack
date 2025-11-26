@@ -59,33 +59,33 @@ namespace EasyPack.EmeCardSystem.Example
 
             // 注册卡牌模板 - 使用简化构造函数（无属性）
             _factory.Register("世界", () =>
-                new(new("世界", "世界", "", CardCategory.Object), "世界"));
+                new(new("世界", "世界", "", "Card.Object"), "世界"));
 
             _factory.Register("草地格", () =>
-                new(new("草地格", "草地格", "", CardCategory.Object), "草地"));
+                new(new("草地格", "草地格", "", "Card.Object"), "草地"));
 
             _factory.Register("玩家", () =>
-                new(new("玩家", "玩家", "", CardCategory.Object), "玩家"));
+                new(new("玩家", "玩家", "", "Card.Object"), "玩家"));
 
             _factory.Register("树木", () =>
-                new(new("树木", "树木", "", CardCategory.Object), "树木", "可燃烧"));
+                new(new("树木", "树木", "", "Card.Object"), "树木", "可燃烧"));
 
             _factory.Register("木棍", () =>
-                new(new("木棍", "木棍", "", CardCategory.Object), "木棍"));
+                new(new("木棍", "木棍", "", "Card.Object"), "木棍"));
 
             _factory.Register("火", () =>
-                new(new("火", "火", "", CardCategory.Object), "火"));
+                new(new("火", "火", "", "Card.Object"), "火"));
 
             // 火把使用完整构造函数（带属性）
             _factory.Register("火把", () =>
-                new(new("火把", "火把", "", CardCategory.Object),
+                new(new("火把", "火把", "", "Card.Object"),
                     new List<GameProperty> { new("Ticks", 0f) }, "火把"));
 
             _factory.Register("灰烬", () =>
-                new(new("灰烬", "灰烬", "", CardCategory.Object), "灰烬"));
+                new(new("灰烬", "灰烬", "", "Card.Object"), "灰烬"));
 
             _factory.Register("制作", () =>
-                new(new("制作", "制作", "", CardCategory.Action), "制作"));
+                new(new("制作", "制作", "", "Card.Action"), "制作"));
 
             Debug.Log("工厂和引擎初始化完成，可用于创建和管理卡牌\n");
         }
@@ -98,14 +98,16 @@ namespace EasyPack.EmeCardSystem.Example
             Debug.Log("案例2: 创建卡牌模板");
 
             // 演示创建不同类型的卡牌
-            var simpleCard = new Card(new("simple", "简单卡牌", "一张简单的卡牌", CardCategory.Object));
+            var simpleCard = new Card(new("simple", "简单卡牌", "一张简单的卡牌", "Card.Object"));
             Debug.Log($"创建了简单卡牌: {simpleCard.Name} (ID: {simpleCard.Id})");
 
-            var taggedCard = new Card(new("tagged", "带标签卡牌", "", CardCategory.Object), "武器", "近战");
+            var taggedCard = new Card(new("tagged", "带标签卡牌", "", "Card.Object"), "武器", "近战");
+#pragma warning disable CS0618 // 使用 Tags 属性用于演示
             Debug.Log($"创建了带标签卡牌: {taggedCard.Name}，标签: {string.Join(", ", taggedCard.Tags)}");
+#pragma warning restore CS0618
 
             var propertyCard = new Card(
-                new("property", "带属性卡牌", "", CardCategory.Object),
+                new("property", "带属性卡牌", "", "Card.Object"),
                 new List<GameProperty> { new("Health", 100f), new("Attack", 50f) }
             );
             Debug.Log($"创建了带属性卡牌: {propertyCard.Name}，属性数量: {propertyCard.Properties.Count}");
@@ -249,7 +251,7 @@ namespace EasyPack.EmeCardSystem.Example
             // 注册一个递归规则：检查整个世界是否有"夜晚"标签
             _engine.RegisterRule(b => b
                 .On("检查夜晚")
-                .AtRoot()
+                .MatchAtRoot()
                 .NeedTagRecursive("夜晚", 1)
                 .DoInvoke((ctx, matched) => { Debug.Log($"[递归选择] 在整个世界树中发现了 {matched.Count} 个夜晚标记"); })
             );
@@ -274,7 +276,7 @@ namespace EasyPack.EmeCardSystem.Example
             // 注册火把燃烧规则
             _engine.RegisterRule(b => b
                 .OnTick()
-                .AtSelf()
+                .MatchAtSelf()
                 .NeedTag("火把")
                 .DoModifyTag("火把", "Ticks", 1f)
                 .DoInvoke((ctx, matched) =>
@@ -288,7 +290,7 @@ namespace EasyPack.EmeCardSystem.Example
             // 注册燃尽规则
             _engine.RegisterRule(b => b
                 .OnTick()
-                .AtSelf()
+                .MatchAtSelf()
                 .WhenWithCards(ctx =>
                 {
                     var burnedTorches = ctx.MatchRoot.Children
@@ -374,7 +376,9 @@ namespace EasyPack.EmeCardSystem.Example
         private void DisplayCardRecursive(Card card, int depth)
         {
             string indent = new(' ', depth * 2);
+#pragma warning disable CS0618 // 使用 Tags 属性用于演示显示
             string tags = card.Tags.Count > 0 ? $" [{string.Join(", ", card.Tags)}]" : "";
+#pragma warning restore CS0618
             string props = card.Properties.Count > 0
                 ? $" (属性: {string.Join(", ", card.Properties.Select(p => $"{p.ID}={p.GetValue()}"))})"
                 : "";

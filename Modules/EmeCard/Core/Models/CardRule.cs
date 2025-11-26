@@ -47,16 +47,13 @@ namespace EasyPack.EmeCardSystem
         public int EffectRootHops = 1;
 
         /// <summary>
-        ///     [已弃用] 容器锚点选择：0=Self，1=Owner（默认），N&gt;1 上溯，-1=Root。
-        ///     <para>
-        ///         请使用 <see cref="MatchRootHops"/> 和 <see cref="EffectRootHops"/> 分别控制匹配和效果的根节点。
-        ///         此属性现在同时设置 MatchRootHops 和 EffectRootHops。
-        ///     </para>
+        ///     [已弃用] 容器跳数。同时设置 MatchRootHops 和 EffectRootHops。
+        ///     <para>请使用 MatchRootHops 和 EffectRootHops 分别设置。</para>
         /// </summary>
-        [Obsolete("使用 MatchRootHops 和 EffectRootHops 分别控制匹配和效果的根节点。此属性将在未来版本移除。")]
+        [Obsolete("使用 MatchRootHops 和 EffectRootHops 分别设置匹配和效果范围。")]
         public int OwnerHops
         {
-            get => MatchRootHops; // 返回 MatchRootHops 作为向后兼容
+            get => MatchRootHops;
             set
             {
                 MatchRootHops = value;

@@ -275,12 +275,7 @@ namespace EasyPack.EmeCardSystem
             return targets;
         }
 
-        private static bool TryParseCategory(string value, out CardCategory cat)
-        {
-            cat = default;
-            if (string.IsNullOrEmpty(value)) return false;
-            return Enum.TryParse(value, true, out cat);
-        }
+
 
         /// <summary>
         ///     对已有的卡牌列表应用过滤条件（线程安全）。
@@ -388,15 +383,18 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     按分类过滤。
+        ///     按分类过滤。使用 CategoryManager 检查卡牌是否属于指定分类。
         /// </summary>
         private static IReadOnlyList<Card> FilterByCategory(
             IReadOnlyList<Card> cards,
             string categoryStr,
             ICategoryManager<Card> categoryManager)
         {
+            if (string.IsNullOrEmpty(categoryStr))
+                return Array.Empty<Card>();
+
             // 使用 CategoryManager 检查分类
-            if (categoryManager != null && !string.IsNullOrEmpty(categoryStr))
+            if (categoryManager != null)
             {
                 var results = new List<Card>(cards.Count / 2);
                 foreach (var card in cards)
@@ -410,21 +408,14 @@ namespace EasyPack.EmeCardSystem
                 return results;
             }
 
-            // 回退：使用 Card.Category 枚举
-            if (TryParseCategory(categoryStr, out CardCategory cat))
+            // 回退：通过 DefaultCategory 匹配
+            var catResults = new List<Card>(cards.Count / 2);
+            foreach (var card in cards)
             {
-                var catResults = new List<Card>(cards.Count / 2);
-                foreach (var card in cards)
-                {
-#pragma warning disable CS0618 // 抑制过时警告
-                    if (card.Category == cat)
-                        catResults.Add(card);
-#pragma warning restore CS0618
-                }
-                return catResults;
+                if (string.Equals(card.Data?.DefaultCategory, categoryStr, StringComparison.OrdinalIgnoreCase))
+                    catResults.Add(card);
             }
-
-            return Array.Empty<Card>();
+            return catResults;
         }
     }
 }

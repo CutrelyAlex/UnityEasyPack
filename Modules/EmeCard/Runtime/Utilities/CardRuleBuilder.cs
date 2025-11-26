@@ -220,28 +220,28 @@ namespace EasyPack.EmeCardSystem
 
         #region 条件要求 - When语法糖
 
-        /// <summary>要求源卡牌的类别为指定类别</summary>
-        public CardRuleBuilder WhenSourceCategory(CardCategory category)
+        /// <summary>要求源卡牌的默认分类为指定分类</summary>
+        public CardRuleBuilder WhenSourceCategory(string category)
         {
-            return When(ctx => ctx.Source?.Category == category);
+            return When(ctx => string.Equals(ctx.Source?.Data?.DefaultCategory, category, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>要求源卡牌为对象类别</summary>
         public CardRuleBuilder WhenSourceIsObject()
         {
-            return When(ctx => ctx.Source?.Category == CardCategory.Object);
+            return WhenSourceCategory("Card.Object");
         }
 
         /// <summary>要求源卡牌为动作类别</summary>
         public CardRuleBuilder WhenSourceIsAction()
         {
-            return When(ctx => ctx.Source?.Category == CardCategory.Action);
+            return WhenSourceCategory("Card.Action");
         }
 
         /// <summary>要求源卡牌为属性类别</summary>
         public CardRuleBuilder WhenSourceIsAttribute()
         {
-            return When(ctx => ctx.Source?.Category == CardCategory.Attribute);
+            return WhenSourceCategory("Card.Attribute");
         }
 
         /// <summary>要求源卡牌有指定标签</summary>
@@ -262,28 +262,28 @@ namespace EasyPack.EmeCardSystem
             return When(ctx => string.Equals(ctx.Source?.Id, id, StringComparison.Ordinal));
         }
 
-        /// <summary>要求容器的类别为指定类别</summary>
-        public CardRuleBuilder WhenContainerCategory(CardCategory category)
+        /// <summary>要求容器的默认分类为指定分类</summary>
+        public CardRuleBuilder WhenContainerCategory(string category)
         {
-            return When(ctx => ctx.MatchRoot?.Category == category);
+            return When(ctx => string.Equals(ctx.MatchRoot?.Data?.DefaultCategory, category, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>要求容器为对象类别</summary>
         public CardRuleBuilder WhenContainerIsObject()
         {
-            return When(ctx => ctx.MatchRoot?.Category == CardCategory.Object);
+            return WhenContainerCategory("Card.Object");
         }
 
         /// <summary>要求容器为动作类别</summary>
         public CardRuleBuilder WhenContainerIsAction()
         {
-            return When(ctx => ctx.MatchRoot?.Category == CardCategory.Action);
+            return WhenContainerCategory("Card.Action");
         }
 
         /// <summary>要求容器为属性类别</summary>
         public CardRuleBuilder WhenContainerIsAttribute()
         {
-            return When(ctx => ctx.MatchRoot?.Category == CardCategory.Attribute);
+            return WhenContainerCategory("Card.Attribute");
         }
 
         /// <summary>要求容器有指定标签</summary>
@@ -323,8 +323,8 @@ namespace EasyPack.EmeCardSystem
             TargetScope.Children, CardFilterMode.ById, id, minCount, maxMatched);
 
         /// <summary>需要容器的直接子卡中有指定类别的卡牌</summary>
-        public CardRuleBuilder NeedCategory(CardCategory category, int minCount = 1, int maxMatched = -1) =>
-            Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByCategory, category.ToString(),
+        public CardRuleBuilder NeedCategory(string category, int minCount = 1, int maxMatched = -1) =>
+            Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByCategory, category,
                 minCount, maxMatched);
 
         /// <summary>需要容器的所有后代中有指定标签的卡牌</summary>
@@ -340,10 +340,10 @@ namespace EasyPack.EmeCardSystem
                 maxDepth);
 
         /// <summary>需要容器的所有后代中有指定类别的卡牌</summary>
-        public CardRuleBuilder NeedCategoryRecursive(CardCategory category, int minCount = 1, int maxMatched = -1,
+        public CardRuleBuilder NeedCategoryRecursive(string category, int minCount = 1, int maxMatched = -1,
                                                      int? maxDepth = null) =>
             Need(SelectionRoot.Container, TargetScope.Descendants, CardFilterMode.ByCategory,
-                category.ToString(), minCount, maxMatched, maxDepth);
+                category, minCount, maxMatched, maxDepth);
 
         /// <summary>需要源卡的直接子卡中有指定标签的卡牌</summary>
         public CardRuleBuilder NeedSourceTag(string tag, int minCount = 1, int maxMatched = -1) =>

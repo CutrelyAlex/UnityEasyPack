@@ -32,18 +32,6 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public int MaxDegreeOfParallelism { get; set; } = -1;
 
-        // ===== 效果池配置 =====
-
-        /// <summary>
-        ///     是否启用效果池模式。
-        ///     <para>
-        ///         启用后，所有命中规则的效果会先收集到池中，
-        ///         按优先级排序后统一执行，确保执行顺序确定。
-        ///     </para>
-        ///     <remarks>默认值：false</remarks>
-        /// </summary>
-        public bool EnableEffectPool { get; set; } = false;
-
         // ===== 分帧处理配置 =====
 
         /// <summary>
@@ -78,6 +66,45 @@ namespace EasyPack.EmeCardSystem
         ///     默认值：0.8s
         /// </summary>
         public float BatchTimeLimitSeconds { get; set; } = 0.8f;
+
+        // ===== 全局效果池配置 =====
+
+        /// <summary>
+        ///     是否启用全局效果池。
+        ///     <para>
+        ///         启用后，所有规则效果会先收集到全局池中，
+        ///         然后按全局优先级排序后统一执行。
+        ///         这确保了跨事件的效果执行顺序一致性，避免并发执行效果。
+        ///     </para>
+        ///     <remarks>默认值：true </remarks>
+        /// </summary>
+        public bool EnableEffectPool { get; set; } = true;
+
+        /// <summary>
+        ///     效果池刷新模式。
+        ///     <para>
+        ///         - AfterPump: 每次 Pump() 调用结束时刷新（处理完所有排队事件后）
+        ///         - AfterFrame: 每帧结束时刷新（配合 PumpFrame 系列方法）
+        ///         - Manual: 手动调用 FlushEffectPool() 刷新
+        ///     </para>
+        ///     <remarks>默认值：AfterPump</remarks>
+        /// </summary>
+        public EffectPoolFlushMode EffectPoolFlushMode { get; set; } = EffectPoolFlushMode.AfterPump;
+    }
+
+    /// <summary>
+    ///     效果池刷新模式。
+    /// </summary>
+    public enum EffectPoolFlushMode
+    {
+        /// <summary>每次 Pump() 调用结束时刷新（处理完所有排队事件后）</summary>
+        AfterPump,
+        
+        /// <summary>每帧结束时刷新（配合 PumpFrame 系列方法）</summary>
+        AfterFrame,
+        
+        /// <summary>手动调用 FlushEffectPool() 刷新</summary>
+        Manual
     }
 
     // 规则策略
