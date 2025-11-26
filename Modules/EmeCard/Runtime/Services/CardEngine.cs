@@ -441,14 +441,21 @@ namespace EasyPack.EmeCardSystem
 
         private CardRuleContext BuildContext(CardRule rule, Card source, ICardEvent evt)
         {
-            Card container = SelectContainer(rule.OwnerHops, source);
-            if (container == null) return null;
-            return new(
+            // 解析匹配根和效果根
+            Card matchRoot = CardRule.ResolveRootCard(source, rule.MatchRootHops);
+            Card effectRoot = CardRule.ResolveRootCard(source, rule.EffectRootHops);
+            
+            if (matchRoot == null) return null;
+            
+            return new CardRuleContext(
                 source,
-                container,
+                matchRoot,
+                effectRoot,
                 evt,
                 CardFactory,
-                rule.MaxDepth
+                rule.MaxDepth,
+                this,       // 传递当前引擎实例
+                rule        // 传递当前规则
             );
         }
 
@@ -456,32 +463,14 @@ namespace EasyPack.EmeCardSystem
 
         #region 容器方法
 
+        /// <summary>
+        ///     [已弃用] 根据跳数选择容器卡牌。
+        ///     请使用 <see cref="CardRule.ResolveRootCard"/> 方法代替。
+        /// </summary>
+        [System.Obsolete("使用 CardRule.ResolveRootCard() 代替。此方法将在未来版本移除。")]
         private static Card SelectContainer(int ownerHops, Card source)
         {
-            if (source == null) return null;
-
-            if (ownerHops == 0) return source;
-
-            if (ownerHops < 0)
-            {
-                Card curr = source;
-                while (curr.Owner != null)
-                {
-                    curr = curr.Owner;
-                }
-
-                return curr;
-            }
-
-            Card node = source;
-            int hops = ownerHops;
-            while (hops > 0 && node.Owner != null)
-            {
-                node = node.Owner;
-                hops--;
-            }
-
-            return node ?? source;
+            return CardRule.ResolveRootCard(source, ownerHops);
         }
 
         private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements,

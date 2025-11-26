@@ -51,15 +51,53 @@ namespace EasyPack.EmeCardSystem
         /// <param name="factory">产卡工厂</param>
         /// <param name="maxDepth">递归搜索最大深度</param>
         public CardRuleContext(Card source, Card matchRoot, ICardEvent @event, ICardFactory factory, int maxDepth)
+            : this(source, matchRoot, matchRoot, @event, factory, maxDepth)
+        {
+        }
+
+        /// <summary>
+        ///     从基本参数创建规则上下文，支持独立的匹配根和效果根。
+        /// </summary>
+        /// <param name="source">触发该规则的卡牌（事件源）</param>
+        /// <param name="matchRoot">用于匹配的容器根节点（由规则的 MatchRootHops 选择）</param>
+        /// <param name="effectRoot">效果作用的根节点（由规则的 EffectRootHops 选择）</param>
+        /// <param name="event">事件数据（ICardEvent）</param>
+        /// <param name="factory">产卡工厂</param>
+        /// <param name="maxDepth">递归搜索最大深度</param>
+        public CardRuleContext(Card source, Card matchRoot, Card effectRoot, ICardEvent @event, ICardFactory factory, int maxDepth)
+            : this(source, matchRoot, effectRoot, @event, factory, maxDepth, null, null)
+        {
+        }
+
+        /// <summary>
+        ///     从基本参数创建规则上下文，支持完整的上下文信息。
+        /// </summary>
+        /// <param name="source">触发该规则的卡牌（事件源）</param>
+        /// <param name="matchRoot">用于匹配的容器根节点（由规则的 MatchRootHops 选择）</param>
+        /// <param name="effectRoot">效果作用的根节点（由规则的 EffectRootHops 选择）</param>
+        /// <param name="event">事件数据（ICardEvent）</param>
+        /// <param name="factory">产卡工厂</param>
+        /// <param name="maxDepth">递归搜索最大深度</param>
+        /// <param name="engine">卡牌引擎引用（可选，默认从 source.Engine 获取）</param>
+        /// <param name="currentRule">当前执行的规则（可选）</param>
+        public CardRuleContext(
+            Card source, 
+            Card matchRoot, 
+            Card effectRoot, 
+            ICardEvent @event, 
+            ICardFactory factory, 
+            int maxDepth,
+            CardEngine engine,
+            CardRule currentRule)
         {
             // 创建 CardEventEntry 作为 IEventEntry
-            EventEntry = new CardEventEntry(source, @event, matchRoot);
+            EventEntry = new CardEventEntry(source, @event, effectRoot);
             MatchRoot = matchRoot;
-            EffectRoot = matchRoot; // 默认 EffectRoot = MatchRoot
+            EffectRoot = effectRoot ?? matchRoot;
             Factory = factory;
             MaxDepth = maxDepth;
-            Engine = source?.Engine;
-            CurrentRule = null;
+            Engine = engine ?? source?.Engine;
+            CurrentRule = currentRule;
         }
 
         #endregion

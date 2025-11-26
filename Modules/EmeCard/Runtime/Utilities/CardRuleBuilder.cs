@@ -45,21 +45,85 @@ namespace EasyPack.EmeCardSystem
         /// <summary>监听 RemovedFromOwner 事件</summary>
         public CardRuleBuilder OnRemovedFromOwner() => On(CardEventTypes.REMOVED_FROM_OWNER);
 
-        /// <summary>设置容器锚点（0=Self, 1=Owner, -1=Root, N>1=向上N层）</summary>
+        #region 根节点跳数配置
+
+        /// <summary>
+        ///     设置匹配范围根节点跳数。
+        ///     <para>0=Self, 1=Owner, -1=Root, N&gt;1=向上N层</para>
+        /// </summary>
+        /// <param name="hops">跳数值</param>
+        /// <returns>构建器自身，用于链式调用</returns>
+        public CardRuleBuilder MatchRootHops(int hops)
+        {
+            _rule.MatchRootHops = hops;
+            return this;
+        }
+
+        /// <summary>
+        ///     设置效果作用根节点跳数。
+        ///     <para>0=Self, 1=Owner, -1=Root, N&gt;1=向上N层</para>
+        /// </summary>
+        /// <param name="hops">跳数值</param>
+        /// <returns>构建器自身，用于链式调用</returns>
+        public CardRuleBuilder EffectRootHops(int hops)
+        {
+            _rule.EffectRootHops = hops;
+            return this;
+        }
+
+        /// <summary>
+        ///     [已弃用] 设置容器锚点（同时设置 MatchRootHops 和 EffectRootHops）。
+        ///     <para>请使用 <see cref="MatchRootHops"/> 和 <see cref="EffectRootHops"/> 分别设置。</para>
+        /// </summary>
+        /// <param name="hops">跳数值（0=Self, 1=Owner, -1=Root, N&gt;1=向上N层）</param>
+        /// <returns>构建器自身，用于链式调用</returns>
+        [System.Obsolete("使用 MatchRootHops() 和 EffectRootHops() 分别设置匹配和效果范围。")]
         public CardRuleBuilder OwnerHops(int hops)
         {
             _rule.OwnerHops = hops;
             return this;
         }
 
-        /// <summary>以自身为容器（OwnerHops=0）</summary>
+        /// <summary>匹配范围以自身为根（MatchRootHops=0）</summary>
+        public CardRuleBuilder MatchAtSelf() => MatchRootHops(0);
+
+        /// <summary>匹配范围以直接父级为根（MatchRootHops=1）</summary>
+        public CardRuleBuilder MatchAtParent() => MatchRootHops(1);
+
+        /// <summary>匹配范围以根容器为根（MatchRootHops=-1）</summary>
+        public CardRuleBuilder MatchAtRoot() => MatchRootHops(-1);
+
+        /// <summary>效果范围以自身为根（EffectRootHops=0）</summary>
+        public CardRuleBuilder EffectAtSelf() => EffectRootHops(0);
+
+        /// <summary>效果范围以直接父级为根（EffectRootHops=1）</summary>
+        public CardRuleBuilder EffectAtParent() => EffectRootHops(1);
+
+        /// <summary>效果范围以根容器为根（EffectRootHops=-1）</summary>
+        public CardRuleBuilder EffectAtRoot() => EffectRootHops(-1);
+
+        /// <summary>
+        ///     [已弃用] 以自身为容器（OwnerHops=0）。
+        ///     <para>请使用 <see cref="MatchAtSelf"/> 或 <see cref="EffectAtSelf"/>。</para>
+        /// </summary>
+        [System.Obsolete("使用 MatchAtSelf() 或 EffectAtSelf()")]
         public CardRuleBuilder AtSelf() => OwnerHops(0);
 
-        /// <summary>以直接父级为容器（OwnerHops=1）</summary>
+        /// <summary>
+        ///     [已弃用] 以直接父级为容器（OwnerHops=1）。
+        ///     <para>请使用 <see cref="MatchAtParent"/> 或 <see cref="EffectAtParent"/>。</para>
+        /// </summary>
+        [System.Obsolete("使用 MatchAtParent() 或 EffectAtParent()")]
         public CardRuleBuilder AtParent() => OwnerHops(1);
 
-        /// <summary>以根容器为容器（OwnerHops=-1）</summary>
+        /// <summary>
+        ///     [已弃用] 以根容器为容器（OwnerHops=-1）。
+        ///     <para>请使用 <see cref="MatchAtRoot"/> 或 <see cref="EffectAtRoot"/>。</para>
+        /// </summary>
+        [System.Obsolete("使用 MatchAtRoot() 或 EffectAtRoot()")]
         public CardRuleBuilder AtRoot() => OwnerHops(-1);
+
+        #endregion;
 
         /// <summary>设置递归最大深度</summary>
         public CardRuleBuilder MaxDepth(int depth)
