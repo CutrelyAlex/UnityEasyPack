@@ -18,7 +18,7 @@ namespace EasyPack.Tools.PathFinding
     {
     }
 
-    public class TilemapAStarMover : MonoBehaviour
+    public sealed class TilemapAStarMover : MonoBehaviour
     {
         #region 序列化字段和属性
 
@@ -542,9 +542,9 @@ namespace EasyPack.Tools.PathFinding
             }
         }
 
-        protected virtual bool IsTileWalkable(TileBase tile, Vector3Int position) => tile != null;
+        private bool IsTileWalkable(TileBase tile, Vector3Int position) => tile != null;
 
-        protected virtual float GetTileCost(TileBase tile)
+        private float GetTileCost(TileBase tile)
         {
             if (useTerrainCosts && TileCostMap.TryGetValue(tile, out float cost))
                 return cost;
