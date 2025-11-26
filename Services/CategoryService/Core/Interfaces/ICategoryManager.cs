@@ -56,6 +56,21 @@ namespace EasyPack.Category
         IEntityRegistration RegisterEntitySafe(T entity, string category);
 
         /// <summary>
+        ///     使用整数ID注册实体到指定分类（独立整数ID缓存体系）
+        /// </summary>
+        OperationResult RegisterEntityInt(int entityId, T entity, string category);
+
+        /// <summary>
+        ///     使用整数ID注册实体并添加标签（独立整数ID缓存体系）
+        /// </summary>
+        OperationResult RegisterEntityIntWithTags(int entityId, T entity, string category, params string[] tags);
+
+        /// <summary>
+        ///     使用整数ID注册实体并添加元数据（独立整数ID缓存体系）
+        /// </summary>
+        OperationResult RegisterEntityIntWithMetadata(int entityId, T entity, string category, CustomDataCollection metadata);
+
+        /// <summary>
         ///     批量注册实体
         /// </summary>
         BatchOperationResult RegisterBatch(List<T> entities, string category);
@@ -64,6 +79,11 @@ namespace EasyPack.Category
         ///     删除实体
         /// </summary>
         OperationResult DeleteEntity(string entityId);
+
+        /// <summary>
+        ///     删除实体（整数ID，使用独立整数ID缓存体系）
+        /// </summary>
+        OperationResult DeleteEntity(int entityId);
 
         #endregion
 
@@ -80,6 +100,11 @@ namespace EasyPack.Category
         OperationResult<T> GetById(string id);
 
         /// <summary>
+        ///     根据整数 ID 获取实体（使用独立整数ID缓存体系）
+        /// </summary>
+        OperationResult<T> GetById(int id);
+
+        /// <summary>
         ///     根据正则表达式匹配分类名称并获取实体
         /// </summary>
         IReadOnlyList<T> GetByCategoryRegex(string pattern, bool includeChildren = false);
@@ -88,6 +113,11 @@ namespace EasyPack.Category
         ///     根据实体 ID 获取其所在分类的可读路径字符串
         /// </summary>
         string GetReadableCategoryPath(string entityId);
+
+        /// <summary>
+        ///     根据实体整数 ID 获取其所在分类的可读路径字符串（使用独立整数ID缓存体系）
+        /// </summary>
+        string GetReadableCategoryPath(int entityId);
 
         /// <summary>
         ///     根据路径 ID 数组转换为可读的分类路径字符串
@@ -99,6 +129,11 @@ namespace EasyPack.Category
         /// </summary>
         bool IsInCategory(string entityId, string category, bool includeChildren = false);
 
+        /// <summary>
+        ///     检查实体是否在指定分类中（整数ID重载）
+        /// </summary>
+        bool IsInCategory(int entityId, string category, bool includeChildren = false);
+
         #endregion
 
         #region 标签管理
@@ -109,14 +144,29 @@ namespace EasyPack.Category
         OperationResult AddTag(string entityId, string tag);
 
         /// <summary>
+        ///     为实体添加标签（整数ID重载）
+        /// </summary>
+        OperationResult AddTag(int entityId, string tag);
+
+        /// <summary>
         ///     从实体移除标签
         /// </summary>
         OperationResult RemoveTag(string entityId, string tag);
 
         /// <summary>
+        ///     从实体移除标签（整数ID重载）
+        /// </summary>
+        OperationResult RemoveTag(int entityId, string tag);
+
+        /// <summary>
         ///     检查实体是否拥有指定标签
         /// </summary>
         bool HasTag(string entityId, string tag);
+
+        /// <summary>
+        ///     检查实体是否拥有指定标签（整数ID重载）
+        /// </summary>
+        bool HasTag(int entityId, string tag);
 
         /// <summary>
         ///     检查实体是否拥有指定标签
@@ -127,6 +177,11 @@ namespace EasyPack.Category
         ///     获取实体的所有标签
         /// </summary>
         IReadOnlyList<string> GetEntityTags(string entityId);
+
+        /// <summary>
+        ///     获取实体的所有标签（整数ID重载）
+        /// </summary>
+        IReadOnlyList<string> GetEntityTags(int entityId);
 
         /// <summary>
         ///     获取实体的所有标签
@@ -165,9 +220,19 @@ namespace EasyPack.Category
         CustomDataCollection GetMetadata(string entityId);
 
         /// <summary>
+        ///     获取元数据（整数ID重载）
+        /// </summary>
+        CustomDataCollection GetMetadata(int entityId);
+
+        /// <summary>
         ///     更新元数据
         /// </summary>
         OperationResult UpdateMetadata(string entityId, CustomDataCollection metadata);
+
+        /// <summary>
+        ///     更新元数据（整数ID重载）
+        /// </summary>
+        OperationResult UpdateMetadata(int entityId, CustomDataCollection metadata);
 
         #endregion
     }
