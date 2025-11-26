@@ -33,18 +33,12 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     初始化TargetSelector的Tag缓存。应在所有卡牌注册完成后调用。
         /// </summary>
-        private void InitializeTargetSelectorCache()
-        {
-            TargetSelector.InitializeTagCache(_registeredCardsTemplates);
-        }
+        private void InitializeTargetSelectorCache() { TargetSelector.InitializeTagCache(_registeredCardsTemplates); }
 
         /// <summary>
         ///     清除TargetSelector的Tag缓存
         /// </summary>
-        public void ClearTargetSelectorCache()
-        {
-            TargetSelector.ClearTagCache();
-        }
+        public void ClearTargetSelectorCache() { TargetSelector.ClearTagCache(); }
 
         /// <summary>
         ///     从工厂创建所有卡牌的副本并缓存。
@@ -346,10 +340,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     处理单个事件，匹配规则并执行效果。
         /// </summary>
-        private void Process(Card source, ICardEvent evt)
-        {
-            ProcessCore(source, evt);
-        }
+        private void Process(Card source, ICardEvent evt) { ProcessCore(source, evt); }
 
         /// <summary>
         ///     核心事件处理逻辑。

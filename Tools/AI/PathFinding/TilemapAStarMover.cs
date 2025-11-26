@@ -8,12 +8,12 @@ using Random = UnityEngine.Random;
 
 namespace EasyPack.Tools.PathFinding
 {
-    [System.Serializable]
+    [Serializable]
     public class PathfindingEvent : UnityEvent<List<Vector3Int>>
     {
     }
 
-    [System.Serializable]
+    [Serializable]
     public class MovementEvent : UnityEvent<Vector3>
     {
     }
@@ -186,8 +186,7 @@ namespace EasyPack.Tools.PathFinding
 
         private readonly Vector3Int[] _directions8 =
         {
-            Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right,
-            new(1, 1, 0), new(-1, 1, 0),
+            Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right, new(1, 1, 0), new(-1, 1, 0),
             new(1, -1, 0), new(-1, -1, 0),
         };
 
@@ -315,7 +314,7 @@ namespace EasyPack.Tools.PathFinding
                     useJps = useJumpPointSearch,
                 };
 
-            DateTime startTime = System.DateTime.Now;
+            DateTime startTime = DateTime.Now;
             _lastStats.Reset();
 
             if (!IsPositionValid(startPos) || HasDynamicObstacle(startPos) || !IsPositionValid(targetPos) ||
@@ -346,7 +345,7 @@ namespace EasyPack.Tools.PathFinding
             if (path.Count > 0)
             {
                 path = PostProcessPath(path);
-                DateTime endTime = System.DateTime.Now;
+                DateTime endTime = DateTime.Now;
                 _lastStats.searchTime = (float)(endTime - startTime).TotalMilliseconds;
                 _lastStats.pathLength = path.Count;
                 _lastStats.success = true;
@@ -418,15 +417,9 @@ namespace EasyPack.Tools.PathFinding
                 dynamicObstacles.Add(obstacle);
         }
 
-        public void RemoveDynamicObstacle(Transform obstacle)
-        {
-            dynamicObstacles.Remove(obstacle);
-        }
+        public void RemoveDynamicObstacle(Transform obstacle) { dynamicObstacles.Remove(obstacle); }
 
-        public void SetTileCost(TileBase tile, float cost)
-        {
-            TileCostMap[tile] = cost;
-        }
+        public void SetTileCost(TileBase tile, float cost) { TileCostMap[tile] = cost; }
 
         public PathfindingStats GetLastPathfindingStats() => _lastStats;
 
@@ -967,9 +960,9 @@ namespace EasyPack.Tools.PathFinding
                 {
                     Vector3[] fallback =
                     {
-                        Vector3.right, Vector3.left, Vector3.up, Vector3.down,
-                        new Vector3(1, 1, 0).normalized, new Vector3(-1, 1, 0).normalized,
-                        new Vector3(1, -1, 0).normalized, new Vector3(-1, -1, 0).normalized,
+                        Vector3.right, Vector3.left, Vector3.up, Vector3.down, new Vector3(1, 1, 0).normalized,
+                        new Vector3(-1, 1, 0).normalized, new Vector3(1, -1, 0).normalized,
+                        new Vector3(-1, -1, 0).normalized,
                     };
                     foreach (Vector3 d in fallback)
                     {
@@ -1026,44 +1019,23 @@ namespace EasyPack.Tools.PathFinding
             return worldPos;
         }
 
-        public void SetTargetObject(GameObject target)
-        {
-            targetObject = target;
-        }
+        public void SetTargetObject(GameObject target) { targetObject = target; }
 
-        public void SetPathfindingObject(GameObject pathfinder)
-        {
-            pathfindingObject = pathfinder;
-        }
+        public void SetPathfindingObject(GameObject pathfinder) { pathfindingObject = pathfinder; }
 
         public bool IsMoving => _moveCoroutine != null;
 
         public int GetWalkableTileCount() => _unifiedMap?.walkableTiles.Count ?? 0;
 
-        public void SetJitterEnabled(bool enabled)
-        {
-            enableMovementJitter = enabled;
-        }
+        public void SetJitterEnabled(bool enabled) { enableMovementJitter = enabled; }
 
-        public void SetJitterStrength(float strength)
-        {
-            jitterStrength = Mathf.Clamp01(strength);
-        }
+        public void SetJitterStrength(float strength) { jitterStrength = Mathf.Clamp01(strength); }
 
-        public void SetJitterFrequency(float frequency)
-        {
-            jitterFrequency = Mathf.Max(0.1f, frequency);
-        }
+        public void SetJitterFrequency(float frequency) { jitterFrequency = Mathf.Max(0.1f, frequency); }
 
-        public void SetSmoothPathTransition(bool enabled)
-        {
-            enableSmoothPathTransition = enabled;
-        }
+        public void SetSmoothPathTransition(bool enabled) { enableSmoothPathTransition = enabled; }
 
-        public void SetMaxBacktrackDistance(float distance)
-        {
-            maxBacktrackDistance = Mathf.Max(0.1f, distance);
-        }
+        public void SetMaxBacktrackDistance(float distance) { maxBacktrackDistance = Mathf.Max(0.1f, distance); }
 
         private void OnDrawGizmos()
         {
@@ -1154,10 +1126,7 @@ namespace EasyPack.Tools.PathFinding
                 return root;
             }
 
-            public void Update(PathNode node)
-            {
-                HeapifyUp(node.heapIndex);
-            }
+            public void Update(PathNode node) { HeapifyUp(node.heapIndex); }
 
             private void HeapifyUp(int i)
             {
@@ -1226,7 +1195,7 @@ namespace EasyPack.Tools.PathFinding
         Bezier,
     }
 
-    [System.Serializable]
+    [Serializable]
     public class PathfindingOptions
     {
         public bool allowDiagonal = true;
@@ -1236,7 +1205,7 @@ namespace EasyPack.Tools.PathFinding
         public bool considerTerrain = false;
     }
 
-    [System.Serializable]
+    [Serializable]
     public class PathfindingStats
     {
         public bool success = false;

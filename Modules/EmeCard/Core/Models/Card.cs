@@ -133,10 +133,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public List<GameProperty> Properties { get; set; } = new();
 
-        public GameProperty GetProperty(string id)
-        {
-            return Properties?.FirstOrDefault(p => p.ID == id);
-        }
+        public GameProperty GetProperty(string id) { return Properties?.FirstOrDefault(p => p.ID == id); }
 
         public GameProperty GetProperty(int index = 0)
         {
@@ -334,37 +331,25 @@ namespace EasyPack.EmeCardSystem
         ///     分发一个卡牌事件到 <see cref="OnEvent" />。
         /// </summary>
         /// <param name="evt">事件载体（ICardEvent 接口）。</param>
-        private void RaiseEvent(ICardEvent evt)
-        {
-            OnEvent?.Invoke(this, evt);
-        }
+        private void RaiseEvent(ICardEvent evt) { OnEvent?.Invoke(this, evt); }
 
         /// <summary>
         ///     触发按时事件（Tick）。
         /// </summary>
         /// <param name="deltaTime">时间步长（秒）。将作为事件 Data 传递。</param>
-        public void Tick(float deltaTime)
-        {
-            RaiseEvent(CardEventTypes.Tick.Create(deltaTime));
-        }
+        public void Tick(float deltaTime) { RaiseEvent(CardEventTypes.Tick.Create(deltaTime)); }
 
         /// <summary>
         ///     触发主动使用事件（Use）。
         /// </summary>
         /// <param name="data">可选自定义信息；由订阅者按需解释（例如目标信息）。</param>
-        public void Use(Card target = null)
-        {
-            RaiseEvent(CardEventTypes.Use.Create(target));
-        }
+        public void Use(Card target = null) { RaiseEvent(CardEventTypes.Use.Create(target)); }
 
         /// <summary>
         ///     触发无数据事件。
         /// </summary>
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
-        public void RaiseEvent(string eventType)
-        {
-            RaiseEvent(new CardEvent<Unit>(eventType, Unit.Default));
-        }
+        public void RaiseEvent(string eventType) { RaiseEvent(new CardEvent<Unit>(eventType, Unit.Default)); }
 
         /// <summary>
         ///     触发自定义事件。
@@ -372,10 +357,7 @@ namespace EasyPack.EmeCardSystem
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
         /// <param name="data">事件数据。</param>
-        public void RaiseEvent<T>(string eventType, T data)
-        {
-            RaiseEvent(new CardEvent<T>(eventType, data));
-        }
+        public void RaiseEvent<T>(string eventType, T data) { RaiseEvent(new CardEvent<T>(eventType, data)); }
 
         /// <summary>
         ///     触发自定义事件（使用事件定义）。
@@ -383,10 +365,7 @@ namespace EasyPack.EmeCardSystem
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="eventDef">事件类型定义。</param>
         /// <param name="data">事件数据。</param>
-        public void RaiseEvent<T>(CardEventDefinition<T> eventDef, T data)
-        {
-            RaiseEvent(eventDef.Create(data));
-        }
+        public void RaiseEvent<T>(CardEventDefinition<T> eventDef, T data) { RaiseEvent(eventDef.Create(data)); }
 
         #endregion
     }

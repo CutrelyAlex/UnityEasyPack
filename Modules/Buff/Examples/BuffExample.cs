@@ -115,9 +115,7 @@ namespace EasyPack.BuffSystem.Example
             // 2.1 创建有限时间的Buff
             var timedBuff = new BuffData
             {
-                ID = "TimedBuff",
-                Name = "定时Buff",
-                Duration = 5.0f, // 持续5秒
+                ID = "TimedBuff", Name = "定时Buff", Duration = 5.0f, // 持续5秒
             };
 
             Buff buff = _buffManager.CreateBuff(timedBuff, _dummyCreator, _dummyTarget);
@@ -236,10 +234,8 @@ namespace EasyPack.BuffSystem.Example
             Debug.Log("--- 堆叠数策略对比 ---");
             var stackStrategies = new[]
             {
-                BuffSuperpositionStacksType.Add,
-                BuffSuperpositionStacksType.Reset,
-                BuffSuperpositionStacksType.Keep,
-                BuffSuperpositionStacksType.ResetThenAdd,
+                BuffSuperpositionStacksType.Add, BuffSuperpositionStacksType.Reset,
+                BuffSuperpositionStacksType.Keep, BuffSuperpositionStacksType.ResetThenAdd,
             };
 
             foreach (BuffSuperpositionStacksType strategy in stackStrategies)
@@ -304,12 +300,7 @@ namespace EasyPack.BuffSystem.Example
             Debug.Log($"堆叠3层后力量: {strength.GetValue()}");
 
             // 5.6 创建百分比加成的Buff
-            var healthBuff = new BuffData
-            {
-                ID = "HealthBuff",
-                Name = "生命值增益",
-                Duration = 8f,
-            };
+            var healthBuff = new BuffData { ID = "HealthBuff", Name = "生命值增益", Duration = 8f };
 
             IModifier healthModifier = new FloatModifier(ModifierType.Mul, 0, 1.5f); // 增加50%生命值
             var healthModule = new CastModifierToProperty(healthModifier, "Health", _gamePropertyManager);
@@ -362,10 +353,7 @@ namespace EasyPack.BuffSystem.Example
 
             var conditionalBuff = new BuffData
             {
-                ID = "ConditionalBuff",
-                Name = "条件Buff",
-                Duration = -1f,
-                BuffModules = new() { conditionalModule },
+                ID = "ConditionalBuff", Name = "条件Buff", Duration = -1f, BuffModules = new() { conditionalModule },
             };
 
             Debug.Log("创建条件触发Buff");
@@ -649,30 +637,19 @@ namespace EasyPack.BuffSystem.Example
             Debug.Log("--- 更新频率优化 ---");
             var frequentBuff = new BuffData
             {
-                ID = "FrequentBuff",
-                Name = "高频Buff",
-                Duration = 5f,
-                TriggerInterval = 0.1f, // 避免过于频繁的触发
+                ID = "FrequentBuff", Name = "高频Buff", Duration = 5f, TriggerInterval = 0.1f, // 避免过于频繁的触发
             };
 
             var moderateBuff = new BuffData
             {
-                ID = "ModerateBuff",
-                Name = "适中Buff",
-                Duration = 5f,
-                TriggerInterval = 1f, // 更合理的触发频率
+                ID = "ModerateBuff", Name = "适中Buff", Duration = 5f, TriggerInterval = 1f, // 更合理的触发频率
             };
 
             Debug.Log("避免过于频繁的触发间隔，建议 >= 0.5秒");
 
             // 10.3 资源管理最佳实践
             Debug.Log("--- 资源管理 ---");
-            var resourceBuff = new BuffData
-            {
-                ID = "ResourceBuff",
-                Name = "资源测试Buff",
-                Duration = 3f,
-            };
+            var resourceBuff = new BuffData { ID = "ResourceBuff", Name = "资源测试Buff", Duration = 3f };
 
             Buff resourceBuffInstance = _buffManager.CreateBuff(resourceBuff, _dummyCreator, _dummyTarget);
 
@@ -804,10 +781,7 @@ namespace EasyPack.BuffSystem.Example
             RegisterCallback("HighDamage", OnHighDamage);
         }
 
-        private void OnCreate(Buff buff, object[] parameters)
-        {
-            Debug.Log($"[{buff.BuffData.Name}] 条件Buff已激活，等待触发条件");
-        }
+        private void OnCreate(Buff buff, object[] parameters) { Debug.Log($"[{buff.BuffData.Name}] 条件Buff已激活，等待触发条件"); }
 
         private void OnLowHealth(Buff buff, object[] parameters)
         {
@@ -884,15 +858,9 @@ namespace EasyPack.BuffSystem.Example
             RegisterCallback(BuffCallBackType.OnRemove, OnRemove);
         }
 
-        private void OnCreate(Buff buff, object[] parameters)
-        {
-            Debug.Log($"[DEBUG] {buff.BuffData.Name} 创建");
-        }
+        private void OnCreate(Buff buff, object[] parameters) { Debug.Log($"[DEBUG] {buff.BuffData.Name} 创建"); }
 
-        private void OnTick(Buff buff, object[] parameters)
-        {
-            Debug.Log($"[DEBUG] {buff.BuffData.Name} 触发");
-        }
+        private void OnTick(Buff buff, object[] parameters) { Debug.Log($"[DEBUG] {buff.BuffData.Name} 触发"); }
 
         private void OnUpdate(Buff buff, object[] parameters)
         {
@@ -901,10 +869,7 @@ namespace EasyPack.BuffSystem.Example
                 Debug.Log($"[DEBUG] {buff.BuffData.Name} 更新 - 剩余时间: {buff.DurationTimer:F1}s");
         }
 
-        private void OnRemove(Buff buff, object[] parameters)
-        {
-            Debug.Log($"[DEBUG] {buff.BuffData.Name} 移除");
-        }
+        private void OnRemove(Buff buff, object[] parameters) { Debug.Log($"[DEBUG] {buff.BuffData.Name} 移除"); }
     }
 
     #endregion
