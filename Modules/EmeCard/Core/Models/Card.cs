@@ -132,16 +132,6 @@ namespace EasyPack.EmeCardSystem
         public string Description => Data != null ? Data.Description : string.Empty;
 
         /// <summary>
-        ///     卡牌类别，来自 <see cref="Data" />；若为空则默认 <see cref="CardCategory.Object" />。
-        /// </summary>
-        /// <remarks>
-        ///     [已弃用] 分类现由 CategoryManager 统一管理。
-        ///     请使用 CardEngine.CategoryManager.GetReadableCategoryPath(entityId)。
-        /// </remarks>
-        [Obsolete("分类现由 CategoryManager 统一管理。请使用 CardEngine.CategoryManager.GetReadableCategoryPath()。保留此属性仅用于向后兼容。")]
-        public CardCategory Category => Data?.Category ?? CardCategory.Object;
-
-        /// <summary>
         ///     数值属性。
         /// </summary>
         public List<GameProperty> Properties { get; set; } = new();
@@ -172,62 +162,6 @@ namespace EasyPack.EmeCardSystem
         /// </remarks>
         [Obsolete("标签现由 CategoryManager 统一管理。请使用 CardEngine.CategoryManager.GetEntityTags() 获取标签。保留此属性仅用于向后兼容和内部使用。")]
         public IReadOnlyCollection<string> Tags => _tags;
-
-        /// <summary>
-        ///     判断是否包含指定标签。
-        /// </summary>
-        /// <param name="tag">标签文本。</param>
-        /// <returns>若包含返回 true。</returns>
-        /// <remarks>
-        ///     [已弃用] 标签现由 CategoryManager 统一管理。
-        ///     请使用 CardEngine.CategoryManager.HasTag(entityId, tag)。
-        /// </remarks>
-        [Obsolete("标签现由 CategoryManager 统一管理。请使用 CardEngine.CategoryManager.HasTag()。保留此方法仅用于向后兼容。")]
-        public bool HasTag(string tag) => _tags.Contains(tag);
-
-        /// <summary>
-        ///     添加一个标签。
-        /// </summary>
-        /// <param name="tag">标签文本。</param>
-        /// <returns>若成功新增（之前不存在）返回 true；否则返回 false。</returns>
-        /// <remarks>
-        ///     [已弃用] 标签现由 CategoryManager 统一管理。
-        ///     请使用 CardEngine.CategoryManager.AddTag(entityId, tag)。
-        /// </remarks>
-        [Obsolete("标签现由 CategoryManager 统一管理。请使用 CardEngine.CategoryManager.AddTag()。保留此方法仅用于向后兼容。")]
-        public bool AddTag(string tag)
-        {
-            if (_tags.Add(tag))
-            {
-                // 通知TargetSelector缓存更新
-                TargetSelector.OnCardTagAdded(this, tag);
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        ///     移除一个标签。
-        /// </summary>
-        /// <param name="tag">标签文本。</param>
-        /// <returns>若成功移除返回 true；否则返回 false。</returns>
-        /// <remarks>
-        ///     [已弃用] 标签现由 CategoryManager 统一管理。
-        ///     请使用 CardEngine.CategoryManager.RemoveTag(entityId, tag)。
-        /// </remarks>
-        [Obsolete("标签现由 CategoryManager 统一管理。请使用 CardEngine.CategoryManager.RemoveTag()。保留此方法仅用于向后兼容。")]
-        public bool RemoveTag(string tag)
-        {
-            if (_tags.Remove(tag))
-            {
-                // 通知TargetSelector缓存更新
-                TargetSelector.OnCardTagRemoved(this, tag);
-                return true;
-            }
-
-            return false;
-        }
 
         /// <summary>
         ///     当前卡牌的持有者（父卡）。
