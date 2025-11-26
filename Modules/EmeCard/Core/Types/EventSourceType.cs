@@ -1,7 +1,7 @@
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
-    /// 事件源类型枚举：标识事件的触发来源。
+    /// 事件源类型枚举：标识事件的触发来源
     /// </summary>
     public enum EventSourceType
     {

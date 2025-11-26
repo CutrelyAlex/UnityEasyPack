@@ -3,6 +3,34 @@ using System;
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
+    /// 表示"无数据"的占位类型，用于无数据事件。
+    /// <para>
+    /// </para>
+    /// </summary>
+    /// <code>
+    /// // 定义无数据事件
+    /// public static readonly CardEventDefinition&lt;Unit&gt; GameStart 
+    ///     = CardEventTypes.Define&lt;Unit&gt;("GameStart");
+    /// 
+    /// // 触发无数据事件
+    /// card.RaiseEvent("GameStart");
+    /// </code>
+    public readonly struct Unit : IEquatable<Unit>
+    {
+        /// <summary>
+        /// 唯一的 Unit 实例。
+        /// </summary>
+        public static readonly Unit Default = default;
+
+        public override string ToString() => "()";
+        public override int GetHashCode() => 0;
+        public override bool Equals(object obj) => obj is Unit;
+        public bool Equals(Unit other) => true;
+        public static bool operator ==(Unit left, Unit right) => true;
+        public static bool operator !=(Unit left, Unit right) => false;
+    }
+
+    /// <summary>
     /// 泛型卡牌事件：携带强类型数据的事件实现。
     /// <para>
     /// 这是 ICardEvent&lt;TData&gt; 的主要实现类。

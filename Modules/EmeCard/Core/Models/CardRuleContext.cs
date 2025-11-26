@@ -15,7 +15,7 @@ namespace EasyPack.EmeCardSystem
         #region 构造函数
 
         /// <summary>
-        /// 构造函数（新版）：从 IEventEntry 创建规则上下文。
+        /// 从 IEventEntry 创建规则上下文。
         /// </summary>
         /// <param name="eventEntry">事件条目（抽象事件源）</param>
         /// <param name="matchRoot">匹配范围根节点</param>
@@ -43,7 +43,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 构造函数（简化版）：从基本参数创建规则上下文。
+        /// 从基本参数创建规则上下文。
         /// </summary>
         /// <param name="source">触发该规则的卡牌（事件源）</param>
         /// <param name="matchRoot">用于匹配与执行的容器</param>
@@ -140,7 +140,7 @@ namespace EasyPack.EmeCardSystem
         public string EventId => Event.EventId;
 
         /// <summary>
-        /// 从 Tick 事件中获取时间增量（DeltaTime）。
+        /// 从Tick事件中获取时间增量（DeltaTime）。
         /// 仅当事件类型为 "Tick" 且数据为 float 时返回有效值，否则返回 0。
         /// </summary>
         public float DeltaTime
@@ -149,22 +149,9 @@ namespace EasyPack.EmeCardSystem
             {
                 if (CardEventTypes.IsTick(Event) && Event is ICardEvent<float> tickEvent)
                     return tickEvent.Data;
-                // Fallback for DataObject
-                if (CardEventTypes.IsTick(Event) && Event.DataObject is float f)
-                    return f;
                 return 0f;
             }
         }
-
-        /// <summary>将事件数据作为 Card 类型返回（失败返回 null）。</summary>
-        public Card DataCard => Event.DataObject as Card;
-
-        /// <summary>
-        /// 将事件数据作为指定 Card 子类型返回。
-        /// </summary>
-        /// <typeparam name="T">目标卡牌类型。</typeparam>
-        /// <returns>转换后的卡牌对象，失败返回 null。</returns>
-        public T DataCardAs<T>() where T : Card => Event.DataObject as T;
 
         /// <summary>
         /// 将触发源卡牌转换为指定类型。
@@ -181,72 +168,7 @@ namespace EasyPack.EmeCardSystem
         public T GetContainer<T>() where T : Card => MatchRoot as T;
 
         /// <summary>
-        /// 将事件数据作为指定引用类型返回。
-        /// </summary>
-        /// <typeparam name="T">目标引用类型。</typeparam>
-        /// <returns>转换后的对象，失败返回 null。</returns>
-        public T DataAs<T>() where T : class => Event.DataObject as T;
-
-        /// <summary>
-        /// 从事件数据数组中获取指定索引的元素（引用类型）。
-        /// </summary>
-        /// <typeparam name="T">目标引用类型。</typeparam>
-        /// <param name="i">数组索引。</param>
-        /// <returns>转换后的对象，失败返回 null。</returns>
-        public T DataAs<T>(int i) where T : class => DataAs<object[]>()[i] as T;
-
-        /// <summary>
-        /// 将事件数据作为指定值类型返回。
-        /// </summary>
-        /// <typeparam name="T">目标值类型。</typeparam>
-        /// <returns>转换后的值。</returns>
-        public T DataIs<T>() where T : struct => (T)Event.DataObject;
-
-        /// <summary>
-        /// 从事件数据数组中获取指定索引的元素（值类型）。
-        /// </summary>
-        /// <typeparam name="T">目标值类型。</typeparam>
-        /// <param name="i">数组索引。</param>
-        /// <returns>转换后的值。</returns>
-        public T DataIs<T>(int i) where T : struct => (T)DataAs<object[]>()[i];
-
-        /// <summary>
-        /// 尝试安全地获取事件数据为指定类型。
-        /// </summary>
-        /// <typeparam name="T">目标类型。</typeparam>
-        /// <param name="value">输出参数，获取成功时为转换后的值，失败时为默认值。</param>
-        /// <returns>转换成功返回 true，否则返回 false。</returns>
-        public bool TryGetData<T>(out T value)
-        {
-            if (Event.DataObject is T v)
-            {
-                value = v;
-                return true;
-            }
-            value = default;
-            return false;
-        }
-
-        /// <summary>
-        /// 尝试从事件数据数组中获取指定索引的元素。
-        /// </summary>
-        /// <typeparam name="T">目标类型。</typeparam>
-        /// <param name="i">数组索引。</param>
-        /// <param name="value">输出参数，获取成功时为转换后的值，失败时为默认值。</param>
-        /// <returns>转换成功且索引有效返回 true，否则返回 false。</returns>
-        public bool TryGetData<T>(int i, out T value)
-        {
-            if (Event.DataObject is object[] array && i >= 0 && i < array.Length && array[i] is T v)
-            {
-                value = v;
-                return true;
-            }
-            value = default;
-            return false;
-        }
-
-        /// <summary>
-        /// 尝试获取强类型事件数据（推荐使用）。
+        /// 尝试获取强类型事件数据
         /// <para>
         /// 用于访问 ICardEvent&lt;T&gt; 类型的事件数据。
         /// 如果事件实现了 ICardEvent&lt;T&gt; 则直接返回强类型数据。
@@ -255,26 +177,19 @@ namespace EasyPack.EmeCardSystem
         /// <typeparam name="T">目标事件数据类型。</typeparam>
         /// <param name="value">输出参数，获取成功时为转换后的值。</param>
         /// <returns>转换成功返回 true，否则返回 false。</returns>
-        /// <example>
+        /// <code>
         /// // 获取碰撞数据
         /// if (ctx.TryGetEventData&lt;CollisionData&gt;(out var collision))
         /// {
         ///     var target = collision.Target;
         ///     var force = collision.Force;
         /// }
-        /// </example>
+        /// </code>
         public bool TryGetEventData<T>(out T value)
         {
-            // 首先尝试从强类型事件获取
             if (Event is ICardEvent<T> typedEvent)
             {
                 value = typedEvent.Data;
-                return true;
-            }
-            // Fallback: 从 DataObject 转换
-            if (Event.DataObject is T directData)
-            {
-                value = directData;
                 return true;
             }
             value = default;

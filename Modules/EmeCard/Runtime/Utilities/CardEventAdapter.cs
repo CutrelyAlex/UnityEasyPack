@@ -34,11 +34,6 @@ namespace EasyPack.EmeCardSystem
                 value = typed.Data;
                 return true;
             }
-            if (cardEvent?.DataObject is T data)
-            {
-                value = data;
-                return true;
-            }
             value = default;
             return false;
         }

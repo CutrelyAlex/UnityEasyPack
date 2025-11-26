@@ -6,7 +6,7 @@ namespace EasyPack.EmeCardSystem
     /// 卡牌事件条目：由卡牌直接触发的事件。
     /// <para>
     /// 用于表示卡牌使用、状态变化等由卡牌发起的事件。
-    /// SourceCard 必须非空，SourceRuleUID 始终为 null。
+    /// SourceCard 必须非空
     /// </para>
     /// </summary>
     public readonly struct CardEventEntry : IEventEntry
@@ -111,10 +111,9 @@ namespace EasyPack.EmeCardSystem
     }
 
     /// <summary>
-    /// 系统事件条目：由系统触发的事件（如 Tick 计时器）。
+    /// 系统事件条目：由系统触发的事件
     /// <para>
-    /// 用于表示系统级别的事件，如帧更新、计时器触发等。
-    /// SourceCard 和 SourceRuleUID 均为 null，EffectRoot 也为 null。
+    /// 用于表示系统级别的事件，如帧更新、计时器触发等
     /// </para>
     /// </summary>
     public readonly struct SystemEventEntry : IEventEntry
@@ -162,8 +161,7 @@ namespace EasyPack.EmeCardSystem
     /// <summary>
     /// 外部事件条目：由外部代码或 API 调用触发的事件。
     /// <para>
-    /// 用于表示来自游戏逻辑外部的事件，如网络消息、用户输入等。
-    /// 可选提供 SourceCard 和 EffectRoot。
+    /// 用于表示来自游戏逻辑外部的事件，如网络消息、用户输入等
     /// </para>
     /// </summary>
     public readonly struct ExternalEventEntry : IEventEntry

@@ -81,8 +81,8 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 简化构造函数：仅提供卡牌数据和标签（无属性）
-        /// 此构造函数消除了传入 null 时的歧义
+        /// 简化构造函数
+        /// 提供卡牌数据和标签
         /// </summary>
         /// <param name="data">卡牌数据</param>
         /// <param name="extraTags">额外标签</param>
@@ -124,7 +124,7 @@ namespace EasyPack.EmeCardSystem
         public int UID { get; internal set; } = -1;
 
         /// <summary>
-        /// 实例索引：用于区分同一 ID 的多个实例（由引擎在 AddCard 时分配，从 0 起）。
+        /// 实例索引：用于区分同一 ID 的多个实例（由CardEgnine在 AddCard 时分配，从 0 起）。
         /// 未分配时默认为 -1。
         /// </summary>
         public int Index { get; set; } = -1;
@@ -149,7 +149,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         /// 卡牌类别，来自 <see cref="Data"/>；若为空则默认 <see cref="CardCategory.Object"/>。
         /// </summary>
-        public CardCategory Category => Data != null ? Data.Category : CardCategory.Object;
+        public CardCategory Category => Data?.Category ?? CardCategory.Object;
 
         /// <summary>
         /// 数值属性。
@@ -347,7 +347,7 @@ namespace EasyPack.EmeCardSystem
         /// 分发一个卡牌事件到 <see cref="OnEvent"/>。
         /// </summary>
         /// <param name="evt">事件载体（ICardEvent 接口）。</param>
-        public void RaiseEvent(ICardEvent evt)
+        private void RaiseEvent(ICardEvent evt)
         {
             OnEvent?.Invoke(this, evt);
         }
@@ -368,10 +368,10 @@ namespace EasyPack.EmeCardSystem
         public void Use(Card target = null) => RaiseEvent(CardEventTypes.Use.Create(target));
 
         /// <summary>
-        /// 触发自定义事件（无数据）。
+        /// 触发无数据事件。
         /// </summary>
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
-        public void RaiseEvent(string eventType) => RaiseEvent(new CardEvent<object>(eventType, null));
+        public void RaiseEvent(string eventType) => RaiseEvent(new CardEvent<Unit>(eventType, Unit.Default));
 
         /// <summary>
         /// 触发自定义事件。

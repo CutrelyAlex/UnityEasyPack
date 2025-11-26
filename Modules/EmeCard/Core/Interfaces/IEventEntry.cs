@@ -5,8 +5,8 @@ namespace EasyPack.EmeCardSystem
     /// <summary>
     /// 事件条目接口
     /// <para>
-    /// 支持多种事件源类型（卡牌事件、规则触发事件、系统事件、外部事件）。
-    /// CardRuleContext 持有此接口以访问事件相关数据。
+    /// CardRuleContext 持有此接口以访问事件相关数据<br/>
+    /// 持有<c>SourceType</c>确认事件源
     /// </para>
     /// </summary>
     public interface IEventEntry
@@ -27,8 +27,11 @@ namespace EasyPack.EmeCardSystem
         int Priority { get; }
 
         /// <summary>
-        /// 事件源类型（Card、Rule、System、External）。
+        /// 事件源类型
         /// </summary>
+        /// <remarks>
+        /// 枚举有 Card Rule System External
+        /// </remarks>
         EventSourceType SourceType { get; }
 
         /// <summary>
@@ -42,7 +45,7 @@ namespace EasyPack.EmeCardSystem
         int? SourceRuleUID { get; }
 
         /// <summary>
-        /// 效果根节点（可选覆盖，用于指定效果作用范围）。
+        /// 效果根节点（可选，用于指定效果作用范围）。
         /// </summary>
         Card EffectRoot { get; }
     }
