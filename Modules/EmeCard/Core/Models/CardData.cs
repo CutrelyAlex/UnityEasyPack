@@ -34,7 +34,7 @@ namespace EasyPack.EmeCardSystem
         ///     默认分类路径，用于 CategoryManager 注册。
         ///     示例："Card.Object"、"Card.Action"、"Equipment.Weapon"
         /// </summary>
-        public string DefaultCategory { get; }
+        public string Category { get; }
 
         /// <summary>
         ///     卡牌图标
@@ -54,16 +54,16 @@ namespace EasyPack.EmeCardSystem
         /// <param name="id">逻辑ID</param>
         /// <param name="name">展示名。默认为 "Default"</param>
         /// <param name="desc">描述文本</param>
-        /// <param name="defaultCategory">分类路径，用于 CategoryManager（默认为 "Default"）</param>
+        /// <param name="category">分类路径，用于 CategoryManager（默认为 "Default"）</param>
         /// <param name="defaultTags">默认标签集合；null 时使用空数组。</param>
         /// <param name="sprite">卡牌图标。</param>
         public CardData(string id, string name = "Default", string desc = "",
-                        string defaultCategory = DEFAULT_CATEGORY, string[] defaultTags = null, Sprite sprite = null)
+                        string category = DEFAULT_CATEGORY, string[] defaultTags = null, Sprite sprite = null)
         {
             ID = id;
             Name = name;
             Description = desc;
-            DefaultCategory = defaultCategory ?? DEFAULT_CATEGORY;
+            Category = category ?? DEFAULT_CATEGORY;
             DefaultTags = defaultTags ?? Array.Empty<string>();
             Sprite = sprite ?? Resources.Load<Sprite>(ID);
         }

@@ -126,7 +126,7 @@ namespace EasyPack.EmeCardSystem
                     ID = card.Data.ID,
                     Name = card.Data.Name,
                     Description = card.Data.Description,
-                    DefaultCategory = card.Data.DefaultCategory,
+                    DefaultCategory = card.Category,
                     DefaultTags = card.Data.DefaultTags,
                     Index = card.Index,
                     Properties = Array.Empty<SerializableGameProperty>(),
@@ -252,7 +252,7 @@ namespace EasyPack.EmeCardSystem
             return card;
         }
 
-        private string BuildPath(List<Card> path)
+        private static string BuildPath(List<Card> path)
         {
             if (path == null || path.Count == 0) return string.Empty;
             var sb = new StringBuilder();

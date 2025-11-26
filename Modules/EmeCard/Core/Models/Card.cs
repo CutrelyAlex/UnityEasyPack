@@ -130,7 +130,21 @@ namespace EasyPack.EmeCardSystem
         ///     卡牌描述，来自 <see cref="Data" />。
         /// </summary>
         public string Description => Data != null ? Data.Description : string.Empty;
+        
+        public string Category
+        {
+            get
+            {
+                if (Engine?.CategoryManager != null)
+                {
+                    string entityId = $"{Id}#{Index}";
+                    return Engine.CategoryManager.GetReadableCategoryPath(entityId);
+                }
 
+                return Data?.Category ?? CardData.DEFAULT_CATEGORY;
+            }
+        }
+        
         /// <summary>
         ///     数值属性。
         /// </summary>
@@ -270,7 +284,8 @@ namespace EasyPack.EmeCardSystem
             return _children.Contains(child);
         }
 
-
+        
+        
         /// <summary>
         ///     检测传入卡牌是否是当前卡牌的祖父卡牌
         /// </summary>
