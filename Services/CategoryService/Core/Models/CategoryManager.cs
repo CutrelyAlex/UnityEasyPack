@@ -602,20 +602,20 @@ namespace EasyPack.Category
                 // 删除所有后代节点（从子向上）
                 for (int i = nodesToDelete.Count - 1; i >= 0; i--)
                 {
-                    (int nodeId, CategoryNode n) = nodesToDelete[i];
+                    (int key, CategoryNode n) = nodesToDelete[i];
                     foreach (string id in n.EntityIds.ToList())
                     {
                         _entities.Remove(id);
                         _metadataStore.Remove(id);
                     }
 
-                    _categoryNodes.Remove(nodeId);
-                    _categoryIdToName.TryGetValue(nodeId, out string nodeName);
+                    _categoryNodes.Remove(key);
+                    _categoryIdToName.TryGetValue(key, out string nodeName);
 
                     if (nodeName != null)
                     {
                         _categoryNameToId.Remove(nodeName);
-                        _categoryIdToName.Remove(nodeId);
+                        _categoryIdToName.Remove(key);
                     }
                 }
 
