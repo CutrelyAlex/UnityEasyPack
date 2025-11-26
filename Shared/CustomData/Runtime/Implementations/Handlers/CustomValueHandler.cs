@@ -5,6 +5,7 @@ namespace EasyPack.CustomData
     public class CustomValueHandler : IValueHandler
     {
         public CustomDataType SupportedType => CustomDataType.Custom;
+
         public object GetValue(CustomDataEntry entry)
         {
             if (entry.Serializer == null || string.IsNullOrEmpty(entry.JsonValue))
@@ -56,13 +57,14 @@ namespace EasyPack.CustomData
             }
         }
 
-        public string Serialize(CustomDataEntry entry)
-        {
+        public string Serialize(CustomDataEntry entry) =>
             // 对于自定义类型，JsonValue已经存储了序列化形式，无需额外序列化
-            return entry.JsonValue ?? string.Empty;
-        }
+            entry.JsonValue ?? string.Empty;
 
-        public void Clear(CustomDataEntry entry) => ClearOtherValues(entry);
+        public void Clear(CustomDataEntry entry)
+        {
+            ClearOtherValues(entry);
+        }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

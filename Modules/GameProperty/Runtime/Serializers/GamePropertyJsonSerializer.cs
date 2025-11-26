@@ -7,37 +7,37 @@ using UnityEngine;
 namespace EasyPack.GamePropertySystem
 {
     /// <summary>
-    /// 可序列化的 GameProperty 数据结构，用于 JSON 序列化
+    ///     可序列化的 GameProperty 数据结构，用于 JSON 序列化
     /// </summary>
     [Serializable]
     public class SerializableGameProperty : ISerializable
     {
         /// <summary>
-        /// 属性的唯一标识符
+        ///     属性的唯一标识符
         /// </summary>
         public string ID;
 
         /// <summary>
-        /// 属性的基础值
+        ///     属性的基础值
         /// </summary>
         public float BaseValue;
 
         /// <summary>
-        /// 属性的修饰符列表
+        ///     属性的修饰符列表
         /// </summary>
         public SerializableModifier[] Modifiers = Array.Empty<SerializableModifier>();
     }
 
     /// <summary>
-    /// GameProperty 的 JSON 序列化器
-    /// 序列化属性的 ID、基础值和修饰符列表，不包括依赖关系
+    ///     GameProperty 的 JSON 序列化器
+    ///     序列化属性的 ID、基础值和修饰符列表，不包括依赖关系
     /// </summary>
     public class GamePropertyJsonSerializer : JsonSerializerBase<GameProperty>
     {
-        private readonly ModifierSerializer _modifierSerializer = new ModifierSerializer();
+        private readonly ModifierSerializer _modifierSerializer = new();
 
         /// <summary>
-        /// 将 GameProperty 对象序列化为 JSON 字符串
+        ///     将 GameProperty 对象序列化为 JSON 字符串
         /// </summary>
         /// <param name="gameProperty">要序列化的 GameProperty 对象</param>
         /// <returns>JSON 字符串，如果对象为 null 则返回 null</returns>
@@ -47,27 +47,24 @@ namespace EasyPack.GamePropertySystem
 
             var modifiersList = new List<SerializableModifier>();
 
-            foreach (var modifier in gameProperty.Modifiers)
+            foreach (IModifier modifier in gameProperty.Modifiers)
             {
-                var serMod = _modifierSerializer.ToSerializable(modifier);
-                if (serMod != null)
-                {
-                    modifiersList.Add(serMod);
-                }
+                SerializableModifier serMod = _modifierSerializer.ToSerializable(modifier);
+                if (serMod != null) modifiersList.Add(serMod);
             }
 
             var data = new SerializableGameProperty
             {
                 ID = gameProperty.ID,
                 BaseValue = gameProperty.GetBaseValue(),
-                Modifiers = modifiersList.ToArray()
+                Modifiers = modifiersList.ToArray(),
             };
 
             return JsonUtility.ToJson(data);
         }
 
         /// <summary>
-        /// 从 JSON 字符串反序列化为 GameProperty 对象
+        ///     从 JSON 字符串反序列化为 GameProperty 对象
         /// </summary>
         /// <param name="json">JSON 字符串</param>
         /// <returns>反序列化的 GameProperty 对象，如果 JSON 无效则返回 null</returns>
@@ -82,20 +79,14 @@ namespace EasyPack.GamePropertySystem
 
             // 使用 ModifierSerializer 还原所有修饰器
             if (data.Modifiers != null)
-            {
-                foreach (var serMod in data.Modifiers)
+                foreach (SerializableModifier serMod in data.Modifiers)
                 {
                     string modifierJson = JsonUtility.ToJson(serMod);
                     IModifier modifier = _modifierSerializer.DeserializeFromJson(modifierJson);
-                    if (modifier != null)
-                    {
-                        property.AddModifier(modifier);
-                    }
+                    if (modifier != null) property.AddModifier(modifier);
                 }
-            }
 
             return property;
         }
     }
 }
-

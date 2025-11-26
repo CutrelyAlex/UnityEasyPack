@@ -11,7 +11,7 @@ namespace EasyPack.InventorySystem
         public override Vector2 Grid => new(-1, -1);
 
         /// <summary>
-        /// 创建一个线性容器
+        ///     创建一个线性容器
         /// </summary>
         /// <param name="id">容器ID</param>
         /// <param name="name">容器名称</param>
@@ -25,15 +25,16 @@ namespace EasyPack.InventorySystem
         }
 
         #region 容器操作
+
         /// <summary>
-        /// 物品移动处理
+        ///     物品移动处理
         /// </summary>
         /// <param name="sourceSlotIndex">源槽位索引</param>
         /// <param name="targetContainer">目标容器</param>
         /// <returns>移动结果</returns>
         public bool MoveItemToContainer(int sourceSlotIndex, Container targetContainer)
         {
-            if (!ValidateSourceSlot(sourceSlotIndex, out var sourceSlot, out var sourceItem, out var sourceCount))
+            if (!ValidateSourceSlot(sourceSlotIndex, out ISlot sourceSlot, out IItem sourceItem, out int sourceCount))
                 return false;
 
             if (!ValidateTargetContainer(targetContainer, sourceItem))
@@ -43,7 +44,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 整理容器
+        ///     整理容器
         /// </summary>
         public void SortInventory()
         {
@@ -54,8 +55,8 @@ namespace EasyPack.InventorySystem
                 int typeCompare = string.Compare(a.item.Type, b.item.Type, StringComparison.Ordinal);
 
                 return typeCompare != 0
-                ? typeCompare
-                : string.Compare(a.item.Name, b.item.Name, StringComparison.Ordinal);
+                    ? typeCompare
+                    : string.Compare(a.item.Name, b.item.Name, StringComparison.Ordinal);
             });
 
             ExecuteInventoryOperationSafely(() =>
@@ -66,13 +67,13 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 合并相同物品到较少的槽位中
+        ///     合并相同物品到较少的槽位中
         /// </summary>
         public void ConsolidateItems()
         {
             ExecuteInventoryOperationSafely(() =>
             {
-                Dictionary<string, List<(int slotIndex, IItem item, int count)>>
+                var
                     itemGroups = GroupStackableItemsByID();
 
                 ConsolidateItemGroups(itemGroups);
@@ -80,13 +81,14 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 整理容器（排序 + 合并）
+        ///     整理容器（排序 + 合并）
         /// </summary>
         public void OrganizeInventory()
         {
             ConsolidateItems();
             SortInventory();
         }
+
         #endregion
 
         #region 辅助方法
@@ -95,13 +97,11 @@ namespace EasyPack.InventorySystem
         {
             if (capacity <= 0) return;
 
-            for (int i = 0; i < capacity; i++)
-            {
-                _slots.Add(new Slot { Index = i, Container = this });
-            }
+            for (int i = 0; i < capacity; i++) _slots.Add(new Slot { Index = i, Container = this });
         }
 
-        private bool ValidateSourceSlot(int sourceSlotIndex, out ISlot sourceSlot, out IItem sourceItem, out int sourceCount)
+        private bool ValidateSourceSlot(int sourceSlotIndex, out ISlot sourceSlot, out IItem sourceItem,
+                                        out int sourceCount)
         {
             sourceSlot = null;
             sourceItem = null;
@@ -118,17 +118,15 @@ namespace EasyPack.InventorySystem
             sourceCount = sourceSlot.ItemCount;
             return true;
         }
-        
-        private bool ValidateTargetContainer(Container targetContainer, IItem sourceItem)
-        {
-            return targetContainer == null ||
-                   targetContainer.ValidateItemCondition(sourceItem);
-        }
+
+        private bool ValidateTargetContainer(Container targetContainer, IItem sourceItem) =>
+            targetContainer == null ||
+            targetContainer.ValidateItemCondition(sourceItem);
 
         private bool ExecuteItemMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem,
-                                    int sourceCount, Container targetContainer)
+                                     int sourceCount, Container targetContainer)
         {
-            var (result, addedCount) = targetContainer.AddItems(sourceItem, sourceCount);
+            (AddItemResult result, int addedCount) = targetContainer.AddItems(sourceItem, sourceCount);
 
             if (result != AddItemResult.Success || addedCount <= 0)
                 return false;
@@ -138,16 +136,12 @@ namespace EasyPack.InventorySystem
         }
 
         private void UpdateSourceSlotAfterMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem,
-                                              int sourceCount, int addedCount)
+                                               int sourceCount, int addedCount)
         {
             if (addedCount == sourceCount)
-            {
                 HandleCompleteMove(sourceSlot, sourceSlotIndex, sourceItem, sourceCount);
-            }
             else
-            {
                 HandlePartialMove(sourceSlot, sourceSlotIndex, sourceItem, sourceCount, addedCount);
-            }
         }
 
         private void HandleCompleteMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem, int sourceCount)
@@ -158,7 +152,7 @@ namespace EasyPack.InventorySystem
         }
 
         private void HandlePartialMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem,
-                                      int sourceCount, int addedCount)
+                                       int sourceCount, int addedCount)
         {
             int remainingCount = sourceCount - addedCount;
             sourceSlot.SetItem(sourceItem, remainingCount);
@@ -175,6 +169,7 @@ namespace EasyPack.InventorySystem
                 _cacheService.UpdateItemSlotIndexCache(sourceItem.ID, sourceSlotIndex, false);
                 _cacheService.UpdateItemTypeCache(sourceItem.Type, sourceSlotIndex, false);
             }
+
             _cacheService.UpdateItemCountCache(sourceItem.ID, -count);
         }
 
@@ -184,11 +179,8 @@ namespace EasyPack.InventorySystem
 
             for (int i = 0; i < _slots.Count; i++)
             {
-                var slot = _slots[i];
-                if (slot.IsOccupied && slot.Item != null)
-                {
-                    occupiedSlots.Add((i, slot.Item, slot.ItemCount));
-                }
+                ISlot slot = _slots[i];
+                if (slot.IsOccupied && slot.Item != null) occupiedSlots.Add((i, slot.Item, slot.ItemCount));
             }
 
             return occupiedSlots;
@@ -220,9 +212,10 @@ namespace EasyPack.InventorySystem
             var backup = new (IItem item, int count)[_slots.Count];
             for (int i = 0; i < _slots.Count; i++)
             {
-                var slot = _slots[i];
+                ISlot slot = _slots[i];
                 backup[i] = (slot.Item, slot.ItemCount);
             }
+
             return backup;
         }
 
@@ -230,30 +223,28 @@ namespace EasyPack.InventorySystem
         {
             for (int i = 0; i < _slots.Count && i < backupData.Length; i++)
             {
-                var slot = _slots[i];
-                var (item, count) = backupData[i];
+                ISlot slot = _slots[i];
+                (IItem item, int count) = backupData[i];
 
                 if (item != null)
                     slot.SetItem(item, count);
                 else
                     slot.ClearSlot();
             }
+
             RebuildCaches();
         }
 
         private void ClearAllSlotsInternal()
         {
-            foreach (var slot in _slots)
-            {
-                slot.ClearSlot();
-            }
+            foreach (ISlot slot in _slots) slot.ClearSlot();
         }
 
         private void FillSlotsWithSortedItems(List<(int index, IItem item, int count)> sortedItems)
         {
             for (int i = 0; i < sortedItems.Count && i < _slots.Count; i++)
             {
-                var (_, item, count) = sortedItems[i];
+                (_, IItem item, int count) = sortedItems[i];
                 _slots[i].SetItem(item, count);
             }
         }
@@ -264,7 +255,7 @@ namespace EasyPack.InventorySystem
 
             for (int i = 0; i < _slots.Count; i++)
             {
-                var slot = _slots[i];
+                ISlot slot = _slots[i];
                 if (!IsSlotEligibleForConsolidation(slot)) continue;
 
                 AddSlotToItemGroup(itemGroups, i, slot);
@@ -273,13 +264,11 @@ namespace EasyPack.InventorySystem
             return itemGroups;
         }
 
-        private bool IsSlotEligibleForConsolidation(ISlot slot)
-        {
-            return slot.IsOccupied && slot.Item is { IsStackable: true };
-        }
+        private bool IsSlotEligibleForConsolidation(ISlot slot) =>
+            slot.IsOccupied && slot.Item is { IsStackable: true };
 
         private void AddSlotToItemGroup(Dictionary<string, List<(int slotIndex, IItem item, int count)>> itemGroups,
-                                       int slotIndex, ISlot slot)
+                                        int slotIndex, ISlot slot)
         {
             string itemId = slot.Item.ID;
             if (!itemGroups.ContainsKey(itemId))
@@ -291,17 +280,13 @@ namespace EasyPack.InventorySystem
         private void ConsolidateItemGroups(Dictionary<string, List<(int slotIndex, IItem item, int count)>> itemGroups)
         {
             foreach (var itemGroup in itemGroups.Values)
-            {
                 if (itemGroup.Count >= 2)
-                {
                     ConsolidateSingleItemGroup(itemGroup);
-                }
-            }
         }
 
         private void ConsolidateSingleItemGroup(List<(int slotIndex, IItem item, int count)> itemSlots)
         {
-            var item = itemSlots[0].item;
+            IItem item = itemSlots[0].item;
             int totalCount = CalculateTotalItemCount(itemSlots);
             var targetSlots = GetSortedTargetSlots(itemSlots);
 
@@ -321,10 +306,7 @@ namespace EasyPack.InventorySystem
 
         private void ClearItemGroupSlots(List<(int slotIndex, IItem item, int count)> itemSlots)
         {
-            foreach (var (slotIndex, _, _) in itemSlots)
-            {
-                _slots[slotIndex].ClearSlot();
-            }
+            foreach ((int slotIndex, IItem _, int _) in itemSlots) _slots[slotIndex].ClearSlot();
         }
 
         private void RedistributeItemsToSlots(IItem item, int totalCount, List<int> targetSlots)
@@ -345,6 +327,7 @@ namespace EasyPack.InventorySystem
                 targetIndex++;
             }
         }
+
         #endregion
     }
 } // namespace EasyPack.InventorySystem

@@ -4,6 +4,7 @@ namespace EasyPack.InventorySystem
     {
         bool CheckCondition(IItem item);
     }
+
     public interface ISerializableCondition : IItemCondition
     {
         string Kind { get; }

@@ -6,24 +6,24 @@ using UnityEngine;
 namespace EasyPack.InventorySystem
 {
     /// <summary>
-    /// 条件的 JSON 序列化器
+    ///     条件的 JSON 序列化器
     /// </summary>
     public class ConditionJsonSerializer : JsonSerializerBase<IItemCondition>
     {
         /// <summary>
-        /// Kind 到条件类型的映射表
+        ///     Kind 到条件类型的映射表
         /// </summary>
-        private static readonly Dictionary<string, Type> _kindToType = new Dictionary<string, Type>
+        private static readonly Dictionary<string, Type> _kindToType = new()
         {
             ["ItemType"] = typeof(ItemTypeCondition),
             ["Attr"] = typeof(AttributeCondition),
             ["All"] = typeof(AllCondition),
             ["Any"] = typeof(AnyCondition),
-            ["Not"] = typeof(NotCondition)
+            ["Not"] = typeof(NotCondition),
         };
 
         /// <summary>
-        /// 将条件对象序列化为 JSON 字符串
+        ///     将条件对象序列化为 JSON 字符串
         /// </summary>
         /// <param name="condition">要序列化的条件对象</param>
         /// <returns>JSON 字符串，如果条件为 null 或不支持序列化则返回 null</returns>
@@ -34,16 +34,17 @@ namespace EasyPack.InventorySystem
 
             if (condition is not ISerializableCondition serializableCondition)
             {
-                Debug.LogWarning($"[ConditionJsonSerializer] 条件类型 {condition.GetType().Name} 未实现 ISerializableCondition 接口");
+                Debug.LogWarning(
+                    $"[ConditionJsonSerializer] 条件类型 {condition.GetType().Name} 未实现 ISerializableCondition 接口");
                 return null;
             }
 
-            var dto = serializableCondition.ToDto();
+            SerializedCondition dto = serializableCondition.ToDto();
             return JsonUtility.ToJson(dto);
         }
 
         /// <summary>
-        /// 从 JSON 字符串反序列化为条件对象
+        ///     从 JSON 字符串反序列化为条件对象
         /// </summary>
         /// <param name="json">JSON 字符串</param>
         /// <returns>反序列化的条件对象，如果 JSON 无效或类型未注册则返回 null</returns>
@@ -70,7 +71,7 @@ namespace EasyPack.InventorySystem
             }
 
             // 根据 Kind 查找对应的条件类型
-            if (!_kindToType.TryGetValue(dto.Kind, out var conditionType))
+            if (!_kindToType.TryGetValue(dto.Kind, out Type conditionType))
             {
                 Debug.LogWarning($"[ConditionJsonSerializer] 未注册的条件类型: {dto.Kind}");
                 return null;
@@ -96,7 +97,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 注册自定义条件类型
+        ///     注册自定义条件类型
         /// </summary>
         /// <param name="kind">条件的 Kind 标识</param>
         /// <param name="conditionType">条件的具体类型</param>
@@ -119,19 +120,13 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 检查 Kind 是否已注册
+        ///     检查 Kind 是否已注册
         /// </summary>
-        public static bool IsRegistered(string kind)
-        {
-            return !string.IsNullOrEmpty(kind) && _kindToType.ContainsKey(kind);
-        }
+        public static bool IsRegistered(string kind) => !string.IsNullOrEmpty(kind) && _kindToType.ContainsKey(kind);
 
         /// <summary>
-        /// 获取所有已注册的 Kind
+        ///     获取所有已注册的 Kind
         /// </summary>
-        public static IEnumerable<string> GetRegisteredKinds()
-        {
-            return _kindToType.Keys;
-        }
+        public static IEnumerable<string> GetRegisteredKinds() => _kindToType.Keys;
     }
 }

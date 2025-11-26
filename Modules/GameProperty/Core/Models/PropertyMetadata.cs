@@ -4,8 +4,8 @@ using System;
 namespace EasyPack.GamePropertySystem
 {
     /// <summary>
-    /// 属性元数据
-    /// 存储属性的显示信息和扩展数据
+    ///     属性元数据
+    ///     存储属性的显示信息和扩展数据
     /// </summary>
     [Serializable]
     public class PropertyMetadata
@@ -20,45 +20,38 @@ namespace EasyPack.GamePropertySystem
         public string IconPath;
 
         /// <summary>
-        /// 标签数组
+        ///     标签数组
         /// </summary>
         public string[] Tags;
 
         /// <summary>
-        /// 自定义扩展数据
+        ///     自定义扩展数据
         /// </summary>
         public CustomDataCollection CustomData;
 
         /// <summary>
-        /// 默认构造函数
+        ///     默认构造函数
         /// </summary>
-        public PropertyMetadata()
-        {
-            CustomData = new CustomDataCollection();
-        }
+        public PropertyMetadata() => CustomData = new();
 
         /// <summary>
-        /// 获取自定义数据值
+        ///     获取自定义数据值
         /// </summary>
-        public T GetCustomData<T>(string key, T defaultValue = default)
-        {
-            return CustomData.TryGetValue(key, out T value) ? value : defaultValue;
-        }
+        public T GetCustomData<T>(string key, T defaultValue = default) =>
+            CustomData.TryGetValue(key, out T value) ? value : defaultValue;
 
         /// <summary>
-        /// 设置自定义数据值
+        ///     设置自定义数据值
         /// </summary>
         public void SetCustomData(string key, object value)
         {
             // 查找是否已存在
-            foreach (var entry in CustomData)
-            {
+            foreach (CustomDataEntry entry in CustomData)
                 if (entry.Key == key)
                 {
                     entry.SetValue(value);
                     return;
                 }
-            }
 
             // 不存在则添加新条目
             var newEntry = new CustomDataEntry { Key = key };

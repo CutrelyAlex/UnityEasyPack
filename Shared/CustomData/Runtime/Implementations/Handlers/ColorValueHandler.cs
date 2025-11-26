@@ -6,6 +6,7 @@ namespace EasyPack.CustomData
     public class ColorValueHandler : IValueHandler
     {
         public CustomDataType SupportedType => CustomDataType.Color;
+
         public object GetValue(CustomDataEntry entry) => entry.ColorValue;
 
         public void SetValue(CustomDataEntry entry, object value)
@@ -19,6 +20,7 @@ namespace EasyPack.CustomData
                 var parsed = JsonUtility.FromJson<Color>(strValue);
                 entry.ColorValue = parsed;
             }
+
             entry.Type = CustomDataType.Color;
             ClearOtherValues(entry);
         }
@@ -41,7 +43,10 @@ namespace EasyPack.CustomData
 
         public string Serialize(CustomDataEntry entry) => JsonUtility.ToJson(entry.ColorValue);
 
-        public void Clear(CustomDataEntry entry) => entry.ColorValue = default;
+        public void Clear(CustomDataEntry entry)
+        {
+            entry.ColorValue = default;
+        }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

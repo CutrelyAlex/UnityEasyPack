@@ -7,8 +7,8 @@ using UnityEngine;
 namespace EasyPack.InventorySystem
 {
     /// <summary>
-    /// Item类型的JSON序列化器
-    /// 直接使用 CustomDataEntry，无需中间转换
+    ///     Item类型的JSON序列化器
+    ///     直接使用 CustomDataEntry，无需中间转换
     /// </summary>
     public class ItemJsonSerializer : JsonSerializerBase<Item>
     {
@@ -31,7 +31,7 @@ namespace EasyPack.InventorySystem
                     : null,
                 ContainerIds = obj.IsContainerItem && obj.ContainerIds is { Count: > 0 }
                     ? new List<string>(obj.ContainerIds)
-                    : null
+                    : null,
             };
 
             return JsonUtility.ToJson(dto);
@@ -68,23 +68,18 @@ namespace EasyPack.InventorySystem
 
             // 反序列化 CustomData
             if (dto.CustomData is { Count: > 0 })
-            {
-                item.CustomData = new CustomDataCollection(dto.CustomData);
-            }
+                item.CustomData = new(dto.CustomData);
             else
-            {
-                item.CustomData = new CustomDataCollection();
-            }
+                item.CustomData = new();
 
             // 反序列化容器ID列表
             if (dto.ContainerIds is { Count: > 0 })
             {
                 item.IsContainerItem = true;
-                item.ContainerIds = new List<string>(dto.ContainerIds);
+                item.ContainerIds = new(dto.ContainerIds);
             }
 
             return item;
         }
     }
 }
-

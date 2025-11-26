@@ -5,7 +5,7 @@ using UnityEngine;
 namespace EasyPack.GamePropertySystem.Example.EatGame
 {
     /// <summary>
-    /// 修饰符管理器，处理持续时间
+    ///     修饰符管理器，处理持续时间
     /// </summary>
     public class ModifierManager
     {
@@ -16,20 +16,21 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             public GameProperty TargetProperty;
         }
 
-        private readonly List<TimedModifier> _activeModifiers = new List<TimedModifier>();
+        private readonly List<TimedModifier> _activeModifiers = new();
 
         /// <summary>
-        /// 添加带持续时间的修饰符
+        ///     添加带持续时间的修饰符
         /// </summary>
         public void AddTimedModifier(GameProperty targetProperty, FloatModifier modifier, int duration)
         {
-            Debug.Log($"[ModifierManager] 添加修饰符: 属性={targetProperty.ID}, 类型={modifier.Type}, 值={modifier.Value}, 优先级={modifier.Priority}, 持续时间={duration}天");
+            Debug.Log(
+                $"[ModifierManager] 添加修饰符: 属性={targetProperty.ID}, 类型={modifier.Type}, 值={modifier.Value}, 优先级={modifier.Priority}, 持续时间={duration}天");
 
             var timedModifier = new TimedModifier
             {
                 Modifier = modifier,
                 RemainingDays = duration + 1, // 加1以确保持续正确的天数
-                TargetProperty = targetProperty
+                TargetProperty = targetProperty,
             };
 
             _activeModifiers.Add(timedModifier);
@@ -42,7 +43,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         }
 
         /// <summary>
-        /// 处理每日修饰符更新（减少持续时间，移除过期修饰符）
+        ///     处理每日修饰符更新（减少持续时间，移除过期修饰符）
         /// </summary>
         public void ProcessDailyModifiers()
         {
@@ -50,15 +51,17 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
 
             for (int i = _activeModifiers.Count - 1; i >= 0; i--)
             {
-                var timedModifier = _activeModifiers[i];
-                Debug.Log($"[ModifierManager] 处理修饰符 {i}: 属性={timedModifier.TargetProperty.ID}, 类型={timedModifier.Modifier.Type}, 值={timedModifier.Modifier.Value}, 剩余时间={timedModifier.RemainingDays}天");
+                TimedModifier timedModifier = _activeModifiers[i];
+                Debug.Log(
+                    $"[ModifierManager] 处理修饰符 {i}: 属性={timedModifier.TargetProperty.ID}, 类型={timedModifier.Modifier.Type}, 值={timedModifier.Modifier.Value}, 剩余时间={timedModifier.RemainingDays}天");
 
                 timedModifier.RemainingDays--;
 
                 if (timedModifier.RemainingDays <= 0)
                 {
                     // 移除修饰符
-                    Debug.Log($"[ModifierManager] 修饰符到期，移除: 属性={timedModifier.TargetProperty.ID}, 类型={timedModifier.Modifier.Type}, 值={timedModifier.Modifier.Value}");
+                    Debug.Log(
+                        $"[ModifierManager] 修饰符到期，移除: 属性={timedModifier.TargetProperty.ID}, 类型={timedModifier.Modifier.Type}, 值={timedModifier.Modifier.Value}");
                     float valueBeforeRemove = timedModifier.TargetProperty.GetValue();
                     timedModifier.TargetProperty.RemoveModifier(timedModifier.Modifier);
                     float valueAfterRemove = timedModifier.TargetProperty.GetValue();
@@ -75,23 +78,19 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         }
 
         /// <summary>
-        /// 清除所有修饰符
+        ///     清除所有修饰符
         /// </summary>
         public void ClearAllModifiers()
         {
-            foreach (var timedModifier in _activeModifiers)
-            {
+            foreach (TimedModifier timedModifier in _activeModifiers)
                 timedModifier.TargetProperty.RemoveModifier(timedModifier.Modifier);
-            }
+
             _activeModifiers.Clear();
         }
 
         /// <summary>
-        /// 获取活跃修饰符数量
+        ///     获取活跃修饰符数量
         /// </summary>
-        public int GetActiveModifierCount()
-        {
-            return _activeModifiers.Count;
-        }
+        public int GetActiveModifierCount() => _activeModifiers.Count;
     }
 }

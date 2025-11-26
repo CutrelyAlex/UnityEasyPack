@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,20 +9,20 @@ using EasyPack.Serialization;
 namespace EasyPack.InventorySystem
 {
     /// <summary>
-    /// 多个容器管理的系统，实现 IService 接口以支持 ENekoFramework
+    ///     多个容器管理的系统，实现 IService 接口以支持 ENekoFramework
     /// </summary>
     public partial class InventoryService : BaseService, IInventoryService
     {
         #region IService 实现
 
         /// <summary>
-        /// 线程锁，用于保证线程安全
+        ///     线程锁，用于保证线程安全
         /// </summary>
-        private readonly object _lock = new object();
+        private readonly object _lock = new();
 
         /// <summary>
-        /// 服务初始化钩子方法
-        /// 派生类应重写此方法以实现自定义初始化逻辑
+        ///     服务初始化钩子方法
+        ///     派生类应重写此方法以实现自定义初始化逻辑
         /// </summary>
         protected override async Task OnInitializeAsync()
         {
@@ -46,7 +45,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 注册 Inventory 系统的序列化器
+        ///     注册 Inventory 系统的序列化器
         /// </summary>
         private async Task RegisterSerializers()
         {
@@ -73,7 +72,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 服务暂停钩子方法
+        ///     服务暂停钩子方法
         /// </summary>
         protected override void OnPause()
         {
@@ -81,11 +80,12 @@ namespace EasyPack.InventorySystem
             {
                 Debug.Log("[InventoryService] 服务已暂停");
             }
+
             base.OnPause();
         }
 
         /// <summary>
-        /// 服务恢复钩子方法
+        ///     服务恢复钩子方法
         /// </summary>
         protected override void OnResume()
         {
@@ -93,22 +93,21 @@ namespace EasyPack.InventorySystem
             {
                 Debug.Log("[InventoryService] 服务已恢复");
             }
+
             base.OnResume();
         }
 
         /// <summary>
-        /// 服务释放钩子方法
+        ///     服务释放钩子方法
         /// </summary>
         protected override async Task OnDisposeAsync()
         {
             lock (_lock)
             {
                 // 清理所有容器
-                foreach (var container in _containers.Values)
-                {
+                foreach (Container container in _containers.Values)
                     // 容器可能有自己的清理逻辑
                     container?.ClearAllSlots();
-                }
 
                 _containers.Clear();
                 _containersByType.Clear();
@@ -123,8 +122,8 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 重置服务状态
-        /// 清空所有容器、条件和缓存，但保留服务的初始化状态
+        ///     重置服务状态
+        ///     清空所有容器、条件和缓存，但保留服务的初始化状态
         /// </summary>
         public void Reset()
         {
@@ -137,10 +136,7 @@ namespace EasyPack.InventorySystem
                 }
 
                 // 清理所有容器
-                foreach (var container in _containers.Values)
-                {
-                    container?.ClearAllSlots();
-                }
+                foreach (Container container in _containers.Values) container?.ClearAllSlots();
 
                 _containers.Clear();
                 _containersByType.Clear();
@@ -152,47 +148,44 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 检查服务是否可用
+        ///     检查服务是否可用
         /// </summary>
-        private bool IsServiceAvailable()
-        {
-            return State == ServiceLifecycleState.Ready;
-        }
+        private bool IsServiceAvailable() => State == ServiceLifecycleState.Ready;
 
         #endregion
 
         #region 存储
 
         /// <summary>
-        /// 按ID索引的容器字典
+        ///     按ID索引的容器字典
         /// </summary>
         private readonly Dictionary<string, Container> _containers = new();
 
         /// <summary>
-        /// 按类型分组的容器索引，功能导向
+        ///     按类型分组的容器索引，功能导向
         /// </summary>
         private readonly Dictionary<string, HashSet<string>> _containersByType = new();
 
         /// <summary>
-        /// 容器优先级设置
+        ///     容器优先级设置
         /// </summary>
         private readonly Dictionary<string, int> _containerPriorities = new();
 
 
         /// <summary>
-        /// 容器分类设置，业务导向
+        ///     容器分类设置，业务导向
         /// </summary>
         /// 类型表示"是什么"，分类表示"属于谁/用于什么"
         /// 例如：类型为"背包""装备"，分类为"玩家""临时"之类
         private readonly Dictionary<string, string> _containerCategories = new();
 
         /// <summary>
-        /// 全局物品条件列表
+        ///     全局物品条件列表
         /// </summary>
         private readonly List<IItemCondition> _globalItemConditions = new();
 
         /// <summary>
-        /// 是否启用全局物品条件检查
+        ///     是否启用全局物品条件检查
         /// </summary>
         private bool _enableGlobalConditions = false;
 
@@ -201,7 +194,7 @@ namespace EasyPack.InventorySystem
         #region 容器注册与查询
 
         /// <summary>
-        /// 注册容器到管理器中
+        ///     注册容器到管理器中
         /// </summary>
         /// <param name="container">要注册的容器</param>
         /// <param name="priority">容器优先级，数值越高优先级越高</param>
@@ -219,10 +212,7 @@ namespace EasyPack.InventorySystem
 
             lock (_lock)
             {
-                if (_containers.ContainsKey(container.ID))
-                {
-                    UnregisterContainerInternal(container.ID);
-                }
+                if (_containers.ContainsKey(container.ID)) UnregisterContainerInternal(container.ID);
 
                 // 注册容器
                 _containers[container.ID] = container;
@@ -232,15 +222,12 @@ namespace EasyPack.InventorySystem
                 // 按类型建立索引
                 string containerType = container.Type ?? "Unknown";
                 if (!_containersByType.ContainsKey(containerType))
-                    _containersByType[containerType] = new HashSet<string>();
+                    _containersByType[containerType] = new();
 
                 _containersByType[containerType].Add(container.ID);
 
                 // 如果全局条件已启用，添加到新容器
-                if (_enableGlobalConditions)
-                {
-                    ApplyGlobalConditionsToContainer(container);
-                }
+                if (_enableGlobalConditions) ApplyGlobalConditionsToContainer(container);
             }
 
             OnContainerRegistered?.Invoke(container);
@@ -248,7 +235,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 注销指定ID的容器
+        ///     注销指定ID的容器
         /// </summary>
         /// <param name="containerId">容器ID</param>
         /// <returns>注销是否成功</returns>
@@ -267,20 +254,17 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 内部注销容器实现（不检查服务状态，不加锁）
+        ///     内部注销容器实现（不检查服务状态，不加锁）
         /// </summary>
         private bool UnregisterContainerInternal(string containerId)
         {
             try
             {
-                if (string.IsNullOrEmpty(containerId) || !_containers.TryGetValue(containerId, out var container))
+                if (string.IsNullOrEmpty(containerId) || !_containers.TryGetValue(containerId, out Container container))
                     return false;
 
                 // 移除全局条件
-                if (_enableGlobalConditions)
-                {
-                    RemoveGlobalConditionsFromContainer(container);
-                }
+                if (_enableGlobalConditions) RemoveGlobalConditionsFromContainer(container);
 
                 // 从主字典移除
                 _containers.Remove(containerId);
@@ -303,22 +287,19 @@ namespace EasyPack.InventorySystem
             }
             catch (System.Exception ex)
             {
-                UnityEngine.Debug.LogError($"[InventoryService] 注销容器失败：{ex.Message}\n{ex.StackTrace}");
+                Debug.LogError($"[InventoryService] 注销容器失败：{ex.Message}\n{ex.StackTrace}");
                 return false;
             }
         }
 
         /// <summary>
-        /// 获取指定ID的容器
+        ///     获取指定ID的容器
         /// </summary>
         /// <param name="containerId">容器ID</param>
         /// <returns>找到的容器，未找到返回null</returns>
         public Container GetContainer(string containerId)
         {
-            if (!IsServiceAvailable())
-            {
-                return null;
-            }
+            if (!IsServiceAvailable()) return null;
 
             lock (_lock)
             {
@@ -327,15 +308,12 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 获取所有已注册的容器
+        ///     获取所有已注册的容器
         /// </summary>
         /// <returns>所有容器的只读列表</returns>
         public IReadOnlyList<Container> GetAllContainers()
         {
-            if (!IsServiceAvailable())
-            {
-                return new List<Container>().AsReadOnly();
-            }
+            if (!IsServiceAvailable()) return new List<Container>().AsReadOnly();
 
             lock (_lock)
             {
@@ -344,74 +322,60 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 按类型获取容器
+        ///     按类型获取容器
         /// </summary>
         /// <param name="containerType">容器类型</param>
         /// <returns>指定类型的容器列表</returns>
         public List<Container> GetContainersByType(string containerType)
         {
-            if (!IsServiceAvailable())
-            {
-                return new List<Container>();
-            }
+            if (!IsServiceAvailable()) return new();
 
             lock (_lock)
             {
-                if (string.IsNullOrEmpty(containerType) || !_containersByType.TryGetValue(containerType, out var containerIds))
-                    return new List<Container>();
+                if (string.IsNullOrEmpty(containerType) ||
+                    !_containersByType.TryGetValue(containerType, out var containerIds))
+                    return new();
 
                 var result = new List<Container>();
                 foreach (string containerId in containerIds)
-                {
-                    if (_containers.TryGetValue(containerId, out var container))
-                    {
+                    if (_containers.TryGetValue(containerId, out Container container))
                         result.Add(container);
-                    }
-                }
+
                 return result;
             }
         }
 
         /// <summary>
-        /// 按分类获取容器
+        ///     按分类获取容器
         /// </summary>
         /// <param name="category">分类名称</param>
         /// <returns>指定分类的容器列表</returns>
         public List<Container> GetContainersByCategory(string category)
         {
-            if (!IsServiceAvailable())
-            {
-                return new List<Container>();
-            }
+            if (!IsServiceAvailable()) return new();
 
             lock (_lock)
             {
                 if (string.IsNullOrEmpty(category))
-                    return new List<Container>();
+                    return new();
 
                 var result = new List<Container>();
                 foreach (var kvp in _containerCategories)
-                {
-                    if (kvp.Value == category && _containers.TryGetValue(kvp.Key, out var container))
-                    {
+                    if (kvp.Value == category && _containers.TryGetValue(kvp.Key, out Container container))
                         result.Add(container);
-                    }
-                }
+
                 return result;
             }
         }
 
         /// <summary>
-        /// 按优先级排序获取容器
+        ///     按优先级排序获取容器
         /// </summary>
         /// <param name="descending">是否降序排列（优先级高的在前）</param>
         /// <returns>按优先级排序的容器列表</returns>
         public List<Container> GetContainersByPriority(bool descending = true)
         {
-            if (!IsServiceAvailable())
-            {
-                return new List<Container>();
-            }
+            if (!IsServiceAvailable()) return new();
 
             lock (_lock)
             {
@@ -427,16 +391,13 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 检查容器是否已注册
+        ///     检查容器是否已注册
         /// </summary>
         /// <param name="containerId">容器ID</param>
         /// <returns>是否已注册</returns>
         public bool IsContainerRegistered(string containerId)
         {
-            if (!IsServiceAvailable())
-            {
-                return false;
-            }
+            if (!IsServiceAvailable()) return false;
 
             lock (_lock)
             {
@@ -445,16 +406,13 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 获取已注册容器的数量
+        ///     获取已注册容器的数量
         /// </summary>
         public int ContainerCount
         {
             get
             {
-                if (!IsServiceAvailable())
-                {
-                    return 0;
-                }
+                if (!IsServiceAvailable()) return 0;
 
                 lock (_lock)
                 {
@@ -468,17 +426,14 @@ namespace EasyPack.InventorySystem
         #region 配置
 
         /// <summary>
-        /// 设置容器优先级
+        ///     设置容器优先级
         /// </summary>
         /// <param name="containerId">容器ID</param>
         /// <param name="priority">优先级数值</param>
         /// <returns>设置是否成功</returns>
         public bool SetContainerPriority(string containerId, int priority)
         {
-            if (!IsServiceAvailable())
-            {
-                return false;
-            }
+            if (!IsServiceAvailable()) return false;
 
             lock (_lock)
             {
@@ -493,16 +448,13 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 获取容器优先级
+        ///     获取容器优先级
         /// </summary>
         /// <param name="containerId">容器ID</param>
         /// <returns>容器优先级，未找到返回0</returns>
         public int GetContainerPriority(string containerId)
         {
-            if (!IsServiceAvailable() || string.IsNullOrEmpty(containerId))
-            {
-                return 0;
-            }
+            if (!IsServiceAvailable() || string.IsNullOrEmpty(containerId)) return 0;
 
             lock (_lock)
             {
@@ -511,17 +463,14 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 设置容器分类
+        ///     设置容器分类
         /// </summary>
         /// <param name="containerId">容器ID</param>
         /// <param name="category">分类名称</param>
         /// <returns>设置是否成功</returns>
         public bool SetContainerCategory(string containerId, string category)
         {
-            if (!IsServiceAvailable())
-            {
-                return false;
-            }
+            if (!IsServiceAvailable()) return false;
 
             string oldCategory;
             lock (_lock)
@@ -538,16 +487,13 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 获取容器分类
+        ///     获取容器分类
         /// </summary>
         /// <param name="containerId">容器ID</param>
         /// <returns>容器分类，未找到返回"Default"</returns>
         public string GetContainerCategory(string containerId)
         {
-            if (!IsServiceAvailable() || string.IsNullOrEmpty(containerId))
-            {
-                return "Default";
-            }
+            if (!IsServiceAvailable() || string.IsNullOrEmpty(containerId)) return "Default";
 
             lock (_lock)
             {
@@ -555,13 +501,12 @@ namespace EasyPack.InventorySystem
             }
         }
 
-
         #endregion
 
         #region 全局条件
 
         /// <summary>
-        /// 检查物品是否满足全局条件
+        ///     检查物品是否满足全局条件
         /// </summary>
         /// <param name="item">要检查的物品</param>
         /// <returns>是否满足所有全局条件</returns>
@@ -569,10 +514,7 @@ namespace EasyPack.InventorySystem
         {
             if (item == null) return false;
 
-            if (!IsServiceAvailable())
-            {
-                return false;
-            }
+            if (!IsServiceAvailable()) return false;
 
             lock (_lock)
             {
@@ -582,31 +524,27 @@ namespace EasyPack.InventorySystem
                 // 用户提供的条件检查可能抛异常，需要保护
                 try
                 {
-                    foreach (var condition in _globalItemConditions)
-                    {
+                    foreach (IItemCondition condition in _globalItemConditions)
                         if (!condition.CheckCondition(item))
                             return false;
-                    }
+
                     return true;
                 }
                 catch (System.Exception ex)
                 {
-                    UnityEngine.Debug.LogError($"[InventoryService] 全局条件检查失败：{ex.Message}");
+                    Debug.LogError($"[InventoryService] 全局条件检查失败：{ex.Message}");
                     return false;
                 }
             }
         }
 
         /// <summary>
-        /// 添加全局物品条件
+        ///     添加全局物品条件
         /// </summary>
         /// <param name="condition">物品条件</param>
         public void AddGlobalItemCondition(IItemCondition condition)
         {
-            if (!IsServiceAvailable())
-            {
-                return;
-            }
+            if (!IsServiceAvailable()) return;
 
             try
             {
@@ -621,68 +559,50 @@ namespace EasyPack.InventorySystem
 
                     // 如果全局条件已启用，添加到所有容器
                     if (_enableGlobalConditions)
-                    {
-                        foreach (var container in _containers.Values)
-                        {
+                        foreach (Container container in _containers.Values)
                             if (!container.ContainerCondition.Contains(condition))
-                            {
                                 container.ContainerCondition.Add(condition);
-                            }
-                        }
-                    }
                 }
 
                 OnGlobalConditionAdded?.Invoke(condition);
             }
             catch (System.Exception ex)
             {
-                UnityEngine.Debug.LogError($"[InventoryService] 操作失败：{ex.Message}"); // 静默处理异常
+                Debug.LogError($"[InventoryService] 操作失败：{ex.Message}"); // 静默处理异常
             }
         }
 
         /// <summary>
-        /// 移除全局物品条件
+        ///     移除全局物品条件
         /// </summary>
         /// <param name="condition">物品条件</param>
         /// <returns>移除是否成功</returns>
         public bool RemoveGlobalItemCondition(IItemCondition condition)
         {
-            if (!IsServiceAvailable() || condition == null)
-            {
-                return false;
-            }
+            if (!IsServiceAvailable() || condition == null) return false;
 
             bool removed;
             lock (_lock)
             {
                 removed = _globalItemConditions.Remove(condition);
                 if (removed)
-                {
                     // 从所有容器中移除此条件
-                    foreach (var container in _containers.Values)
-                    {
+                    foreach (Container container in _containers.Values)
                         container.ContainerCondition.Remove(condition);
-                    }
-                }
             }
 
-            if (removed)
-            {
-                OnGlobalConditionRemoved?.Invoke(condition);
-            }
+            if (removed) OnGlobalConditionRemoved?.Invoke(condition);
+
             return removed;
         }
 
         /// <summary>
-        /// 设置是否启用全局条件
+        ///     设置是否启用全局条件
         /// </summary>
         /// <param name="enable">是否启用</param>
         public void SetGlobalConditionsEnabled(bool enable)
         {
-            if (!IsServiceAvailable())
-            {
-                return;
-            }
+            if (!IsServiceAvailable()) return;
 
             lock (_lock)
             {
@@ -691,33 +611,22 @@ namespace EasyPack.InventorySystem
                 _enableGlobalConditions = enable;
 
                 if (enable)
-                {
-                    foreach (var container in _containers.Values)
-                    {
+                    foreach (Container container in _containers.Values)
                         ApplyGlobalConditionsToContainer(container);
-                    }
-                }
                 else
-                {
-                    foreach (var container in _containers.Values)
-                    {
+                    foreach (Container container in _containers.Values)
                         RemoveGlobalConditionsFromContainer(container);
-                    }
-                }
             }
         }
 
         /// <summary>
-        /// 获取是否启用全局条件
+        ///     获取是否启用全局条件
         /// </summary>
         public bool IsGlobalConditionsEnabled
         {
             get
             {
-                if (!IsServiceAvailable())
-                {
-                    return false;
-                }
+                if (!IsServiceAvailable()) return false;
 
                 lock (_lock)
                 {
@@ -725,31 +634,25 @@ namespace EasyPack.InventorySystem
                 }
             }
         }
+
         /// <summary>
-        /// 将全局条件应用到指定容器
+        ///     将全局条件应用到指定容器
         /// </summary>
         /// <param name="container">目标容器</param>
         private void ApplyGlobalConditionsToContainer(Container container)
         {
-            foreach (var condition in _globalItemConditions)
-            {
+            foreach (IItemCondition condition in _globalItemConditions)
                 if (!container.ContainerCondition.Contains(condition))
-                {
                     container.ContainerCondition.Add(condition);
-                }
-            }
         }
 
         /// <summary>
-        /// 从指定容器移除全局条件
+        ///     从指定容器移除全局条件
         /// </summary>
         /// <param name="container">目标容器</param>
         private void RemoveGlobalConditionsFromContainer(Container container)
         {
-            foreach (var condition in _globalItemConditions)
-            {
-                container.ContainerCondition.Remove(condition);
-            }
+            foreach (IItemCondition condition in _globalItemConditions) container.ContainerCondition.Remove(condition);
         }
 
         #endregion
@@ -757,89 +660,79 @@ namespace EasyPack.InventorySystem
         #region 事件
 
         /// <summary>
-        /// 容器注册事件
+        ///     容器注册事件
         /// </summary>
         public event System.Action<Container> OnContainerRegistered;
 
         /// <summary>
-        /// 容器注销事件
+        ///     容器注销事件
         /// </summary>
         public event System.Action<Container> OnContainerUnregistered;
 
         /// <summary>
-        /// 容器优先级变更事件
+        ///     容器优先级变更事件
         /// </summary>
         public event System.Action<string, int> OnContainerPriorityChanged;
 
         /// <summary>
-        /// 容器分类变更事件
+        ///     容器分类变更事件
         /// </summary>
         public event System.Action<string, string, string> OnContainerCategoryChanged;
 
         /// <summary>
-        /// 全局条件添加事件
+        ///     全局条件添加事件
         /// </summary>
         public event System.Action<IItemCondition> OnGlobalConditionAdded;
 
         /// <summary>
-        /// 全局条件移除事件
+        ///     全局条件移除事件
         /// </summary>
         public event System.Action<IItemCondition> OnGlobalConditionRemoved;
 
         /// <summary>
-        /// 全局缓存刷新事件
+        ///     全局缓存刷新事件
         /// </summary>
         public event System.Action OnGlobalCacheRefreshed;
 
         /// <summary>
-        /// 全局缓存验证事件
+        ///     全局缓存验证事件
         /// </summary>
         public event System.Action OnGlobalCacheValidated;
 
         #endregion
 
         #region 全局缓存
+
         /// <summary>
-        /// 刷新全局缓存
+        ///     刷新全局缓存
         /// </summary>
         public void RefreshGlobalCache()
         {
-            if (!IsServiceAvailable())
-            {
-                return;
-            }
+            if (!IsServiceAvailable()) return;
 
             lock (_lock)
             {
-                foreach (var container in _containers.Values)
-                {
-                    container?.RebuildCaches();
-                }
+                foreach (Container container in _containers.Values) container?.RebuildCaches();
             }
 
             OnGlobalCacheRefreshed?.Invoke();
         }
 
         /// <summary>
-        /// 验证全局缓存
+        ///     验证全局缓存
         /// </summary>
         public void ValidateGlobalCache()
         {
-            if (!IsServiceAvailable())
-            {
-                return;
-            }
+            if (!IsServiceAvailable()) return;
 
             lock (_lock)
             {
-                foreach (var container in _containers.Values)
-                {
-                    container?.ValidateCaches();
-                }
+                foreach (Container container in _containers.Values) container?.ValidateCaches();
             }
 
             OnGlobalCacheValidated?.Invoke();
         }
+
         #endregion
     }
 }

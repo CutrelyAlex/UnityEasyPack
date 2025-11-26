@@ -3,40 +3,39 @@ using System.Collections.Generic;
 
 namespace EasyPack.BuffSystem
 {
-
     /// <summary>
-    /// Buff 模块抽象基类，定义 Buff 的具体行为和逻辑
-    /// 通过注册回调函数响应 Buff 生命周期事件
+    ///     Buff 模块抽象基类，定义 Buff 的具体行为和逻辑
+    ///     通过注册回调函数响应 Buff 生命周期事件
     /// </summary>
     public abstract class BuffModule
     {
         /// <summary>
-        /// 存储不同回调类型对应的处理方法
+        ///     存储不同回调类型对应的处理方法
         /// </summary>
-        private readonly Dictionary<BuffCallBackType, Action<Buff, object[]>> _callbackHandlers = new Dictionary<BuffCallBackType, Action<Buff, object[]>>();
+        private readonly Dictionary<BuffCallBackType, Action<Buff, object[]>> _callbackHandlers = new();
 
         /// <summary>
-        /// 自定义回调名称到处理方法的映射
+        ///     自定义回调名称到处理方法的映射
         /// </summary>
-        private readonly Dictionary<string, Action<Buff, object[]>> _customCallbackHandlers = new Dictionary<string, Action<Buff, object[]>>();
+        private readonly Dictionary<string, Action<Buff, object[]>> _customCallbackHandlers = new();
 
         /// <summary>
-        /// 获取或设置条件触发逻辑，决定是否执行回调
+        ///     获取或设置条件触发逻辑，决定是否执行回调
         /// </summary>
         public Func<Buff, bool> TriggerCondition { get; set; }
 
         /// <summary>
-        /// 获取或设置模块执行优先级，数字越大越先执行
+        ///     获取或设置模块执行优先级，数字越大越先执行
         /// </summary>
         public int Priority { get; set; } = 0;
 
         /// <summary>
-        /// 获取父级 Buff 的引用
+        ///     获取父级 Buff 的引用
         /// </summary>
         public Buff ParentBuff { get; private set; }
 
         /// <summary>
-        /// 为指定的回调类型注册处理方法
+        ///     为指定的回调类型注册处理方法
         /// </summary>
         /// <param name="callbackType">回调类型</param>
         /// <param name="handler">处理方法</param>
@@ -50,7 +49,7 @@ namespace EasyPack.BuffSystem
         }
 
         /// <summary>
-        /// 为自定义回调类型注册处理方法
+        ///     为自定义回调类型注册处理方法
         /// </summary>
         /// <param name="customCallbackName">自定义回调名称</param>
         /// <param name="handler">处理方法</param>
@@ -64,7 +63,7 @@ namespace EasyPack.BuffSystem
         }
 
         /// <summary>
-        /// 检查是否应该执行特定回调
+        ///     检查是否应该执行特定回调
         /// </summary>
         /// <param name="callbackType">回调类型</param>
         /// <param name="customCallbackName">自定义回调名称（可选）</param>
@@ -72,27 +71,23 @@ namespace EasyPack.BuffSystem
         public virtual bool ShouldExecute(BuffCallBackType callbackType, string customCallbackName = "")
         {
             if (callbackType == BuffCallBackType.Custom)
-            {
                 return !string.IsNullOrEmpty(customCallbackName) &&
                        _customCallbackHandlers.ContainsKey(customCallbackName);
-            }
 
-            if (TriggerCondition != null)
-            {
-                return TriggerCondition(ParentBuff);
-            }
+            if (TriggerCondition != null) return TriggerCondition(ParentBuff);
 
             return _callbackHandlers.ContainsKey(callbackType);
         }
 
         /// <summary>
-        /// 执行对应的回调处理方法
+        ///     执行对应的回调处理方法
         /// </summary>
         /// <param name="buff">执行回调的 Buff 实例</param>
         /// <param name="callbackType">回调类型</param>
         /// <param name="customCallbackName">自定义回调名称（可选）</param>
         /// <param name="parameters">传递给回调的参数</param>
-        public virtual void Execute(Buff buff, BuffCallBackType callbackType, string customCallbackName = "", object[] parameters = null)
+        public virtual void Execute(Buff buff, BuffCallBackType callbackType, string customCallbackName = "",
+                                    object[] parameters = null)
         {
             parameters ??= Array.Empty<object>();
 
@@ -100,20 +95,16 @@ namespace EasyPack.BuffSystem
             {
                 if (!string.IsNullOrEmpty(customCallbackName) &&
                     _customCallbackHandlers.TryGetValue(customCallbackName, out var customHandler))
-                {
                     customHandler(buff, parameters);
-                }
+
                 return;
             }
 
-            if (_callbackHandlers.TryGetValue(callbackType, out var handler))
-            {
-                handler(buff, parameters);
-            }
+            if (_callbackHandlers.TryGetValue(callbackType, out var handler)) handler(buff, parameters);
         }
 
         /// <summary>
-        /// 设置父级 Buff 引用
+        ///     设置父级 Buff 引用
         /// </summary>
         /// <param name="parentBuff">父级 Buff 实例</param>
         public void SetParentBuff(Buff parentBuff)

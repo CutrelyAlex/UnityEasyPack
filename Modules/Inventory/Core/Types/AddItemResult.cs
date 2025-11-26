@@ -9,6 +9,6 @@ namespace EasyPack.InventorySystem
         SlotNotFound,
         ItemConditionNotMet,
         NoSuitableSlotFound,
-        AddNothingLOL
+        AddNothingLOL,
     }
 }

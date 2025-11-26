@@ -8,8 +8,8 @@ using EasyPack.Modifiers;
 namespace EasyPack.BuffSystem.Example
 {
     /// <summary>
-    /// Buff 系统完整示例
-    /// 本示例按照从简单到复杂的顺序，演示了 Buff 系统的各种功能
+    ///     Buff 系统完整示例
+    ///     本示例按照从简单到复杂的顺序，演示了 Buff 系统的各种功能
     /// </summary>
     public class BuffExample : MonoBehaviour
     {
@@ -27,11 +27,11 @@ namespace EasyPack.BuffSystem.Example
                 {
                     // 通过 EasyPack 架构获取服务
                     _buffManager = await EasyPackArchitecture.Instance.ResolveAsync<IBuffService>();
-                    _dummyTarget = new GameObject("DummyTarget");
-                    _dummyCreator = new GameObject("DummyCreator");
+                    _dummyTarget = new("DummyTarget");
+                    _dummyCreator = new("DummyCreator");
                     _gamePropertyManager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Debug.LogError($"服务初始化失败: {ex.Message}");
                     return;
@@ -65,8 +65,8 @@ namespace EasyPack.BuffSystem.Example
         }
 
         /// <summary>
-        /// 示例1：基础 Buff 使用
-        /// 学习目标：了解 Buff 的基本概念和创建流程
+        ///     示例1：基础 Buff 使用
+        ///     学习目标：了解 Buff 的基本概念和创建流程
         /// </summary>
         private void Example_1_BasicBuff()
         {
@@ -78,14 +78,14 @@ namespace EasyPack.BuffSystem.Example
                 ID = "SimpleBuff",
                 Name = "简单Buff",
                 Description = "这是一个最基础的Buff示例",
-                Duration = -1f,  // -1 表示永久有效
-                MaxStacks = 1
+                Duration = -1f, // -1 表示永久有效
+                MaxStacks = 1,
             };
 
             Debug.Log($"创建BuffData: {simpleBuff.Name}");
 
             // 1.2 应用Buff到目标
-            var buff = _buffManager.CreateBuff(simpleBuff, _dummyCreator, _dummyTarget);
+            Buff buff = _buffManager.CreateBuff(simpleBuff, _dummyCreator, _dummyTarget);
             Debug.Log($"Buff创建成功，ID: {buff.BuffData.ID}，堆叠数: {buff.CurrentStacks}");
 
             // 1.3 检查Buff是否存在
@@ -105,8 +105,8 @@ namespace EasyPack.BuffSystem.Example
         }
 
         /// <summary>
-        /// 示例2：Buff 持续时间
-        /// 学习目标：了解如何使用有限时间的 Buff
+        ///     示例2：Buff 持续时间
+        ///     学习目标：了解如何使用有限时间的 Buff
         /// </summary>
         private void Example_2_BuffDuration()
         {
@@ -117,18 +117,18 @@ namespace EasyPack.BuffSystem.Example
             {
                 ID = "TimedBuff",
                 Name = "定时Buff",
-                Duration = 5.0f  // 持续5秒
+                Duration = 5.0f, // 持续5秒
             };
 
-            var buff = _buffManager.CreateBuff(timedBuff, _dummyCreator, _dummyTarget);
+            Buff buff = _buffManager.CreateBuff(timedBuff, _dummyCreator, _dummyTarget);
             Debug.Log($"创建定时Buff，初始持续时间: {buff.DurationTimer}秒");
 
             // 2.2 模拟时间流逝
             Debug.Log("模拟时间流逝...");
-            _buffManager.Update(2.0f);  // 过去2秒
+            _buffManager.Update(2.0f); // 过去2秒
             Debug.Log($"2秒后剩余时间: {buff.DurationTimer}秒");
 
-            _buffManager.Update(2.0f);  // 再过2秒
+            _buffManager.Update(2.0f); // 再过2秒
             Debug.Log($"4秒后剩余时间: {buff.DurationTimer}秒");
 
             // 2.3 检查Buff是否仍然存在
@@ -136,7 +136,7 @@ namespace EasyPack.BuffSystem.Example
             Debug.Log($"4秒后Buff是否仍存在: {buffExists}");
 
             // 2.4 让Buff过期
-            _buffManager.Update(2.0f);  // 再过2秒，总共6秒
+            _buffManager.Update(2.0f); // 再过2秒，总共6秒
             bool buffExistsAfterExpire = _buffManager.ContainsBuff(_dummyTarget, "TimedBuff");
             Debug.Log($"6秒后Buff是否仍存在: {buffExistsAfterExpire}");
 
@@ -144,8 +144,8 @@ namespace EasyPack.BuffSystem.Example
         }
 
         /// <summary>
-        /// 示例3：Buff 堆叠
-        /// 学习目标：了解 Buff 的堆叠机制
+        ///     示例3：Buff 堆叠
+        ///     学习目标：了解 Buff 的堆叠机制
         /// </summary>
         private void Example_3_BuffStacking()
         {
@@ -157,12 +157,12 @@ namespace EasyPack.BuffSystem.Example
                 ID = "StackableBuff",
                 Name = "可堆叠Buff",
                 Duration = -1f,
-                MaxStacks = 3,  // 最多堆叠3层
-                BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add
+                MaxStacks = 3, // 最多堆叠3层
+                BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add,
             };
 
             // 3.2 第一次添加
-            var buff1 = _buffManager.CreateBuff(stackableBuff, _dummyCreator, _dummyTarget);
+            Buff buff1 = _buffManager.CreateBuff(stackableBuff, _dummyCreator, _dummyTarget);
             Debug.Log($"第1次添加Buff，当前堆叠数: {buff1.CurrentStacks}");
 
             // 3.3 第二次添加（应该堆叠）
@@ -188,8 +188,8 @@ namespace EasyPack.BuffSystem.Example
         }
 
         /// <summary>
-        /// 示例4：Buff 叠加策略
-        /// 学习目标：了解不同的叠加策略对持续时间和堆叠数的影响
+        ///     示例4：Buff 叠加策略
+        ///     学习目标：了解不同的叠加策略对持续时间和堆叠数的影响
         /// </summary>
         private void Example_4_BuffSuperpositionStrategies()
         {
@@ -202,10 +202,10 @@ namespace EasyPack.BuffSystem.Example
                 ID = "AddDurationBuff",
                 Name = "时间叠加Buff",
                 Duration = 5.0f,
-                BuffSuperpositionStrategy = BuffSuperpositionDurationType.Add
+                BuffSuperpositionStrategy = BuffSuperpositionDurationType.Add,
             };
 
-            var buff1 = _buffManager.CreateBuff(addDurationBuff, _dummyCreator, _dummyTarget);
+            Buff buff1 = _buffManager.CreateBuff(addDurationBuff, _dummyCreator, _dummyTarget);
             Debug.Log($"初始持续时间: {buff1.DurationTimer}秒");
 
             _buffManager.CreateBuff(addDurationBuff, _dummyCreator, _dummyTarget);
@@ -220,11 +220,11 @@ namespace EasyPack.BuffSystem.Example
                 ID = "ResetDurationBuff",
                 Name = "时间重置Buff",
                 Duration = 5.0f,
-                BuffSuperpositionStrategy = BuffSuperpositionDurationType.Reset
+                BuffSuperpositionStrategy = BuffSuperpositionDurationType.Reset,
             };
 
-            var buff2 = _buffManager.CreateBuff(resetDurationBuff, _dummyCreator, _dummyTarget);
-            _buffManager.Update(2.0f);  // 过去2秒
+            Buff buff2 = _buffManager.CreateBuff(resetDurationBuff, _dummyCreator, _dummyTarget);
+            _buffManager.Update(2.0f); // 过去2秒
             Debug.Log($"2秒后持续时间: {buff2.DurationTimer}秒");
 
             _buffManager.CreateBuff(resetDurationBuff, _dummyCreator, _dummyTarget);
@@ -239,21 +239,21 @@ namespace EasyPack.BuffSystem.Example
                 BuffSuperpositionStacksType.Add,
                 BuffSuperpositionStacksType.Reset,
                 BuffSuperpositionStacksType.Keep,
-                BuffSuperpositionStacksType.ResetThenAdd
+                BuffSuperpositionStacksType.ResetThenAdd,
             };
 
-            foreach (var strategy in stackStrategies)
+            foreach (BuffSuperpositionStacksType strategy in stackStrategies)
             {
                 var testBuff = new BuffData
                 {
                     ID = $"StackTest_{strategy}",
                     Name = $"堆叠测试_{strategy}",
                     MaxStacks = 5,
-                    BuffSuperpositionStacksStrategy = strategy
+                    BuffSuperpositionStacksStrategy = strategy,
                 };
 
-                var buff = _buffManager.CreateBuff(testBuff, _dummyCreator, _dummyTarget);
-                _buffManager.CreateBuff(testBuff, _dummyCreator, _dummyTarget);  // 再次添加
+                Buff buff = _buffManager.CreateBuff(testBuff, _dummyCreator, _dummyTarget);
+                _buffManager.CreateBuff(testBuff, _dummyCreator, _dummyTarget); // 再次添加
                 Debug.Log($"{strategy} 策略下堆叠数: {buff.CurrentStacks}");
 
                 _buffManager.RemoveAllBuffs(_dummyTarget);
@@ -263,8 +263,8 @@ namespace EasyPack.BuffSystem.Example
         }
 
         /// <summary>
-        /// 示例5：属性修改型 Buff
-        /// 学习目标：了解如何使用 Buff 修改游戏属性
+        ///     示例5：属性修改型 Buff
+        ///     学习目标：了解如何使用 Buff 修改游戏属性
         /// </summary>
         private void Example_5_PropertyModifierBuffs()
         {
@@ -286,16 +286,16 @@ namespace EasyPack.BuffSystem.Example
                 Name = "力量增益",
                 Duration = 10f,
                 MaxStacks = 3,
-                BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add
+                BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add,
             };
 
             // 5.3 添加属性修改模块
-            var strengthModifier = new FloatModifier(ModifierType.Add, 0, 5f);  // 增加5点力量
+            var strengthModifier = new FloatModifier(ModifierType.Add, 0, 5f); // 增加5点力量
             var strengthModule = new CastModifierToProperty(strengthModifier, "Strength", _gamePropertyManager);
             strengthBuff.BuffModules.Add(strengthModule);
 
             // 5.4 应用Buff并观察效果
-            var buff = _buffManager.CreateBuff(strengthBuff, _dummyCreator, _dummyTarget);
+            Buff buff = _buffManager.CreateBuff(strengthBuff, _dummyCreator, _dummyTarget);
             Debug.Log($"应用力量Buff后力量: {strength.GetValue()}");
 
             // 5.5 堆叠效果
@@ -308,10 +308,10 @@ namespace EasyPack.BuffSystem.Example
             {
                 ID = "HealthBuff",
                 Name = "生命值增益",
-                Duration = 8f
+                Duration = 8f,
             };
 
-            IModifier healthModifier = new FloatModifier(ModifierType.Mul, 0, 1.5f);  // 增加50%生命值
+            IModifier healthModifier = new FloatModifier(ModifierType.Mul, 0, 1.5f); // 增加50%生命值
             var healthModule = new CastModifierToProperty(healthModifier, "Health", _gamePropertyManager);
             healthBuff.BuffModules.Add(healthModule);
 
@@ -327,8 +327,8 @@ namespace EasyPack.BuffSystem.Example
         }
 
         /// <summary>
-        /// 示例6：自定义 Buff 模块
-        /// 学习目标：了解如何创建自定义的 Buff 效果
+        ///     示例6：自定义 Buff 模块
+        ///     学习目标：了解如何创建自定义的 Buff 效果
         /// </summary>
         private void Example_6_CustomBuffModules()
         {
@@ -342,16 +342,16 @@ namespace EasyPack.BuffSystem.Example
                 ID = "Poison",
                 Name = "中毒",
                 Duration = 6f,
-                TriggerInterval = 2f,  // 每2秒触发一次
-                BuffModules = new List<BuffModule> { dotModule }
+                TriggerInterval = 2f, // 每2秒触发一次
+                BuffModules = new() { dotModule },
             };
 
             Debug.Log("创建中毒Buff（每2秒造成5点伤害）");
-            var poisonBuffInstance = _buffManager.CreateBuff(poisonBuff, _dummyCreator, _dummyTarget);
+            Buff poisonBuffInstance = _buffManager.CreateBuff(poisonBuff, _dummyCreator, _dummyTarget);
 
             // 6.2 模拟时间流逝观察触发效果
             Debug.Log("开始模拟时间流逝...");
-            for (var i = 1; i <= 3; i++)
+            for (int i = 1; i <= 3; i++)
             {
                 _buffManager.Update(2f);
                 Debug.Log($"经过 {i * 2} 秒");
@@ -365,11 +365,11 @@ namespace EasyPack.BuffSystem.Example
                 ID = "ConditionalBuff",
                 Name = "条件Buff",
                 Duration = -1f,
-                BuffModules = new List<BuffModule> { conditionalModule }
+                BuffModules = new() { conditionalModule },
             };
 
             Debug.Log("创建条件触发Buff");
-            var condBuff = _buffManager.CreateBuff(conditionalBuff, _dummyCreator, _dummyTarget);
+            Buff condBuff = _buffManager.CreateBuff(conditionalBuff, _dummyCreator, _dummyTarget);
 
             // 6.4 触发自定义事件
             conditionalModule.TriggerCustomEvent(condBuff, "LowHealth", 0.2f);
@@ -380,8 +380,8 @@ namespace EasyPack.BuffSystem.Example
         }
 
         /// <summary>
-        /// 示例7：Buff 标签和层级系统
-        /// 学习目标：了解如何使用标签和层级管理 Buff
+        ///     示例7：Buff 标签和层级系统
+        ///     学习目标：了解如何使用标签和层级管理 Buff
         /// </summary>
         private void Example_7_BuffTagsAndLayers()
         {
@@ -392,16 +392,16 @@ namespace EasyPack.BuffSystem.Example
             {
                 ID = "PositiveBuff",
                 Name = "正面效果",
-                Tags = new List<string> { "Positive", "Temporary" },
-                Layers = new List<string> { "Enhancement" }
+                Tags = new() { "Positive", "Temporary" },
+                Layers = new() { "Enhancement" },
             };
 
             var negativeBuff = new BuffData
             {
                 ID = "NegativeBuff",
                 Name = "负面效果",
-                Tags = new List<string> { "Negative", "Temporary" },
-                Layers = new List<string> { "Debuff" }
+                Tags = new() { "Negative", "Temporary" },
+                Layers = new() { "Debuff" },
             };
 
             var permanentBuff = new BuffData
@@ -409,8 +409,8 @@ namespace EasyPack.BuffSystem.Example
                 ID = "PermanentBuff",
                 Name = "永久效果",
                 Duration = -1f,
-                Tags = new List<string> { "Positive", "Permanent" },
-                Layers = new List<string> { "Enhancement", "Passive" }
+                Tags = new() { "Positive", "Permanent" },
+                Layers = new() { "Enhancement", "Passive" },
             };
 
             // 7.2 应用多个Buff
@@ -444,8 +444,8 @@ namespace EasyPack.BuffSystem.Example
         }
 
         /// <summary>
-        /// 示例8：Buff 生命周期事件
-        /// 学习目标：了解如何监听和响应 Buff 的各种生命周期事件
+        ///     示例8：Buff 生命周期事件
+        ///     学习目标：了解如何监听和响应 Buff 的各种生命周期事件
         /// </summary>
         private void Example_8_BuffLifecycleEvents()
         {
@@ -460,11 +460,11 @@ namespace EasyPack.BuffSystem.Example
                 TriggerInterval = 1f,
                 MaxStacks = 3,
                 BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add,
-                TriggerOnCreate = true
+                TriggerOnCreate = true,
             };
 
             // 8.2 创建Buff实例并设置事件监听
-            var buff = _buffManager.CreateBuff(eventBuff, _dummyCreator, _dummyTarget);
+            Buff buff = _buffManager.CreateBuff(eventBuff, _dummyCreator, _dummyTarget);
 
             // 设置所有生命周期事件监听
             buff.OnCreate += (b) => Debug.Log($"[事件] {b.BuffData.Name} 被创建");
@@ -476,26 +476,26 @@ namespace EasyPack.BuffSystem.Example
 
             // 8.3 触发各种事件
             Debug.Log("--- 堆叠事件测试 ---");
-            _buffManager.CreateBuff(eventBuff, _dummyCreator, _dummyTarget);  // 触发OnAddStack
-            _buffManager.CreateBuff(eventBuff, _dummyCreator, _dummyTarget);  // 再次触发OnAddStack
+            _buffManager.CreateBuff(eventBuff, _dummyCreator, _dummyTarget); // 触发OnAddStack
+            _buffManager.CreateBuff(eventBuff, _dummyCreator, _dummyTarget); // 再次触发OnAddStack
 
             Debug.Log("--- 时间更新事件测试 ---");
-            _buffManager.Update(1.1f);  // 触发OnTrigger和OnUpdate
+            _buffManager.Update(1.1f); // 触发OnTrigger和OnUpdate
 
             Debug.Log("--- 堆叠减少事件测试 ---");
             buff.BuffData.BuffRemoveStrategy = BuffRemoveType.OneStack;
-            _buffManager.RemoveBuff(buff);  // 触发OnReduceStack
+            _buffManager.RemoveBuff(buff); // 触发OnReduceStack
 
             Debug.Log("--- 完全移除事件测试 ---");
             buff.BuffData.BuffRemoveStrategy = BuffRemoveType.All;
-            _buffManager.RemoveBuff(buff);  // 触发OnRemove
+            _buffManager.RemoveBuff(buff); // 触发OnRemove
 
             Debug.Log("Buff 生命周期事件示例完成\n");
         }
 
         /// <summary>
-        /// 示例9：复杂 RPG Buff 组合
-        /// 学习目标：了解在实际游戏中如何组合各种 Buff 功能
+        ///     示例9：复杂 RPG Buff 组合
+        ///     学习目标：了解在实际游戏中如何组合各种 Buff 功能
         /// </summary>
         private void Example_9_ComplexRPGBuffs()
         {
@@ -526,14 +526,16 @@ namespace EasyPack.BuffSystem.Example
                 TriggerInterval = 3f,
                 BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add,
                 BuffSuperpositionStrategy = BuffSuperpositionDurationType.Reset,
-                Tags = new List<string> { "Enhancement", "Combat" },
-                Layers = new List<string> { "Temporary", "Stackable" }
+                Tags = new() { "Enhancement", "Combat" },
+                Layers = new() { "Temporary", "Stackable" },
             };
 
             // 添加多个效果模块
-            var strBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 3f), "Strength", _gamePropertyManager);
+            var strBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 3f), "Strength",
+                _gamePropertyManager);
 
-            var agiBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 2f), "Agility", _gamePropertyManager);
+            var agiBoost = new CastModifierToProperty(new FloatModifier(ModifierType.Add, 0, 2f), "Agility",
+                _gamePropertyManager);
 
             var rageModule = new RageEffectModule();
 
@@ -548,8 +550,8 @@ namespace EasyPack.BuffSystem.Example
                 TriggerInterval = 1f,
                 MaxStacks = 3,
                 BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add,
-                Tags = new List<string> { "DoT", "Fire" },
-                Layers = new List<string> { "Debuff" }
+                Tags = new() { "DoT", "Fire" },
+                Layers = new() { "Debuff" },
             };
 
             burnBuff.BuffModules.Add(new DamageOverTimeModule(3f));
@@ -561,22 +563,22 @@ namespace EasyPack.BuffSystem.Example
                 Name = "治疗光环",
                 Duration = 20f,
                 TriggerInterval = 2f,
-                Tags = new List<string> { "Healing", "Aura" },
-                Layers = new List<string> { "Support" }
+                Tags = new() { "Healing", "Aura" },
+                Layers = new() { "Support" },
             };
 
             healingAura.BuffModules.Add(new HealingModule(8f));
 
             // 9.5 应用复杂Buff组合
             Debug.Log("\n=== 应用Buff组合 ===");
-            var rageBuff1 = _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget);
-            var rageBuff2 = _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget);  // 堆叠
-            var rageBuff3 = _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget);  // 再次堆叠
+            Buff rageBuff1 = _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget);
+            Buff rageBuff2 = _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget); // 堆叠
+            Buff rageBuff3 = _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget); // 再次堆叠
 
             Debug.Log($"狂暴3层后 - 力量: {strength.GetValue()}, 敏捷: {agility.GetValue()}");
 
             _buffManager.CreateBuff(burnBuff, _dummyCreator, _dummyTarget);
-            _buffManager.CreateBuff(burnBuff, _dummyCreator, _dummyTarget);  // 灼烧堆叠
+            _buffManager.CreateBuff(burnBuff, _dummyCreator, _dummyTarget); // 灼烧堆叠
 
             _buffManager.CreateBuff(healingAura, _dummyCreator, _dummyTarget);
 
@@ -607,8 +609,8 @@ namespace EasyPack.BuffSystem.Example
 
         // ReSharper disable Unity.PerformanceAnalysis
         /// <summary>
-        /// 示例10：Buff 性能和最佳实践
-        /// 学习目标：了解 Buff 系统的性能优化和使用最佳实践
+        ///     示例10：Buff 性能和最佳实践
+        ///     学习目标：了解 Buff 系统的性能优化和使用最佳实践
         /// </summary>
         private void Example_10_BuffPerformanceAndBestPractices()
         {
@@ -619,27 +621,27 @@ namespace EasyPack.BuffSystem.Example
             var testBuffs = new List<Buff>();
 
             // 创建多个Buff用于测试
-            for (var i = 0; i < 10; i++)
+            for (int i = 0; i < 10; i++)
             {
                 var buffData = new BuffData
                 {
                     ID = $"TestBuff_{i}",
                     Name = $"测试Buff {i}",
-                    Tags = new List<string> { "Test", i % 2 == 0 ? "Even" : "Odd" }
+                    Tags = new() { "Test", i % 2 == 0 ? "Even" : "Odd" },
                 };
 
-                var buff = _buffManager.CreateBuff(buffData, _dummyCreator, _dummyTarget);
+                Buff buff = _buffManager.CreateBuff(buffData, _dummyCreator, _dummyTarget);
                 testBuffs.Add(buff);
             }
 
             Debug.Log($"创建了 {testBuffs.Count} 个测试Buff");
 
             // 好的做法：批量移除
-            var startTime = Time.realtimeSinceStartup;
+            float startTime = Time.realtimeSinceStartup;
             _buffManager.RemoveBuffsByTag(_dummyTarget, "Test");
             // 注意: FlushPendingRemovals() 是 BuffService 的内部方法，不在 IBuffService 接口中
             // 批量移除会在下一次 Update() 时自动处理
-            var batchTime = Time.realtimeSinceStartup - startTime;
+            float batchTime = Time.realtimeSinceStartup - startTime;
 
             Debug.Log($"批量移除耗时: {batchTime * 1000:F2}ms");
 
@@ -650,7 +652,7 @@ namespace EasyPack.BuffSystem.Example
                 ID = "FrequentBuff",
                 Name = "高频Buff",
                 Duration = 5f,
-                TriggerInterval = 0.1f  // 避免过于频繁的触发
+                TriggerInterval = 0.1f, // 避免过于频繁的触发
             };
 
             var moderateBuff = new BuffData
@@ -658,7 +660,7 @@ namespace EasyPack.BuffSystem.Example
                 ID = "ModerateBuff",
                 Name = "适中Buff",
                 Duration = 5f,
-                TriggerInterval = 1f  // 更合理的触发频率
+                TriggerInterval = 1f, // 更合理的触发频率
             };
 
             Debug.Log("避免过于频繁的触发间隔，建议 >= 0.5秒");
@@ -669,13 +671,13 @@ namespace EasyPack.BuffSystem.Example
             {
                 ID = "ResourceBuff",
                 Name = "资源测试Buff",
-                Duration = 3f
+                Duration = 3f,
             };
 
-            var resourceBuffInstance = _buffManager.CreateBuff(resourceBuff, _dummyCreator, _dummyTarget);
+            Buff resourceBuffInstance = _buffManager.CreateBuff(resourceBuff, _dummyCreator, _dummyTarget);
 
             // 设置事件监听（记得在适当时候清理）
-            System.Action<Buff> onRemoveHandler = (buff) =>
+            Action<Buff> onRemoveHandler = (buff) =>
             {
                 Debug.Log("资源Buff被移除，进行清理工作");
                 // 在这里进行必要的清理工作
@@ -688,8 +690,8 @@ namespace EasyPack.BuffSystem.Example
 
             // 安全的Buff创建
             BuffData safeBuff = null;
-            
-            var safeBuffInstance = _buffManager.CreateBuff(safeBuff, _dummyCreator, _dummyTarget);
+
+            Buff safeBuffInstance = _buffManager.CreateBuff(safeBuff, _dummyCreator, _dummyTarget);
             if (safeBuffInstance == null)
                 Debug.Log("安全的Buff创建：传入null BuffData，未创建Buff实例");
 
@@ -703,8 +705,8 @@ namespace EasyPack.BuffSystem.Example
         }
 
         /// <summary>
-        /// 示例11：错误处理和调试
-        /// 学习目标：了解常见错误和调试技巧
+        ///     示例11：错误处理和调试
+        ///     学习目标：了解常见错误和调试技巧
         /// </summary>
         private void Example_11_ErrorHandlingAndDebugging()
         {
@@ -720,12 +722,12 @@ namespace EasyPack.BuffSystem.Example
                 Name = "调试Buff",
                 Duration = 5f,
                 TriggerInterval = 1f,
-                MaxStacks = 2
+                MaxStacks = 2,
             };
 
             debugBuff.BuffModules.Add(new DebugModule());
 
-            var debugBuffInstance = _buffManager.CreateBuff(debugBuff, _dummyCreator, _dummyTarget);
+            Buff debugBuffInstance = _buffManager.CreateBuff(debugBuff, _dummyCreator, _dummyTarget);
 
             // 详细的状态检查
             Debug.Log($"Buff详细信息:");
@@ -739,12 +741,13 @@ namespace EasyPack.BuffSystem.Example
             for (int i = 1; i <= 3; i++)
             {
                 _buffManager.Update(1f);
-                Debug.Log($"第{i}秒后状态: 持续时间={debugBuffInstance.DurationTimer:F1}, 触发计时器={debugBuffInstance.TriggerTimer:F1}");
+                Debug.Log(
+                    $"第{i}秒后状态: 持续时间={debugBuffInstance.DurationTimer:F1}, 触发计时器={debugBuffInstance.TriggerTimer:F1}");
             }
 
             // 11.3 性能监控
             Debug.Log("--- 性能监控示例 ---");
-            var performanceStartTime = Time.realtimeSinceStartup;
+            float performanceStartTime = Time.realtimeSinceStartup;
 
             // 创建大量Buff进行性能测试
             for (int i = 0; i < 100; i++)
@@ -753,12 +756,12 @@ namespace EasyPack.BuffSystem.Example
                 _buffManager.CreateBuff(perfBuff, _dummyCreator, _dummyTarget);
             }
 
-            var creationTime = Time.realtimeSinceStartup - performanceStartTime;
+            float creationTime = Time.realtimeSinceStartup - performanceStartTime;
             Debug.Log($"创建100个Buff耗时: {creationTime * 1000:F2}ms");
 
-            var updateStartTime = Time.realtimeSinceStartup;
-            _buffManager.Update(0.016f);  // 模拟60FPS的一帧
-            var updateTime = Time.realtimeSinceStartup - updateStartTime;
+            float updateStartTime = Time.realtimeSinceStartup;
+            _buffManager.Update(0.016f); // 模拟60FPS的一帧
+            float updateTime = Time.realtimeSinceStartup - updateStartTime;
             Debug.Log($"更新100个Buff耗时: {updateTime * 1000:F2}ms");
 
             // 清理
@@ -770,7 +773,7 @@ namespace EasyPack.BuffSystem.Example
     #region 自定义 Buff 模块示例
 
     /// <summary>
-    /// 持续伤害模块示例
+    ///     持续伤害模块示例
     /// </summary>
     public class DamageOverTimeModule : BuffModule
     {
@@ -790,7 +793,7 @@ namespace EasyPack.BuffSystem.Example
     }
 
     /// <summary>
-    /// 条件效果模块示例
+    ///     条件效果模块示例
     /// </summary>
     public class ConditionalEffectModule : BuffModule
     {
@@ -827,7 +830,7 @@ namespace EasyPack.BuffSystem.Example
     }
 
     /// <summary>
-    /// 狂暴效果模块示例
+    ///     狂暴效果模块示例
     /// </summary>
     public class RageEffectModule : BuffModule
     {
@@ -840,10 +843,7 @@ namespace EasyPack.BuffSystem.Example
         private void OnAddStack(Buff buff, object[] parameters)
         {
             Debug.Log($"[{buff.BuffData.Name}] 狂暴等级提升！当前等级: {buff.CurrentStacks}");
-            if (buff.CurrentStacks >= 3)
-            {
-                Debug.Log("狂暴达到高等级，激活特殊效果！");
-            }
+            if (buff.CurrentStacks >= 3) Debug.Log("狂暴达到高等级，激活特殊效果！");
         }
 
         private void OnTick(Buff buff, object[] parameters)
@@ -853,7 +853,7 @@ namespace EasyPack.BuffSystem.Example
     }
 
     /// <summary>
-    /// 治疗模块示例
+    ///     治疗模块示例
     /// </summary>
     public class HealingModule : BuffModule
     {
@@ -872,7 +872,7 @@ namespace EasyPack.BuffSystem.Example
     }
 
     /// <summary>
-    /// 调试模块示例
+    ///     调试模块示例
     /// </summary>
     public class DebugModule : BuffModule
     {
@@ -898,9 +898,7 @@ namespace EasyPack.BuffSystem.Example
         {
             // 避免每帧都输出，只在特定条件下输出
             if (Mathf.Approximately(buff.DurationTimer % 1f, 0f))
-            {
                 Debug.Log($"[DEBUG] {buff.BuffData.Name} 更新 - 剩余时间: {buff.DurationTimer:F1}s");
-            }
         }
 
         private void OnRemove(Buff buff, object[] parameters)

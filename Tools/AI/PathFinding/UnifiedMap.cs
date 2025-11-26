@@ -5,7 +5,7 @@ using UnityEngine.Tilemaps;
 namespace EasyPack.Tools.PathFinding
 {
     /// <summary>
-    /// 统一地图数据结构
+    ///     统一地图数据结构
     /// </summary>
     public class UnifiedMap
     {
@@ -18,28 +18,22 @@ namespace EasyPack.Tools.PathFinding
             {
                 tilemap = tilemap,
                 cost = cost,
-                position = position
+                position = position,
             };
 
             walkableTiles[position] = tileInfo;
             UpdateBounds(position);
         }
 
-        public bool IsWalkable(Vector3Int position)
-        {
-            return walkableTiles.ContainsKey(position);
-        }
+        public bool IsWalkable(Vector3Int position) => walkableTiles.ContainsKey(position);
 
-        public TileInfo GetTileInfo(Vector3Int position)
-        {
-            return walkableTiles.GetValueOrDefault(position);
-        }
+        public TileInfo GetTileInfo(Vector3Int position) => walkableTiles.GetValueOrDefault(position);
 
         private void UpdateBounds(Vector3Int position)
         {
             if (walkableTiles.Count == 1)
             {
-                bounds = new BoundsInt(position.x, position.y, 0, 1, 1, 1);
+                bounds = new(position.x, position.y, 0, 1, 1, 1);
             }
             else
             {
@@ -48,13 +42,13 @@ namespace EasyPack.Tools.PathFinding
                 int maxX = Mathf.Max(bounds.xMax, position.x + 1);
                 int maxY = Mathf.Max(bounds.yMax, position.y + 1);
 
-                bounds = new BoundsInt(minX, minY, 0, maxX - minX, maxY - minY, 1);
+                bounds = new(minX, minY, 0, maxX - minX, maxY - minY, 1);
             }
         }
     }
 
     /// <summary>
-    /// 瓦片信息
+    ///     瓦片信息
     /// </summary>
     [System.Serializable]
     public class TileInfo
@@ -66,7 +60,7 @@ namespace EasyPack.Tools.PathFinding
     }
 
     /// <summary>
-    /// 路径节点
+    ///     路径节点
     /// </summary>
     public class PathNode
     {

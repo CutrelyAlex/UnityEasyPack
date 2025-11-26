@@ -14,8 +14,7 @@ namespace EasyPack.Modifiers
             int maxFloatPriority = int.MinValue;
             int maxRangePriority = int.MinValue;
 
-            foreach (var mod in modifiers)
-            {
+            foreach (IModifier mod in modifiers)
                 if (mod is FloatModifier fm && fm.Priority > maxFloatPriority)
                 {
                     maxFloatPriority = fm.Priority;
@@ -26,22 +25,14 @@ namespace EasyPack.Modifiers
                     maxRangePriority = rm.Priority;
                     rangeOverrideMod = rm;
                 }
-            }
 
             if (floatOverrideMod != null && rangeOverrideMod != null)
-            {
-                value = floatOverrideMod.Priority >= rangeOverrideMod.Priority ?
-                        floatOverrideMod.Value :
-                        Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);
-            }
+                value = floatOverrideMod.Priority >= rangeOverrideMod.Priority
+                    ? floatOverrideMod.Value
+                    : Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);
             else if (floatOverrideMod != null)
-            {
                 value = floatOverrideMod.Value;
-            }
-            else if (rangeOverrideMod != null)
-            {
-                value = Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);
-            }
+            else if (rangeOverrideMod != null) value = Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);
         }
     }
 }

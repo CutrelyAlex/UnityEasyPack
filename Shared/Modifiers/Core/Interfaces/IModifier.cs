@@ -4,7 +4,7 @@ namespace EasyPack.Modifiers
     {
         ModifierType Type { get; }
         int Priority { get; }
-        
+
         IModifier Clone();
     }
 

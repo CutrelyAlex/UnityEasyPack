@@ -5,76 +5,76 @@ using System.Collections.Generic;
 namespace EasyPack.Category
 {
     /// <summary>
-    /// 分类管理器接口
-    /// 定义分类管理器的核心功能契约
+    ///     分类管理器接口
+    ///     定义分类管理器的核心功能契约
     /// </summary>
     public interface ICategoryManager : IDisposable
     {
         /// <summary>
-        /// 获取实体类型
+        ///     获取实体类型
         /// </summary>
         Type EntityType { get; }
 
         /// <summary>
-        /// 获取所有已注册的分类名称
+        ///     获取所有已注册的分类名称
         /// </summary>
         IReadOnlyList<string> GetCategoriesNodes();
 
         /// <summary>
-        /// 清除所有缓存
+        ///     清除所有缓存
         /// </summary>
         void ClearCache();
 
         /// <summary>
-        /// 获取统计信息
+        ///     获取统计信息
         /// </summary>
         Statistics GetStatistics();
 
         /// <summary>
-        /// 将Manager数据序列化为JSON字符串
+        ///     将Manager数据序列化为JSON字符串
         /// </summary>
         string SerializeToJson();
     }
 
     /// <summary>
-    /// 泛型分类管理器接口
-    /// 提供类型安全的分类管理功能
+    ///     泛型分类管理器接口
+    ///     提供类型安全的分类管理功能
     /// </summary>
     /// <typeparam name="T">实体类型</typeparam>
     public interface ICategoryManager<T> : ICategoryManager
     {
         /// <summary>
-        /// 注册实体到指定分类
+        ///     注册实体到指定分类
         /// </summary>
         IEntityRegistration RegisterEntitySafe(T entity, string category);
 
         /// <summary>
-        /// 批量注册实体
+        ///     批量注册实体
         /// </summary>
         BatchOperationResult RegisterBatch(List<T> entities, string category);
 
         /// <summary>
-        /// 根据分类获取实体（支持通配符）
+        ///     根据分类获取实体（支持通配符）
         /// </summary>
         IReadOnlyList<T> GetByCategory(string pattern, bool includeChildren = false);
 
         /// <summary>
-        /// 根据 ID 获取实体
+        ///     根据 ID 获取实体
         /// </summary>
         OperationResult<T> GetById(string id);
 
         /// <summary>
-        /// 根据标签获取实体
+        ///     根据标签获取实体
         /// </summary>
         IReadOnlyList<T> GetByTag(string tag);
 
         /// <summary>
-        /// 根据分类和标签获取实体交集
+        ///     根据分类和标签获取实体交集
         /// </summary>
         IReadOnlyList<T> GetByCategoryAndTag(string category, string tag, bool includeChildren = true);
 
         /// <summary>
-        /// 根据正则表达式匹配分类名称并获取实体。
+        ///     根据正则表达式匹配分类名称并获取实体。
         /// </summary>
         /// <param name="pattern">正则表达式模式，其中点分割符需转义为\.</param>
         /// <param name="includeChildren">是否包含子分类中的实体</param>
@@ -82,22 +82,22 @@ namespace EasyPack.Category
         IReadOnlyList<T> GetByCategoryRegex(string pattern, bool includeChildren = false);
 
         /// <summary>
-        /// 根据实体 ID 获取其所在分类的可读路径字符串。
-        /// 示例：如果实体在 "Equipment.Weapon.Sword" 分类中，返回该字符串。
+        ///     根据实体 ID 获取其所在分类的可读路径字符串。
+        ///     示例：如果实体在 "Equipment.Weapon.Sword" 分类中，返回该字符串。
         /// </summary>
         /// <param name="entityId">实体 ID</param>
         /// <returns>可读的分类路径字符串；若实体不存在，返回空字符串</returns>
         string GetReadableCategoryPath(string entityId);
 
         /// <summary>
-        /// 根据路径 ID 数组转换为可读的分类路径字符串。
+        ///     根据路径 ID 数组转换为可读的分类路径字符串。
         /// </summary>
         /// <param name="pathIds">路径 ID 数组（从 CategoryNode.GetPathAsIds() 获取）</param>
         /// <returns>可读的分类路径字符串，如 "Equipment.Weapon.Sword"</returns>
         string GetReadablePathFromIds(int[] pathIds);
 
         /// <summary>
-        /// 获取元数据
+        ///     获取元数据
         /// </summary>
         CustomDataCollection GetMetadata(string entityId);
     }

@@ -3,53 +3,53 @@ using System;
 namespace EasyPack.Serialization
 {
     /// <summary>
-    /// 序列化错误码
+    ///     序列化错误码
     /// </summary>
     public enum SerializationErrorCode
     {
         /// <summary>
-        /// 未找到序列化器
+        ///     未找到序列化器
         /// </summary>
         NoSerializerFound,
 
         /// <summary>
-        /// 序列化失败
+        ///     序列化失败
         /// </summary>
         SerializationFailed,
 
         /// <summary>
-        /// 反序列化失败
+        ///     反序列化失败
         /// </summary>
         DeserializationFailed,
 
         /// <summary>
-        /// 版本不匹配
+        ///     版本不匹配
         /// </summary>
         VersionMismatch,
 
         /// <summary>
-        /// 不支持的策略
+        ///     不支持的策略
         /// </summary>
         UnsupportedStrategy,
 
         /// <summary>
-        /// 无效的数据格式
+        ///     无效的数据格式
         /// </summary>
-        InvalidDataFormat
+        InvalidDataFormat,
     }
 
     /// <summary>
-    /// 序列化异常类
+    ///     序列化异常类
     /// </summary>
     public class SerializationException : Exception
     {
         /// <summary>
-        /// 目标类型
+        ///     目标类型
         /// </summary>
         public Type TargetType { get; }
 
         /// <summary>
-        /// 错误码
+        ///     错误码
         /// </summary>
         public SerializationErrorCode ErrorCode { get; }
 
@@ -60,16 +60,14 @@ namespace EasyPack.Serialization
             ErrorCode = errorCode;
         }
 
-        public SerializationException(string message, Type targetType, SerializationErrorCode errorCode, Exception innerException)
+        public SerializationException(string message, Type targetType, SerializationErrorCode errorCode,
+                                      Exception innerException)
             : base(message, innerException)
         {
             TargetType = targetType;
             ErrorCode = errorCode;
         }
 
-        public override string ToString()
-        {
-            return $"[{ErrorCode}] {Message} (Type: {TargetType?.Name ?? "Unknown"})";
-        }
+        public override string ToString() => $"[{ErrorCode}] {Message} (Type: {TargetType?.Name ?? "Unknown"})";
     }
 }

@@ -6,6 +6,7 @@ namespace EasyPack.CustomData
     public class Vector2ValueHandler : IValueHandler
     {
         public CustomDataType SupportedType => CustomDataType.Vector2;
+
         public object GetValue(CustomDataEntry entry) => entry.Vector2Value;
 
         public void SetValue(CustomDataEntry entry, object value)
@@ -19,6 +20,7 @@ namespace EasyPack.CustomData
                 var parsed = JsonUtility.FromJson<Vector2>(strValue);
                 entry.Vector2Value = parsed;
             }
+
             entry.Type = CustomDataType.Vector2;
             ClearOtherValues(entry);
         }
@@ -41,7 +43,10 @@ namespace EasyPack.CustomData
 
         public string Serialize(CustomDataEntry entry) => JsonUtility.ToJson(entry.Vector2Value);
 
-        public void Clear(CustomDataEntry entry) => entry.Vector2Value = default;
+        public void Clear(CustomDataEntry entry)
+        {
+            entry.Vector2Value = default;
+        }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

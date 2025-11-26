@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using EasyPack.CustomData;
 
 namespace EasyPack.InventorySystem
 {
     /// <summary>
-    /// 物品查询服务接口
+    ///     物品查询服务接口
     /// </summary>
     public interface IItemQueryService
     {
@@ -30,7 +31,7 @@ namespace EasyPack.InventorySystem
     }
 
     /// <summary>
-    /// 物品查询服务实现
+    ///     物品查询服务实现
     /// </summary>
     public class ItemQueryService : IItemQueryService
     {
@@ -45,37 +46,25 @@ namespace EasyPack.InventorySystem
 
         #region 基础查询
 
-        public bool HasItem(string itemId)
-        {
-            return _cacheManager.HasItemInCache(itemId);
-        }
+        public bool HasItem(string itemId) => _cacheManager.HasItemInCache(itemId);
 
         public IItem GetItemReference(string itemId)
         {
             if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices) && indices.Count > 0)
-            {
                 foreach (int index in indices)
-                {
                     if (index < _slots.Count)
                     {
-                        var slot = _slots[index];
-                        if (slot.IsOccupied && slot.Item?.ID == itemId)
-                        {
-                            return slot.Item;
-                        }
+                        ISlot slot = _slots[index];
+                        if (slot.IsOccupied && slot.Item?.ID == itemId) return slot.Item;
                     }
-                }
-            }
+
             return null;
         }
 
         public int GetItemTotalCount(string itemId)
         {
             // 首先尝试使用数量缓存
-            if (_cacheManager.TryGetItemCount(itemId, out int cachedCount))
-            {
-                return cachedCount;
-            }
+            if (_cacheManager.TryGetItemCount(itemId, out int cachedCount)) return cachedCount;
 
             // 如果缓存未命中，使用槽位索引缓存
             if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices))
@@ -83,16 +72,12 @@ namespace EasyPack.InventorySystem
                 int totalCount = 0;
 
                 foreach (int index in indices)
-                {
                     if (index < _slots.Count)
                     {
-                        var slot = _slots[index];
+                        ISlot slot = _slots[index];
                         if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
-                        {
                             totalCount += slot.ItemCount;
-                        }
                     }
-                }
 
                 // 更新缓存
                 if (totalCount > 0)
@@ -105,7 +90,7 @@ namespace EasyPack.InventorySystem
             int count = 0;
             for (int i = 0; i < _slots.Count; i++)
             {
-                var slot = _slots[i];
+                ISlot slot = _slots[i];
                 if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
                 {
                     count += slot.ItemCount;
@@ -120,10 +105,7 @@ namespace EasyPack.InventorySystem
             return count;
         }
 
-        public bool HasEnoughItems(string itemId, int requiredCount)
-        {
-            return GetItemTotalCount(itemId) >= requiredCount;
-        }
+        public bool HasEnoughItems(string itemId, int requiredCount) => GetItemTotalCount(itemId) >= requiredCount;
 
         #endregion
 
@@ -139,37 +121,25 @@ namespace EasyPack.InventorySystem
                 bool needsUpdate = false;
 
                 foreach (int idx in indices)
-                {
                     if (idx < _slots.Count)
                     {
-                        var slot = _slots[idx];
+                        ISlot slot = _slots[idx];
                         if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
-                        {
                             validIndices.Add(idx);
-                        }
                         else
-                        {
                             needsUpdate = true;
-                        }
                     }
                     else
                     {
                         needsUpdate = true;
                     }
-                }
 
                 // 如果需要更新缓存
                 if (needsUpdate)
-                {
                     foreach (int idx in indices)
-                    {
                         if (idx >= _slots.Count || !_slots[idx].IsOccupied ||
                             _slots[idx].Item == null || _slots[idx].Item.ID != itemId)
-                        {
                             _cacheManager.UpdateItemSlotIndexCache(itemId, idx, false);
-                        }
-                    }
-                }
 
                 return validIndices;
             }
@@ -178,7 +148,7 @@ namespace EasyPack.InventorySystem
             var result = new List<int>();
             for (int i = 0; i < _slots.Count; i++)
             {
-                var slot = _slots[i];
+                ISlot slot = _slots[i];
                 if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
                 {
                     result.Add(i);
@@ -186,6 +156,7 @@ namespace EasyPack.InventorySystem
                     _cacheManager.UpdateItemSlotIndexCache(itemId, i, true);
                 }
             }
+
             return result;
         }
 
@@ -197,18 +168,15 @@ namespace EasyPack.InventorySystem
                 int firstIndex = indices.Min();
                 if (firstIndex < _slots.Count)
                 {
-                    var slot = _slots[firstIndex];
-                    if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
-                    {
-                        return firstIndex;
-                    }
+                    ISlot slot = _slots[firstIndex];
+                    if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId) return firstIndex;
                 }
             }
 
             // 降级到遍历统计
             for (int i = 0; i < _slots.Count; i++)
             {
-                var slot = _slots[i];
+                ISlot slot = _slots[i];
                 if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
                 {
                     // 更新缓存
@@ -232,23 +200,20 @@ namespace EasyPack.InventorySystem
             if (_cacheManager.TryGetItemTypeIndices(itemType, out var indices))
             {
                 foreach (int index in indices)
-                {
                     if (index < _slots.Count)
                     {
-                        var slot = _slots[index];
+                        ISlot slot = _slots[index];
                         if (slot.IsOccupied && slot.Item != null && slot.Item.Type == itemType)
-                        {
                             result.Add((index, slot.Item, slot.ItemCount));
-                        }
                     }
-                }
+
                 return result;
             }
 
             // 缓存未命中
             for (int i = 0; i < _slots.Count; i++)
             {
-                var slot = _slots[i];
+                ISlot slot = _slots[i];
                 if (slot.IsOccupied && slot.Item != null && slot.Item.Type == itemType)
                 {
                     result.Add((i, slot.Item, slot.ItemCount));
@@ -260,7 +225,8 @@ namespace EasyPack.InventorySystem
             return result;
         }
 
-        public List<(int slotIndex, IItem item, int count)> GetItemsByAttribute(string attributeName, object attributeValue)
+        public List<(int slotIndex, IItem item, int count)> GetItemsByAttribute(string attributeName,
+            object attributeValue)
         {
             var result = new List<(int slotIndex, IItem item, int count)>();
             int slotCount = _slots.Count;
@@ -268,23 +234,21 @@ namespace EasyPack.InventorySystem
             // 如果槽位数量较大使用并行处理
             if (slotCount > 100)
             {
-                var lockObject = new object();
+                object lockObject = new();
                 Parallel.For(0, slotCount, i =>
                 {
-                    var slot = _slots[i];
+                    ISlot slot = _slots[i];
                     if (slot.IsOccupied && slot.Item != null)
                     {
-                        var entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
+                        CustomDataEntry entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
                         if (entry != null)
                         {
-                            var value = entry.GetValue();
+                            object value = entry.GetValue();
                             if (value != null && (attributeValue == null || value.Equals(attributeValue)))
-                            {
                                 lock (lockObject)
                                 {
                                     result.Add((i, slot.Item, slot.ItemCount));
                                 }
-                            }
                         }
                     }
                 });
@@ -294,17 +258,15 @@ namespace EasyPack.InventorySystem
                 // 小规模数据使用单线程
                 for (int i = 0; i < slotCount; i++)
                 {
-                    var slot = _slots[i];
+                    ISlot slot = _slots[i];
                     if (slot.IsOccupied && slot.Item != null)
                     {
-                        var entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
+                        CustomDataEntry entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
                         if (entry != null)
                         {
-                            var value = entry.GetValue();
+                            object value = entry.GetValue();
                             if (value != null && (attributeValue == null || value.Equals(attributeValue)))
-                            {
                                 result.Add((i, slot.Item, slot.ItemCount));
-                            }
                         }
                     }
                 }
@@ -322,11 +284,9 @@ namespace EasyPack.InventorySystem
 
             for (int i = 0; i < _slots.Count; i++)
             {
-                var slot = _slots[i];
+                ISlot slot = _slots[i];
                 if (slot.IsOccupied && slot.Item is { Name: not null } && slot.Item.Name.Contains(namePattern))
-                {
                     result.Add((i, slot.Item, slot.ItemCount));
-                }
             }
 
             return result;
@@ -340,17 +300,15 @@ namespace EasyPack.InventorySystem
             // 如果槽位数量较大使用并行处理
             if (slotCount > 100)
             {
-                var lockObject = new object();
+                object lockObject = new();
                 Parallel.For(0, slotCount, i =>
                 {
-                    var slot = _slots[i];
+                    ISlot slot = _slots[i];
                     if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
-                    {
                         lock (lockObject)
                         {
                             result.Add((i, slot.Item, slot.ItemCount));
                         }
-                    }
                 });
             }
             else
@@ -358,11 +316,9 @@ namespace EasyPack.InventorySystem
                 // 小规模数据使用单线程
                 for (int i = 0; i < slotCount; i++)
                 {
-                    var slot = _slots[i];
+                    ISlot slot = _slots[i];
                     if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
-                    {
                         result.Add((i, slot.Item, slot.ItemCount));
-                    }
                 }
             }
 
@@ -383,36 +339,27 @@ namespace EasyPack.InventorySystem
 
                 // 验证缓存是否完整
                 bool cacheComplete = true;
-                foreach (var slot in _slots)
-                {
+                foreach (ISlot slot in _slots)
                     if (slot.IsOccupied && slot.Item != null)
-                    {
                         if (!result.ContainsKey(slot.Item.ID))
                         {
                             cacheComplete = false;
                             break;
                         }
-                    }
-                }
 
                 if (cacheComplete)
                     return result;
             }
 
             var counts = new Dictionary<string, int>();
-            foreach (var slot in _slots)
-            {
+            foreach (ISlot slot in _slots)
                 if (slot.IsOccupied && slot.Item != null)
                 {
                     string itemId = slot.Item.ID;
                     int count = slot.ItemCount;
 
-                    if (!counts.TryAdd(itemId, count))
-                    {
-                        counts[itemId] += count;
-                    }
+                    if (!counts.TryAdd(itemId, count)) counts[itemId] += count;
                 }
-            }
 
             return counts;
         }
@@ -423,37 +370,24 @@ namespace EasyPack.InventorySystem
 
             for (int i = 0; i < _slots.Count; i++)
             {
-                var slot = _slots[i];
-                if (slot.IsOccupied && slot.Item != null)
-                {
-                    result.Add((i, slot.Item, slot.ItemCount));
-                }
+                ISlot slot = _slots[i];
+                if (slot.IsOccupied && slot.Item != null) result.Add((i, slot.Item, slot.ItemCount));
             }
 
             return result;
         }
 
-        public int GetUniqueItemCount()
-        {
-            return GetAllItemCountsDict().Count;
-        }
+        public int GetUniqueItemCount() => GetAllItemCountsDict().Count;
 
-        public bool IsEmpty()
-        {
-            return _cacheManager.GetCachedItemCount() == 0;
-        }
+        public bool IsEmpty() => _cacheManager.GetCachedItemCount() == 0;
 
         public float GetTotalWeight()
         {
             float totalWeight = 0;
 
-            foreach (var slot in _slots)
-            {
+            foreach (ISlot slot in _slots)
                 if (slot.IsOccupied && slot.Item != null)
-                {
                     totalWeight += slot.Item.Weight * slot.ItemCount;
-                }
-            }
 
             return totalWeight;
         }

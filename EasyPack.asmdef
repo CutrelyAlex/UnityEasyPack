@@ -1,18 +1,18 @@
 {
-    "name": "EasyPack",
-    "rootNamespace": "",
-    "references": [
-        "UnityEditor",
-        "UnityEngine",
-        "UnityEngine.CoreModule"
-    ],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "EasyPack",
+  "rootNamespace": "",
+  "references": [
+    "UnityEditor",
+    "UnityEngine",
+    "UnityEngine.CoreModule"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }

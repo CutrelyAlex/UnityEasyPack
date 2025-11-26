@@ -6,6 +6,7 @@ namespace EasyPack.CustomData
     public class FloatValueHandler : IValueHandler
     {
         public CustomDataType SupportedType => CustomDataType.Float;
+
         public object GetValue(CustomDataEntry entry) => entry.FloatValue;
 
         public void SetValue(CustomDataEntry entry, object value)
@@ -17,7 +18,8 @@ namespace EasyPack.CustomData
 
         public bool TryDeserialize(CustomDataEntry entry, string data, Type jsonClrType = null)
         {
-            if (!float.TryParse(data, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var value))
+            if (!float.TryParse(data, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture,
+                    out float value))
                 return false;
             entry.FloatValue = value;
             entry.Type = CustomDataType.Float;
@@ -25,10 +27,12 @@ namespace EasyPack.CustomData
             return true;
         }
 
-        public string Serialize(CustomDataEntry entry)
-            => entry.FloatValue.ToString("R", CultureInfo.InvariantCulture);
+        public string Serialize(CustomDataEntry entry) => entry.FloatValue.ToString("R", CultureInfo.InvariantCulture);
 
-        public void Clear(CustomDataEntry entry) => entry.FloatValue = 0;
+        public void Clear(CustomDataEntry entry)
+        {
+            entry.FloatValue = 0;
+        }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

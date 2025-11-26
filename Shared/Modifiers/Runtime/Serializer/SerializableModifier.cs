@@ -5,7 +5,7 @@ using UnityEngine;
 namespace EasyPack.Modifiers
 {
     /// <summary>
-    /// 修饰器的可序列化表示形式
+    ///     修饰器的可序列化表示形式
     /// </summary>
     [Serializable]
     public class SerializableModifier : ISerializable

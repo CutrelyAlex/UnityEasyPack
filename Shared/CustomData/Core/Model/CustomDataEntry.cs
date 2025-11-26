@@ -38,40 +38,26 @@ namespace EasyPack.CustomData
 
         #region 静态工厂方法
 
-        public static CustomDataEntry CreateString(string key, string value)
-        {
-            return new CustomDataEntry { Key = key, Type = CustomDataType.String, StringValue = value ?? "" };
-        }
+        public static CustomDataEntry CreateString(string key, string value) => new()
+            { Key = key, Type = CustomDataType.String, StringValue = value ?? "" };
 
-        public static CustomDataEntry CreateInt(string key, int value)
-        {
-            return new CustomDataEntry { Key = key, Type = CustomDataType.Int, IntValue = value };
-        }
+        public static CustomDataEntry CreateInt(string key, int value) =>
+            new() { Key = key, Type = CustomDataType.Int, IntValue = value };
 
-        public static CustomDataEntry CreateFloat(string key, float value)
-        {
-            return new CustomDataEntry { Key = key, Type = CustomDataType.Float, FloatValue = value };
-        }
+        public static CustomDataEntry CreateFloat(string key, float value) =>
+            new() { Key = key, Type = CustomDataType.Float, FloatValue = value };
 
-        public static CustomDataEntry CreateBool(string key, bool value)
-        {
-            return new CustomDataEntry { Key = key, Type = CustomDataType.Bool, BoolValue = value };
-        }
+        public static CustomDataEntry CreateBool(string key, bool value) =>
+            new() { Key = key, Type = CustomDataType.Bool, BoolValue = value };
 
-        public static CustomDataEntry CreateVector2(string key, Vector2 value)
-        {
-            return new CustomDataEntry { Key = key, Type = CustomDataType.Vector2, Vector2Value = value };
-        }
+        public static CustomDataEntry CreateVector2(string key, Vector2 value) => new()
+            { Key = key, Type = CustomDataType.Vector2, Vector2Value = value };
 
-        public static CustomDataEntry CreateVector3(string key, Vector3 value)
-        {
-            return new CustomDataEntry { Key = key, Type = CustomDataType.Vector3, Vector3Value = value };
-        }
+        public static CustomDataEntry CreateVector3(string key, Vector3 value) => new()
+            { Key = key, Type = CustomDataType.Vector3, Vector3Value = value };
 
-        public static CustomDataEntry CreateColor(string key, Color value)
-        {
-            return new CustomDataEntry { Key = key, Type = CustomDataType.Color, ColorValue = value };
-        }
+        public static CustomDataEntry CreateColor(string key, Color value) =>
+            new() { Key = key, Type = CustomDataType.Color, ColorValue = value };
 
         public static CustomDataEntry CreateJson(string key, object jsonObject)
         {
@@ -81,6 +67,7 @@ namespace EasyPack.CustomData
                 entry.JsonValue = JsonUtility.ToJson(jsonObject);
                 entry.JsonClrType = jsonObject.GetType().AssemblyQualifiedName;
             }
+
             return entry;
         }
 
@@ -90,7 +77,7 @@ namespace EasyPack.CustomData
 
         public object GetValue()
         {
-            var handler = ValueHandlerRegistry.GetHandler(Type);
+            IValueHandler handler = ValueHandlerRegistry.GetHandler(Type);
             return handler.GetValue(this);
         }
 
@@ -98,25 +85,25 @@ namespace EasyPack.CustomData
         {
             if (forceType.HasValue)
             {
-                var handler = ValueHandlerRegistry.GetHandler(forceType.Value);
+                IValueHandler handler = ValueHandlerRegistry.GetHandler(forceType.Value);
                 handler.SetValue(this, value);
                 return;
             }
 
             if (value == null)
             {
-                var noneHandler = ValueHandlerRegistry.GetHandler(CustomDataType.None);
+                IValueHandler noneHandler = ValueHandlerRegistry.GetHandler(CustomDataType.None);
                 noneHandler.SetValue(this, null);
                 return;
             }
 
-            var valueHandler = ValueHandlerRegistry.GetHandlerForValue(value);
+            IValueHandler valueHandler = ValueHandlerRegistry.GetHandlerForValue(value);
             valueHandler.SetValue(this, value);
         }
 
         public string SerializeValue()
         {
-            var handler = ValueHandlerRegistry.GetHandler(Type);
+            IValueHandler handler = ValueHandlerRegistry.GetHandler(Type);
             return handler.Serialize(this);
         }
 
@@ -124,7 +111,7 @@ namespace EasyPack.CustomData
         {
             try
             {
-                var handler = ValueHandlerRegistry.GetHandler(type);
+                IValueHandler handler = ValueHandlerRegistry.GetHandler(type);
                 return handler.TryDeserialize(this, data, jsonClrType);
             }
             catch
@@ -139,15 +126,16 @@ namespace EasyPack.CustomData
 
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {
-            var handler = ValueHandlerRegistry.GetHandler(Type);
+            IValueHandler handler = ValueHandlerRegistry.GetHandler(Type);
             Data = handler.Serialize(this);
         }
 
         void ISerializationCallbackReceiver.OnAfterDeserialize()
         {
-            var handler = ValueHandlerRegistry.GetHandler(Type);
+            IValueHandler handler = ValueHandlerRegistry.GetHandler(Type);
             handler.TryDeserialize(this, Data ?? "");
         }
+
         #endregion
     }
 }

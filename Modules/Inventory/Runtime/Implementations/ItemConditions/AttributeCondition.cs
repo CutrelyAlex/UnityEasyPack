@@ -14,8 +14,9 @@ namespace EasyPack.InventorySystem
         LessThanOrEqual,
         Contains,
         NotContains,
-        Exists
+        Exists,
     }
+
     public class AttributeCondition : ISerializableCondition
     {
         public string AttributeName { get; set; }
@@ -58,14 +59,14 @@ namespace EasyPack.InventorySystem
             if (item == null || item.CustomData == null)
                 return false;
 
-            var entry = item.CustomData.FirstOrDefault(e => e.Key == AttributeName);
+            CustomDataEntry entry = item.CustomData.FirstOrDefault(e => e.Key == AttributeName);
             if (ComparisonType == AttributeComparisonType.Exists)
                 return entry != null;
 
             if (entry == null)
                 return false;
 
-            var actualValue = entry.GetValue();
+            object actualValue = entry.GetValue();
 
             if (actualValue == null)
                 return AttributeValue == null;
@@ -90,7 +91,6 @@ namespace EasyPack.InventorySystem
                 return 0;
 
             if (value1 is IComparable comparable1 && value2 is IComparable comparable2)
-            {
                 try
                 {
                     if (value1.GetType() == value2.GetType())
@@ -108,7 +108,7 @@ namespace EasyPack.InventorySystem
                 {
                     return 0;
                 }
-            }
+
             return 0;
         }
 
@@ -121,13 +121,10 @@ namespace EasyPack.InventorySystem
                 return containerStr.Contains(valueStr);
 
             if (container is System.Collections.IEnumerable enumerable and not string)
-            {
-                foreach (var item in enumerable)
-                {
+                foreach (object item in enumerable)
                     if (item != null && item.Equals(value))
                         return true;
-                }
-            }
+
             return false;
         }
 
@@ -162,7 +159,7 @@ namespace EasyPack.InventorySystem
             object value = null;
             int cmp = (int)AttributeComparisonType.Equal;
 
-            foreach (var p in dto.Params)
+            foreach (CustomDataEntry p in dto.Params)
             {
                 if (p == null) continue;
                 switch (p.Key)
@@ -179,6 +176,7 @@ namespace EasyPack.InventorySystem
                 AttributeValue = value;
                 ComparisonType = (AttributeComparisonType)cmp;
             }
+
             return this;
         }
     }

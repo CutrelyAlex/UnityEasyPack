@@ -4,55 +4,52 @@ using UnityEngine;
 namespace EasyPack.Tools.SpriteFramesPlayer
 {
     /// <summary>
-    /// SpriteFramePlayer 用于在 Unity 中播放精灵帧动画。
-    /// 支持播放、暂停、停止、恢复、切换帧等操作。
+    ///     SpriteFramePlayer 用于在 Unity 中播放精灵帧动画。
+    ///     支持播放、暂停、停止、恢复、切换帧等操作。
     /// </summary>
     public class SpriteFramePlayer : MonoBehaviour
     {
         /// <summary>
-        /// 精灵帧数组。
+        ///     精灵帧数组。
         /// </summary>
         public Sprite[] frames;
 
         /// <summary>
-        /// 播放速度（每帧间隔时间，单位：秒）。
+        ///     播放速度（每帧间隔时间，单位：秒）。
         /// </summary>
         public float frameRate = 0.1f;
 
         /// <summary>
-        /// SpriteRenderer 组件引用。
+        ///     SpriteRenderer 组件引用。
         /// </summary>
         private SpriteRenderer spriteRenderer;
 
         /// <summary>
-        /// 当前帧索引。
+        ///     当前帧索引。
         /// </summary>
         private int currentFrame = 0;
 
         /// <summary>
-        /// 是否正在播放。
+        ///     是否正在播放。
         /// </summary>
         private bool isPlaying = false;
 
         /// <summary>
-        /// 播放协程的引用。
+        ///     播放协程的引用。
         /// </summary>
         private Coroutine playCoroutine;
 
         /// <summary>
-        /// 初始化组件，获取或添加 SpriteRenderer。
+        ///     初始化组件，获取或添加 SpriteRenderer。
         /// </summary>
         private void Awake()
         {
             spriteRenderer = GetComponent<SpriteRenderer>();
-            if (spriteRenderer == null)
-            {
-                spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
-            }
+            if (spriteRenderer == null) spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
         }
 
         /// <summary>
-        /// 开始播放精灵帧动画。
+        ///     开始播放精灵帧动画。
         /// </summary>
         public void Play()
         {
@@ -63,7 +60,7 @@ namespace EasyPack.Tools.SpriteFramesPlayer
         }
 
         /// <summary>
-        /// 停止播放精灵帧动画。
+        ///     停止播放精灵帧动画。
         /// </summary>
         public void Stop()
         {
@@ -78,7 +75,7 @@ namespace EasyPack.Tools.SpriteFramesPlayer
         }
 
         /// <summary>
-        /// 暂停播放精灵帧动画。
+        ///     暂停播放精灵帧动画。
         /// </summary>
         public void Pause()
         {
@@ -93,7 +90,7 @@ namespace EasyPack.Tools.SpriteFramesPlayer
         }
 
         /// <summary>
-        /// 恢复播放精灵帧动画。
+        ///     恢复播放精灵帧动画。
         /// </summary>
         public void Resume()
         {
@@ -104,7 +101,7 @@ namespace EasyPack.Tools.SpriteFramesPlayer
         }
 
         /// <summary>
-        /// 显示指定索引的帧。
+        ///     显示指定索引的帧。
         /// </summary>
         /// <param name="frameIndex">要显示的帧索引。</param>
         public void ShowFrame(int frameIndex)
@@ -120,7 +117,7 @@ namespace EasyPack.Tools.SpriteFramesPlayer
         }
 
         /// <summary>
-        /// 显示下一帧。
+        ///     显示下一帧。
         /// </summary>
         public void NextFrame()
         {
@@ -131,7 +128,7 @@ namespace EasyPack.Tools.SpriteFramesPlayer
         }
 
         /// <summary>
-        /// 显示上一帧。
+        ///     显示上一帧。
         /// </summary>
         public void PreviousFrame()
         {
@@ -142,7 +139,7 @@ namespace EasyPack.Tools.SpriteFramesPlayer
         }
 
         /// <summary>
-        /// 帧序列播放协程，按设定速度循环播放所有帧。
+        ///     帧序列播放协程，按设定速度循环播放所有帧。
         /// </summary>
         /// <returns>IEnumerator 用于协程。</returns>
         private IEnumerator PlayFrames()

@@ -1,23 +1,23 @@
 namespace EasyPack.Category
 {
     /// <summary>
-    /// 操作结果包装器（无返回值）
-    /// 用于表示操作成功或失败及其原因
+    ///     操作结果包装器（无返回值）
+    ///     用于表示操作成功或失败及其原因
     /// </summary>
     public class OperationResult
     {
         /// <summary>
-        /// 操作是否成功
+        ///     操作是否成功
         /// </summary>
         public bool IsSuccess { get; }
 
         /// <summary>
-        /// 错误代码（成功时为 None）
+        ///     错误代码（成功时为 None）
         /// </summary>
         public ErrorCode ErrorCode { get; }
 
         /// <summary>
-        /// 错误消息（可选）
+        ///     错误消息（可选）
         /// </summary>
         public string ErrorMessage { get; }
 
@@ -29,53 +29,45 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 创建成功结果
+        ///     创建成功结果
         /// </summary>
-        public static OperationResult Success()
-        {
-            return new OperationResult(true, ErrorCode.None, null);
-        }
+        public static OperationResult Success() => new(true, ErrorCode.None, null);
 
         /// <summary>
-        /// 创建失败结果
+        ///     创建失败结果
         /// </summary>
-        public static OperationResult Failure(ErrorCode errorCode, string errorMessage = null)
-        {
-            return new OperationResult(false, errorCode, errorMessage);
-        }
+        public static OperationResult Failure(ErrorCode errorCode, string errorMessage = null) =>
+            new(false, errorCode, errorMessage);
 
         /// <summary>
-        /// 隐式转换为布尔值
+        ///     隐式转换为布尔值
         /// </summary>
-        public static implicit operator bool(OperationResult result)
-        {
-            return result.IsSuccess;
-        }
+        public static implicit operator bool(OperationResult result) => result.IsSuccess;
     }
 
     /// <summary>
-    /// 操作结果包装器（带返回值）
+    ///     操作结果包装器（带返回值）
     /// </summary>
     /// <typeparam name="T">返回值类型</typeparam>
     public class OperationResult<T>
     {
         /// <summary>
-        /// 操作是否成功
+        ///     操作是否成功
         /// </summary>
         public bool IsSuccess { get; }
 
         /// <summary>
-        /// 错误代码（成功时为 None）
+        ///     错误代码（成功时为 None）
         /// </summary>
         public ErrorCode ErrorCode { get; }
 
         /// <summary>
-        /// 错误消息（可选）
+        ///     错误消息（可选）
         /// </summary>
         public string ErrorMessage { get; }
 
         /// <summary>
-        /// 返回值（成功时有效）
+        ///     返回值（成功时有效）
         /// </summary>
         public T Value { get; }
 
@@ -88,27 +80,19 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 创建成功结果
+        ///     创建成功结果
         /// </summary>
-        public static OperationResult<T> Success(T value)
-        {
-            return new OperationResult<T>(true, ErrorCode.None, null, value);
-        }
+        public static OperationResult<T> Success(T value) => new(true, ErrorCode.None, null, value);
 
         /// <summary>
-        /// 创建失败结果
+        ///     创建失败结果
         /// </summary>
-        public static OperationResult<T> Failure(ErrorCode errorCode, string errorMessage = null)
-        {
-            return new OperationResult<T>(false, errorCode, errorMessage, default);
-        }
+        public static OperationResult<T> Failure(ErrorCode errorCode, string errorMessage = null) =>
+            new(false, errorCode, errorMessage, default);
 
         /// <summary>
-        /// 隐式转换为布尔值
+        ///     隐式转换为布尔值
         /// </summary>
-        public static implicit operator bool(OperationResult<T> result)
-        {
-            return result.IsSuccess;
-        }
+        public static implicit operator bool(OperationResult<T> result) => result.IsSuccess;
     }
 }

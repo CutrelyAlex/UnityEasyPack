@@ -12,9 +12,9 @@ using EasyPack.Serialization;
 namespace EasyPack.GamePropertySystem
 {
     /// <summary>
-    /// 游戏属性管理器
-    /// 提供属性注册、查询、分类管理和批量操作功能
-    /// 继承 BaseService，支持标准生命周期管理
+    ///     游戏属性管理器
+    ///     提供属性注册、查询、分类管理和批量操作功能
+    ///     继承 BaseService，支持标准生命周期管理
     /// </summary>
     public class GamePropertyService : BaseService, IGamePropertyService
     {
@@ -30,27 +30,27 @@ namespace EasyPack.GamePropertySystem
         private ConcurrentDictionary<string, HashSet<string>> _tagIndex;
 
         // 线程安全锁（保护 HashSet 操作）
-        private readonly object _categoryLock = new object();
-        private readonly object _tagLock = new object();
+        private readonly object _categoryLock = new();
+        private readonly object _tagLock = new();
 
         #endregion
 
         #region 生命周期管理
 
         /// <summary>
-        /// 服务初始化
-        /// 初始化所有数据结构并注册序列化器
+        ///     服务初始化
+        ///     初始化所有数据结构并注册序列化器
         /// </summary>
         protected override async Task OnInitializeAsync()
         {
             await base.OnInitializeAsync();
 
             // 初始化字典
-            _properties = new ConcurrentDictionary<string, GameProperty>();
-            _metadata = new ConcurrentDictionary<string, PropertyMetadata>();
-            _propertyToCategory = new ConcurrentDictionary<string, string>();
-            _categories = new ConcurrentDictionary<string, HashSet<string>>();
-            _tagIndex = new ConcurrentDictionary<string, HashSet<string>>();
+            _properties = new();
+            _metadata = new();
+            _propertyToCategory = new();
+            _categories = new();
+            _tagIndex = new();
 
             // 注册 GameProperty 系统的序列化器
             await RegisterSerializers();
@@ -59,7 +59,7 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        /// 注册 GameProperty 系统的序列化器
+        ///     注册 GameProperty 系统的序列化器
         /// </summary>
         private async Task RegisterSerializers()
         {
@@ -93,7 +93,7 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        /// 服务释放
+        ///     服务释放
         /// </summary>
         protected override async Task OnDisposeAsync()
         {
@@ -113,7 +113,7 @@ namespace EasyPack.GamePropertySystem
         #region 注册API
 
         /// <summary>
-        /// 注册单个属性到指定分类
+        ///     注册单个属性到指定分类
         /// </summary>
         public void Register(GameProperty property, string category = "Default", PropertyMetadata metadata = null)
         {
@@ -132,7 +132,7 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        /// 内部注册逻辑
+        ///     内部注册逻辑
         /// </summary>
         private void RegisterInternal(GameProperty property, string category, PropertyMetadata metadata)
         {
@@ -151,18 +151,14 @@ namespace EasyPack.GamePropertySystem
 
                 // 更新标签索引（线程安全）
                 if (metadata.Tags != null)
-                {
-                    foreach (var tag in metadata.Tags)
-                    {
+                    foreach (string tag in metadata.Tags)
                         lock (_tagLock)
                         {
                             if (!_tagIndex.ContainsKey(tag))
-                                _tagIndex[tag] = new HashSet<string>();
+                                _tagIndex[tag] = new();
 
                             _tagIndex[tag].Add(property.ID);
                         }
-                    }
-                }
             }
 
             // 更新分类索引（线程安全）
@@ -170,14 +166,14 @@ namespace EasyPack.GamePropertySystem
             {
                 if (category == null) return;
                 if (!_categories.ContainsKey(category))
-                    _categories[category] = new HashSet<string>();
+                    _categories[category] = new();
 
                 _categories[category].Add(property.ID);
             }
         }
 
         /// <summary>
-        /// 批量注册属性到指定分类
+        ///     批量注册属性到指定分类
         /// </summary>
         public void RegisterRange(IEnumerable<GameProperty> properties, string category = "Default")
         {
@@ -186,10 +182,7 @@ namespace EasyPack.GamePropertySystem
             if (properties == null)
                 throw new ArgumentNullException(nameof(properties));
 
-            foreach (var property in properties)
-            {
-                Register(property, category, null);
-            }
+            foreach (GameProperty property in properties) Register(property, category, null);
         }
 
         #endregion
@@ -197,19 +190,19 @@ namespace EasyPack.GamePropertySystem
         #region 查询API
 
         /// <summary>
-        /// 通过ID获取属性
+        ///     通过ID获取属性
         /// </summary>
         public GameProperty Get(string id)
         {
             if (string.IsNullOrEmpty(id))
                 return null;
 
-            _properties.TryGetValue(id, out var property);
+            _properties.TryGetValue(id, out GameProperty property);
             return property;
         }
 
         /// <summary>
-        /// 获取指定分类的所有属性
+        ///     获取指定分类的所有属性
         /// </summary>
         public IEnumerable<GameProperty> GetByCategory(string category, bool includeChildren = false)
         {
@@ -220,29 +213,26 @@ namespace EasyPack.GamePropertySystem
             {
                 // 精确匹配（线程安全）
                 if (_categories.TryGetValue(category, out var ids))
-                {
                     lock (_categoryLock)
                     {
                         return ids.ToList().Select(id => _properties[id]).Where(p => p != null).ToList();
                     }
-                }
+
                 return Enumerable.Empty<GameProperty>();
             }
             else
             {
                 // 支持通配符："Category.*" 匹配所有子分类（线程安全）
                 var results = new List<GameProperty>();
-                var prefix = category.EndsWith(".*") ? category.Substring(0, category.Length - 2) + "." : category + ".";
+                string prefix = category.EndsWith(".*")
+                    ? category.Substring(0, category.Length - 2) + "."
+                    : category + ".";
 
                 lock (_categoryLock)
                 {
                     foreach (var kvp in _categories)
-                    {
                         if (kvp.Key == category || kvp.Key.StartsWith(prefix))
-                        {
                             results.AddRange(kvp.Value.ToList().Select(id => _properties[id]).Where(p => p != null));
-                        }
-                    }
                 }
 
                 return results;
@@ -250,7 +240,7 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        /// 获取包含指定标签的所有属性
+        ///     获取包含指定标签的所有属性
         /// </summary>
         public IEnumerable<GameProperty> GetByTag(string tag)
         {
@@ -258,18 +248,16 @@ namespace EasyPack.GamePropertySystem
                 return Enumerable.Empty<GameProperty>();
 
             if (_tagIndex.TryGetValue(tag, out var ids))
-            {
                 lock (_tagLock)
                 {
                     return ids.ToList().Select(id => _properties[id]).Where(p => p != null).ToList();
                 }
-            }
 
             return Enumerable.Empty<GameProperty>();
         }
 
         /// <summary>
-        /// 组合查询：获取同时满足分类和标签条件的属性（交集）
+        ///     组合查询：获取同时满足分类和标签条件的属性（交集）
         /// </summary>
         public IEnumerable<GameProperty> GetByCategoryAndTag(string category, string tag)
         {
@@ -281,39 +269,33 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        /// 获取属性的元数据
+        ///     获取属性的元数据
         /// </summary>
         public PropertyMetadata GetMetadata(string id)
         {
             if (string.IsNullOrEmpty(id))
                 return null;
 
-            _metadata.TryGetValue(id, out var metadata);
+            _metadata.TryGetValue(id, out PropertyMetadata metadata);
             return metadata;
         }
 
         /// <summary>
-        /// 获取所有已注册的属性ID
+        ///     获取所有已注册的属性ID
         /// </summary>
-        public IEnumerable<string> GetAllPropertyIds()
-        {
-            return _properties.Keys;
-        }
+        public IEnumerable<string> GetAllPropertyIds() => _properties.Keys;
 
         /// <summary>
-        /// 获取所有分类名
+        ///     获取所有分类名
         /// </summary>
-        public IEnumerable<string> GetAllCategories()
-        {
-            return _categories.Keys;
-        }
+        public IEnumerable<string> GetAllCategories() => _categories.Keys;
 
         #endregion
 
         #region 移除API
 
         /// <summary>
-        /// 移除指定属性
+        ///     移除指定属性
         /// </summary>
         public bool Unregister(string id)
         {
@@ -321,15 +303,14 @@ namespace EasyPack.GamePropertySystem
                 return false;
 
             // 从主表移除
-            if (!_properties.TryRemove(id, out var property))
+            if (!_properties.TryRemove(id, out GameProperty property))
                 return false;
 
             // 从元数据移除
             _metadata.TryRemove(id, out _);
 
             // 从分类索引移除（线程安全）
-            if (_propertyToCategory.TryRemove(id, out var category))
-            {
+            if (_propertyToCategory.TryRemove(id, out string category))
                 lock (_categoryLock)
                 {
                     if (_categories.TryGetValue(category, out var categorySet))
@@ -339,22 +320,18 @@ namespace EasyPack.GamePropertySystem
                             _categories.TryRemove(category, out _);
                     }
                 }
-            }
 
             // 从标签索引移除（线程安全）
             lock (_tagLock)
             {
-                foreach (var tagSet in _tagIndex.Values)
-                {
-                    tagSet.Remove(id);
-                }
+                foreach (var tagSet in _tagIndex.Values) tagSet.Remove(id);
             }
 
             return true;
         }
 
         /// <summary>
-        /// 移除整个分类及其所有属性
+        ///     移除整个分类及其所有属性
         /// </summary>
         public void UnregisterCategory(string category)
         {
@@ -362,12 +339,8 @@ namespace EasyPack.GamePropertySystem
                 return;
 
             if (_categories.TryRemove(category, out var ids))
-            {
-                foreach (var id in ids.ToList())
-                {
+                foreach (string id in ids.ToList())
                     Unregister(id);
-                }
-            }
         }
 
         #endregion
@@ -375,7 +348,7 @@ namespace EasyPack.GamePropertySystem
         #region 批量操作API
 
         /// <summary>
-        /// 设置分类中所有属性的激活状态
+        ///     设置分类中所有属性的激活状态
         /// </summary>
         public OperationResult<List<string>> SetCategoryActive(string category, bool active)
         {
@@ -388,12 +361,11 @@ namespace EasyPack.GamePropertySystem
 
             if (properties.Count == 0)
             {
-                failures.Add(new FailureRecord(category, "分类不存在或为空", FailureType.CategoryNotFound));
+                failures.Add(new(category, "分类不存在或为空", FailureType.CategoryNotFound));
                 return OperationResult<List<string>>.PartialSuccess(successIds, 0, failures);
             }
 
-            foreach (var property in properties)
-            {
+            foreach (GameProperty property in properties)
                 try
                 {
                     // GameProperty没有直接的Active属性，这里通过Enable/Disable修饰符来实现
@@ -403,9 +375,8 @@ namespace EasyPack.GamePropertySystem
                 }
                 catch (Exception ex)
                 {
-                    failures.Add(new FailureRecord(property.ID, ex.Message, FailureType.UnknownError));
+                    failures.Add(new(property.ID, ex.Message, FailureType.UnknownError));
                 }
-            }
 
             return failures.Count == 0
                 ? OperationResult<List<string>>.Success(successIds, successIds.Count)
@@ -413,7 +384,7 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        /// 为分类中所有属性应用修饰符
+        ///     为分类中所有属性应用修饰符
         /// </summary>
         public OperationResult<List<string>> ApplyModifierToCategory(string category, IModifier modifier)
         {
@@ -429,12 +400,11 @@ namespace EasyPack.GamePropertySystem
 
             if (properties.Count == 0)
             {
-                failures.Add(new FailureRecord(category, "分类不存在或为空", FailureType.CategoryNotFound));
+                failures.Add(new(category, "分类不存在或为空", FailureType.CategoryNotFound));
                 return OperationResult<List<string>>.PartialSuccess(successIds, 0, failures);
             }
 
-            foreach (var property in properties)
-            {
+            foreach (GameProperty property in properties)
                 try
                 {
                     property.AddModifier(modifier);
@@ -442,9 +412,8 @@ namespace EasyPack.GamePropertySystem
                 }
                 catch (Exception ex)
                 {
-                    failures.Add(new FailureRecord(property.ID, ex.Message, FailureType.InvalidModifier));
+                    failures.Add(new(property.ID, ex.Message, FailureType.InvalidModifier));
                 }
-            }
 
             return failures.Count == 0
                 ? OperationResult<List<string>>.Success(successIds, successIds.Count)
@@ -456,7 +425,7 @@ namespace EasyPack.GamePropertySystem
         #region 辅助方法
 
         /// <summary>
-        /// 检查服务是否就绪，否则抛出异常
+        ///     检查服务是否就绪，否则抛出异常
         /// </summary>
         private void ThrowIfNotReady()
         {

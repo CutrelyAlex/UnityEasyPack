@@ -9,11 +9,11 @@ using EasyPack.Serialization;
 namespace EasyPack.GamePropertySystem
 {
     /// <summary>
-    /// GamePropertyManager 序列化器
+    ///     GamePropertyManager 序列化器
     /// </summary>
     public class PropertyManagerSerializer : ITypeSerializer<GamePropertyService, PropertyManagerDTO>
     {
-        private readonly GamePropertyJsonSerializer _propertySerializer = new GamePropertyJsonSerializer();
+        private readonly GamePropertyJsonSerializer _propertySerializer = new();
 
         public PropertyManagerDTO ToSerializable(GamePropertyService obj)
         {
@@ -22,49 +22,45 @@ namespace EasyPack.GamePropertySystem
             var propertiesList = new List<PropertyEntry>();
             var metadataList = new List<MetadataEntry>();
 
-            foreach (var propertyId in obj.GetAllPropertyIds())
+            foreach (string propertyId in obj.GetAllPropertyIds())
             {
-                var property = obj.Get(propertyId);
+                GameProperty property = obj.Get(propertyId);
                 if (property == null) continue;
 
                 string propertyJson = _propertySerializer.SerializeToJson(property);
 
                 string category = "Default";
-                foreach (var cat in obj.GetAllCategories())
-                {
+                foreach (string cat in obj.GetAllCategories())
                     if (obj.GetByCategory(cat).Any(p => p.ID == propertyId))
                     {
                         category = cat;
                         break;
                     }
-                }
 
-                propertiesList.Add(new PropertyEntry
+                propertiesList.Add(new()
                 {
                     ID = propertyId,
                     Category = category,
-                    SerializedProperty = propertyJson
+                    SerializedProperty = propertyJson,
                 });
 
-                var metadata = obj.GetMetadata(propertyId);
+                PropertyMetadata metadata = obj.GetMetadata(propertyId);
                 if (metadata != null)
-                {
-                    metadataList.Add(new MetadataEntry
+                    metadataList.Add(new()
                     {
                         PropertyID = propertyId,
                         DisplayName = metadata.DisplayName,
                         Description = metadata.Description,
                         IconPath = metadata.IconPath,
                         Tags = metadata.Tags,
-                        CustomDataJson = SerializeCustomData(metadata.CustomData)
+                        CustomDataJson = SerializeCustomData(metadata.CustomData),
                     });
-                }
             }
 
-            return new PropertyManagerDTO
+            return new()
             {
                 Properties = propertiesList.ToArray(),
-                Metadata = metadataList.ToArray()
+                Metadata = metadataList.ToArray(),
             };
         }
 
@@ -78,38 +74,33 @@ namespace EasyPack.GamePropertySystem
             Task.Run(async () => await manager.InitializeAsync()).Wait();
 
             if (dto.Properties != null)
-            {
-                foreach (var entry in dto.Properties)
+                foreach (PropertyEntry entry in dto.Properties)
                 {
-                    var property = _propertySerializer.DeserializeFromJson(entry.SerializedProperty);
+                    GameProperty property = _propertySerializer.DeserializeFromJson(entry.SerializedProperty);
                     if (property == null) continue;
 
                     PropertyMetadata metadata = null;
                     if (dto.Metadata != null)
                     {
-                        var metadataEntry = dto.Metadata.FirstOrDefault(m => m.PropertyID == entry.ID);
+                        MetadataEntry metadataEntry = dto.Metadata.FirstOrDefault(m => m.PropertyID == entry.ID);
                         if (!string.IsNullOrEmpty(metadataEntry.PropertyID))
-                        {
-                            metadata = new PropertyMetadata
+                            metadata = new()
                             {
                                 DisplayName = metadataEntry.DisplayName,
                                 Description = metadataEntry.Description,
                                 IconPath = metadataEntry.IconPath,
                                 Tags = metadataEntry.Tags,
-                                CustomData = DeserializeCustomData(metadataEntry.CustomDataJson)
+                                CustomData = DeserializeCustomData(metadataEntry.CustomDataJson),
                             };
-                        }
                     }
 
                     manager.Register(property, entry.Category ?? "Default", metadata);
                 }
-            }
 
             return manager;
         }
 
-        public string ToJson(PropertyManagerDTO dto) =>
-            dto == null ? null : JsonUtility.ToJson(dto);
+        public string ToJson(PropertyManagerDTO dto) => dto == null ? null : JsonUtility.ToJson(dto);
 
         public PropertyManagerDTO FromJson(string json)
         {
@@ -130,11 +121,9 @@ namespace EasyPack.GamePropertySystem
             }
         }
 
-        public string SerializeToJson(GamePropertyService obj) =>
-            ToJson(ToSerializable(obj));
+        public string SerializeToJson(GamePropertyService obj) => ToJson(ToSerializable(obj));
 
-        public GamePropertyService DeserializeFromJson(string json) =>
-            FromSerializable(FromJson(json));
+        public GamePropertyService DeserializeFromJson(string json) => FromSerializable(FromJson(json));
 
         private string SerializeCustomData(CustomDataCollection customData)
         {
@@ -145,9 +134,9 @@ namespace EasyPack.GamePropertySystem
 
         private CustomDataCollection DeserializeCustomData(string json)
         {
-            if (string.IsNullOrEmpty(json)) return new CustomDataCollection();
+            if (string.IsNullOrEmpty(json)) return new();
             var wrapper = JsonUtility.FromJson<CustomDataWrapper>(json);
-            return wrapper?.Entries != null ? new CustomDataCollection(wrapper.Entries) : new CustomDataCollection();
+            return wrapper?.Entries != null ? new(wrapper.Entries) : new CustomDataCollection();
         }
 
         [Serializable]
@@ -157,4 +146,3 @@ namespace EasyPack.GamePropertySystem
         }
     }
 }
-

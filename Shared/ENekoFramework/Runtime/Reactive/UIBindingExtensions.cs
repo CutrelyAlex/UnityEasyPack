@@ -5,16 +5,16 @@ using UnityEngine.UI;
 namespace EasyPack.ENekoFramework
 {
     /// <summary>
-    /// UI绑定扩展方法集合。
-    /// 提供便捷的数据绑定方法，将BindableProperty自动绑定到Unity UI组件。
+    ///     UI绑定扩展方法集合。
+    ///     提供便捷的数据绑定方法，将BindableProperty自动绑定到Unity UI组件。
     /// </summary>
     public static class UIBindingExtensions
     {
         #region Text组件绑定
 
         /// <summary>
-        /// 将Text组件绑定到字符串属性。
-        /// 当属性变更时自动更新Text的text字段。
+        ///     将Text组件绑定到字符串属性。
+        ///     当属性变更时自动更新Text的text字段。
         /// </summary>
         /// <param name="text">Text组件</param>
         /// <param name="property">要绑定的属性</param>
@@ -31,14 +31,11 @@ namespace EasyPack.ENekoFramework
             property.OnValueChanged += handler;
 
             // 注册清理回调
-            DataBindingEngine.Instance.RegisterBinding(text.gameObject, () =>
-            {
-                property.OnValueChanged -= handler;
-            });
+            DataBindingEngine.Instance.RegisterBinding(text.gameObject, () => { property.OnValueChanged -= handler; });
         }
 
         /// <summary>
-        /// 将Text组件绑定到整数属性，支持格式化。
+        ///     将Text组件绑定到整数属性，支持格式化。
         /// </summary>
         /// <param name="text">Text组件</param>
         /// <param name="property">要绑定的属性</param>
@@ -58,19 +55,17 @@ namespace EasyPack.ENekoFramework
             property.OnValueChanged += handler;
 
             // 注册清理回调
-            DataBindingEngine.Instance.RegisterBinding(text.gameObject, () =>
-            {
-                property.OnValueChanged -= handler;
-            });
+            DataBindingEngine.Instance.RegisterBinding(text.gameObject, () => { property.OnValueChanged -= handler; });
         }
 
         /// <summary>
-        /// 将Text组件绑定到浮点数属性，支持格式化。
+        ///     将Text组件绑定到浮点数属性，支持格式化。
         /// </summary>
         /// <param name="text">Text组件</param>
         /// <param name="property">要绑定的属性</param>
         /// <param name="formatter">格式化函数，可选</param>
-        public static void BindTo(this Text text, BindableProperty<float> property, Func<float, string> formatter = null)
+        public static void BindTo(this Text text, BindableProperty<float> property,
+                                  Func<float, string> formatter = null)
         {
             if (text == null || property == null)
                 return;
@@ -82,10 +77,7 @@ namespace EasyPack.ENekoFramework
             Action<float> handler = value => text.text = formatter(value);
             property.OnValueChanged += handler;
 
-            DataBindingEngine.Instance.RegisterBinding(text.gameObject, () =>
-            {
-                property.OnValueChanged -= handler;
-            });
+            DataBindingEngine.Instance.RegisterBinding(text.gameObject, () => { property.OnValueChanged -= handler; });
         }
 
         #endregion
@@ -93,7 +85,7 @@ namespace EasyPack.ENekoFramework
         #region Slider组件绑定
 
         /// <summary>
-        /// 将Slider组件绑定到整数属性（单向绑定）。
+        ///     将Slider组件绑定到整数属性（单向绑定）。
         /// </summary>
         /// <param name="slider">Slider组件</param>
         /// <param name="property">要绑定的属性</param>
@@ -107,14 +99,12 @@ namespace EasyPack.ENekoFramework
             Action<int> handler = value => slider.value = value;
             property.OnValueChanged += handler;
 
-            DataBindingEngine.Instance.RegisterBinding(slider.gameObject, () =>
-            {
-                property.OnValueChanged -= handler;
-            });
+            DataBindingEngine.Instance.RegisterBinding(slider.gameObject,
+                () => { property.OnValueChanged -= handler; });
         }
 
         /// <summary>
-        /// 将Slider组件绑定到浮点数属性（单向绑定）。
+        ///     将Slider组件绑定到浮点数属性（单向绑定）。
         /// </summary>
         /// <param name="slider">Slider组件</param>
         /// <param name="property">要绑定的属性</param>
@@ -128,14 +118,12 @@ namespace EasyPack.ENekoFramework
             Action<float> handler = value => slider.value = value;
             property.OnValueChanged += handler;
 
-            DataBindingEngine.Instance.RegisterBinding(slider.gameObject, () =>
-            {
-                property.OnValueChanged -= handler;
-            });
+            DataBindingEngine.Instance.RegisterBinding(slider.gameObject,
+                () => { property.OnValueChanged -= handler; });
         }
 
         /// <summary>
-        /// 将Slider组件与整数属性双向绑定。
+        ///     将Slider组件与整数属性双向绑定。
         /// </summary>
         /// <param name="slider">Slider组件</param>
         /// <param name="property">要绑定的属性</param>
@@ -166,7 +154,7 @@ namespace EasyPack.ENekoFramework
         #region Image组件绑定
 
         /// <summary>
-        /// 将Image组件的颜色绑定到颜色属性。
+        ///     将Image组件的颜色绑定到颜色属性。
         /// </summary>
         /// <param name="image">Image组件</param>
         /// <param name="property">要绑定的属性</param>
@@ -180,14 +168,11 @@ namespace EasyPack.ENekoFramework
             Action<Color> handler = value => image.color = value;
             property.OnValueChanged += handler;
 
-            DataBindingEngine.Instance.RegisterBinding(image.gameObject, () =>
-            {
-                property.OnValueChanged -= handler;
-            });
+            DataBindingEngine.Instance.RegisterBinding(image.gameObject, () => { property.OnValueChanged -= handler; });
         }
 
         /// <summary>
-        /// 将Image组件的Sprite绑定到Sprite属性。
+        ///     将Image组件的Sprite绑定到Sprite属性。
         /// </summary>
         /// <param name="image">Image组件</param>
         /// <param name="property">要绑定的属性</param>
@@ -201,10 +186,7 @@ namespace EasyPack.ENekoFramework
             Action<Sprite> handler = value => image.sprite = value;
             property.OnValueChanged += handler;
 
-            DataBindingEngine.Instance.RegisterBinding(image.gameObject, () =>
-            {
-                property.OnValueChanged -= handler;
-            });
+            DataBindingEngine.Instance.RegisterBinding(image.gameObject, () => { property.OnValueChanged -= handler; });
         }
 
         #endregion
@@ -212,7 +194,7 @@ namespace EasyPack.ENekoFramework
         #region GameObject绑定
 
         /// <summary>
-        /// 将GameObject的激活状态绑定到布尔属性。
+        ///     将GameObject的激活状态绑定到布尔属性。
         /// </summary>
         /// <param name="gameObject">GameObject</param>
         /// <param name="property">要绑定的属性</param>
@@ -226,10 +208,7 @@ namespace EasyPack.ENekoFramework
             Action<bool> handler = value => gameObject.SetActive(value);
             property.OnValueChanged += handler;
 
-            DataBindingEngine.Instance.RegisterBinding(gameObject, () =>
-            {
-                property.OnValueChanged -= handler;
-            });
+            DataBindingEngine.Instance.RegisterBinding(gameObject, () => { property.OnValueChanged -= handler; });
         }
 
         #endregion
@@ -237,7 +216,7 @@ namespace EasyPack.ENekoFramework
         #region Toggle组件绑定
 
         /// <summary>
-        /// 将Toggle组件与布尔属性双向绑定。
+        ///     将Toggle组件与布尔属性双向绑定。
         /// </summary>
         /// <param name="toggle">Toggle组件</param>
         /// <param name="property">要绑定的属性</param>
@@ -268,7 +247,7 @@ namespace EasyPack.ENekoFramework
         #region InputField组件绑定
 
         /// <summary>
-        /// 将InputField组件与字符串属性双向绑定。
+        ///     将InputField组件与字符串属性双向绑定。
         /// </summary>
         /// <param name="inputField">InputField组件</param>
         /// <param name="property">要绑定的属性</param>

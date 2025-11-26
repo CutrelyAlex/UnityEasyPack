@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace EasyPack.GamePropertySystem
 {
     /// <summary>
-    /// 批量操作结果
-    /// 表示操作的成功/失败状态和详细信息
+    ///     批量操作结果
+    ///     表示操作的成功/失败状态和详细信息
     /// </summary>
     /// <typeparam name="T">成功数据类型（如List&lt;string&gt;表示成功的属性ID列表）</typeparam>
     [Serializable]
@@ -24,45 +24,38 @@ namespace EasyPack.GamePropertySystem
         public List<FailureRecord> Failures;
 
         /// <summary>
-        /// 默认构造函数
+        ///     默认构造函数
         /// </summary>
-        public OperationResult()
-        {
-            Failures = new List<FailureRecord>();
-        }
+        public OperationResult() => Failures = new();
 
         /// <summary>
-        /// 创建全部成功的结果
+        ///     创建全部成功的结果
         /// </summary>
-        public static OperationResult<T> Success(T data, int count)
-        {
-            return new OperationResult<T>
+        public static OperationResult<T> Success(T data, int count) =>
+            new()
             {
                 IsFullSuccess = true,
                 SuccessCount = count,
                 SuccessData = data,
-                Failures = new List<FailureRecord>()
+                Failures = new(),
             };
-        }
 
         /// <summary>
-        /// 创建部分成功的结果
+        ///     创建部分成功的结果
         /// </summary>
-        public static OperationResult<T> PartialSuccess(T data, int successCount, List<FailureRecord> failures)
-        {
-            return new OperationResult<T>
+        public static OperationResult<T> PartialSuccess(T data, int successCount, List<FailureRecord> failures) =>
+            new()
             {
                 IsFullSuccess = false,
                 SuccessCount = successCount,
                 SuccessData = data,
-                Failures = failures
+                Failures = failures,
             };
-        }
     }
 
     /// <summary>
-    /// 失败记录
-    /// 描述单个失败项的详细信息
+    ///     失败记录
+    ///     描述单个失败项的详细信息
     /// </summary>
     [Serializable]
     public struct FailureRecord
@@ -77,7 +70,7 @@ namespace EasyPack.GamePropertySystem
         public FailureType Type;
 
         /// <summary>
-        /// 构造函数
+        ///     构造函数
         /// </summary>
         public FailureRecord(string itemId, string errorMessage, FailureType type)
         {
@@ -88,7 +81,7 @@ namespace EasyPack.GamePropertySystem
     }
 
     /// <summary>
-    /// 失败类型枚举
+    ///     失败类型枚举
     /// </summary>
     public enum FailureType
     {
@@ -108,6 +101,6 @@ namespace EasyPack.GamePropertySystem
         InvalidState,
 
         /// <summary>未知错误</summary>
-        UnknownError
+        UnknownError,
     }
 }

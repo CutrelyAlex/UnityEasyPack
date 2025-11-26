@@ -6,20 +6,19 @@ using UnityEngine;
 namespace EasyPack.InventorySystem
 {
     /// <summary>
-    /// Container类型的JSON序列化器
+    ///     Container类型的JSON序列化器
     /// </summary>
     public class ContainerJsonSerializer : JsonSerializerBase<Container>
     {
         private readonly ISerializationService _serializationService;
 
         /// <summary>
-        /// 构造函数,注入序列化服务
+        ///     构造函数,注入序列化服务
         /// </summary>
         /// <param name="serializationService">序列化服务实例</param>
-        public ContainerJsonSerializer(ISerializationService serializationService)
-        {
-            _serializationService = serializationService ?? throw new ArgumentNullException(nameof(serializationService));
-        }
+        public ContainerJsonSerializer(ISerializationService serializationService) =>
+            _serializationService =
+                serializationService ?? throw new ArgumentNullException(nameof(serializationService));
 
         public override string SerializeToJson(Container obj)
         {
@@ -33,48 +32,39 @@ namespace EasyPack.InventorySystem
                 Type = obj.Type,
                 Capacity = obj.Capacity,
                 IsGrid = obj.IsGrid,
-                Grid = obj.IsGrid ? obj.Grid : new Vector2(-1, -1)
+                Grid = obj.IsGrid ? obj.Grid : new(-1, -1),
             };
 
             // 序列化容器条件
             if (obj.ContainerCondition != null)
-            {
-                foreach (var cond in obj.ContainerCondition)
-                {
+                foreach (IItemCondition cond in obj.ContainerCondition)
                     if (cond != null)
                     {
                         // 使用注入的序列化服务序列化条件（而不是接口类型）
-                        var condJson = _serializationService.SerializeToJson(cond, cond.GetType());
+                        string condJson = _serializationService.SerializeToJson(cond, cond.GetType());
                         if (!string.IsNullOrEmpty(condJson))
                         {
                             var serializedCond = JsonUtility.FromJson<SerializedCondition>(condJson);
-                            if (serializedCond != null)
-                            {
-                                dto.ContainerConditions.Add(serializedCond);
-                            }
+                            if (serializedCond != null) dto.ContainerConditions.Add(serializedCond);
                         }
                     }
-                }
-            }
 
             // 序列化槽位
-            foreach (var slot in obj.Slots)
+            foreach (ISlot slot in obj.Slots)
             {
                 if (slot == null || !slot.IsOccupied || slot.Item == null) continue;
 
                 string itemJson = null;
                 if (slot.Item is Item concrete)
-                {
                     // 使用注入的序列化服务序列化物品
                     itemJson = _serializationService.SerializeToJson(concrete, concrete.GetType());
-                }
 
-                dto.Slots.Add(new SerializedSlot
+                dto.Slots.Add(new()
                 {
                     Index = slot.Index,
                     ItemJson = itemJson,
                     ItemCount = slot.ItemCount,
-                    SlotCondition = null
+                    SlotCondition = null,
                 });
             }
 
@@ -109,44 +99,37 @@ namespace EasyPack.InventorySystem
             // 还原容器条件
             var conds = new List<IItemCondition>();
             if (dto.ContainerConditions != null)
-            {
-                foreach (var c in dto.ContainerConditions)
+                foreach (SerializedCondition c in dto.ContainerConditions)
                 {
                     if (c == null || string.IsNullOrEmpty(c.Kind)) continue;
 
-                    var condJson = JsonUtility.ToJson(c);
+                    string condJson = JsonUtility.ToJson(c);
                     var cond = _serializationService.DeserializeFromJson<IItemCondition>(condJson);
-                    if (cond != null)
-                    {
-                        conds.Add(cond);
-                    }
+                    if (cond != null) conds.Add(cond);
                 }
-            }
+
             container.ContainerCondition = conds;
 
             // 还原物品到指定槽位
             if (dto.Slots != null)
-            {
-                foreach (var s in dto.Slots)
+                foreach (SerializedSlot s in dto.Slots)
                 {
                     if (string.IsNullOrEmpty(s.ItemJson)) continue;
 
                     var item = _serializationService.DeserializeFromJson<Item>(s.ItemJson);
                     if (item == null) continue;
 
-                    var (res, added) = container.AddItems(item, s.ItemCount, s.Index >= 0 ? s.Index : -1);
+                    (AddItemResult res, int added) = container.AddItems(item, s.ItemCount, s.Index >= 0 ? s.Index : -1);
                     if (res != AddItemResult.Success || added <= 0)
-                    {
-                        Debug.LogWarning($"反序列化槽位失败: idx={s.Index}, item={item?.ID ?? "null"}, count={s.ItemCount}, res={res}, added={added}");
-                    }
+                        Debug.LogWarning(
+                            $"反序列化槽位失败: idx={s.Index}, item={item?.ID ?? "null"}, count={s.ItemCount}, res={res}, added={added}");
                 }
-            }
 
             return container;
         }
 
         /// <summary>
-        /// 根据DTO创建容器实例
+        ///     根据DTO创建容器实例
         /// </summary>
         private Container CreateContainerInstance(SerializedContainer dto)
         {
@@ -166,4 +149,3 @@ namespace EasyPack.InventorySystem
         }
     }
 }
-

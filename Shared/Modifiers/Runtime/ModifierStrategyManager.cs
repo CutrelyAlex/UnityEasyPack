@@ -6,6 +6,7 @@ namespace EasyPack.Modifiers
     public static class ModifierStrategyManager
     {
         private static readonly Dictionary<ModifierType, IModifierStrategy> _strategies = new();
+
         public static readonly ModifierType[] MODIFIER_TYPE_ORDER = new ModifierType[]
         {
             ModifierType.Add,
@@ -14,8 +15,9 @@ namespace EasyPack.Modifiers
             ModifierType.PriorityMul,
             ModifierType.AfterAdd,
             ModifierType.Override,
-            ModifierType.Clamp
+            ModifierType.Clamp,
         };
+
         static ModifierStrategyManager()
         {
             RegisterStrategy(new AddModifierStrategy());
@@ -34,7 +36,7 @@ namespace EasyPack.Modifiers
 
         public static IModifierStrategy GetStrategy(ModifierType type)
         {
-            if (_strategies.TryGetValue(type, out var strategy))
+            if (_strategies.TryGetValue(type, out IModifierStrategy strategy))
                 return strategy;
 
             throw new ArgumentException($"找不到类型为 {type} 的修改器策略");

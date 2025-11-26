@@ -8,8 +8,8 @@ using EasyPack.Serialization;
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
-    /// EmeCard 的 JSON 序列化器
-    /// 实现双泛型接口，将 Card 与其子层级转换为 JSON，及从 JSON 重建
+    ///     EmeCard 的 JSON 序列化器
+    ///     实现双泛型接口，将 Card 与其子层级转换为 JSON，及从 JSON 重建
     /// </summary>
     public class CardJsonSerializer : ITypeSerializer<Card, SerializableCard>
     {
@@ -18,7 +18,7 @@ namespace EasyPack.EmeCardSystem
         #region ITypeSerializer<Card, SerializableCard> 实现
 
         /// <summary>
-        /// 将 Card 对象转换为可序列化的 DTO
+        ///     将 Card 对象转换为可序列化的 DTO
         /// </summary>
         public SerializableCard ToSerializable(Card obj)
         {
@@ -27,29 +27,25 @@ namespace EasyPack.EmeCardSystem
                 Debug.LogWarning("[CardJsonSerializer] Attempting to serialize null Card");
                 return null;
             }
+
             if (obj.Data == null)
-            {
                 throw new SerializationException(
                     "无法序列化没有 CardData 的 Card",
                     typeof(Card),
                     SerializationErrorCode.SerializationFailed
                 );
-            }
 
             var visited = new HashSet<Card>(ReferenceEqualityComparer<Card>.Default);
-            return SerializeCardRecursive(obj, visited, new List<Card>());
+            return SerializeCardRecursive(obj, visited, new());
         }
 
         /// <summary>
-        /// 从可序列化 DTO 转换回 Card 对象
+        ///     从可序列化 DTO 转换回 Card 对象
         /// </summary>
-        public Card FromSerializable(SerializableCard dto)
-        {
-            return DeserializeCardRecursive(dto);
-        }
+        public Card FromSerializable(SerializableCard dto) => DeserializeCardRecursive(dto);
 
         /// <summary>
-        /// 将 DTO 序列化为 JSON 字符串
+        ///     将 DTO 序列化为 JSON 字符串
         /// </summary>
         public string ToJson(SerializableCard dto)
         {
@@ -58,7 +54,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 从 JSON 字符串反序列化为 DTO
+        ///     从 JSON 字符串反序列化为 DTO
         /// </summary>
         public SerializableCard FromJson(string json)
         {
@@ -78,33 +74,32 @@ namespace EasyPack.EmeCardSystem
                     ex
                 );
             }
+
             if (data == null)
-            {
                 throw new SerializationException(
                     "JSON 解析结果为空",
                     typeof(Card),
                     SerializationErrorCode.DeserializationFailed
                 );
-            }
 
             return data;
         }
 
         /// <summary>
-        /// 将 Card 直接序列化为 JSON
+        ///     将 Card 直接序列化为 JSON
         /// </summary>
         public string SerializeToJson(Card obj)
         {
-            var dto = ToSerializable(obj);
+            SerializableCard dto = ToSerializable(obj);
             return ToJson(dto);
         }
 
         /// <summary>
-        /// 从 JSON 直接反序列化为 Card
+        ///     从 JSON 直接反序列化为 Card
         /// </summary>
         public Card DeserializeFromJson(string json)
         {
-            var dto = FromJson(json);
+            SerializableCard dto = FromJson(json);
             return FromSerializable(dto);
         }
 
@@ -116,7 +111,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (!visited.Add(card))
             {
-                var message = $"检测到循环引用：{BuildPath(path)} → Card[ID={card.Id}, Index={card.Index}]";
+                string message = $"检测到循环引用：{BuildPath(path)} → Card[ID={card.Id}, Index={card.Index}]";
                 throw new SerializationException(message, typeof(Card), SerializationErrorCode.SerializationFailed);
             }
 
@@ -136,15 +131,13 @@ namespace EasyPack.EmeCardSystem
                     Index = card.Index,
                     Properties = Array.Empty<SerializableGameProperty>(),
                     Tags = card.Tags is { Count: > 0 } ? new List<string>(card.Tags).ToArray() : Array.Empty<string>(),
-                    ChildrenJson = null,  // 默认为空，有子卡时才序列化
-                    IsIntrinsic = false
+                    ChildrenJson = null, // 默认为空，有子卡时才序列化
+                    IsIntrinsic = false,
                 };
 
                 // 序列化 GameProperty 列表
                 if (card.Properties != null)
-                {
-                    foreach (var prop in card.Properties)
-                    {
+                    foreach (GameProperty prop in card.Properties)
                         try
                         {
                             string propJson = _propertySerializer.SerializeToJson(prop);
@@ -157,17 +150,16 @@ namespace EasyPack.EmeCardSystem
                         }
                         catch (Exception ex)
                         {
-                            Debug.LogWarning($"[CardJsonSerializer] 跳过序列化失败的 GameProperty [ID={prop?.ID}]: {ex.Message}");
+                            Debug.LogWarning(
+                                $"[CardJsonSerializer] 跳过序列化失败的 GameProperty [ID={prop?.ID}]: {ex.Message}");
                         }
-                    }
-                }
 
                 // 递归序列化子卡
                 if (card.Children is { Count: > 0 })
                 {
-                    foreach (var child in card.Children)
+                    foreach (Card child in card.Children)
                     {
-                        var childDto = SerializeCardRecursive(child, visited, path);
+                        SerializableCard childDto = SerializeCardRecursive(child, visited, path);
                         // 标记固有子卡：使用公开的只读访问器
                         childDto.IsIntrinsic = card.IsIntrinsic(child);
                         childrenList.Add(childDto);
@@ -199,75 +191,60 @@ namespace EasyPack.EmeCardSystem
                 return null;
 
             if (string.IsNullOrEmpty(data.ID))
-            {
-                throw new SerializationException("CardData.ID 是必需字段", typeof(Card), SerializationErrorCode.DeserializationFailed);
-            }
+                throw new SerializationException("CardData.ID 是必需字段", typeof(Card),
+                    SerializationErrorCode.DeserializationFailed);
 
             var cardData = new CardData(
-                id: data.ID,
-                name: data.Name ?? "Default",
-                desc: data.Description ?? string.Empty,
-                category: data.Category,
-                defaultTags: data.DefaultTags ?? Array.Empty<string>(),
-                sprite: null
+                data.ID,
+                data.Name ?? "Default",
+                data.Description ?? string.Empty,
+                data.Category,
+                data.DefaultTags ?? Array.Empty<string>(),
+                null
             );
 
             var card = new Card(cardData)
             {
-                Index = data.Index
+                Index = data.Index,
             };
 
             // 恢复属性
             if (data.Properties != null)
-            {
-                foreach (var sProp in data.Properties)
-                {
+                foreach (SerializableGameProperty sProp in data.Properties)
                     try
                     {
                         string propJson = JsonUtility.ToJson(sProp);
-                        var prop = _propertySerializer.DeserializeFromJson(propJson);
-                        if (prop != null)
-                        {
-                            card.Properties.Add(prop);
-                        }
+                        GameProperty prop = _propertySerializer.DeserializeFromJson(propJson);
+                        if (prop != null) card.Properties.Add(prop);
                     }
                     catch (Exception ex)
                     {
                         Debug.LogWarning($"[CardJsonSerializer] 跳过反序列化失败的 GameProperty: {ex.Message}");
                     }
-                }
-            }
 
             // 恢复标签
             if (data.Tags != null)
-            {
-                foreach (var tag in data.Tags)
-                {
-                    if (!string.IsNullOrEmpty(tag)) card.AddTag(tag);
-                }
-            }
+                foreach (string tag in data.Tags)
+                    if (!string.IsNullOrEmpty(tag))
+                        card.AddTag(tag);
 
             // 恢复子卡
             if (!string.IsNullOrEmpty(data.ChildrenJson))
-            {
                 try
                 {
                     var childrenArray = JsonUtility.FromJson<SerializableCardArray>(data.ChildrenJson);
                     if (childrenArray is { Cards: not null })
-                    {
-                        foreach (var childData in childrenArray.Cards)
+                        foreach (SerializableCard childData in childrenArray.Cards)
                         {
-                            var child = DeserializeCardRecursive(childData);
+                            Card child = DeserializeCardRecursive(childData);
                             bool intrinsic = childData is { IsIntrinsic: true };
-                            card.AddChild(child, intrinsic: intrinsic);
+                            card.AddChild(child, intrinsic);
                         }
-                    }
                 }
                 catch (Exception ex)
                 {
                     Debug.LogWarning($"[CardJsonSerializer] 跳过反序列化失败的 Children: {ex.Message}");
                 }
-            }
 
             return card;
         }
@@ -278,10 +255,11 @@ namespace EasyPack.EmeCardSystem
             var sb = new StringBuilder();
             for (int i = 0; i < path.Count; i++)
             {
-                var c = path[i];
+                Card c = path[i];
                 if (i > 0) sb.Append(" → ");
                 sb.Append($"Card[ID={c.Id}, Index={c.Index}]");
             }
+
             return sb.ToString();
         }
     }
@@ -290,9 +268,11 @@ namespace EasyPack.EmeCardSystem
     internal sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
     {
         public static readonly ReferenceEqualityComparer<T> Default = new();
+
         public bool Equals(T x, T y) => ReferenceEquals(x, y);
+
         public int GetHashCode(T obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
+
     #endregion
 }
-

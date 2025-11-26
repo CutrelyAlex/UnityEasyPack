@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace EasyPack.ObjectPool
 {
     /// <summary>
-    /// 泛型 List&lt;T&gt; 专用对象池。
+    ///     泛型 List&lt;T&gt; 专用对象池。
     /// </summary>
     /// <typeparam name="T">列表中元素的类型。</typeparam>
     public static class ListPool<T>
@@ -14,7 +14,7 @@ namespace EasyPack.ObjectPool
         private static readonly object _lockObj = new();
 
         /// <summary>
-        /// 初始化列表池。
+        ///     初始化列表池。
         /// </summary>
         /// <param name="poolService">对象池服务实例。</param>
         /// <param name="maxCapacity">池的最大容量，默认为32。</param>
@@ -31,28 +31,28 @@ namespace EasyPack.ObjectPool
                 if (_isInitialized) return;
 
                 _pool = poolService.CreatePool(
-                    factory: () => new List<T>(),
-                    cleanup: list => list.Clear(),
-                    maxCapacity: maxCapacity
+                    () => new List<T>(),
+                    list => list.Clear(),
+                    maxCapacity
                 );
                 _isInitialized = true;
             }
         }
 
         /// <summary>
-        /// 异步初始化列表池。在 EasyPackArchitecture 启动时集中调用。
+        ///     异步初始化列表池。在 EasyPackArchitecture 启动时集中调用。
         /// </summary>
         /// <param name="maxCapacity">池的最大容量，默认为32。</param>
         public static async System.Threading.Tasks.Task InitializeAsync(int maxCapacity = 32)
         {
             if (_isInitialized) return;
 
-            var poolService = await EasyPackArchitecture.GetObjectPoolServiceAsync();
+            IObjectPoolService poolService = await EasyPackArchitecture.GetObjectPoolServiceAsync();
             Initialize(poolService, maxCapacity);
         }
 
         /// <summary>
-        /// 确保池已初始化，否则抛出异常。
+        ///     确保池已初始化，否则抛出异常。
         /// </summary>
         private static void EnsureInitialized()
         {
@@ -63,7 +63,7 @@ namespace EasyPack.ObjectPool
         }
 
         /// <summary>
-        /// 从池中租用一个列表。
+        ///     从池中租用一个列表。
         /// </summary>
         /// <returns>清洁的列表实例。</returns>
         public static List<T> Rent()
@@ -73,17 +73,14 @@ namespace EasyPack.ObjectPool
         }
 
         /// <summary>
-        /// 将列表归还到池中。列表将自动清空。
+        ///     将列表归还到池中。列表将自动清空。
         /// </summary>
         /// <param name="list">要归还的列表。</param>
         public static void Return(List<T> list)
         {
-            if (!_isInitialized)
-            {
-                return;
-            }
+            if (!_isInitialized) return;
+
             _pool.Return(list);
         }
-
     }
 }

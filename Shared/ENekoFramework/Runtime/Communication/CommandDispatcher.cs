@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 namespace EasyPack.ENekoFramework
 {
     /// <summary>
-    /// 命令调度器
-    /// 负责异步执行命令，支持超时处理和命令历史跟踪
+    ///     命令调度器
+    ///     负责异步执行命令，支持超时处理和命令历史跟踪
     /// </summary>
     public class CommandDispatcher
     {
@@ -16,7 +16,7 @@ namespace EasyPack.ENekoFramework
         private readonly bool _enableHistory;
 
         /// <summary>
-        /// 构造函数
+        ///     构造函数
         /// </summary>
         /// <param name="defaultTimeoutSeconds">默认超时秒数（默认 4 秒，支持小数如 0.5）</param>
         /// <param name="enableHistory">是否启用命令历史记录（默认 true，禁用可提升性能）</param>
@@ -28,7 +28,7 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 异步执行命令
+        ///     异步执行命令
         /// </summary>
         /// <typeparam name="TResult">命令返回类型</typeparam>
         /// <param name="command">要执行的命令</param>
@@ -43,19 +43,19 @@ namespace EasyPack.ENekoFramework
             if (command == null)
                 throw new ArgumentNullException(nameof(command));
 
-            var timeout = timeoutSeconds ?? _defaultTimeoutSeconds;
+            float timeout = timeoutSeconds ?? _defaultTimeoutSeconds;
 
             // 只在启用历史记录时创建描述符
             CommandDescriptor descriptor = null;
             if (_enableHistory)
             {
-                descriptor = new CommandDescriptor
+                descriptor = new()
                 {
                     CommandType = command.GetType(),
                     ExecutionId = Guid.NewGuid(),
                     StartedAt = DateTime.UtcNow,
                     TimeoutSeconds = timeout,
-                    Status = CommandStatus.Running
+                    Status = CommandStatus.Running,
                 };
                 _commandHistory.Add(descriptor);
             }
@@ -67,7 +67,7 @@ namespace EasyPack.ENekoFramework
                     cts.CancelAfter(TimeSpan.FromSeconds(timeout));
 
                     var task = command.ExecuteAsync(cts.Token);
-                    var result = await task;
+                    TResult result = await task;
 
                     if (descriptor != null)
                     {
@@ -87,6 +87,7 @@ namespace EasyPack.ENekoFramework
                     descriptor.CompletedAt = DateTime.UtcNow;
                     descriptor.Status = CommandStatus.TimedOut;
                 }
+
                 throw new TimeoutException($"Command {command.GetType().Name} exceeded timeout of {timeout} seconds");
             }
             catch (Exception ex)
@@ -97,12 +98,13 @@ namespace EasyPack.ENekoFramework
                     descriptor.Status = CommandStatus.Failed;
                     descriptor.Exception = ex;
                 }
+
                 throw;
             }
         }
 
         /// <summary>
-        /// 获取命令执行历史
+        ///     获取命令执行历史
         /// </summary>
         /// <returns>命令描述符列表（只读）</returns>
         public IReadOnlyList<CommandDescriptor> GetCommandHistory()
@@ -113,20 +115,17 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 清空命令历史
+        ///     清空命令历史
         /// </summary>
         public void ClearHistory()
         {
-            if (_enableHistory && _commandHistory != null)
-            {
-                _commandHistory.Clear();
-            }
+            if (_enableHistory && _commandHistory != null) _commandHistory.Clear();
         }
     }
 
     /// <summary>
-    /// 命令描述符
-    /// 封装命令执行的元数据
+    ///     命令描述符
+    ///     封装命令执行的元数据
     /// </summary>
     public class CommandDescriptor
     {
@@ -167,19 +166,23 @@ namespace EasyPack.ENekoFramework
     }
 
     /// <summary>
-    /// 命令执行状态
+    ///     命令执行状态
     /// </summary>
     public enum CommandStatus
     {
         /// <summary>运行中</summary>
         Running,
+
         /// <summary>成功</summary>
         Succeeded,
+
         /// <summary>失败</summary>
         Failed,
+
         /// <summary>超时</summary>
         TimedOut,
+
         /// <summary>已取消</summary>
-        Cancelled
+        Cancelled,
     }
 }

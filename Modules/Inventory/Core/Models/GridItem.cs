@@ -6,55 +6,55 @@ using static EasyPack.InventorySystem.RotationAngle;
 namespace EasyPack.InventorySystem
 {
     /// <summary>
-    /// 旋转角度枚举
+    ///     旋转角度枚举
     /// </summary>
     public enum RotationAngle
     {
         Rotate0 = 0,
         Rotate90 = 1,
         Rotate180 = 2,
-        Rotate270 = 3
+        Rotate270 = 3,
     }
 
     /// <summary>
-    /// 网格物品 - 在网格容器中占用多个格子的物品
+    ///     网格物品 - 在网格容器中占用多个格子的物品
     /// </summary>
     public class GridItem : Item, IItem
     {
         /// <summary>
-        /// 形状的单元格坐标列表（相对于左上角原点）
-        /// 默认为 1x1 单格物品
+        ///     形状的单元格坐标列表（相对于左上角原点）
+        ///     默认为 1x1 单格物品
         /// </summary>
-        public List<(int x, int y)> Shape { get; set; } = new List<(int x, int y)> { (0, 0) };
+        public List<(int x, int y)> Shape { get; set; } = new() { (0, 0) };
 
         /// <summary>
-        /// 是否可以旋转
+        ///     是否可以旋转
         /// </summary>
         public bool CanRotate { get; set; } = false;
 
         /// <summary>
-        /// 当前旋转角度
+        ///     当前旋转角度
         /// </summary>
         public RotationAngle Rotation { get; set; } = Rotate0;
 
         /// <summary>
-        /// 获取实际占用的单元格坐标列表（考虑旋转）
+        ///     获取实际占用的单元格坐标列表（考虑旋转）
         /// </summary>
         public List<(int x, int y)> GetOccupiedCells()
         {
             if (Shape == null || Shape.Count == 0)
-                return new List<(int x, int y)> { (0, 0) };
+                return new() { (0, 0) };
 
             return RotateShape(Shape, Rotation);
         }
 
         /// <summary>
-        /// 旋转形状坐标
+        ///     旋转形状坐标
         /// </summary>
         private List<(int x, int y)> RotateShape(List<(int x, int y)> shape, RotationAngle angle)
         {
             if (angle == Rotate0)
-                return new List<(int x, int y)>(shape);
+                return new(shape);
 
             // 计算形状的边界
             int minX = shape.Min(p => p.x);
@@ -101,7 +101,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 获取当前实际占用的宽度（考虑旋转）
+        ///     获取当前实际占用的宽度（考虑旋转）
         /// </summary>
         public int ActualWidth
         {
@@ -114,7 +114,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 获取当前实际占用的高度（考虑旋转）
+        ///     获取当前实际占用的高度（考虑旋转）
         /// </summary>
         public int ActualHeight
         {
@@ -127,7 +127,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 构造函数
+        ///     构造函数
         /// </summary>
         public GridItem()
         {
@@ -137,7 +137,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 创建矩形形状的单元格列表
+        ///     创建矩形形状的单元格列表
         /// </summary>
         /// <param name="width">宽度</param>
         /// <param name="height">高度</param>
@@ -146,17 +146,14 @@ namespace EasyPack.InventorySystem
         {
             var cells = new List<(int x, int y)>();
             for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    cells.Add((x, y));
-                }
-            }
+            for (int x = 0; x < width; x++)
+                cells.Add((x, y));
+
             return cells;
         }
 
         /// <summary>
-        /// 旋转物品（顺时针旋转90度）
+        ///     旋转物品（顺时针旋转90度）
         /// </summary>
         /// <returns>是否成功旋转</returns>
         public bool Rotate()
@@ -169,14 +166,14 @@ namespace EasyPack.InventorySystem
                 Rotate90 => Rotate180,
                 Rotate180 => Rotate270,
                 Rotate270 => Rotate0,
-                _ => throw new ArgumentOutOfRangeException(nameof(Rotation), Rotation, null)
+                _ => throw new ArgumentOutOfRangeException(nameof(Rotation), Rotation, null),
             };
 
             return true;
         }
 
         /// <summary>
-        /// 设置旋转角度
+        ///     设置旋转角度
         /// </summary>
         /// <param name="angle">目标旋转角度</param>
         /// <returns>是否成功设置</returns>
@@ -188,7 +185,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 克隆网格物品
+        ///     克隆网格物品
         /// </summary>
         private new GridItem Clone()
         {
@@ -204,9 +201,9 @@ namespace EasyPack.InventorySystem
                 IsContainerItem = IsContainerItem,
                 ContainerIds = ContainerIds != null ? new List<string>(ContainerIds) : null,
                 CustomData = CustomData.Clone(),
-                Shape = Shape != null ? new List<(int x, int y)>(Shape) : new List<(int x, int y)> { (0, 0) },
+                Shape = Shape != null ? new(Shape) : new List<(int x, int y)> { (0, 0) },
                 CanRotate = CanRotate,
-                Rotation = Rotation
+                Rotation = Rotation,
             };
             return clone;
         }

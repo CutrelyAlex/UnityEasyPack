@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace EasyPack.InventorySystem
 {
     /// <summary>
-    /// 库存服务接口，定义库存系统的核心功能
+    ///     库存服务接口，定义库存系统的核心功能
     /// </summary>
     public interface IInventoryService : IService
     {
@@ -40,10 +40,18 @@ namespace EasyPack.InventorySystem
         void Reset();
 
         // 跨容器操作
-        InventoryService.MoveResult MoveItem(string fromContainerId, int fromSlot, string toContainerId, int toSlot = -1);
-        (InventoryService.MoveResult result, int transferredCount) TransferItems(string itemId, int count, string fromContainerId, string toContainerId);
-        (InventoryService.MoveResult result, int transferredCount) AutoMoveItem(string itemId, string fromContainerId, string toContainerId);
-        List<(InventoryService.MoveRequest request, InventoryService.MoveResult result, int movedCount)> BatchMoveItems(List<InventoryService.MoveRequest> requests);
+        InventoryService.MoveResult MoveItem(string fromContainerId, int fromSlot, string toContainerId,
+                                             int toSlot = -1);
+
+        (InventoryService.MoveResult result, int transferredCount) TransferItems(string itemId, int count,
+            string fromContainerId, string toContainerId);
+
+        (InventoryService.MoveResult result, int transferredCount) AutoMoveItem(string itemId, string fromContainerId,
+            string toContainerId);
+
+        List<(InventoryService.MoveRequest request, InventoryService.MoveResult result, int movedCount)> BatchMoveItems(
+            List<InventoryService.MoveRequest> requests);
+
         Dictionary<string, int> DistributeItems(IItem item, int totalCount, List<string> targetContainerIds);
 
         // 全局搜索
@@ -66,7 +74,10 @@ namespace EasyPack.InventorySystem
         event System.Action OnGlobalCacheValidated;
         event System.Action<string, int, string, IItem, int> OnItemMoved;
         event System.Action<string, string, string, int> OnItemsTransferred;
-        event System.Action<List<(InventoryService.MoveRequest request, InventoryService.MoveResult result, int movedCount)>> OnBatchMoveCompleted;
+
+        event System.Action<List<(InventoryService.MoveRequest request, InventoryService.MoveResult result, int
+            movedCount)>> OnBatchMoveCompleted;
+
         event System.Action<IItem, int, Dictionary<string, int>, int> OnItemsDistributed;
     }
 }

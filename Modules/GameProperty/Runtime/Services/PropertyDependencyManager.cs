@@ -5,7 +5,7 @@ using UnityEngine;
 namespace EasyPack.GamePropertySystem
 {
     /// <summary>
-    /// 依赖管理器
+    ///     依赖管理器
     /// </summary>
     public class PropertyDependencyManager
     {
@@ -25,32 +25,30 @@ namespace EasyPack.GamePropertySystem
         private bool _hasDirtyDepsCacheValid = false;
 
         /// <summary>
-        /// 依赖深度
+        ///     依赖深度
         /// </summary>
         public int DependencyDepth => _dependencyDepth;
 
         /// <summary>
-        /// 是否有随机依赖
+        ///     是否有随机依赖
         /// </summary>
         public bool HasRandomDependency => _hasRandomDependency;
 
         /// <summary>
-        /// 依赖数量
+        ///     依赖数量
         /// </summary>
         public int DependencyCount => _dependencies.Count;
 
         /// <summary>
-        /// 依赖者数量
+        ///     依赖者数量
         /// </summary>
         public int DependentCount => _dependents.Count;
 
-        public PropertyDependencyManager(GameProperty owner)
-        {
+        public PropertyDependencyManager(GameProperty owner) =>
             _owner = owner ?? throw new ArgumentNullException(nameof(owner));
-        }
 
         /// <summary>
-        /// 添加一个依赖项，当dependency的值改变时，会调用calculator来计算新值
+        ///     添加一个依赖项，当dependency的值改变时，会调用calculator来计算新值
         /// </summary>
         /// <param name="dependency">依赖的属性</param>
         /// <param name="calculator">计算函数(dependency, newDependencyValue) => newThisValue</param>
@@ -80,8 +78,8 @@ namespace EasyPack.GamePropertySystem
             {
                 _dependencyCalculators[dependency] = calculator;
                 // 立即应用计算结果
-                var dependencyValue = dependency.GetValue();
-                var newValue = calculator(dependency, dependencyValue);
+                float dependencyValue = dependency.GetValue();
+                float newValue = calculator(dependency, dependencyValue);
                 _owner.SetBaseValue(newValue);
             }
 
@@ -90,7 +88,7 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        /// 移除依赖关系
+        ///     移除依赖关系
         /// </summary>
         public bool RemoveDependency(GameProperty dependency)
         {
@@ -106,7 +104,7 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        /// 触发所有依赖此属性的其他属性更新
+        ///     触发所有依赖此属性的其他属性更新
         /// </summary>
         public void TriggerDependentUpdates(float currentValue)
         {
@@ -114,37 +112,29 @@ namespace EasyPack.GamePropertySystem
             if (_dependents.Count == 0)
                 return;
 
-            foreach (var dependent in _dependents)
-            {
+            foreach (GameProperty dependent in _dependents)
                 if (dependent.DependencyManager._dependencyCalculators.TryGetValue(_owner, out var calculator))
                 {
-                    var newValue = calculator(_owner, currentValue);
-                    if (Math.Abs(dependent.GetBaseValue() - newValue) > EPSILON)
-                    {
-                        dependent.SetBaseValue(newValue);
-                    }
+                    float newValue = calculator(_owner, currentValue);
+                    if (Math.Abs(dependent.GetBaseValue() - newValue) > EPSILON) dependent.SetBaseValue(newValue);
                 }
                 else
                 {
                     dependent.MakeDirty();
                     dependent.GetValue();
                 }
-            }
         }
 
         /// <summary>
-        /// 传播脏标记到所有依赖者
+        ///     传播脏标记到所有依赖者
         /// </summary>
         public void PropagateDirtyTowardsDependents()
         {
-            foreach (var dependent in _dependents)
-            {
-                dependent.MakeDirty();
-            }
+            foreach (GameProperty dependent in _dependents) dependent.MakeDirty();
         }
 
         /// <summary>
-        /// 检查是否有依赖项处于脏状态
+        ///     检查是否有依赖项处于脏状态
         /// </summary>
         public bool HasDirtyDependencies()
         {
@@ -154,15 +144,13 @@ namespace EasyPack.GamePropertySystem
 
             // 计算并缓存结果
             bool result = false;
-            foreach (var dep in _dependencies)
-            {
+            foreach (GameProperty dep in _dependencies)
                 // 检查依赖项是否脏，或者依赖项的依赖项是否脏（递归检查）
                 if (dep.IsDirty || dep.DependencyManager.HasDirtyDependencies())
                 {
                     result = true;
                     break; // 早期退出
                 }
-            }
 
             _hasDirtyDepsCache = result;
             _hasDirtyDepsCacheValid = true;
@@ -170,8 +158,8 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        /// 失效HasDirtyDependencies缓存
-        /// 当属性变脏时调用，向所有依赖者传播缓存失效
+        ///     失效HasDirtyDependencies缓存
+        ///     当属性变脏时调用，向所有依赖者传播缓存失效
         /// </summary>
         public void InvalidateDirtyCache()
         {
@@ -181,28 +169,22 @@ namespace EasyPack.GamePropertySystem
             _hasDirtyDepsCacheValid = false;
 
             // 向所有依赖者传播缓存失效
-            foreach (var dependent in _dependents)
-            {
-                dependent.DependencyManager.InvalidateDirtyCache();
-            }
+            foreach (GameProperty dependent in _dependents) dependent.DependencyManager.InvalidateDirtyCache();
         }
 
         /// <summary>
-        /// 更新所有依赖项的值
+        ///     更新所有依赖项的值
         /// </summary>
         public void UpdateDependencies()
         {
             if (_dependencies.Count == 0)
                 return;
 
-            foreach (var dep in _dependencies)
-            {
-                dep.GetValue();
-            }
+            foreach (GameProperty dep in _dependencies) dep.GetValue();
         }
 
         /// <summary>
-        /// 更新随机依赖状态
+        ///     更新随机依赖状态
         /// </summary>
         public void UpdateRandomDependencyState()
         {
@@ -212,7 +194,7 @@ namespace EasyPack.GamePropertySystem
 
             while (queue.Count > 0)
             {
-                var dep = queue.Dequeue();
+                GameProperty dep = queue.Dequeue();
                 if (!visited.Add(dep)) continue;
 
                 // 使用公开属性访问
@@ -222,7 +204,7 @@ namespace EasyPack.GamePropertySystem
                     break;
                 }
 
-                foreach (var subDep in dep.DependencyManager._dependencies)
+                foreach (GameProperty subDep in dep.DependencyManager._dependencies)
                     queue.Enqueue(subDep);
             }
 
@@ -230,7 +212,7 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        /// 检查是否会创建循环依赖
+        ///     检查是否会创建循环依赖
         /// </summary>
         private bool WouldCreateCyclicDependency(GameProperty dependency)
         {
@@ -250,19 +232,20 @@ namespace EasyPack.GamePropertySystem
 
             while (stack.Count > 0)
             {
-                var current = stack.Pop();
+                GameProperty current = stack.Pop();
                 if (!visited.Add(current)) continue;
                 if (current == _owner) return true;
 
-                foreach (var dep in current.DependencyManager._dependencies)
-                    if (!visited.Contains(dep)) stack.Push(dep);
+                foreach (GameProperty dep in current.DependencyManager._dependencies)
+                    if (!visited.Contains(dep))
+                        stack.Push(dep);
             }
 
             return false;
         }
 
         /// <summary>
-        /// 更新依赖深度
+        ///     更新依赖深度
         /// </summary>
         private void UpdateDependencyDepth()
         {
@@ -275,40 +258,31 @@ namespace EasyPack.GamePropertySystem
             else
             {
                 int maxDepth = 0;
-                foreach (var dep in _dependencies)
-                {
+                foreach (GameProperty dep in _dependencies)
                     if (dep.DependencyManager._dependencyDepth > maxDepth)
                         maxDepth = dep.DependencyManager._dependencyDepth;
-                }
+
                 _dependencyDepth = maxDepth + 1;
             }
 
             if (oldDepth != _dependencyDepth)
-            {
-                foreach (var dependent in _dependents)
-                {
+                foreach (GameProperty dependent in _dependents)
                     dependent.DependencyManager.UpdateDependencyDepth();
-                }
-            }
         }
 
         /// <summary>
-        /// 清理所有依赖关系
+        ///     清理所有依赖关系
         /// </summary>
         public void ClearAll()
         {
             // 清理正向依赖
-            foreach (var dependency in _dependencies)
-            {
-                dependency.DependencyManager._dependents.Remove(_owner);
-            }
+            foreach (GameProperty dependency in _dependencies) dependency.DependencyManager._dependents.Remove(_owner);
+
             _dependencies.Clear();
 
             // 清理反向依赖
-            foreach (var dependent in _dependents)
-            {
-                dependent.DependencyManager._dependencies.Remove(_owner);
-            }
+            foreach (GameProperty dependent in _dependents) dependent.DependencyManager._dependencies.Remove(_owner);
+
             _dependents.Clear();
 
             _dependencyCalculators.Clear();
@@ -317,4 +291,3 @@ namespace EasyPack.GamePropertySystem
         }
     }
 }
-

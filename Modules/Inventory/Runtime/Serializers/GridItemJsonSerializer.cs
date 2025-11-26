@@ -7,7 +7,7 @@ using UnityEngine;
 namespace EasyPack.InventorySystem
 {
     /// <summary>
-    /// GridItem 的序列化数据传输对象
+    ///     GridItem 的序列化数据传输对象
     /// </summary>
     [Serializable]
     public class SerializedGridItem : ISerializable
@@ -33,7 +33,7 @@ namespace EasyPack.InventorySystem
     }
 
     /// <summary>
-    /// 单元格坐标的序列化对象
+    ///     单元格坐标的序列化对象
     /// </summary>
     [Serializable]
     public class SerializedCell
@@ -43,7 +43,7 @@ namespace EasyPack.InventorySystem
     }
 
     /// <summary>
-    /// GridItem 序列化器
+    ///     GridItem 序列化器
     /// </summary>
     public class GridItemJsonSerializer : JsonSerializerBase<GridItem>
     {
@@ -70,9 +70,9 @@ namespace EasyPack.InventorySystem
                     : null,
                 Shape = item.Shape != null
                     ? item.Shape.ConvertAll(cell => new SerializedCell { x = cell.x, y = cell.y })
-                    : new List<SerializedCell> { new() { x = 0, y = 0 } },
+                    : new() { new() { x = 0, y = 0 } },
                 CanRotate = item.CanRotate,
-                Rotation = (int)item.Rotation
+                Rotation = (int)item.Rotation,
             };
 
             return JsonUtility.ToJson(dto, true);
@@ -107,30 +107,25 @@ namespace EasyPack.InventorySystem
                 IsContainerItem = dto.isContanierItem,
                 Shape = dto.Shape is { Count: > 0 }
                     ? dto.Shape.ConvertAll(cell => (cell.x, cell.y))
-                    : new List<(int x, int y)> { (0, 0) },
+                    : new() { (0, 0) },
                 CanRotate = dto.CanRotate,
-                Rotation = (RotationAngle)dto.Rotation
+                Rotation = (RotationAngle)dto.Rotation,
             };
 
             // 反序列化 CustomData
             if (dto.CustomData is { Count: > 0 })
-            {
-                item.CustomData = new CustomDataCollection(dto.CustomData);
-            }
+                item.CustomData = new(dto.CustomData);
             else
-            {
-                item.CustomData = new CustomDataCollection();
-            }
+                item.CustomData = new();
 
             // 反序列化容器ID列表
             if (dto.ContainerIds is { Count: > 0 })
             {
                 item.IsContainerItem = true;
-                item.ContainerIds = new List<string>(dto.ContainerIds);
+                item.ContainerIds = new(dto.ContainerIds);
             }
 
             return item;
         }
     }
 }
-

@@ -3,11 +3,12 @@ using System.Collections.Generic;
 namespace EasyPack.InventorySystem
 {
     /// <summary>
-    /// 容器缓存管理器，用于高效查询容器的高频只读操作
+    ///     容器缓存管理器，用于高效查询容器的高频只读操作
     /// </summary>
     public class ContainerCacheService
     {
         #region 缓存字段
+
         // 物品槽位索引缓存
         private readonly Dictionary<string, HashSet<int>> _itemSlotIndexCache = new();
 
@@ -19,22 +20,26 @@ namespace EasyPack.InventorySystem
 
         // 物品数量缓存
         private readonly Dictionary<string, int> _itemCountCache = new();
+
         #endregion
 
         #region 构造函数
+
         public ContainerCacheService(int capacity)
         {
             // 为大容量容器预分配缓存空间
             if (capacity > 500)
             {
-                _itemSlotIndexCache = new Dictionary<string, HashSet<int>>(100);
-                _itemTypeIndexCache = new Dictionary<string, HashSet<int>>(100 / 4);
-                _itemCountCache = new Dictionary<string, int>(100);
+                _itemSlotIndexCache = new(100);
+                _itemTypeIndexCache = new(100 / 4);
+                _itemCountCache = new(100);
             }
         }
+
         #endregion
 
         #region 缓存更新方法
+
         public void UpdateItemSlotIndexCache(string itemId, int slotIndex, bool isAdding)
         {
             if (string.IsNullOrEmpty(itemId))
@@ -43,7 +48,7 @@ namespace EasyPack.InventorySystem
             if (isAdding)
             {
                 if (!_itemSlotIndexCache.ContainsKey(itemId))
-                    _itemSlotIndexCache[itemId] = new HashSet<int>();
+                    _itemSlotIndexCache[itemId] = new();
 
                 if (!_itemSlotIndexCache[itemId].Contains(slotIndex))
                     _itemSlotIndexCache[itemId].Add(slotIndex);
@@ -61,13 +66,9 @@ namespace EasyPack.InventorySystem
         public void UpdateEmptySlotCache(int slotIndex, bool isEmpty)
         {
             if (isEmpty)
-            {
                 _emptySlotIndices.Add(slotIndex);
-            }
             else
-            {
                 _emptySlotIndices.Remove(slotIndex);
-            }
         }
 
         public void UpdateItemTypeCache(string itemType, int slotIndex, bool isAdding)
@@ -78,7 +79,7 @@ namespace EasyPack.InventorySystem
             if (isAdding)
             {
                 if (!_itemTypeIndexCache.ContainsKey(itemType))
-                    _itemTypeIndexCache[itemType] = new HashSet<int>();
+                    _itemTypeIndexCache[itemType] = new();
 
                 _itemTypeIndexCache[itemType].Add(slotIndex);
             }
@@ -109,65 +110,45 @@ namespace EasyPack.InventorySystem
                 _itemCountCache[itemId] = delta;
             }
         }
+
         #endregion
 
         #region 缓存查询方法
-        public bool HasItemInCache(string itemId)
-        {
-            return _itemSlotIndexCache.ContainsKey(itemId) && _itemSlotIndexCache[itemId].Count > 0;
-        }
 
-        public bool TryGetItemSlotIndices(string itemId, out HashSet<int> indices)
-        {
-            return _itemSlotIndexCache.TryGetValue(itemId, out indices);
-        }
+        public bool HasItemInCache(string itemId) =>
+            _itemSlotIndexCache.ContainsKey(itemId) && _itemSlotIndexCache[itemId].Count > 0;
 
-        public bool TryGetItemTypeIndices(string itemType, out HashSet<int> indices)
-        {
-            return _itemTypeIndexCache.TryGetValue(itemType, out indices);
-        }
+        public bool TryGetItemSlotIndices(string itemId, out HashSet<int> indices) =>
+            _itemSlotIndexCache.TryGetValue(itemId, out indices);
 
-        public bool TryGetItemCount(string itemId, out int count)
-        {
-            return _itemCountCache.TryGetValue(itemId, out count);
-        }
+        public bool TryGetItemTypeIndices(string itemType, out HashSet<int> indices) =>
+            _itemTypeIndexCache.TryGetValue(itemType, out indices);
+
+        public bool TryGetItemCount(string itemId, out int count) => _itemCountCache.TryGetValue(itemId, out count);
 
         public IItem GetItemReference(string itemId, IReadOnlyList<ISlot> slots)
         {
             if (_itemSlotIndexCache.TryGetValue(itemId, out var indices) && indices.Count > 0)
-            {
                 foreach (int index in indices)
-                {
                     if (index < slots.Count)
                     {
-                        var slot = slots[index];
-                        if (slot.IsOccupied && slot.Item?.ID == itemId)
-                        {
-                            return slot.Item;
-                        }
+                        ISlot slot = slots[index];
+                        if (slot.IsOccupied && slot.Item?.ID == itemId) return slot.Item;
                     }
-                }
-            }
+
             return null;
         }
 
-        public SortedSet<int> GetEmptySlotIndices()
-        {
-            return _emptySlotIndices;
-        }
+        public SortedSet<int> GetEmptySlotIndices() => _emptySlotIndices;
 
-        public int GetCachedItemCount()
-        {
-            return _itemSlotIndexCache.Count;
-        }
+        public int GetCachedItemCount() => _itemSlotIndexCache.Count;
 
-        public Dictionary<string, int> GetAllItemCounts()
-        {
-            return new Dictionary<string, int>(_itemCountCache);
-        }
+        public Dictionary<string, int> GetAllItemCounts() => new(_itemCountCache);
+
         #endregion
 
         #region 缓存维护方法
+
         public void RebuildCaches(IReadOnlyList<ISlot> slots)
         {
             // 清空所有缓存
@@ -177,7 +158,7 @@ namespace EasyPack.InventorySystem
             // 重建所有缓存
             for (int i = 0; i < slots.Count; i++)
             {
-                var slot = slots[i];
+                ISlot slot = slots[i];
                 if (slot.IsOccupied && slot.Item != null)
                 {
                     string itemId = slot.Item.ID;
@@ -207,13 +188,9 @@ namespace EasyPack.InventorySystem
             {
                 var validIndices = new HashSet<int>();
                 foreach (int index in kvp.Value)
-                {
                     if (index < slots.Count && slots[index].IsOccupied &&
                         slots[index].Item != null && slots[index].Item.ID == kvp.Key)
-                    {
                         validIndices.Add(index);
-                    }
-                }
 
                 if (validIndices.Count == 0)
                     itemsToRemove.Add(kvp.Key);
@@ -221,23 +198,15 @@ namespace EasyPack.InventorySystem
                     _itemSlotIndexCache[kvp.Key] = validIndices;
             }
 
-            foreach (string itemId in itemsToRemove)
-            {
-                _itemSlotIndexCache.Remove(itemId);
-            }
+            foreach (string itemId in itemsToRemove) _itemSlotIndexCache.Remove(itemId);
 
             // 验证空槽位缓存
             var emptyToRemove = new List<int>();
             foreach (int index in _emptySlotIndices)
-            {
                 if (index >= slots.Count || slots[index].IsOccupied)
                     emptyToRemove.Add(index);
-            }
 
-            foreach (int index in emptyToRemove)
-            {
-                _emptySlotIndices.Remove(index);
-            }
+            foreach (int index in emptyToRemove) _emptySlotIndices.Remove(index);
         }
 
         public void ClearAllCaches()
@@ -247,6 +216,7 @@ namespace EasyPack.InventorySystem
             _itemTypeIndexCache.Clear();
             _itemCountCache.Clear();
         }
+
         #endregion
     }
 
@@ -270,7 +240,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        /// 合并另一个批量缓存更新
+        ///     合并另一个批量缓存更新
         /// </summary>
         public void Merge(BatchCacheUpdates other)
         {

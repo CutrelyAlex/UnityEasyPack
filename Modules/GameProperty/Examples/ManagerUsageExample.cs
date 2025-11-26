@@ -7,8 +7,8 @@ using EasyPack.Modifiers;
 namespace EasyPack.GamePropertySystem.Example
 {
     /// <summary>
-    /// GamePropertyManager使用示例
-    /// 演示新API的注册、查询、批量操作等功能
+    ///     GamePropertyManager使用示例
+    ///     演示新API的注册、查询、批量操作等功能
     /// </summary>
     public class ManagerUsageExample : MonoBehaviour
     {
@@ -36,24 +36,22 @@ namespace EasyPack.GamePropertySystem.Example
         }
 
         /// <summary>
-        /// 清理之前运行的示例数据
+        ///     清理之前运行的示例数据
         /// </summary>
         private void CleanupExampleData()
         {
-            var exampleIds = new[] {
+            string[] exampleIds = new[]
+            {
                 "hp", "mp", "strength",
                 "hp_meta", "hp_batch", "mp_batch", "stamina_batch",
-                "hp_adv", "mp_adv", "crit_adv"
+                "hp_adv", "mp_adv", "crit_adv",
             };
 
-            foreach (var id in exampleIds)
-            {
-                _manager.Unregister(id);
-            }
+            foreach (string id in exampleIds) _manager.Unregister(id);
         }
 
         /// <summary>
-        /// 示例1: 基础用法 - 注册和查询
+        ///     示例1: 基础用法 - 注册和查询
         /// </summary>
         private Task DemoBasicUsage()
         {
@@ -70,21 +68,18 @@ namespace EasyPack.GamePropertySystem.Example
             _manager.Register(strength, "Character.Base");
 
             // 3. 查询属性
-            var retrievedHp = _manager.Get("hp");
+            GameProperty retrievedHp = _manager.Get("hp");
             Debug.Log($"生命值: {retrievedHp.GetValue()}");
 
             // 4. 按分类查询
             var vitalProps = _manager.GetByCategory("Character.Vital");
-            foreach (var prop in vitalProps)
-            {
-                Debug.Log($"重要属性: {prop.ID} = {prop.GetValue()}");
-            }
+            foreach (GameProperty prop in vitalProps) Debug.Log($"重要属性: {prop.ID} = {prop.GetValue()}");
 
             return Task.CompletedTask;
         }
 
         /// <summary>
-        /// 示例2: 元数据用法
+        ///     示例2: 元数据用法
         /// </summary>
         private Task DemoMetadataUsage()
         {
@@ -97,7 +92,7 @@ namespace EasyPack.GamePropertySystem.Example
                 DisplayName = "生命值",
                 Description = "角色当前生命值",
                 IconPath = "Icons/Stats/HP",
-                Tags = new[] { "vital", "displayInUI", "saveable" }
+                Tags = new[] { "vital", "displayInUI", "saveable" },
             };
 
             // 设置自定义数据
@@ -108,23 +103,23 @@ namespace EasyPack.GamePropertySystem.Example
             _manager.Register(hp, "Character.Vital", metadata);
 
             // 获取并使用元数据
-            var retrievedMeta = _manager.GetMetadata("hp_meta");
+            PropertyMetadata retrievedMeta = _manager.GetMetadata("hp_meta");
             Debug.Log($"显示名: {retrievedMeta.DisplayName}");
             Debug.Log($"描述: {retrievedMeta.Description}");
             Debug.Log($"标签: {string.Join(", ", retrievedMeta.Tags)}");
 
             // 使用自定义数据
-            var color = retrievedMeta.GetCustomData<string>("color");
+            string color = retrievedMeta.GetCustomData<string>("color");
             Debug.Log($"UI颜色: {color}");
 
-            var sortOrder = retrievedMeta.GetCustomData<int>("sortOrder");
+            int sortOrder = retrievedMeta.GetCustomData<int>("sortOrder");
             Debug.Log($"排序顺序: {sortOrder}");
 
             return Task.CompletedTask;
         }
 
         /// <summary>
-        /// 示例3: 批量操作
+        ///     示例3: 批量操作
         /// </summary>
         private Task DemoBatchOperations()
         {
@@ -135,7 +130,7 @@ namespace EasyPack.GamePropertySystem.Example
             {
                 new GameProperty("hp_batch", 100),
                 new GameProperty("mp_batch", 50),
-                new GameProperty("stamina_batch", 80)
+                new GameProperty("stamina_batch", 80),
             };
             _manager.RegisterRange(properties, "Character.Resources");
 
@@ -146,41 +141,39 @@ namespace EasyPack.GamePropertySystem.Example
             if (result.IsFullSuccess)
             {
                 Debug.Log($"成功为 {result.SuccessCount} 个属性应用BUFF");
-                foreach (var propId in result.SuccessData)
+                foreach (string propId in result.SuccessData)
                 {
-                    var prop = _manager.Get(propId);
+                    GameProperty prop = _manager.Get(propId);
                     Debug.Log($"{propId}: {prop.GetValue()}");
                 }
             }
             else
             {
                 Debug.LogWarning($"部分成功: {result.SuccessCount}/{result.SuccessCount + result.Failures.Count}");
-                foreach (var failure in result.Failures)
-                {
+                foreach (FailureRecord failure in result.Failures)
                     Debug.LogError($"失败: {failure.ItemId} - {failure.ErrorMessage}");
-                }
             }
 
             return Task.CompletedTask;
         }
 
         /// <summary>
-        /// 示例4: 高级查询
+        ///     示例4: 高级查询
         /// </summary>
         private Task DemoAdvancedQueries()
         {
             Debug.Log("=== 示例4: 高级查询 ===");
 
             // 创建层级分类
-            _manager.Register(new GameProperty("hp_adv", 100), "Character.Vital.HP",
-                new PropertyMetadata { Tags = new[] { "vital", "ui" } });
-            _manager.Register(new GameProperty("mp_adv", 50), "Character.Vital.MP",
-                new PropertyMetadata { Tags = new[] { "vital", "ui" } });
-            _manager.Register(new GameProperty("crit_adv", 0.1f), "Character.Combat.Offense",
-                new PropertyMetadata { Tags = new[] { "combat", "ui" } });
+            _manager.Register(new("hp_adv", 100), "Character.Vital.HP",
+                new() { Tags = new[] { "vital", "ui" } });
+            _manager.Register(new("mp_adv", 50), "Character.Vital.MP",
+                new() { Tags = new[] { "vital", "ui" } });
+            _manager.Register(new("crit_adv", 0.1f), "Character.Combat.Offense",
+                new() { Tags = new[] { "combat", "ui" } });
 
             // 查询所有Vital子分类
-            var vitalProps = _manager.GetByCategory("Character.Vital", includeChildren: true);
+            var vitalProps = _manager.GetByCategory("Character.Vital", true);
             Debug.Log($"Vital分类属性数: {vitalProps.Count()}");
 
             // 按标签查询
@@ -189,10 +182,7 @@ namespace EasyPack.GamePropertySystem.Example
 
             // 组合查询: Vital分类 + UI标签
             var vitalUIProps = _manager.GetByCategoryAndTag("Character.Vital", "ui");
-            foreach (var prop in vitalUIProps)
-            {
-                Debug.Log($"Vital UI属性: {prop.ID}");
-            }
+            foreach (GameProperty prop in vitalUIProps) Debug.Log($"Vital UI属性: {prop.ID}");
 
             // 获取所有分类
             var categories = _manager.GetAllCategories();
@@ -202,7 +192,7 @@ namespace EasyPack.GamePropertySystem.Example
         }
 
         /// <summary>
-        /// 示例5: 属性依赖系统集成
+        ///     示例5: 属性依赖系统集成
         /// </summary>
         public async Task DemoDependencyIntegration()
         {

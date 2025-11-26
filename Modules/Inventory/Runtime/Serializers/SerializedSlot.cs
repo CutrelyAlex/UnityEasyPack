@@ -1,5 +1,6 @@
 using EasyPack.Serialization;
 using System;
+
 namespace EasyPack.InventorySystem
 {
     [Serializable]
@@ -11,4 +12,3 @@ namespace EasyPack.InventorySystem
         public SerializedCondition SlotCondition;
     }
 }
-

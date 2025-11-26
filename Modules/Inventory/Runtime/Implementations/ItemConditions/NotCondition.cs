@@ -4,23 +4,21 @@ using UnityEngine;
 
 namespace EasyPack.InventorySystem
 {
-
     /// <summary>
-    /// 对单一子条件取反：子条件不成立时为真；如果 Inner 为 null，视为真。
+    ///     对单一子条件取反：子条件不成立时为真；如果 Inner 为 null，视为真。
     /// </summary>
     public sealed class NotCondition : ISerializableCondition
     {
         public IItemCondition Inner { get; set; }
 
-        public NotCondition() { }
-
-        public NotCondition(IItemCondition inner)
+        public NotCondition()
         {
-            Inner = inner;
         }
 
+        public NotCondition(IItemCondition inner) => Inner = inner;
+
         /// <summary>
-        /// 如果 Inner 为 null 则返回 true；否则返回 !Inner.IsCondition(item)。
+        ///     如果 Inner 为 null 则返回 true；否则返回 !Inner.IsCondition(item)。
         /// </summary>
         public bool CheckCondition(IItem item)
         {
@@ -44,7 +42,7 @@ namespace EasyPack.InventorySystem
             // 序列化内部条件
             if (Inner is ISerializableCondition serializableInner)
             {
-                var innerDto = serializableInner.ToDto();
+                SerializedCondition innerDto = serializableInner.ToDto();
                 if (innerDto != null)
                 {
                     var innerEntry = new CustomDataEntry { Key = "Inner" };
@@ -65,17 +63,15 @@ namespace EasyPack.InventorySystem
             Inner = null;
 
             // 反序列化内部条件
-            foreach (var p in dto.Params)
-            {
+            foreach (CustomDataEntry p in dto.Params)
                 if (p?.Key == "Inner" && !string.IsNullOrEmpty(p.StringValue))
-                {
                     try
                     {
                         var innerDto = JsonUtility.FromJson<SerializedCondition>(p.StringValue);
                         if (innerDto != null && !string.IsNullOrEmpty(innerDto.Kind))
                         {
                             var serializer = new ConditionJsonSerializer();
-                            var innerJson = JsonUtility.ToJson(innerDto);
+                            string innerJson = JsonUtility.ToJson(innerDto);
                             Inner = serializer.DeserializeFromJson(innerJson);
                         }
                     }
@@ -83,8 +79,6 @@ namespace EasyPack.InventorySystem
                     {
                         Debug.LogError($"[NotCondition] 反序列化内部条件失败: {ex.Message}");
                     }
-                }
-            }
 
             return this;
         }

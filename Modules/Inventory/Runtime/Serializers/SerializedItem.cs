@@ -17,7 +17,7 @@ namespace EasyPack.InventorySystem
         public bool isContanierItem;
 
         /// <summary>
-        /// 自定义数据列表
+        ///     自定义数据列表
         /// </summary>
         public List<CustomDataEntry> CustomData;
 

@@ -5,46 +5,46 @@ using System.Threading;
 namespace EasyPack.Category
 {
     /// <summary>
-    /// 双向字符串↔整数映射器，用于将词汇（标签、分类）映射为整数 ID。
-    /// 使用 ReaderWriterLockSlim
+    ///     双向字符串↔整数映射器，用于将词汇（标签、分类）映射为整数 ID。
+    ///     使用 ReaderWriterLockSlim
     /// </summary>
     public class IntegerMapper
     {
         /// <summary>
-        /// 字符串 → 整数 ID 的映射表
+        ///     字符串 → 整数 ID 的映射表
         /// </summary>
         private readonly Dictionary<string, int> _stringToInt;
 
         /// <summary>
-        /// 整数 ID → 字符串的反向映射表
+        ///     整数 ID → 字符串的反向映射表
         /// </summary>
         private readonly Dictionary<int, string> _intToString;
 
         /// <summary>
-        /// 下一个待分配的 ID
+        ///     下一个待分配的 ID
         /// </summary>
         private int _nextId;
 
         /// <summary>
-        /// 读写锁
+        ///     读写锁
         /// </summary>
         private readonly ReaderWriterLockSlim _lock;
 
         /// <summary>
-        /// 初始化映射器
+        ///     初始化映射器
         /// </summary>
         /// <param name="initialCapacity">初始容量</param>
         public IntegerMapper(int initialCapacity = CategoryConstants.DEFAULT_MAPPER_CAPACITY)
         {
-            _stringToInt = new Dictionary<string, int>(initialCapacity);
-            _intToString = new Dictionary<int, string>(initialCapacity);
+            _stringToInt = new(initialCapacity);
+            _intToString = new(initialCapacity);
             _nextId = 0;
-            _lock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+            _lock = new(LockRecursionPolicy.NoRecursion);
         }
 
         /// <summary>
-        /// <para>获取或分配 ID </para> 
-        /// 首次查询不获取锁,未找到时获取写锁并二次检查
+        ///     <para>获取或分配 ID </para>
+        ///     首次查询不获取锁,未找到时获取写锁并二次检查
         /// </summary>
         /// <param name="term">词汇字符串</param>
         /// <returns>分配的整数 ID</returns>
@@ -93,7 +93,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 尝试将 ID 转换回字符串
+        ///     尝试将 ID 转换回字符串
         /// </summary>
         /// <param name="id">整数 ID</param>
         /// <param name="term">返回的字符串（若失败则为 null）</param>
@@ -112,7 +112,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 检查映射表是否包含指定的字符串
+        ///     检查映射表是否包含指定的字符串
         /// </summary>
         /// <param name="term">词汇字符串</param>
         /// <returns>是否存在</returns>
@@ -133,7 +133,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 检查映射表是否包含指定的 ID
+        ///     检查映射表是否包含指定的 ID
         /// </summary>
         /// <param name="id">整数 ID</param>
         /// <returns>是否存在</returns>
@@ -154,7 +154,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 获取映射表中的词汇总数
+        ///     获取映射表中的词汇总数
         /// </summary>
         public int Count
         {
@@ -173,7 +173,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 获取下一个将被分配的 ID
+        ///     获取下一个将被分配的 ID
         /// </summary>
         public int NextId
         {
@@ -192,7 +192,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 重命名映射中的词汇
+        ///     重命名映射中的词汇
         /// </summary>
         /// <param name="oldTerm">原始词汇字符串</param>
         /// <param name="newTerm">新词汇字符串</param>
@@ -227,7 +227,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 清空所有映射（需要写锁）
+        ///     清空所有映射（需要写锁）
         /// </summary>
         public void Clear()
         {
@@ -245,7 +245,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 获取所有已映射的词汇
+        ///     获取所有已映射的词汇
         /// </summary>
         public IReadOnlyList<string> GetAllTerms()
         {
@@ -261,7 +261,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 获取所有已映射的 ID 和字符串对
+        ///     获取所有已映射的 ID 和字符串对
         /// </summary>
         public IReadOnlyDictionary<int, string> GetSnapshot()
         {
@@ -277,7 +277,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 释放所有资源
+        ///     释放所有资源
         /// </summary>
         public void Dispose()
         {

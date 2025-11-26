@@ -12,10 +12,7 @@ namespace EasyPack.Modifiers
             Priority = priority;
             Value = value;
         }
-        
-        public IModifier Clone()
-        {
-            return new FloatModifier(Type, Priority, Value);
-        }
+
+        public IModifier Clone() => new FloatModifier(Type, Priority, Value);
     }
 }

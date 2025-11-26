@@ -7,88 +7,62 @@ using UnityEngine;
 namespace EasyPack.Serialization
 {
     /// <summary>
-    /// 通用序列化器基类
+    ///     通用序列化器基类
     /// </summary>
     public abstract class TypeSerializerBase<T> : ITypeSerializer<T>
     {
         public Type TargetType => typeof(T);
         public abstract SerializationStrategy SupportedStrategy { get; }
 
-        public virtual string SerializeToJson(T obj)
-        {
+        public virtual string SerializeToJson(T obj) =>
             throw new NotSupportedException($"类型 {typeof(T).Name} 不支持 JSON 序列化");
-        }
 
-        public virtual T DeserializeFromJson(string json)
-        {
+        public virtual T DeserializeFromJson(string json) =>
             throw new NotSupportedException($"类型 {typeof(T).Name} 不支持 JSON 反序列化");
-        }
 
         public string SerializeToJson(object obj)
         {
-            if (obj is T typedObj)
-            {
-                return SerializeToJson(typedObj);
-            }
+            if (obj is T typedObj) return SerializeToJson(typedObj);
+
             throw new ArgumentException($"对象不是类型 {typeof(T).Name}");
         }
 
-        public object DeserializeFromJson(string json, Type targetType)
-        {
-            return DeserializeFromJson(json);
-        }
+        public object DeserializeFromJson(string json, Type targetType) => DeserializeFromJson(json);
 
-        public virtual CustomDataCollection SerializeToCustomData(T obj)
-        {
+        public virtual CustomDataCollection SerializeToCustomData(T obj) =>
             throw new NotSupportedException($"类型 {typeof(T).Name} 不支持 CustomDataEntry 序列化");
-        }
 
-        public virtual T DeserializeFromCustomData(CustomDataCollection entries)
-        {
+        public virtual T DeserializeFromCustomData(CustomDataCollection entries) =>
             throw new NotSupportedException($"类型 {typeof(T).Name} 不支持 CustomDataEntry 反序列化");
-        }
 
         public CustomDataCollection SerializeToCustomData(object obj)
         {
-            if (obj is T typedObj)
-            {
-                return SerializeToCustomData(typedObj);
-            }
+            if (obj is T typedObj) return SerializeToCustomData(typedObj);
+
             throw new ArgumentException($"对象不是类型 {typeof(T).Name}");
         }
 
-        public object DeserializeFromCustomData(CustomDataCollection entries, Type targetType)
-        {
-            return DeserializeFromCustomData(entries);
-        }
+        public object DeserializeFromCustomData(CustomDataCollection entries, Type targetType) =>
+            DeserializeFromCustomData(entries);
 
-        public virtual byte[] SerializeToBinary(T obj)
-        {
+        public virtual byte[] SerializeToBinary(T obj) =>
             throw new NotSupportedException($"类型 {typeof(T).Name} 不支持二进制序列化");
-        }
 
-        public virtual T DeserializeFromBinary(byte[] data)
-        {
+        public virtual T DeserializeFromBinary(byte[] data) =>
             throw new NotSupportedException($"类型 {typeof(T).Name} 不支持二进制反序列化");
-        }
 
         public byte[] SerializeToBinary(object obj)
         {
-            if (obj is T typedObj)
-            {
-                return SerializeToBinary(typedObj);
-            }
+            if (obj is T typedObj) return SerializeToBinary(typedObj);
+
             throw new ArgumentException($"对象不是类型 {typeof(T).Name}");
         }
 
-        public object DeserializeFromBinary(byte[] data, Type targetType)
-        {
-            return DeserializeFromBinary(data);
-        }
+        public object DeserializeFromBinary(byte[] data, Type targetType) => DeserializeFromBinary(data);
     }
 
     /// <summary>
-    /// JSON 序列化器基类
+    ///     JSON 序列化器基类
     /// </summary>
     public abstract class JsonSerializerBase<T> : TypeSerializerBase<T>
     {
@@ -99,7 +73,7 @@ namespace EasyPack.Serialization
     }
 
     /// <summary>
-    /// CustomData 序列化器基类
+    ///     CustomData 序列化器基类
     /// </summary>
     public abstract class CustomDataSerializerBase<T> : TypeSerializerBase<T>
     {
@@ -110,7 +84,7 @@ namespace EasyPack.Serialization
     }
 
     /// <summary>
-    /// Binary 序列化器基类
+    ///     Binary 序列化器基类
     /// </summary>
     public abstract class BinarySerializerBase<T> : TypeSerializerBase<T>
     {
@@ -121,23 +95,17 @@ namespace EasyPack.Serialization
     }
 
     /// <summary>
-    /// Unity JsonUtility 序列化器
+    ///     Unity JsonUtility 序列化器
     /// </summary>
     public class UnityJsonSerializer<T> : JsonSerializerBase<T>
     {
-        public override string SerializeToJson(T obj)
-        {
-            return JsonUtility.ToJson(obj);
-        }
+        public override string SerializeToJson(T obj) => JsonUtility.ToJson(obj);
 
-        public override T DeserializeFromJson(string json)
-        {
-            return JsonUtility.FromJson<T>(json);
-        }
+        public override T DeserializeFromJson(string json) => JsonUtility.FromJson<T>(json);
     }
 
     /// <summary>
-    /// 标准 BinaryFormatter 序列化器
+    ///     标准 BinaryFormatter 序列化器
     /// </summary>
     public class StandardBinarySerializer<T> : BinarySerializerBase<T>
     {

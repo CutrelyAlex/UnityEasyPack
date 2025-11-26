@@ -16,23 +16,16 @@ namespace EasyPack.Modifiers
             Value = range;
         }
 
-        public IModifier Clone()
-        {
-            return new RangeModifier(Type, Priority, Value);
-        }
+        public IModifier Clone() => new RangeModifier(Type, Priority, Value);
 
         public override bool Equals(object obj)
         {
             if (obj is RangeModifier other)
-            {
                 return Type == other.Type && Priority == other.Priority && Value.Equals(other.Value);
-            }
+
             return false;
         }
 
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(Type, Priority, Value);
-        }
+        public override int GetHashCode() => HashCode.Combine(Type, Priority, Value);
     }
 }

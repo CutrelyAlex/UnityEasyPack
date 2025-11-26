@@ -3,13 +3,14 @@ using System.Collections.Generic;
 namespace EasyPack.CustomData
 {
     /// <summary>
-    /// CustomData 工具类
+    ///     CustomData 工具类
     /// </summary>
     public static class CustomDataUtility
     {
         #region 转换方法
 
-        public static CustomDataCollection ToEntries(Dictionary<string, object> dict, ICustomDataSerializer fallbackSerializer = null)
+        public static CustomDataCollection ToEntries(Dictionary<string, object> dict,
+                                                     ICustomDataSerializer fallbackSerializer = null)
         {
             var list = new CustomDataCollection();
             if (dict == null) return list;
@@ -20,6 +21,7 @@ namespace EasyPack.CustomData
                 entry.SetValue(kv.Value);
                 list.Add(entry);
             }
+
             return list;
         }
 
@@ -28,10 +30,8 @@ namespace EasyPack.CustomData
             var dict = new Dictionary<string, object>();
             if (entries == null) return dict;
 
-            foreach (var e in entries)
-            {
-                dict[e.Key] = e.GetValue();
-            }
+            foreach (CustomDataEntry e in entries) dict[e.Key] = e.GetValue();
+
             return dict;
         }
 
@@ -46,10 +46,7 @@ namespace EasyPack.CustomData
         {
             if (entries == null || other == null) return;
 
-            foreach (var entry in other)
-            {
-                entries.SetValue(entry.Key, entry.GetValue());
-            }
+            foreach (CustomDataEntry entry in other) entries.SetValue(entry.Key, entry.GetValue());
         }
 
         /// <summary>获取差异（返回在 other 中存在但在 entries 中不存在的键）</summary>

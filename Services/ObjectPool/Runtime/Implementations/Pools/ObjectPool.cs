@@ -3,7 +3,7 @@ using System;
 namespace EasyPack.ObjectPool
 {
     /// <summary>
-    /// 对象池包装器，基于 UnityEngine.Pool.ObjectPool 实现。
+    ///     对象池包装器，基于 UnityEngine.Pool.ObjectPool 实现。
     /// </summary>
     /// <typeparam name="T">对象类型，必须是引用类型。</typeparam>
     public class ObjectPool<T> where T : class
@@ -12,23 +12,23 @@ namespace EasyPack.ObjectPool
         private readonly int _maxCapacity;
 
         /// <summary>
-        /// 获取当前池中的对象数量。
+        ///     获取当前池中的对象数量。
         /// </summary>
         public int CountInactive => _pool.CountInactive;
 
         /// <summary>
-        /// 获取池的最大容量。
+        ///     获取池的最大容量。
         /// </summary>
         public int MaxCapacity => _maxCapacity;
 
         /// <summary>
-        /// 该池的标记。用于区分同类型不同配置的池。
-        /// 默认值为 <see cref="PoolTag.Default"/>。
+        ///     该池的标记。用于区分同类型不同配置的池。
+        ///     默认值为 <see cref="PoolTag.Default" />。
         /// </summary>
         public PoolTag PoolTag { get; internal set; } = PoolTag.Default;
 
         /// <summary>
-        /// 创建对象池实例。
+        ///     创建对象池实例。
         /// </summary>
         /// <param name="factory">对象工厂方法，用于创建新对象。</param>
         /// <param name="cleanup">对象清理方法，在归还时调用（可选）。</param>
@@ -44,28 +44,25 @@ namespace EasyPack.ObjectPool
             _maxCapacity = maxCapacity;
 
             // 使用 Unity 官方 ObjectPool，传入清理方法
-            _pool = new UnityEngine.Pool.ObjectPool<T>(
-                createFunc: factory,
-                actionOnGet: null,
-                actionOnRelease: cleanup,
-                actionOnDestroy: cleanup,
-                collectionCheck: false,
-                defaultCapacity: Math.Min(maxCapacity, 16),
-                maxSize: maxCapacity
+            _pool = new(
+                factory,
+                null,
+                cleanup,
+                cleanup,
+                false,
+                Math.Min(maxCapacity, 16),
+                maxCapacity
             );
         }
 
         /// <summary>
-        /// 从池中租用一个对象。如果池为空，则创建新对象。
+        ///     从池中租用一个对象。如果池为空，则创建新对象。
         /// </summary>
         /// <returns>可用的对象实例。</returns>
-        public T Rent()
-        {
-            return _pool.Get();
-        }
+        public T Rent() => _pool.Get();
 
         /// <summary>
-        /// 将对象归还到池中。如果池已满，对象将被丢弃。
+        ///     将对象归还到池中。如果池已满，对象将被丢弃。
         /// </summary>
         /// <param name="obj">要归还的对象。</param>
         public void Return(T obj)
@@ -77,7 +74,7 @@ namespace EasyPack.ObjectPool
         }
 
         /// <summary>
-        /// 清空池中的所有对象。
+        ///     清空池中的所有对象。
         /// </summary>
         public void Clear()
         {

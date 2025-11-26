@@ -4,33 +4,30 @@ using System.Collections.Generic;
 namespace EasyPack.ENekoFramework
 {
     /// <summary>
-    /// 事件监控回调委托
+    ///     事件监控回调委托
     /// </summary>
     public delegate void EventMonitoringCallback(Type eventType, object eventData, int subscriberCount);
 
     /// <summary>
-    /// 事件总线
-    /// 负责事件发布/订阅，支持 At-most-once 语义和 WeakReference
+    ///     事件总线
+    ///     负责事件发布/订阅，支持 At-most-once 语义和 WeakReference
     /// </summary>
     public class EventBus
     {
         private readonly Dictionary<Type, List<WeakReference>> _subscriptions;
 
         /// <summary>
-        /// 事件发布时的监控回调（用于编辑器监控）
+        ///     事件发布时的监控回调（用于编辑器监控）
         /// </summary>
         public static EventMonitoringCallback OnEventPublished { get; set; }
 
         /// <summary>
-        /// 构造函数
+        ///     构造函数
         /// </summary>
-        public EventBus()
-        {
-            _subscriptions = new Dictionary<Type, List<WeakReference>>();
-        }
+        public EventBus() => _subscriptions = new();
 
         /// <summary>
-        /// 订阅事件（使用 WeakReference 防止内存泄漏）
+        ///     订阅事件（使用 WeakReference 防止内存泄漏）
         /// </summary>
         /// <typeparam name="TEvent">事件类型</typeparam>
         /// <param name="handler">事件处理函数</param>
@@ -39,24 +36,21 @@ namespace EasyPack.ENekoFramework
             if (handler == null)
                 throw new ArgumentNullException(nameof(handler));
 
-            var eventType = typeof(TEvent);
-            if (!_subscriptions.ContainsKey(eventType))
-            {
-                _subscriptions[eventType] = new List<WeakReference>();
-            }
+            Type eventType = typeof(TEvent);
+            if (!_subscriptions.ContainsKey(eventType)) _subscriptions[eventType] = new();
 
             // 使用 WeakReference 包装 handler
-            _subscriptions[eventType].Add(new WeakReference(handler));
+            _subscriptions[eventType].Add(new(handler));
         }
 
         /// <summary>
-        /// 发布事件（处理函数抛出异常不会重试）
+        ///     发布事件（处理函数抛出异常不会重试）
         /// </summary>
         /// <typeparam name="TEvent">事件类型</typeparam>
         /// <param name="eventData">事件数据</param>
         public void Publish<TEvent>(TEvent eventData) where TEvent : IEvent
         {
-            var eventType = typeof(TEvent);
+            Type eventType = typeof(TEvent);
 
             // 调用事件监控回调
 #if UNITY_EDITOR
@@ -72,7 +66,7 @@ namespace EasyPack.ENekoFramework
 
             var deadReferences = new List<WeakReference>();
 
-            foreach (var weakRef in handlers)
+            foreach (WeakReference weakRef in handlers)
             {
                 if (!weakRef.IsAlive)
                 {
@@ -100,14 +94,11 @@ namespace EasyPack.ENekoFramework
             }
 
             // 清理已被 GC 的弱引用
-            foreach (var deadRef in deadReferences)
-            {
-                handlers.Remove(deadRef);
-            }
+            foreach (WeakReference deadRef in deadReferences) handlers.Remove(deadRef);
         }
 
         /// <summary>
-        /// 检查是否应该调用事件监控回调
+        ///     检查是否应该调用事件监控回调
         /// </summary>
         private static bool ShouldInvokeEventMonitoring()
         {
@@ -119,7 +110,7 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 取消订阅事件
+        ///     取消订阅事件
         /// </summary>
         /// <typeparam name="TEvent">事件类型</typeparam>
         /// <param name="handler">要取消的事件处理函数</param>
@@ -128,7 +119,7 @@ namespace EasyPack.ENekoFramework
             if (handler == null)
                 return;
 
-            var eventType = typeof(TEvent);
+            Type eventType = typeof(TEvent);
             if (!_subscriptions.TryGetValue(eventType, out var handlers))
                 return;
 
@@ -143,7 +134,7 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 清空所有订阅
+        ///     清空所有订阅
         /// </summary>
         public void ClearAllSubscriptions()
         {
@@ -151,13 +142,13 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 获取指定事件类型的订阅者数量（仅包含存活的订阅者）
+        ///     获取指定事件类型的订阅者数量（仅包含存活的订阅者）
         /// </summary>
         /// <typeparam name="TEvent">事件类型</typeparam>
         /// <returns>订阅者数量</returns>
         public int GetSubscriberCount<TEvent>() where TEvent : IEvent
         {
-            var eventType = typeof(TEvent);
+            Type eventType = typeof(TEvent);
             if (!_subscriptions.TryGetValue(eventType, out var handlers))
                 return 0;
 

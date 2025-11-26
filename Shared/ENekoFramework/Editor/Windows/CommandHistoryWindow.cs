@@ -4,12 +4,13 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace EasyPack.ENekoFramework.Editor
 {
     /// <summary>
-    /// 命令历史窗口
-    /// 显示命令执行历史、状态、时间线和错误详情
+    ///     命令历史窗口
+    ///     显示命令执行历史、状态、时间线和错误详情
     /// </summary>
     public class CommandHistoryWindow : EditorWindow
     {
@@ -24,7 +25,7 @@ namespace EasyPack.ENekoFramework.Editor
 
         // 筛选缓存
         private List<CommandDescriptor> _cachedFilteredHistory;
-        private List<string> _lastSelectedArchitectures = new List<string>();
+        private List<string> _lastSelectedArchitectures = new();
         private CommandStatus _lastSelectedStatusFilter = CommandStatus.Succeeded;
         private bool _lastUseStatusFilter = false;
         private bool _filterCacheValid = false;
@@ -34,26 +35,26 @@ namespace EasyPack.ENekoFramework.Editor
         private bool _archCacheValid = false;
 
         // 筛选器
-        private List<string> _architectureNames = new List<string>();
-        private List<bool> _architectureFilters = new List<bool>();
+        private List<string> _architectureNames = new();
+        private List<bool> _architectureFilters = new();
         private CommandStatus _selectedStatusFilter = CommandStatus.Succeeded;
         private bool _useStatusFilter = false;
         private Vector2 _filterScrollPosition;
 
         // 状态颜色
-        private readonly Color _runningColor = new Color(0.3f, 0.8f, 1f);
-        private readonly Color _succeededColor = new Color(0.3f, 1f, 0.3f);
-        private readonly Color _failedColor = new Color(1f, 0.3f, 0.3f);
-        private readonly Color _cancelledColor = new Color(0.7f, 0.7f, 0.7f);
-        private readonly Color _timedOutColor = new Color(1f, 0.6f, 0.3f);
+        private readonly Color _runningColor = new(0.3f, 0.8f, 1f);
+        private readonly Color _succeededColor = new(0.3f, 1f, 0.3f);
+        private readonly Color _failedColor = new(1f, 0.3f, 0.3f);
+        private readonly Color _cancelledColor = new(0.7f, 0.7f, 0.7f);
+        private readonly Color _timedOutColor = new(1f, 0.6f, 0.3f);
 
         /// <summary>
-        /// 显示命令历史窗口
+        ///     显示命令历史窗口
         /// </summary>
         public static void ShowWindow()
         {
             var window = GetWindow<CommandHistoryWindow>("Command History");
-            window.minSize = new Vector2(700, 400);
+            window.minSize = new(700, 400);
             window.Show();
         }
 
@@ -69,17 +70,15 @@ namespace EasyPack.ENekoFramework.Editor
             {
                 Debug.LogWarning("CommandHistoryWindow: 刷新操作超时，强制重置状态");
                 _isRefreshing = false;
-                _commandHistory = new List<CommandDescriptor>();
+                _commandHistory = new();
                 _selectedCommand = null;
                 Repaint();
             }
 
-            if (_autoRefresh && !_isRefreshing && EditorApplication.timeSinceStartup - _lastRefreshTime > _refreshInterval)
+            if (_autoRefresh && !_isRefreshing &&
+                EditorApplication.timeSinceStartup - _lastRefreshTime > _refreshInterval)
             {
-                EditorApplication.delayCall += () =>
-                {
-                    RefreshHistoryAsync();
-                };
+                EditorApplication.delayCall += () => { RefreshHistoryAsync(); };
                 _lastRefreshTime = EditorApplication.timeSinceStartup;
             }
         }
@@ -112,9 +111,8 @@ namespace EasyPack.ENekoFramework.Editor
             EditorGUILayout.LabelField("架构:", GUILayout.Width(50));
             _filterScrollPosition = EditorGUILayout.BeginScrollView(_filterScrollPosition, GUILayout.Height(40));
             for (int i = 0; i < _architectureNames.Count; i++)
-            {
                 _architectureFilters[i] = EditorGUILayout.ToggleLeft(_architectureNames[i], _architectureFilters[i]);
-            }
+
             EditorGUILayout.EndScrollView();
 
             EditorGUILayout.EndHorizontal();
@@ -124,9 +122,8 @@ namespace EasyPack.ENekoFramework.Editor
             // 状态筛选
             _useStatusFilter = EditorGUILayout.ToggleLeft("按状态筛选", _useStatusFilter, GUILayout.Width(80));
             if (_useStatusFilter)
-            {
-                _selectedStatusFilter = (CommandStatus)EditorGUILayout.EnumPopup(_selectedStatusFilter, GUILayout.Width(150));
-            }
+                _selectedStatusFilter =
+                    (CommandStatus)EditorGUILayout.EnumPopup(_selectedStatusFilter, GUILayout.Width(150));
 
             EditorGUILayout.EndHorizontal();
 
@@ -137,26 +134,17 @@ namespace EasyPack.ENekoFramework.Editor
         {
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
 
-            if (GUILayout.Button("刷新", EditorStyles.toolbarButton, GUILayout.Width(60)))
-            {
-                RefreshHistory();
-            }
+            if (GUILayout.Button("刷新", EditorStyles.toolbarButton, GUILayout.Width(60))) RefreshHistory();
 
             EditorGUILayout.BeginHorizontal(GUILayout.Width(80));
             if (_isRefreshing)
-            {
                 GUILayout.Label("刷新中...", EditorStyles.toolbarButton, GUILayout.ExpandWidth(true));
-            }
             else
-            {
                 GUILayout.Label("", EditorStyles.toolbarButton, GUILayout.ExpandWidth(true));
-            }
+
             EditorGUILayout.EndHorizontal();
 
-            if (GUILayout.Button("清空", EditorStyles.toolbarButton, GUILayout.Width(60)))
-            {
-                ClearHistory();
-            }
+            if (GUILayout.Button("清空", EditorStyles.toolbarButton, GUILayout.Width(60))) ClearHistory();
 
             _autoRefresh = GUILayout.Toggle(_autoRefresh, "自动刷新", EditorStyles.toolbarButton, GUILayout.Width(80));
 
@@ -164,32 +152,32 @@ namespace EasyPack.ENekoFramework.Editor
             {
                 // 刷新间隔设置
                 GUILayout.Label("间隔:", EditorStyles.toolbarButton, GUILayout.Width(35));
-                float newInterval = EditorGUILayout.FloatField(_refreshInterval, EditorStyles.toolbarTextField, GUILayout.Width(40));
+                float newInterval = EditorGUILayout.FloatField(_refreshInterval, EditorStyles.toolbarTextField,
+                    GUILayout.Width(40));
                 if (!Mathf.Approximately(newInterval, _refreshInterval))
-                {
                     _refreshInterval = Mathf.Max(0.1f, newInterval); // 最小0.1秒
-                }
+
                 GUILayout.Label("秒", EditorStyles.toolbarButton, GUILayout.Width(20));
             }
 
             // 监控开关
-            var monitoringEnabled = EditorMonitoringConfig.EnableCommandMonitoring;
-            var newMonitoringState = GUILayout.Toggle(monitoringEnabled, "启用监控", EditorStyles.toolbarButton, GUILayout.Width(80));
+            bool monitoringEnabled = EditorMonitoringConfig.EnableCommandMonitoring;
+            bool newMonitoringState =
+                GUILayout.Toggle(monitoringEnabled, "启用监控", EditorStyles.toolbarButton, GUILayout.Width(80));
             if (newMonitoringState != monitoringEnabled)
-            {
                 EditorMonitoringConfig.EnableCommandMonitoring = newMonitoringState;
-            }
 
             GUILayout.FlexibleSpace();
 
             if (_commandHistory != null)
             {
-                var total = _commandHistory.Count;
-                var success = _commandHistory.Count(c => c.Status == CommandStatus.Succeeded);
-                var failed = _commandHistory.Count(c => c.Status == CommandStatus.Failed);
-                var running = _commandHistory.Count(c => c.Status == CommandStatus.Running);
+                int total = _commandHistory.Count;
+                int success = _commandHistory.Count(c => c.Status == CommandStatus.Succeeded);
+                int failed = _commandHistory.Count(c => c.Status == CommandStatus.Failed);
+                int running = _commandHistory.Count(c => c.Status == CommandStatus.Running);
 
-                GUILayout.Label($"总数: {total} | 成功: {success} | 失败: {failed} | 运行中: {running}", EditorStyles.toolbarButton);
+                GUILayout.Label($"总数: {total} | 成功: {success} | 失败: {failed} | 运行中: {running}",
+                    EditorStyles.toolbarButton);
             }
 
             EditorGUILayout.EndHorizontal();
@@ -206,17 +194,11 @@ namespace EasyPack.ENekoFramework.Editor
             var filteredHistory = GetFilteredCommandHistory();
 
             if (filteredHistory is { Count: > 0 })
-            {
                 // 倒序显示
                 for (int i = filteredHistory.Count - 1; i >= 0; i--)
-                {
                     DrawCommandItem(filteredHistory[i]);
-                }
-            }
             else
-            {
                 EditorGUILayout.HelpBox("暂无匹配的命令记录", MessageType.Info);
-            }
 
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
@@ -227,25 +209,20 @@ namespace EasyPack.ENekoFramework.Editor
             // 检查筛选条件是否改变
             var currentSelectedArchitectures = new List<string>();
             for (int i = 0; i < _architectureNames.Count; i++)
-            {
                 if (_architectureFilters[i])
                     currentSelectedArchitectures.Add(_architectureNames[i]);
-            }
 
             bool filterChanged = !_filterCacheValid ||
-                !_lastSelectedArchitectures.SequenceEqual(currentSelectedArchitectures) ||
-                _lastUseStatusFilter != _useStatusFilter ||
-                (_useStatusFilter && _lastSelectedStatusFilter != _selectedStatusFilter);
+                                 !_lastSelectedArchitectures.SequenceEqual(currentSelectedArchitectures) ||
+                                 _lastUseStatusFilter != _useStatusFilter ||
+                                 (_useStatusFilter && _lastSelectedStatusFilter != _selectedStatusFilter);
 
-            if (!filterChanged && _cachedFilteredHistory != null)
-            {
-                return _cachedFilteredHistory;
-            }
+            if (!filterChanged && _cachedFilteredHistory != null) return _cachedFilteredHistory;
 
             // 重新计算过滤结果
             if (_commandHistory == null || _commandHistory.Count == 0)
             {
-                _cachedFilteredHistory = new List<CommandDescriptor>();
+                _cachedFilteredHistory = new();
             }
             else
             {
@@ -258,13 +235,13 @@ namespace EasyPack.ENekoFramework.Editor
                     if (!_archCacheValid || _cachedArchToNamespace == null)
                     {
                         var allArchitectures = ServiceInspector.GetAllArchitectureInstances();
-                        _cachedArchToNamespace = new Dictionary<string, string>();
+                        _cachedArchToNamespace = new();
 
                         // 建立架构名称到其所在命名空间的映射
-                        foreach (var arch in allArchitectures)
+                        foreach (object arch in allArchitectures)
                         {
-                            var archName = arch.GetType().Name;
-                            var archNamespace = arch.GetType().Namespace;
+                            string archName = arch.GetType().Name;
+                            string archNamespace = arch.GetType().Namespace;
                             _cachedArchToNamespace.TryAdd(archName, archNamespace);
                         }
 
@@ -273,7 +250,7 @@ namespace EasyPack.ENekoFramework.Editor
 
                     filtered = filtered.Where(c =>
                     {
-                        var commandNamespace = c.CommandType.Namespace;
+                        string commandNamespace = c.CommandType.Namespace;
                         return currentSelectedArchitectures.Any(arch =>
                             _cachedArchToNamespace.ContainsKey(arch) &&
                             commandNamespace?.StartsWith(_cachedArchToNamespace[arch]) == true
@@ -283,14 +260,11 @@ namespace EasyPack.ENekoFramework.Editor
                 else
                 {
                     // 当没有勾选任何架构时，显示空列表
-                    filtered = new List<CommandDescriptor>();
+                    filtered = new();
                 }
 
                 // 状态筛选
-                if (_useStatusFilter)
-                {
-                    filtered = filtered.Where(c => c.Status == _selectedStatusFilter).ToList();
-                }
+                if (_useStatusFilter) filtered = filtered.Where(c => c.Status == _selectedStatusFilter).ToList();
 
                 _cachedFilteredHistory = filtered;
             }
@@ -309,15 +283,13 @@ namespace EasyPack.ENekoFramework.Editor
             // 保存当前的筛选状态
             var previousFilters = new Dictionary<string, bool>();
             for (int i = 0; i < _architectureNames.Count; i++)
-            {
                 previousFilters[_architectureNames[i]] = _architectureFilters[i];
-            }
 
             _architectureNames.Clear();
             _architectureFilters.Clear();
 
             var architectureNames = ServiceInspector.GetAllArchitectureNames();
-            foreach (var arch in architectureNames)
+            foreach (string arch in architectureNames)
             {
                 _architectureNames.Add(arch);
                 // 恢复之前的筛选状态，如果架构不存在则默认为true（全选）
@@ -327,10 +299,10 @@ namespace EasyPack.ENekoFramework.Editor
 
         private void DrawCommandItem(CommandDescriptor command)
         {
-            var isSelected = _selectedCommand == command;
-            var bgColor = isSelected ? new Color(0.3f, 0.5f, 0.8f) : Color.clear;
+            bool isSelected = _selectedCommand == command;
+            Color bgColor = isSelected ? new(0.3f, 0.5f, 0.8f) : Color.clear;
 
-            var prevBgColor = GUI.backgroundColor;
+            Color prevBgColor = GUI.backgroundColor;
             GUI.backgroundColor = bgColor;
 
             EditorGUILayout.BeginVertical("box");
@@ -338,8 +310,8 @@ namespace EasyPack.ENekoFramework.Editor
             EditorGUILayout.BeginHorizontal();
 
             // 状态指示器
-            var statusColor = GetStatusColor(command.Status);
-            var prevContentColor = GUI.contentColor;
+            Color statusColor = GetStatusColor(command.Status);
+            Color prevContentColor = GUI.contentColor;
             GUI.contentColor = statusColor;
             GUILayout.Label("●", GUILayout.Width(15));
             GUI.contentColor = prevContentColor;
@@ -347,21 +319,13 @@ namespace EasyPack.ENekoFramework.Editor
             EditorGUILayout.BeginVertical();
 
             // 命令名称
-            if (GUILayout.Button(command.CommandType.Name, EditorStyles.label))
-            {
-                _selectedCommand = command;
-            }
+            if (GUILayout.Button(command.CommandType.Name, EditorStyles.label)) _selectedCommand = command;
 
             // 时间信息
-            var timeText = command.StartedAt.ToString("HH:mm:ss");
+            string timeText = command.StartedAt.ToString("HH:mm:ss");
             if (command.CompletedAt.HasValue)
-            {
                 timeText += $" ({command.ExecutionTimeMs:F2}ms)";
-            }
-            else if (command.Status == CommandStatus.Running)
-            {
-                timeText += " (运行中...)";
-            }
+            else if (command.Status == CommandStatus.Running) timeText += " (运行中...)";
 
             EditorGUILayout.LabelField(timeText, EditorStyles.miniLabel);
 
@@ -415,7 +379,7 @@ namespace EasyPack.ENekoFramework.Editor
                 {
                     EditorGUILayout.LabelField("错误信息", EditorStyles.boldLabel);
 
-                    var prevColor = GUI.contentColor;
+                    Color prevColor = GUI.contentColor;
                     GUI.contentColor = _failedColor;
 
                     EditorGUILayout.TextArea(
@@ -428,12 +392,10 @@ namespace EasyPack.ENekoFramework.Editor
 
                 // 超时信息
                 if (_selectedCommand.Status == CommandStatus.TimedOut)
-                {
                     EditorGUILayout.HelpBox(
                         $"命令执行超过 {_selectedCommand.TimeoutSeconds} 秒超时限制",
                         MessageType.Warning
                     );
-                }
 
                 EditorGUILayout.Space();
 
@@ -455,7 +417,7 @@ namespace EasyPack.ENekoFramework.Editor
 
             if (labelColor.HasValue)
             {
-                var prevColor = GUI.contentColor;
+                Color prevColor = GUI.contentColor;
                 GUI.contentColor = labelColor.Value;
                 EditorGUILayout.LabelField(value, EditorStyles.wordWrappedLabel);
                 GUI.contentColor = prevColor;
@@ -475,38 +437,37 @@ namespace EasyPack.ENekoFramework.Editor
 
             EditorGUILayout.LabelField("执行时间线", EditorStyles.boldLabel);
 
-            var rect = GUILayoutUtility.GetRect(100, 60);
+            Rect rect = GUILayoutUtility.GetRect(100, 60);
 
             // 绘制背景
-            EditorGUI.DrawRect(rect, new Color(0.2f, 0.2f, 0.2f));
+            EditorGUI.DrawRect(rect, new(0.2f, 0.2f, 0.2f));
 
             // 计算时间范围
-            var minTime = _commandHistory.Min(c => c.StartedAt);
-            var maxTime = _commandHistory.Max(c => c.CompletedAt ?? DateTime.Now);
-            var timeRange = (maxTime - minTime).TotalSeconds;
+            DateTime minTime = _commandHistory.Min(c => c.StartedAt);
+            DateTime maxTime = _commandHistory.Max(c => c.CompletedAt ?? DateTime.Now);
+            double timeRange = (maxTime - minTime).TotalSeconds;
 
             if (timeRange <= 0)
                 timeRange = 1;
 
             // 绘制每个命令的时间条
-            foreach (var cmd in _commandHistory)
+            foreach (CommandDescriptor cmd in _commandHistory)
             {
-                var startX = rect.x + (float)((cmd.StartedAt - minTime).TotalSeconds / timeRange * rect.width);
-                var endTime = cmd.CompletedAt ?? DateTime.Now;
-                var endX = rect.x + (float)((endTime - minTime).TotalSeconds / timeRange * rect.width);
-                var width = endX - startX;
+                float startX = rect.x + (float)((cmd.StartedAt - minTime).TotalSeconds / timeRange * rect.width);
+                DateTime endTime = cmd.CompletedAt ?? DateTime.Now;
+                float endX = rect.x + (float)((endTime - minTime).TotalSeconds / timeRange * rect.width);
+                float width = endX - startX;
 
                 if (width < 2)
                     width = 2;
 
                 var barRect = new Rect(startX, rect.y + 10, width, rect.height - 20);
-                var color = GetStatusColor(cmd.Status);
+                Color color = GetStatusColor(cmd.Status);
 
                 if (cmd == _selectedCommand)
-                {
                     // 高亮选中的命令
-                    EditorGUI.DrawRect(new Rect(barRect.x - 2, barRect.y - 2, barRect.width + 4, barRect.height + 4), Color.white);
-                }
+                    EditorGUI.DrawRect(new(barRect.x - 2, barRect.y - 2, barRect.width + 4, barRect.height + 4),
+                        Color.white);
 
                 EditorGUI.DrawRect(barRect, color);
             }
@@ -545,10 +506,9 @@ namespace EasyPack.ENekoFramework.Editor
                             _cachedArchToNamespace = null;
 
                             // 如果当前选择的命令不在新列表中，清除选择
-                            if (_selectedCommand != null && _commandHistory.All(c => c.ExecutionId != _selectedCommand.ExecutionId))
-                            {
+                            if (_selectedCommand != null &&
+                                _commandHistory.All(c => c.ExecutionId != _selectedCommand.ExecutionId))
                                 _selectedCommand = null;
-                            }
                         }
 
                         _isRefreshing = false;
@@ -558,11 +518,11 @@ namespace EasyPack.ENekoFramework.Editor
                 catch (Exception ex)
                 {
                     // 异常处理：确保UI状态正确重置
-                    UnityEngine.Debug.LogError($"CommandHistoryWindow: 刷新命令历史时发生异常 - {ex.Message}\n{ex.StackTrace}");
+                    Debug.LogError($"CommandHistoryWindow: 刷新命令历史时发生异常 - {ex.Message}\n{ex.StackTrace}");
 
                     EditorApplication.delayCall += () =>
                     {
-                        _commandHistory = new List<CommandDescriptor>(); // 清空数据
+                        _commandHistory = new(); // 清空数据
                         _selectedCommand = null;
 
                         // 清除所有缓存
@@ -584,10 +544,11 @@ namespace EasyPack.ENekoFramework.Editor
             var allHistories = new List<CommandDescriptor>();
 
             var architectures = ServiceInspector.GetAllArchitectureInstances();
-            foreach (var arch in architectures)
+            foreach (object arch in architectures)
             {
-                var dispatcherProp = arch.GetType().GetProperty("CommandDispatcher",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+                PropertyInfo dispatcherProp = arch.GetType().GetProperty("CommandDispatcher",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.Public);
 
                 if (dispatcherProp != null)
                 {
@@ -595,10 +556,7 @@ namespace EasyPack.ENekoFramework.Editor
                     if (dispatcher != null)
                     {
                         var history = dispatcher.GetCommandHistory();
-                        if (history != null)
-                        {
-                            allHistories.AddRange(history);
-                        }
+                        if (history != null) allHistories.AddRange(history);
                     }
                 }
             }
@@ -611,10 +569,11 @@ namespace EasyPack.ENekoFramework.Editor
             try
             {
                 var architectures = ServiceInspector.GetAllArchitectureInstances();
-                foreach (var arch in architectures)
+                foreach (object arch in architectures)
                 {
-                    var dispatcherProp = arch.GetType().GetProperty("CommandDispatcher",
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+                    PropertyInfo dispatcherProp = arch.GetType().GetProperty("CommandDispatcher",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance |
+                        System.Reflection.BindingFlags.Public);
 
                     if (dispatcherProp != null)
                     {
@@ -640,7 +599,7 @@ namespace EasyPack.ENekoFramework.Editor
                 CommandStatus.Failed => _failedColor,
                 CommandStatus.Cancelled => _cancelledColor,
                 CommandStatus.TimedOut => _timedOutColor,
-                _ => Color.white
+                _ => Color.white,
             };
         }
     }

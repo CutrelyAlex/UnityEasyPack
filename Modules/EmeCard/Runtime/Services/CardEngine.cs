@@ -8,6 +8,7 @@ namespace EasyPack.EmeCardSystem
     public sealed class CardEngine
     {
         #region 初始化
+
         public CardEngine(ICardFactory factory)
         {
             CardFactory = factory;
@@ -17,10 +18,10 @@ namespace EasyPack.EmeCardSystem
             InitializeTargetSelectorCache();
 
             // 预注册标准事件类型
-            _rules[CardEventTypes.TICK] = new List<CardRule>();
-            _rules[CardEventTypes.ADDED_TO_OWNER] = new List<CardRule>();
-            _rules[CardEventTypes.REMOVED_FROM_OWNER] = new List<CardRule>();
-            _rules[CardEventTypes.USE] = new List<CardRule>();
+            _rules[CardEventTypes.TICK] = new();
+            _rules[CardEventTypes.ADDED_TO_OWNER] = new();
+            _rules[CardEventTypes.REMOVED_FROM_OWNER] = new();
+            _rules[CardEventTypes.USE] = new();
         }
 
         public void Init()
@@ -30,7 +31,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 初始化TargetSelector的Tag缓存。应在所有卡牌注册完成后调用。
+        ///     初始化TargetSelector的Tag缓存。应在所有卡牌注册完成后调用。
         /// </summary>
         private void InitializeTargetSelectorCache()
         {
@@ -38,7 +39,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 清除TargetSelector的Tag缓存
+        ///     清除TargetSelector的Tag缓存
         /// </summary>
         public void ClearTargetSelectorCache()
         {
@@ -46,8 +47,8 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 从工厂创建所有卡牌的副本并缓存。
-        /// 应在系统初始化时调用一次。
+        ///     从工厂创建所有卡牌的副本并缓存。
+        ///     应在系统初始化时调用一次。
         /// </summary>
         private void PreCacheAllCardTemplates()
         {
@@ -59,25 +60,24 @@ namespace EasyPack.EmeCardSystem
             var cardIds = CardFactory.GetAllCardIds();
             if (cardIds == null || cardIds.Count == 0) return;
 
-            foreach (var id in cardIds)
+            foreach (string id in cardIds)
             {
                 // 为每个ID创建一个副本
-                var templateCard = CardFactory.Create(id);
-                if (templateCard != null)
-                {
-                    _registeredCardsTemplates.Add(templateCard);
-                }
+                Card templateCard = CardFactory.Create(id);
+                if (templateCard != null) _registeredCardsTemplates.Add(templateCard);
             }
         }
+
         #endregion
 
         #region 基本属性
 
         public ICardFactory CardFactory { get; set; }
+
         /// <summary>
-        /// 引擎全局策略
+        ///     引擎全局策略
         /// </summary>
-        public EnginePolicy Policy { get; } = new EnginePolicy();
+        public EnginePolicy Policy { get; } = new();
 
         private bool _isPumping = false;
 
@@ -91,7 +91,7 @@ namespace EasyPack.EmeCardSystem
         private float _batchTimeLimit;
 
         /// <summary>
-        /// 获取当前队列中待处理的事件数量
+        ///     获取当前队列中待处理的事件数量
         /// </summary>
         public int PendingEventCount => _queue.Count;
 
@@ -100,39 +100,49 @@ namespace EasyPack.EmeCardSystem
         #endregion
 
         #region 事件和缓存
+
         private struct EventEntry
         {
             public Card Source;
             public ICardEvent Event;
+
             public EventEntry(Card s, ICardEvent e)
             {
                 Source = s;
                 Event = e;
             }
         }
+
         // 规则表（按事件类型字符串索引）
         private readonly Dictionary<string, List<CardRule>> _rules = new();
+
         // 卡牌事件队列
         private readonly Queue<EventEntry> _queue = new();
 
         // 已注册的卡牌集合
         private readonly HashSet<Card> _registeredCardsTemplates = new();
+
         // 卡牌Key->Card缓存
         private readonly Dictionary<CardKey, Card> _cardMap = new();
+
         // id->index集合缓存
         private readonly Dictionary<string, HashSet<int>> _idIndexes = new();
+
         // id->Card列表缓存，用于快速查找
         private readonly Dictionary<string, List<Card>> _cardsById = new();
+
         // Custom规则按ID分组缓存
         private readonly Dictionary<string, List<CardRule>> _customRulesById = new();
+
         // UID->Card缓存，支持 O(1) UID 查询
         private readonly Dictionary<int, Card> _cardsByUID = new();
 
         #endregion
 
         #region 规则处理
+
         /// <summary>
-        /// 注册一条规则到引擎。
+        ///     注册一条规则到引擎。
         /// </summary>
         /// <param name="rule">规则实例。</param>
         public void RegisterRule(CardRule rule)
@@ -144,9 +154,10 @@ namespace EasyPack.EmeCardSystem
             // 确保事件类型的规则列表存在
             if (!_rules.TryGetValue(rule.EventType, out var ruleList))
             {
-                ruleList = new List<CardRule>();
+                ruleList = new();
                 _rules[rule.EventType] = ruleList;
             }
+
             ruleList.Add(rule);
 
             // 如果有 CustomId，也添加到 CustomId 索引
@@ -154,15 +165,16 @@ namespace EasyPack.EmeCardSystem
             {
                 if (!_customRulesById.TryGetValue(rule.CustomId, out var customRuleList))
                 {
-                    customRuleList = new List<CardRule>();
+                    customRuleList = new();
                     _customRulesById[rule.CustomId] = customRuleList;
                 }
+
                 customRuleList.Add(rule);
             }
         }
 
         /// <summary>
-        /// 从引擎中注销一条规则。
+        ///     从引擎中注销一条规则。
         /// </summary>
         /// <param name="rule">要注销的规则实例。</param>
         /// <returns>如果成功注销返回true，否则返回false。</returns>
@@ -171,46 +183,35 @@ namespace EasyPack.EmeCardSystem
             if (rule == null || string.IsNullOrEmpty(rule.EventType)) return false;
 
             bool removed = false;
-            if (_rules.TryGetValue(rule.EventType, out var ruleList))
-            {
-                removed = ruleList.Remove(rule);
-            }
+            if (_rules.TryGetValue(rule.EventType, out var ruleList)) removed = ruleList.Remove(rule);
 
             // 如果有 CustomId，也从 CustomId 索引移除
             if (removed && !string.IsNullOrEmpty(rule.CustomId))
-            {
                 if (_customRulesById.TryGetValue(rule.CustomId, out var customRuleList))
                 {
                     customRuleList.Remove(rule);
-                    if (customRuleList.Count == 0)
-                    {
-                        _customRulesById.Remove(rule.CustomId);
-                    }
+                    if (customRuleList.Count == 0) _customRulesById.Remove(rule.CustomId);
                 }
-            }
 
             return removed;
         }
 
         /// <summary>
-        /// 卡牌事件回调，入队并驱动事件处理。
+        ///     卡牌事件回调，入队并驱动事件处理。
         /// </summary>
         private void OnCardEvent(Card source, ICardEvent evt)
         {
-            _queue.Enqueue(new EventEntry(source, evt));
+            _queue.Enqueue(new(source, evt));
 
             // 分帧模式下不自动Pump，等待下一帧主动调用PumpFrame
             // 非分帧模式保持原有即时处理行为
-            if (!_isPumping && !Policy.EnableFrameDistribution)
-            {
-                Pump();
-            }
+            if (!_isPumping && !Policy.EnableFrameDistribution) Pump();
         }
 
         #region 分帧处理API
 
         /// <summary>
-        /// 同步一次性处理所有事件（无分帧）
+        ///     同步一次性处理所有事件（无分帧）
         /// </summary>
         public void Pump()
         {
@@ -221,7 +222,7 @@ namespace EasyPack.EmeCardSystem
             {
                 while (_queue.Count > 0)
                 {
-                    var entry = _queue.Dequeue();
+                    EventEntry entry = _queue.Dequeue();
                     Process(entry.Source, entry.Event);
                 }
             }
@@ -232,7 +233,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 按帧时间预算处理事件
+        ///     按帧时间预算处理事件
         /// </summary>
         public void PumpFrameWithBudget()
         {
@@ -256,13 +257,11 @@ namespace EasyPack.EmeCardSystem
                     {
                         float elapsed = Time.realtimeSinceStartup * 1000f - _frameStartTime;
                         if (elapsed >= frameBudget)
-                        {
                             // 超时，保留剩余到下一帧
                             break;
-                        }
                     }
 
-                    var entry = _queue.Dequeue();
+                    EventEntry entry = _queue.Dequeue();
                     Process(entry.Source, entry.Event);
                     processed++;
                     _frameProcessedCount++;
@@ -284,16 +283,13 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 初始化时间限制批次处理
-        /// 必须调用此方法后，才能在Update中调用PumpTimeLimitedBatch()
+        ///     初始化时间限制批次处理
+        ///     必须调用此方法后，才能在Update中调用PumpTimeLimitedBatch()
         /// </summary>
         /// <param name="timeLimitSeconds">自定义时间限制（秒），null则使用Policy.BatchTimeLimitSeconds</param>
         public void BeginTimeLimitedBatch(float? timeLimitSeconds = null)
         {
-            if (_isBatchProcessing)
-            {
-                return;
-            }
+            if (_isBatchProcessing) return;
 
             _isBatchProcessing = true;
             _batchStartTime = Time.realtimeSinceStartup;
@@ -301,16 +297,13 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 驱动时间限制批次处理（在Update中调用）
-        /// 必须先调用BeginTimeLimitedBatch()初始化
-        /// 在指定时间内分帧处理，超时后同步完成所有
+        ///     驱动时间限制批次处理（在Update中调用）
+        ///     必须先调用BeginTimeLimitedBatch()初始化
+        ///     在指定时间内分帧处理，超时后同步完成所有
         /// </summary>
         public void PumpTimeLimitedBatch()
         {
-            if (!_isBatchProcessing)
-            {
-                return;
-            }
+            if (!_isBatchProcessing) return;
 
             float elapsed = Time.realtimeSinceStartup - _batchStartTime;
             float remaining = _batchTimeLimit - elapsed;
@@ -327,23 +320,20 @@ namespace EasyPack.EmeCardSystem
                        Time.realtimeSinceStartup - frameStart < frameBudgetSec &&
                        processedInFrame < maxEvents)
                 {
-                    var entry = _queue.Dequeue();
+                    EventEntry entry = _queue.Dequeue();
                     Process(entry.Source, entry.Event);
                     processedInFrame++;
                 }
 
                 // 处理后检查队列是否已清空
-                if (_queue.Count == 0)
-                {
-                    _isBatchProcessing = false;
-                }
+                if (_queue.Count == 0) _isBatchProcessing = false;
             }
             else
             {
                 // 超时：同步完成所有剩余事件
                 while (_queue.Count > 0)
                 {
-                    var entry = _queue.Dequeue();
+                    EventEntry entry = _queue.Dequeue();
                     Process(entry.Source, entry.Event);
                 }
 
@@ -354,7 +344,7 @@ namespace EasyPack.EmeCardSystem
         #endregion
 
         /// <summary>
-        /// 处理单个事件，匹配规则并执行效果。
+        ///     处理单个事件，匹配规则并执行效果。
         /// </summary>
         private void Process(Card source, ICardEvent evt)
         {
@@ -362,43 +352,37 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 核心事件处理逻辑。
+        ///     核心事件处理逻辑。
         /// </summary>
         private void ProcessCore(Card source, ICardEvent evt)
         {
-            List<CardRule> rulesToProcess = new List<CardRule>();
+            var rulesToProcess = new List<CardRule>();
 
             // 获取匹配事件类型的规则
             if (_rules.TryGetValue(evt.EventType, out var typeRules) && typeRules.Count > 0)
-            {
                 rulesToProcess.AddRange(typeRules);
-            }
 
             // 对于自定义事件，也检查 EventId 匹配
             if (!string.IsNullOrEmpty(evt.EventId) && evt.EventId != evt.EventType)
-            {
                 if (_customRulesById.TryGetValue(evt.EventId, out var idRules))
-                {
                     rulesToProcess.AddRange(idRules);
-                }
-            }
 
             if (rulesToProcess.Count == 0) return;
 
-            var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rulesToProcess.Count);
+            var evals =
+                new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rulesToProcess
+                    .Count);
             for (int i = 0; i < rulesToProcess.Count; i++)
             {
-                var rule = rulesToProcess[i];
+                CardRule rule = rulesToProcess[i];
 
-                var ctx = BuildContext(rule, source, evt);
+                CardRuleContext ctx = BuildContext(rule, source, evt);
                 if (ctx == null) continue;
 
                 if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
                 {
                     if ((rule.Policy?.DistinctMatched ?? true) && matched is { Count: > 1 })
-                    {
                         matched = matched.Distinct().ToList();
-                    }
 
                     evals.Add((rule, matched, ctx, i));
                 }
@@ -408,17 +392,13 @@ namespace EasyPack.EmeCardSystem
 
             // 排序规则
             if (Policy.RuleSelection == RuleSelectionMode.Priority)
-            {
                 evals.Sort((a, b) =>
                 {
                     int cmp = a.rule.Priority.CompareTo(b.rule.Priority);
                     return cmp != 0 ? cmp : a.orderIndex.CompareTo(b.orderIndex);
                 });
-            }
             else
-            {
                 evals.Sort((a, b) => a.orderIndex.CompareTo(b.orderIndex));
-            }
 
             var ordered = evals;
 
@@ -430,9 +410,8 @@ namespace EasyPack.EmeCardSystem
             else
             {
                 foreach (var e in ordered)
-                {
-                    if (ExecuteOne(e)) break;
-                }
+                    if (ExecuteOne(e))
+                        break;
             }
         }
 
@@ -440,26 +419,28 @@ namespace EasyPack.EmeCardSystem
         {
             if (e.matched == null || e.rule.Effects == null || e.rule.Effects.Count == 0) return false;
 
-            foreach (var eff in e.rule.Effects)
+            foreach (IRuleEffect eff in e.rule.Effects)
                 eff.Execute(e.ctx, e.matched);
             return e.rule.Policy?.StopEventOnSuccess == true;
         }
 
         private CardRuleContext BuildContext(CardRule rule, Card source, ICardEvent evt)
         {
-            var container = SelectContainer(rule.OwnerHops, source);
+            Card container = SelectContainer(rule.OwnerHops, source);
             if (container == null) return null;
-            return new CardRuleContext(
-                source: source,
-                matchRoot: container,
-                @event: evt,
-                factory: CardFactory,
-                maxDepth: rule.MaxDepth
+            return new(
+                source,
+                container,
+                evt,
+                CardFactory,
+                rule.MaxDepth
             );
         }
+
         #endregion
 
         #region 容器方法
+
         private static Card SelectContainer(int ownerHops, Card source)
         {
             if (source == null) return null;
@@ -468,63 +449,56 @@ namespace EasyPack.EmeCardSystem
 
             if (ownerHops < 0)
             {
-                var curr = source;
+                Card curr = source;
                 while (curr.Owner != null) curr = curr.Owner;
                 return curr;
             }
 
-            var node = source;
+            Card node = source;
             int hops = ownerHops;
             while (hops > 0 && node.Owner != null)
             {
                 node = node.Owner;
                 hops--;
             }
+
             return node ?? source;
         }
 
-        private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements, out List<Card> matchedAll, int ruleId = -1)
+        private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements,
+                                          out List<Card> matchedAll, int ruleId = -1)
         {
-            matchedAll = new List<Card>();
+            matchedAll = new();
             if (requirements == null) return true;
 
-            foreach (var req in requirements)
+            foreach (IRuleRequirement req in requirements)
             {
-                if (req == null)
-                {
-                    return false;
-                }
+                if (req == null) return false;
 
-                if (!req.TryMatch(ctx, out var picks))
-                {
-                    return false;
+                if (!req.TryMatch(ctx, out var picks)) return false;
 
-                }
                 if (picks?.Count > 0) matchedAll.AddRange(picks);
             }
+
             return true;
         }
+
         #endregion
 
 
         #region 卡牌创建
+
         /// <summary>
-        /// 按ID创建并注册卡牌实例。
+        ///     按ID创建并注册卡牌实例。
         /// </summary>
         public T CreateCard<T>(string id) where T : Card
         {
             if (id == null) throw new ArgumentNullException(nameof(id));
 
             T card = null;
-            if (CardFactory != null)
-            {
-                card = CardFactory.Create<T>(id);
-            }
+            if (CardFactory != null) card = CardFactory.Create<T>(id);
 
-            if (card == null)
-            {
-                return null;
-            }
+            if (card == null) return null;
 
             // 设置卡牌的Engine引用以支持缓存清除
             card.Engine = this;
@@ -533,18 +507,18 @@ namespace EasyPack.EmeCardSystem
 
             return card;
         }
+
         /// <summary>
-        /// 按ID创建并注册Card类型的卡牌。
+        ///     按ID创建并注册Card类型的卡牌。
         /// </summary>
-        public Card CreateCard(string id)
-        {
-            return CreateCard<Card>(id);
-        }
+        public Card CreateCard(string id) => CreateCard<Card>(id);
+
         #endregion
 
         #region 查询服务
+
         /// <summary>
-        /// 按ID和Index精确查找卡牌。
+        ///     按ID和Index精确查找卡牌。
         /// </summary>
         public Card GetCardByKey(string id, int index)
         {
@@ -552,77 +526,75 @@ namespace EasyPack.EmeCardSystem
             var key = new CardKey(id, index);
             return _cardMap.GetValueOrDefault(key);
         }
+
         /// <summary>
-        /// 按ID返回所有已注册卡牌。
+        ///     按ID返回所有已注册卡牌。
         /// </summary>
         public IEnumerable<Card> GetCardsById(string id)
         {
             if (string.IsNullOrEmpty(id)) yield break;
             if (_cardsById.TryGetValue(id, out var cards))
-            {
-                foreach (var card in cards)
-                {
+                foreach (Card card in cards)
                     yield return card;
-                }
-            }
         }
+
         /// <summary>
-        /// 按ID返回第一个已注册卡牌。
+        ///     按ID返回第一个已注册卡牌。
         /// </summary>
         public Card GetCardById(string id)
         {
             if (string.IsNullOrEmpty(id)) return null;
-            if (_cardsById.TryGetValue(id, out var cards) && cards.Count > 0)
-            {
-                return cards[0];
-            }
+            if (_cardsById.TryGetValue(id, out var cards) && cards.Count > 0) return cards[0];
+
             return null;
-        }
-        /// <summary>
-        /// 检查指定卡牌是否接入引擎
-        /// </summary>
-        /// <returns></returns>
-        public bool HasCard(Card card)
-        {
-            return GetCardByKey(card.Id, card.Index) == card;
         }
 
         /// <summary>
-        /// 根据 UID 获取卡牌，O(1) 时间复杂度。
+        ///     检查指定卡牌是否接入引擎
+        /// </summary>
+        /// <returns></returns>
+        public bool HasCard(Card card) => GetCardByKey(card.Id, card.Index) == card;
+
+        /// <summary>
+        ///     根据 UID 获取卡牌，O(1) 时间复杂度。
         /// </summary>
         /// <param name="uid">卡牌的唯一标识符。</param>
         /// <returns>找到的卡牌，或 null 如果未找到。</returns>
         public Card GetCardByUID(int uid)
         {
-            _cardsByUID.TryGetValue(uid, out var card);
+            _cardsByUID.TryGetValue(uid, out Card card);
             return card;
         }
+
         #endregion
 
         #region 卡牌缓存处理
+
         /// <summary>
-        /// 添加卡牌到引擎，分配唯一Index、UID并订阅事件。
+        ///     添加卡牌到引擎，分配唯一Index、UID并订阅事件。
         /// </summary>
         public CardEngine AddCard(Card c)
         {
             if (c == null) return this;
 
-            var id = c.Id;
+            string id = c.Id;
 
-            // 第一步: 分配 UID（如果还未分配）
+            // 第一步: 处理 UID
             if (c.UID < 0)
             {
+                // 未分配 UID，分配新的
                 EmeCardSystem.CardFactory.AssignUID(c);
             }
             else if (_cardsByUID.ContainsKey(c.UID))
             {
-                throw new InvalidOperationException($"UID {c.UID} 已被另一张卡牌占用");
+                c.UID = -1; // 重置为未分配状态
+                EmeCardSystem.CardFactory.AssignUID(c);
             }
 
             // 第二步: 分配索引（如果还未分配）
             if (!_idIndexes.TryGetValue(id, out var indexes))
             {
-                indexes = new HashSet<int>();
+                indexes = new();
                 _idIndexes[id] = indexes;
             }
 
@@ -653,64 +625,51 @@ namespace EasyPack.EmeCardSystem
             // 更新_cardsById缓存
             if (!_cardsById.TryGetValue(id, out var cardList))
             {
-                cardList = new List<Card>();
+                cardList = new();
                 _cardsById[id] = cardList;
             }
+
             cardList.Add(c);
 
             // 第五步: 将卡牌的所有标签加入TargetSelector缓存（确保新创建的卡牌标签也被缓存）
-            foreach (var tag in c.Tags)
-            {
-                TargetSelector.OnCardTagAdded(c, tag);
-            }
+            foreach (string tag in c.Tags) TargetSelector.OnCardTagAdded(c, tag);
 
             return this;
         }
 
         /// <summary>
-        /// 移除卡牌，移除事件订阅、UID 映射与索引。
+        ///     移除卡牌，移除事件订阅、UID 映射与索引。
         /// </summary>
         public CardEngine RemoveCard(Card c)
         {
             if (c == null) return this;
 
             var key = new CardKey(c.Id, c.Index);
-            if (_cardMap.TryGetValue(key, out var existing) && ReferenceEquals(existing, c))
+            if (_cardMap.TryGetValue(key, out Card existing) && ReferenceEquals(existing, c))
             {
                 _cardMap.Remove(key);
                 c.OnEvent -= OnCardEvent;
 
                 // 从 UID 索引中移除
-                if (c.UID >= 0)
-                {
-                    _cardsByUID.Remove(c.UID);
-                }
+                if (c.UID >= 0) _cardsByUID.Remove(c.UID);
 
                 if (_idIndexes.TryGetValue(c.Id, out var indexes))
                 {
                     indexes.Remove(c.Index);
-                    if (indexes.Count == 0)
-                    {
-                        _idIndexes.Remove(c.Id);
-                    }
+                    if (indexes.Count == 0) _idIndexes.Remove(c.Id);
                 }
 
                 // 更新_cardsById缓存
                 if (_cardsById.TryGetValue(c.Id, out var cardList))
                 {
                     cardList.Remove(c);
-                    if (cardList.Count == 0)
-                    {
-                        _cardsById.Remove(c.Id);
-                    }
+                    if (cardList.Count == 0) _cardsById.Remove(c.Id);
                 }
 
                 // 从TargetSelector缓存中移除卡牌的标签
-                foreach (var tag in c.Tags)
-                {
-                    TargetSelector.OnCardTagRemoved(c, tag);
-                }
+                foreach (string tag in c.Tags) TargetSelector.OnCardTagRemoved(c, tag);
             }
+
             return this;
         }
 
@@ -721,6 +680,7 @@ namespace EasyPack.EmeCardSystem
             _cardsById.Clear();
             _cardsByUID.Clear();
         }
+
         #endregion
     }
 
@@ -735,10 +695,8 @@ namespace EasyPack.EmeCardSystem
             Index = index;
         }
 
-        public bool Equals(CardKey other)
-        {
-            return string.Equals(Id, other.Id, StringComparison.Ordinal) && Index == other.Index;
-        }
+        public bool Equals(CardKey other) =>
+            string.Equals(Id, other.Id, StringComparison.Ordinal) && Index == other.Index;
 
         public override bool Equals(object obj) => obj is CardKey k && Equals(k);
 

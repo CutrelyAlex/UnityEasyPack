@@ -6,6 +6,7 @@ namespace EasyPack.CustomData
     public class JsonValueHandler : IValueHandler
     {
         public CustomDataType SupportedType => CustomDataType.Json;
+
         public object GetValue(CustomDataEntry entry)
         {
             if (string.IsNullOrEmpty(entry.JsonValue))
@@ -40,6 +41,7 @@ namespace EasyPack.CustomData
                 entry.JsonValue = JsonUtility.ToJson(value);
                 entry.JsonClrType = value.GetType().AssemblyQualifiedName;
             }
+
             entry.Type = CustomDataType.Json;
             ClearOtherValues(entry);
         }
@@ -49,10 +51,7 @@ namespace EasyPack.CustomData
             entry.JsonValue = data;
             entry.Type = CustomDataType.Json;
 
-            if (jsonClrType != null)
-            {
-                entry.JsonClrType = jsonClrType.AssemblyQualifiedName;
-            }
+            if (jsonClrType != null) entry.JsonClrType = jsonClrType.AssemblyQualifiedName;
 
             ClearOtherValues(entry);
             return true;

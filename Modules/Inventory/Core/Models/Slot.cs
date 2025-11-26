@@ -11,8 +11,8 @@ namespace EasyPack.InventorySystem
         bool CheckSlotCondition(IItem item);
         bool SetItem(IItem item, int count = 1);
         void ClearSlot();
-
     }
+
     public class Slot : ISlot
     {
         public int Index { get; set; }
@@ -27,7 +27,7 @@ namespace EasyPack.InventorySystem
         public Container Container { get; set; }
 
         /// <summary>
-        /// 设置槽位物品
+        ///     设置槽位物品
         /// </summary>
         /// <param name="item">要设置的物品</param>
         /// <param name="count">物品数量</param>
@@ -58,17 +58,13 @@ namespace EasyPack.InventorySystem
         }
 
 
-        public int GetItemCount()
-        {
-            return ItemCount;
-        }
+        public int GetItemCount() => ItemCount;
 
 
-        public bool CheckSlotCondition(IItem item)
-        {
-            return item != null
-                && (SlotCondition == null || SlotCondition.CheckCondition(item));
-        }
+        public bool CheckSlotCondition(IItem item) =>
+            item != null
+            && (SlotCondition == null || SlotCondition.CheckCondition(item));
+
         public void ClearSlot()
         {
             Item = null;

@@ -1,14 +1,16 @@
 #if UNITY_EDITOR
+using System;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using System.Reflection;
 using EasyPack.Architecture;
 
 
 namespace EasyPack.ENekoFramework.Editor
 {
     /// <summary>
-    /// ENekoFramework 编辑器菜单项
+    ///     ENekoFramework 编辑器菜单项
     /// </summary>
     public static class MenuItems
     {
@@ -21,7 +23,7 @@ namespace EasyPack.ENekoFramework.Editor
         #region Visualization Windows
 
         /// <summary>
-        /// 打开架构总览窗口
+        ///     打开架构总览窗口
         /// </summary>
         [MenuItem(VisualizationMenu + "架构总览")]
         public static void OpenArchitectureOverview()
@@ -30,7 +32,7 @@ namespace EasyPack.ENekoFramework.Editor
         }
 
         /// <summary>
-        /// 打开服务总览窗口
+        ///     打开服务总览窗口
         /// </summary>
         [MenuItem(VisualizationMenu + "服务总览")]
         public static void OpenServiceOverview()
@@ -39,7 +41,7 @@ namespace EasyPack.ENekoFramework.Editor
         }
 
         /// <summary>
-        /// 打开事件监视器窗口
+        ///     打开事件监视器窗口
         /// </summary>
         [MenuItem(VisualizationMenu + "事件监视器")]
         public static void OpenEventMonitor()
@@ -48,7 +50,7 @@ namespace EasyPack.ENekoFramework.Editor
         }
 
         /// <summary>
-        /// 打开命令历史窗口
+        ///     打开命令历史窗口
         /// </summary>
         [MenuItem(VisualizationMenu + "命令历史")]
         public static void OpenCommandHistory()
@@ -57,7 +59,7 @@ namespace EasyPack.ENekoFramework.Editor
         }
 
         /// <summary>
-        /// 打开依赖关系图窗口
+        ///     打开依赖关系图窗口
         /// </summary>
         [MenuItem(VisualizationMenu + "依赖关系图")]
         public static void OpenDependencyGraph()
@@ -70,7 +72,7 @@ namespace EasyPack.ENekoFramework.Editor
         #region Code Generation
 
         /// <summary>
-        /// 生成服务脚手架代码
+        ///     生成服务脚手架代码
         /// </summary>
         [MenuItem(CodeGenMenu + "生成服务...")]
         public static void GenerateService()
@@ -79,7 +81,7 @@ namespace EasyPack.ENekoFramework.Editor
         }
 
         /// <summary>
-        /// 生成命令脚手架代码
+        ///     生成命令脚手架代码
         /// </summary>
         [MenuItem(CodeGenMenu + "生成命令...")]
         public static void GenerateCommand()
@@ -88,7 +90,7 @@ namespace EasyPack.ENekoFramework.Editor
         }
 
         /// <summary>
-        /// 生成查询脚手架代码
+        ///     生成查询脚手架代码
         /// </summary>
         [MenuItem(CodeGenMenu + "生成查询...")]
         public static void GenerateQuery()
@@ -97,7 +99,7 @@ namespace EasyPack.ENekoFramework.Editor
         }
 
         /// <summary>
-        /// 生成事件脚手架代码
+        ///     生成事件脚手架代码
         /// </summary>
         [MenuItem(CodeGenMenu + "生成事件...")]
         public static void GenerateEvent()
@@ -110,7 +112,7 @@ namespace EasyPack.ENekoFramework.Editor
         #region Settings
 
         /// <summary>
-        /// 打开编辑器监控偏好设置
+        ///     打开编辑器监控偏好设置
         /// </summary>
         [MenuItem(SettingsMenu + "监控偏好设置")]
         public static void OpenMonitoringPreferences()
@@ -123,16 +125,16 @@ namespace EasyPack.ENekoFramework.Editor
         #region Debug
 
         /// <summary>
-        /// 初始化 EasyPackArchitecture（用于调试）
+        ///     初始化 EasyPackArchitecture（用于调试）
         /// </summary>
         [MenuItem(DebugMenu + "初始化 EasyPackArchitecture")]
         public static void InitializeEasyPackArchitecture()
         {
-            var instance = EasyPackArchitecture.Instance;
+            EasyPackArchitecture instance = EasyPackArchitecture.Instance;
             Debug.Log($"[Debug] EasyPackArchitecture 已初始化: {instance.GetType().Name}，状态：{instance.IsInitialized}");
 
 
-            var containerProp = instance.GetType().GetProperty("Container",
+            PropertyInfo containerProp = instance.GetType().GetProperty("Container",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             if (containerProp != null)
             {
@@ -146,25 +148,25 @@ namespace EasyPack.ENekoFramework.Editor
         }
 
         /// <summary>
-        /// 检查 EasyPackArchitecture 状态（不触发初始化）
+        ///     检查 EasyPackArchitecture 状态（不触发初始化）
         /// </summary>
         [MenuItem(DebugMenu + "检查 EasyPackArchitecture 状态")]
         public static void CheckEasyPackArchitectureStatus()
         {
-            var archType = typeof(EasyPackArchitecture);
-            var instanceField = archType.BaseType?.GetField("_instance",
+            Type archType = typeof(EasyPackArchitecture);
+            FieldInfo instanceField = archType.BaseType?.GetField("_instance",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 
             if (instanceField != null)
             {
-                var instance = instanceField.GetValue(null);
+                object instance = instanceField.GetValue(null);
                 if (instance != null)
                 {
                     Debug.Log($"[Debug] EasyPackArchitecture 已存在实例");
-                    var isInitProp = instance.GetType().GetProperty("IsInitialized");
+                    PropertyInfo isInitProp = instance.GetType().GetProperty("IsInitialized");
                     if (isInitProp != null)
                     {
-                        var isInit = (bool)isInitProp.GetValue(instance);
+                        bool isInit = (bool)isInitProp.GetValue(instance);
                         Debug.Log($"[Debug] EasyPackArchitecture 初始化状态: {isInit}");
                     }
                 }
@@ -180,30 +182,27 @@ namespace EasyPack.ENekoFramework.Editor
         }
 
         /// <summary>
-        /// 清除所有架构实例（慎用！）
+        ///     清除所有架构实例（慎用！）
         /// </summary>
         [MenuItem(DebugMenu + "清除所有架构实例")]
         public static void ClearAllArchitectureInstances()
         {
             if (EditorUtility.DisplayDialog(
-                "警告",
-                "此操作将清除所有架构实例，可能导致运行时错误。是否继续？",
-                "确定",
-                "取消"))
+                    "警告",
+                    "此操作将清除所有架构实例，可能导致运行时错误。是否继续？",
+                    "确定",
+                    "取消"))
             {
                 var instances = ServiceInspector.GetAllArchitectureInstances();
                 int count = instances.Count;
 
-                foreach (var instance in instances)
+                foreach (object instance in instances)
                 {
-                    var archType = instance.GetType();
-                    var instanceField = archType.BaseType?.GetField("_instance",
+                    Type archType = instance.GetType();
+                    FieldInfo instanceField = archType.BaseType?.GetField("_instance",
                         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 
-                    if (instanceField != null)
-                    {
-                        instanceField.SetValue(null, null);
-                    }
+                    if (instanceField != null) instanceField.SetValue(null, null);
                 }
 
                 Debug.Log($"[Debug] 已清除 {count} 个架构实例");

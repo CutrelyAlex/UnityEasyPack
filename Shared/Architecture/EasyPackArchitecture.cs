@@ -10,14 +10,13 @@ using System.Threading.Tasks;
 namespace EasyPack.Architecture
 {
     /// <summary>
-    /// EasyPack 统一架构容器
-    /// 封装所有 EasyPack 系统和服务
+    ///     EasyPack 统一架构容器
+    ///     封装所有 EasyPack 系统和服务
     /// </summary>
     public class EasyPackArchitecture : ENekoArchitecture<EasyPackArchitecture>
     {
         protected override void OnInit()
         {
-
             // Moules
             Container.Register<IGamePropertyService, GamePropertyService>();
             Container.Register<IBuffService, BuffService>();
@@ -33,48 +32,36 @@ namespace EasyPack.Architecture
         }
 
         /// <summary>
-        /// 异步预热常用集合池
+        ///     异步预热常用集合池
         /// </summary>
         private async Task InitializePoolsAsync()
         {
             // 预热常用类型的专用池
-            await ListPool<int>.InitializeAsync(1024*16);
-            await ListPool<string>.InitializeAsync(1024*16);
-            await ListPool<double>.InitializeAsync(1024*16);
-            await HashSetPool<int>.InitializeAsync(1024*16);
-            await HashSetPool<string>.InitializeAsync(1024*16);
-            await HashSetPool<double>.InitializeAsync(1024*16);
-            await StackPool<int>.InitializeAsync(1024*16);
+            await ListPool<int>.InitializeAsync(1024 * 16);
+            await ListPool<string>.InitializeAsync(1024 * 16);
+            await ListPool<double>.InitializeAsync(1024 * 16);
+            await HashSetPool<int>.InitializeAsync(1024 * 16);
+            await HashSetPool<string>.InitializeAsync(1024 * 16);
+            await HashSetPool<double>.InitializeAsync(1024 * 16);
+            await StackPool<int>.InitializeAsync(1024 * 16);
         }
 
-        public static async Task<ISerializationService> GetSerializationServiceAsync()
-        {
-            return await Instance.Container.ResolveAsync<ISerializationService>();
-        }
+        public static async Task<ISerializationService> GetSerializationServiceAsync() =>
+            await Instance.Container.ResolveAsync<ISerializationService>();
 
-        public static async Task<IInventoryService> GetInventoryServiceAsync()
-        {
-            return await Instance.Container.ResolveAsync<IInventoryService>();
-        }
+        public static async Task<IInventoryService> GetInventoryServiceAsync() =>
+            await Instance.Container.ResolveAsync<IInventoryService>();
 
-        public static async Task<ICategoryService> GetCategoryServiceAsync()
-        {
-            return await Instance.Container.ResolveAsync<ICategoryService>();
-        }
-        
-        public static async Task<IGamePropertyService> GetGamePropertyServiceAsync()
-        {
-            return await Instance.Container.ResolveAsync<IGamePropertyService>();
-        }
+        public static async Task<ICategoryService> GetCategoryServiceAsync() =>
+            await Instance.Container.ResolveAsync<ICategoryService>();
 
-        public static async Task<IBuffService> GetBuffServiceAsync()
-        {
-            return await Instance.Container.ResolveAsync<IBuffService>();
-        }
+        public static async Task<IGamePropertyService> GetGamePropertyServiceAsync() =>
+            await Instance.Container.ResolveAsync<IGamePropertyService>();
 
-        public static async Task<IObjectPoolService> GetObjectPoolServiceAsync()
-        {
-            return await Instance.Container.ResolveAsync<IObjectPoolService>();
-        }
+        public static async Task<IBuffService> GetBuffServiceAsync() =>
+            await Instance.Container.ResolveAsync<IBuffService>();
+
+        public static async Task<IObjectPoolService> GetObjectPoolServiceAsync() =>
+            await Instance.Container.ResolveAsync<IObjectPoolService>();
     }
 }

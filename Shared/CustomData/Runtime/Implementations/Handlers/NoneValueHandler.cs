@@ -5,6 +5,7 @@ namespace EasyPack.CustomData
     public class NoneValueHandler : IValueHandler
     {
         public CustomDataType SupportedType => CustomDataType.None;
+
         public object GetValue(CustomDataEntry entry) => null;
 
         public void SetValue(CustomDataEntry entry, object value)
@@ -22,7 +23,10 @@ namespace EasyPack.CustomData
 
         public string Serialize(CustomDataEntry entry) => string.Empty;
 
-        public void Clear(CustomDataEntry entry) => ClearAllValues(entry);
+        public void Clear(CustomDataEntry entry)
+        {
+            ClearAllValues(entry);
+        }
 
         private static void ClearAllValues(CustomDataEntry entry)
         {

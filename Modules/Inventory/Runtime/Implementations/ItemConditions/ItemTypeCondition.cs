@@ -10,20 +10,14 @@ namespace EasyPack.InventorySystem
         {
         }
 
-        public ItemTypeCondition(string itemType)
-        {
-            ItemType = itemType;
-        }
+        public ItemTypeCondition(string itemType) => ItemType = itemType;
 
         public void SetItemType(string itemType)
         {
             ItemType = itemType;
         }
 
-        public bool CheckCondition(IItem item)
-        {
-            return item != null && item.Type == ItemType;
-        }
+        public bool CheckCondition(IItem item) => item != null && item.Type == ItemType;
 
         // 序列化支持
         public string Kind => "ItemType";
@@ -36,22 +30,20 @@ namespace EasyPack.InventorySystem
             dto.Params.Add(entry);
             return dto;
         }
+
         public ISerializableCondition FromDto(SerializedCondition dto)
         {
             if (dto == null || dto.Params == null) return this;
             string t = null;
-            foreach (var p in dto.Params)
-            {
+            foreach (CustomDataEntry p in dto.Params)
                 if (p?.Key == "ItemType")
                 {
                     t = p.StringValue ?? p.GetValue() as string;
                     break;
                 }
-            }
-            if (!string.IsNullOrEmpty(t))
-            {
-                ItemType = t;
-            }
+
+            if (!string.IsNullOrEmpty(t)) ItemType = t;
+
             return this;
         }
     }

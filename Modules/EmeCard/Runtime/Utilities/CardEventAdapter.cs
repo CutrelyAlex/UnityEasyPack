@@ -3,25 +3,23 @@ using System;
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
-    /// 事件工具类：提供事件创建和转换的便捷方法。
+    ///     事件工具类：提供事件创建和转换的便捷方法。
     /// </summary>
     public static class CardEventHelper
     {
         /// <summary>
-        /// 创建强类型事件。
+        ///     创建强类型事件。
         /// </summary>
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="eventType">事件类型标识符。</param>
         /// <param name="data">事件数据。</param>
         /// <param name="eventId">事件实例 ID（可选）。</param>
         /// <returns>事件实例。</returns>
-        public static CardEvent<T> CreateEvent<T>(string eventType, T data, string eventId = null)
-        {
-            return new CardEvent<T>(eventType, data, eventId);
-        }
+        public static CardEvent<T> CreateEvent<T>(string eventType, T data, string eventId = null) =>
+            new(eventType, data, eventId);
 
         /// <summary>
-        /// 尝试从 ICardEvent 提取强类型数据。
+        ///     尝试从 ICardEvent 提取强类型数据。
         /// </summary>
         /// <typeparam name="T">目标数据类型。</typeparam>
         /// <param name="cardEvent">源事件。</param>
@@ -34,41 +32,37 @@ namespace EasyPack.EmeCardSystem
                 value = typed.Data;
                 return true;
             }
+
             value = default;
             return false;
         }
 
         /// <summary>
-        /// 检查事件是否为指定类型。
+        ///     检查事件是否为指定类型。
         /// </summary>
         /// <param name="cardEvent">要检查的事件。</param>
         /// <param name="eventType">事件类型标识符。</param>
         /// <returns>如果类型匹配返回 true。</returns>
-        public static bool IsType(this ICardEvent cardEvent, string eventType)
-        {
-            return cardEvent?.EventType == eventType;
-        }
+        public static bool IsType(this ICardEvent cardEvent, string eventType) => cardEvent?.EventType == eventType;
 
         /// <summary>
-        /// 检查事件是否匹配事件定义。
+        ///     检查事件是否匹配事件定义。
         /// </summary>
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="cardEvent">要检查的事件。</param>
         /// <param name="eventDef">事件类型定义。</param>
         /// <returns>如果匹配返回 true。</returns>
-        public static bool Matches<T>(this ICardEvent cardEvent, CardEventDefinition<T> eventDef)
-        {
-            return eventDef?.Matches(cardEvent) ?? false;
-        }
+        public static bool Matches<T>(this ICardEvent cardEvent, CardEventDefinition<T> eventDef) =>
+            eventDef?.Matches(cardEvent) ?? false;
     }
 
     /// <summary>
-    /// 事件条目创建工具类。
+    ///     事件条目创建工具类。
     /// </summary>
     public static class EventEntryFactory
     {
         /// <summary>
-        /// 创建卡牌事件条目。
+        ///     创建卡牌事件条目。
         /// </summary>
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="source">源卡牌。</param>
@@ -85,11 +79,11 @@ namespace EasyPack.EmeCardSystem
             int priority = 0)
         {
             var evt = new CardEvent<T>(eventType, data);
-            return new CardEventEntry(source, evt, effectRoot, priority);
+            return new(source, evt, effectRoot, priority);
         }
 
         /// <summary>
-        /// 创建卡牌事件条目（使用事件定义）。
+        ///     创建卡牌事件条目（使用事件定义）。
         /// </summary>
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="source">源卡牌。</param>
@@ -106,11 +100,11 @@ namespace EasyPack.EmeCardSystem
             int priority = 0)
         {
             var evt = eventDef.Create(data);
-            return new CardEventEntry(source, evt, effectRoot, priority);
+            return new(source, evt, effectRoot, priority);
         }
 
         /// <summary>
-        /// 创建规则事件条目。
+        ///     创建规则事件条目。
         /// </summary>
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="ruleUID">规则 UID。</param>
@@ -129,11 +123,11 @@ namespace EasyPack.EmeCardSystem
             int priority = 0)
         {
             var evt = new CardEvent<T>(eventType, data);
-            return new RuleEventEntry(ruleUID, evt, sourceCard, effectRoot, priority);
+            return new(ruleUID, evt, sourceCard, effectRoot, priority);
         }
 
         /// <summary>
-        /// 创建系统事件条目。
+        ///     创建系统事件条目。
         /// </summary>
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="eventType">事件类型。</param>
@@ -146,11 +140,11 @@ namespace EasyPack.EmeCardSystem
             int priority = 0)
         {
             var evt = new CardEvent<T>(eventType, data);
-            return new SystemEventEntry(evt, priority);
+            return new(evt, priority);
         }
 
         /// <summary>
-        /// 创建 Tick 事件条目。
+        ///     创建 Tick 事件条目。
         /// </summary>
         /// <param name="deltaTime">时间增量。</param>
         /// <param name="priority">优先级。</param>
@@ -158,7 +152,7 @@ namespace EasyPack.EmeCardSystem
         public static SystemEventEntry Tick(float deltaTime, int priority = 0)
         {
             var evt = CardEventTypes.Tick.Create(deltaTime);
-            return new SystemEventEntry(evt, priority);
+            return new(evt, priority);
         }
     }
 }

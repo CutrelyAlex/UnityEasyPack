@@ -6,7 +6,7 @@ using EasyPack.GamePropertySystem;
 namespace EasyPack.EmeCardSystem.Example
 {
     /// <summary>
-    /// EmeCard 系统使用案例展示
+    ///     EmeCard 系统使用案例展示
     /// </summary>
     public sealed class EmeCardExample : MonoBehaviour
     {
@@ -48,64 +48,64 @@ namespace EasyPack.EmeCardSystem.Example
         }
 
         /// <summary>
-        /// 案例1: 初始化工厂和引擎
+        ///     案例1: 初始化工厂和引擎
         /// </summary>
         private void ShowFactoryAndEngineInitialization()
         {
             Debug.Log("案例1: 初始化工厂和引擎");
 
-            _factory = new CardFactory();
-            _engine = new CardEngine(_factory);
+            _factory = new();
+            _engine = new(_factory);
 
             // 注册卡牌模板 - 使用简化构造函数（无属性）
             _factory.Register("世界", () =>
-                new Card(new CardData("世界", "世界", "", CardCategory.Object), "世界"));
+                new(new("世界", "世界", "", CardCategory.Object), "世界"));
 
             _factory.Register("草地格", () =>
-                new Card(new CardData("草地格", "草地格", "", CardCategory.Object), "草地"));
+                new(new("草地格", "草地格", "", CardCategory.Object), "草地"));
 
             _factory.Register("玩家", () =>
-                new Card(new CardData("玩家", "玩家", "", CardCategory.Object), "玩家"));
+                new(new("玩家", "玩家", "", CardCategory.Object), "玩家"));
 
             _factory.Register("树木", () =>
-                new Card(new CardData("树木", "树木", "", CardCategory.Object), "树木", "可燃烧"));
+                new(new("树木", "树木", "", CardCategory.Object), "树木", "可燃烧"));
 
             _factory.Register("木棍", () =>
-                new Card(new CardData("木棍", "木棍", "", CardCategory.Object), "木棍"));
+                new(new("木棍", "木棍", "", CardCategory.Object), "木棍"));
 
             _factory.Register("火", () =>
-                new Card(new CardData("火", "火", "", CardCategory.Object), "火"));
+                new(new("火", "火", "", CardCategory.Object), "火"));
 
             // 火把使用完整构造函数（带属性）
             _factory.Register("火把", () =>
-                new Card(new CardData("火把", "火把", "", CardCategory.Object),
+                new(new("火把", "火把", "", CardCategory.Object),
                     new List<GameProperty> { new("Ticks", 0f) }, "火把"));
 
             _factory.Register("灰烬", () =>
-                new Card(new CardData("灰烬", "灰烬", "", CardCategory.Object), "灰烬"));
+                new(new("灰烬", "灰烬", "", CardCategory.Object), "灰烬"));
 
             _factory.Register("制作", () =>
-                new Card(new CardData("制作", "制作", "", CardCategory.Action), "制作"));
+                new(new("制作", "制作", "", CardCategory.Action), "制作"));
 
             Debug.Log("工厂和引擎初始化完成，可用于创建和管理卡牌\n");
         }
 
         /// <summary>
-        /// 案例2: 创建卡牌模板
+        ///     案例2: 创建卡牌模板
         /// </summary>
         private void ShowCardTemplateCreation()
         {
             Debug.Log("案例2: 创建卡牌模板");
 
             // 演示创建不同类型的卡牌
-            var simpleCard = new Card(new CardData("simple", "简单卡牌", "一张简单的卡牌", CardCategory.Object));
+            var simpleCard = new Card(new("simple", "简单卡牌", "一张简单的卡牌", CardCategory.Object));
             Debug.Log($"创建了简单卡牌: {simpleCard.Name} (ID: {simpleCard.Id})");
 
-            var taggedCard = new Card(new CardData("tagged", "带标签卡牌", "", CardCategory.Object), "武器", "近战");
+            var taggedCard = new Card(new("tagged", "带标签卡牌", "", CardCategory.Object), "武器", "近战");
             Debug.Log($"创建了带标签卡牌: {taggedCard.Name}，标签: {string.Join(", ", taggedCard.Tags)}");
 
             var propertyCard = new Card(
-                new CardData("property", "带属性卡牌", "", CardCategory.Object),
+                new("property", "带属性卡牌", "", CardCategory.Object),
                 new List<GameProperty> { new("Health", 100f), new("Attack", 50f) }
             );
             Debug.Log($"创建了带属性卡牌: {propertyCard.Name}，属性数量: {propertyCard.Properties.Count}");
@@ -114,20 +114,20 @@ namespace EasyPack.EmeCardSystem.Example
         }
 
         /// <summary>
-        /// 案例3: 搭建游戏世界
+        ///     案例3: 搭建游戏世界
         /// </summary>
         private void ShowWorldSetup()
         {
             Debug.Log("案例3: 搭建游戏世界");
 
-            var world = _engine.CreateCard("世界");
-            var tileGrass = _engine.CreateCard("草地格");
+            Card world = _engine.CreateCard("世界");
+            Card tileGrass = _engine.CreateCard("草地格");
             world.AddChild(tileGrass);
 
-            var player = _engine.CreateCard("玩家");
-            var tree = _engine.CreateCard("树木");
-            var fire = _engine.CreateCard("火");
-            var make = _engine.CreateCard("制作");
+            Card player = _engine.CreateCard("玩家");
+            Card tree = _engine.CreateCard("树木");
+            Card fire = _engine.CreateCard("火");
+            Card make = _engine.CreateCard("制作");
 
             tileGrass.AddChild(player);
             tileGrass.AddChild(tree);
@@ -139,7 +139,7 @@ namespace EasyPack.EmeCardSystem.Example
         }
 
         /// <summary>
-        /// 案例4: 注册简单规则
+        ///     案例4: 注册简单规则
         /// </summary>
         private void ShowSimpleRuleRegistration()
         {
@@ -151,7 +151,7 @@ namespace EasyPack.EmeCardSystem.Example
                 .When(ctx => ctx.Source.HasTag("制作"))
                 .NeedTag("玩家")
                 .NeedId("树木")
-                .DoRemoveById("树木", take: 1)
+                .DoRemoveById("树木", 1)
                 .DoCreate("木棍")
                 .StopPropagation()
             );
@@ -165,8 +165,8 @@ namespace EasyPack.EmeCardSystem.Example
                 .NeedTag("玩家")
                 .NeedTag("木棍")
                 .NeedTag("火")
-                .DoRemoveByTag("木棍", take: 1)
-                .DoRemoveByTag("火", take: 1)
+                .DoRemoveByTag("木棍", 1)
+                .DoRemoveByTag("火", 1)
                 .DoCreate("火把")
                 .StopPropagation()
             );
@@ -176,13 +176,13 @@ namespace EasyPack.EmeCardSystem.Example
         }
 
         /// <summary>
-        /// 案例5: 演示事件驱动
+        ///     案例5: 演示事件驱动
         /// </summary>
         private void ShowEventDrivenSystem()
         {
             Debug.Log("案例5: 演示事件驱动");
 
-            var testCard = _engine.CreateCard("玩家");
+            Card testCard = _engine.CreateCard("玩家");
             int eventCount = 0;
 
             testCard.OnEvent += (source, evt) =>
@@ -200,17 +200,17 @@ namespace EasyPack.EmeCardSystem.Example
         }
 
         /// <summary>
-        /// 案例6: 演示规则效果
+        ///     案例6: 演示规则效果
         /// </summary>
         private void ShowRuleEffects()
         {
             Debug.Log("案例6: 演示规则效果");
 
             // 创建一个测试场景
-            var testTile = _engine.CreateCard("草地格");
-            var testPlayer = _engine.CreateCard("玩家");
-            var testTree = _engine.CreateCard("树木");
-            var testMake = _engine.CreateCard("制作");
+            Card testTile = _engine.CreateCard("草地格");
+            Card testPlayer = _engine.CreateCard("玩家");
+            Card testTree = _engine.CreateCard("树木");
+            Card testMake = _engine.CreateCard("制作");
 
             testTile.AddChild(testPlayer);
             testTile.AddChild(testTree);
@@ -228,21 +228,21 @@ namespace EasyPack.EmeCardSystem.Example
         }
 
         /// <summary>
-        /// 案例7: 演示递归选择
+        ///     案例7: 演示递归选择
         /// </summary>
         private void ShowRecursiveSelection()
         {
             Debug.Log("案例7: 演示递归选择");
 
             // 创建一个复杂的层次结构
-            var root = _engine.CreateCard("世界");
-            var area1 = _engine.CreateCard("草地格");
-            var area2 = _engine.CreateCard("草地格");
+            Card root = _engine.CreateCard("世界");
+            Card area1 = _engine.CreateCard("草地格");
+            Card area2 = _engine.CreateCard("草地格");
             root.AddChild(area1);
             root.AddChild(area2);
 
-            var player1 = _engine.CreateCard("玩家");
-            var player2 = _engine.CreateCard("玩家");
+            Card player1 = _engine.CreateCard("玩家");
+            Card player2 = _engine.CreateCard("玩家");
             area1.AddChild(player1);
             area2.AddChild(player2);
 
@@ -250,11 +250,8 @@ namespace EasyPack.EmeCardSystem.Example
             _engine.RegisterRule(b => b
                 .On("检查夜晚")
                 .AtRoot()
-                .NeedTagRecursive("夜晚", minCount: 1)
-                .DoInvoke((ctx, matched) =>
-                {
-                    Debug.Log($"[递归选择] 在整个世界树中发现了 {matched.Count} 个夜晚标记");
-                })
+                .NeedTagRecursive("夜晚", 1)
+                .DoInvoke((ctx, matched) => { Debug.Log($"[递归选择] 在整个世界树中发现了 {matched.Count} 个夜晚标记"); })
             );
 
             // 添加夜晚标签到其中一个区域
@@ -268,7 +265,7 @@ namespace EasyPack.EmeCardSystem.Example
         }
 
         /// <summary>
-        /// 案例8: 演示复杂规则
+        ///     案例8: 演示复杂规则
         /// </summary>
         private void ShowComplexRules()
         {
@@ -296,7 +293,7 @@ namespace EasyPack.EmeCardSystem.Example
                 {
                     var burnedTorches = ctx.MatchRoot.Children
                         .Where(c => c.HasTag("火把") &&
-                               c.Properties?.FirstOrDefault()?.GetBaseValue() >= 5f)
+                                    c.Properties?.FirstOrDefault()?.GetBaseValue() >= 5f)
                         .ToList();
 
                     return (burnedTorches.Count > 0, burnedTorches);
@@ -304,10 +301,10 @@ namespace EasyPack.EmeCardSystem.Example
                 .DoInvoke((ctx, matched) =>
                 {
                     Debug.Log($"[燃尽] {matched.Count} 个火把燃尽");
-                    foreach (var torch in matched)
+                    foreach (Card torch in matched)
                     {
-                        torch.Owner?.RemoveChild(torch, force: false);
-                        var ash = _factory.Create("灰烬");
+                        torch.Owner?.RemoveChild(torch, false);
+                        Card ash = _factory.Create("灰烬");
                         ctx.MatchRoot.AddChild(ash);
                     }
                 })
@@ -317,21 +314,21 @@ namespace EasyPack.EmeCardSystem.Example
         }
 
         /// <summary>
-        /// 案例9: 运行完整游戏流程
+        ///     案例9: 运行完整游戏流程
         /// </summary>
         private void ShowCompleteGameplay()
         {
             Debug.Log("案例9: 运行完整游戏流程");
 
             // 创建游戏世界
-            var world = _engine.CreateCard("世界");
-            var tileGrass = _engine.CreateCard("草地格");
+            Card world = _engine.CreateCard("世界");
+            Card tileGrass = _engine.CreateCard("草地格");
             world.AddChild(tileGrass);
 
-            var player = _engine.CreateCard("玩家");
-            var tree = _engine.CreateCard("树木");
-            var fire = _engine.CreateCard("火");
-            var make = _engine.CreateCard("制作");
+            Card player = _engine.CreateCard("玩家");
+            Card tree = _engine.CreateCard("树木");
+            Card fire = _engine.CreateCard("火");
+            Card make = _engine.CreateCard("制作");
 
             tileGrass.AddChild(player);
             tileGrass.AddChild(tree);
@@ -366,7 +363,7 @@ namespace EasyPack.EmeCardSystem.Example
         }
 
         /// <summary>
-        /// 显示卡牌层次结构
+        ///     显示卡牌层次结构
         /// </summary>
         private void DisplayCardHierarchy(Card root, string title)
         {
@@ -378,14 +375,12 @@ namespace EasyPack.EmeCardSystem.Example
         {
             string indent = new(' ', depth * 2);
             string tags = card.Tags.Count > 0 ? $" [{string.Join(", ", card.Tags)}]" : "";
-            string props = card.Properties.Count > 0 ?
-                $" (属性: {string.Join(", ", card.Properties.Select(p => $"{p.ID}={p.GetValue()}"))})" : "";
+            string props = card.Properties.Count > 0
+                ? $" (属性: {string.Join(", ", card.Properties.Select(p => $"{p.ID}={p.GetValue()}"))})"
+                : "";
             Debug.Log($"{indent}{card.Id}{tags}{props}");
 
-            foreach (var child in card.Children)
-            {
-                DisplayCardRecursive(child, depth + 1);
-            }
+            foreach (Card child in card.Children) DisplayCardRecursive(child, depth + 1);
         }
     }
 }

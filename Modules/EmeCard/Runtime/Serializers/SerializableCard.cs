@@ -5,7 +5,7 @@ using EasyPack.Serialization;
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
-    /// Card 的可序列化中间数据结构
+    ///     Card 的可序列化中间数据结构
     /// </summary>
     [Serializable]
     public class SerializableCard : ISerializable
@@ -26,7 +26,7 @@ namespace EasyPack.EmeCardSystem
     }
 
     /// <summary>
-    /// 子卡数组的包装器，用于 JSON 序列化
+    ///     子卡数组的包装器，用于 JSON 序列化
     /// </summary>
     [Serializable]
     internal class SerializableCardArray : ISerializable
@@ -34,4 +34,3 @@ namespace EasyPack.EmeCardSystem
         public SerializableCard[] Cards;
     }
 }
-

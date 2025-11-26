@@ -5,7 +5,7 @@ using UnityEngine.Tilemaps;
 namespace EasyPack.Tools.PathFinding
 {
     /// <summary>
-    /// 统一地图共享服务
+    ///     统一地图共享服务
     /// </summary>
     public class PathfindingService : MonoBehaviour
     {
@@ -18,7 +18,9 @@ namespace EasyPack.Tools.PathFinding
         public List<Grid> globalGrids = new();
 
         private UnifiedMap _unifiedMap;
+
         private bool _built;
+
         // 在类内部其他成员下方新增（便于 Mover 获取主 Tilemap）
         public Tilemap PrimaryTilemap => globalTilemaps.Count > 0 ? globalTilemaps[0] : null;
 
@@ -29,6 +31,7 @@ namespace EasyPack.Tools.PathFinding
                 Destroy(gameObject);
                 return;
             }
+
             Instance = this;
             if (!_built && (globalTilemaps.Count > 0 || globalGrids.Count > 0))
             {
@@ -38,67 +41,49 @@ namespace EasyPack.Tools.PathFinding
         }
 
         /// <summary>
-        /// 由外部（Mover）注册其 Tilemap / Grid。仅在尚未构建时接收。
+        ///     由外部（Mover）注册其 Tilemap / Grid。仅在尚未构建时接收。
         /// </summary>
         public void RegisterTilemaps(List<Tilemap> fromTilemaps, List<Grid> fromGrids)
         {
             if (_built) return;
 
-            if (fromGrids is { Count: > 0 })
-            {
-                CollectFromGridsIfAny(fromGrids, globalTilemaps);
-            }
+            if (fromGrids is { Count: > 0 }) CollectFromGridsIfAny(fromGrids, globalTilemaps);
 
             if (fromTilemaps != null)
-            {
-                foreach (var tm in fromTilemaps)
-                {
+                foreach (Tilemap tm in fromTilemaps)
                     if (tm != null && !globalTilemaps.Contains(tm))
                         globalTilemaps.Add(tm);
-                }
-            }
 
-            if (globalTilemaps.Count > 0)
-            {
-                BuildUnifiedMapInternal(globalTilemaps);
-            }
+            if (globalTilemaps.Count > 0) BuildUnifiedMapInternal(globalTilemaps);
         }
 
         public UnifiedMap GetUnifiedMap() => _unifiedMap;
 
         /// <summary>
-        /// 强制重建
+        ///     强制重建
         /// </summary>
         public void Rebuild()
         {
             _built = false;
             _unifiedMap = null;
-            if (globalTilemaps.Count == 0)
-            {
-                CollectFromGridsIfAny(globalGrids, globalTilemaps);
-            }
+            if (globalTilemaps.Count == 0) CollectFromGridsIfAny(globalGrids, globalTilemaps);
+
             if (globalTilemaps.Count > 0)
-            {
                 BuildUnifiedMapInternal(globalTilemaps);
-            }
             else
-            {
                 Debug.LogWarning("[PathfindingService] 没有可用 Tilemap 重建。");
-            }
         }
 
         private void CollectFromGridsIfAny(List<Grid> grids, List<Tilemap> outList)
         {
             if (grids == null) return;
-            foreach (var g in grids)
+            foreach (Grid g in grids)
             {
                 if (g == null) continue;
                 var tms = g.GetComponentsInChildren<Tilemap>();
-                foreach (var tm in tms)
-                {
+                foreach (Tilemap tm in tms)
                     if (tm != null && !outList.Contains(tm))
                         outList.Add(tm);
-                }
             }
         }
 
@@ -110,24 +95,22 @@ namespace EasyPack.Tools.PathFinding
                 return;
             }
 
-            _unifiedMap = new UnifiedMap();
+            _unifiedMap = new();
             int added = 0;
 
-            foreach (var tilemap in maps)
+            foreach (Tilemap tilemap in maps)
             {
                 if (tilemap == null) continue;
                 BoundsInt bounds = tilemap.cellBounds;
                 for (int x = bounds.xMin; x < bounds.xMax; x++)
+                for (int y = bounds.yMin; y < bounds.yMax; y++)
                 {
-                    for (int y = bounds.yMin; y < bounds.yMax; y++)
+                    var pos = new Vector3Int(x, y, 0);
+                    TileBase tile = tilemap.GetTile(pos);
+                    if (tile != null)
                     {
-                        var pos = new Vector3Int(x, y, 0);
-                        var tile = tilemap.GetTile(pos);
-                        if (tile != null)
-                        {
-                            _unifiedMap.AddWalkableTile(pos, tilemap, 1f);
-                            added++;
-                        }
+                        _unifiedMap.AddWalkableTile(pos, tilemap, 1f);
+                        added++;
                     }
                 }
             }

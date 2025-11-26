@@ -6,15 +6,15 @@ using EasyPack.Modifiers;
 namespace EasyPack.GamePropertySystem
 {
     /// <summary>
-    /// 游戏属性管理器接口
-    /// 提供属性注册、查询、分类管理和批量操作功能
+    ///     游戏属性管理器接口
+    ///     提供属性注册、查询、分类管理和批量操作功能
     /// </summary>
     public interface IGamePropertyService : IService
     {
         #region 注册API
 
         /// <summary>
-        /// 注册单个属性到指定分类
+        ///     注册单个属性到指定分类
         /// </summary>
         /// <param name="property">要注册的属性</param>
         /// <param name="category">分类名（支持层级，如"Character.Base"）</param>
@@ -24,7 +24,7 @@ namespace EasyPack.GamePropertySystem
         void Register(GameProperty property, string category = "Default", PropertyMetadata metadata = null);
 
         /// <summary>
-        /// 批量注册属性到指定分类
+        ///     批量注册属性到指定分类
         /// </summary>
         /// <param name="properties">属性集合</param>
         /// <param name="category">分类名</param>
@@ -35,14 +35,14 @@ namespace EasyPack.GamePropertySystem
         #region 查询API
 
         /// <summary>
-        /// 通过ID获取属性
+        ///     通过ID获取属性
         /// </summary>
         /// <param name="id">属性ID</param>
         /// <returns>属性实例，不存在则返回null</returns>
         GameProperty Get(string id);
 
         /// <summary>
-        /// 获取指定分类的所有属性
+        ///     获取指定分类的所有属性
         /// </summary>
         /// <param name="category">分类名</param>
         /// <param name="includeChildren">是否包含子分类（支持通配符"Category.*"）</param>
@@ -50,14 +50,14 @@ namespace EasyPack.GamePropertySystem
         IEnumerable<GameProperty> GetByCategory(string category, bool includeChildren = false);
 
         /// <summary>
-        /// 获取包含指定标签的所有属性
+        ///     获取包含指定标签的所有属性
         /// </summary>
         /// <param name="tag">标签名</param>
         /// <returns>属性集合</returns>
         IEnumerable<GameProperty> GetByTag(string tag);
 
         /// <summary>
-        /// 组合查询：获取同时满足分类和标签条件的属性（交集）
+        ///     组合查询：获取同时满足分类和标签条件的属性（交集）
         /// </summary>
         /// <param name="category">分类名</param>
         /// <param name="tag">标签名</param>
@@ -65,20 +65,20 @@ namespace EasyPack.GamePropertySystem
         IEnumerable<GameProperty> GetByCategoryAndTag(string category, string tag);
 
         /// <summary>
-        /// 获取属性的元数据
+        ///     获取属性的元数据
         /// </summary>
         /// <param name="id">属性ID</param>
         /// <returns>元数据实例，不存在则返回null</returns>
         PropertyMetadata GetMetadata(string id);
 
         /// <summary>
-        /// 获取所有已注册的属性ID
+        ///     获取所有已注册的属性ID
         /// </summary>
         /// <returns>属性ID集合</returns>
         IEnumerable<string> GetAllPropertyIds();
 
         /// <summary>
-        /// 获取所有分类名
+        ///     获取所有分类名
         /// </summary>
         /// <returns>分类名集合</returns>
         IEnumerable<string> GetAllCategories();
@@ -88,14 +88,14 @@ namespace EasyPack.GamePropertySystem
         #region 移除API
 
         /// <summary>
-        /// 移除指定属性
+        ///     移除指定属性
         /// </summary>
         /// <param name="id">属性ID</param>
         /// <returns>是否成功移除（false表示属性不存在）</returns>
         bool Unregister(string id);
 
         /// <summary>
-        /// 移除整个分类及其所有属性
+        ///     移除整个分类及其所有属性
         /// </summary>
         /// <param name="category">分类名</param>
         void UnregisterCategory(string category);
@@ -105,7 +105,7 @@ namespace EasyPack.GamePropertySystem
         #region 批量操作API
 
         /// <summary>
-        /// 设置分类中所有属性的激活状态
+        ///     设置分类中所有属性的激活状态
         /// </summary>
         /// <param name="category">分类名</param>
         /// <param name="active">激活状态</param>
@@ -113,7 +113,7 @@ namespace EasyPack.GamePropertySystem
         OperationResult<List<string>> SetCategoryActive(string category, bool active);
 
         /// <summary>
-        /// 为分类中所有属性应用修饰符
+        ///     为分类中所有属性应用修饰符
         /// </summary>
         /// <param name="category">分类名</param>
         /// <param name="modifier">修饰符实例</param>

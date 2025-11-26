@@ -5,7 +5,7 @@ using EasyPack.ObjectPool;
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
-    /// Stack&lt;(Card node, int depth)&gt; 专用对象池，用于 EmeCard 系统中的遍历操作。
+    ///     Stack&lt;(Card node, int depth)&gt; 专用对象池，用于 EmeCard 系统中的遍历操作。
     /// </summary>
     public static class TraversalStackPool
     {
@@ -13,7 +13,7 @@ namespace EasyPack.EmeCardSystem
         private static bool _isInitialized = false;
 
         /// <summary>
-        /// 初始化遍历栈池。
+        ///     初始化遍历栈池。
         /// </summary>
         /// <param name="poolService">对象池服务实例。</param>
         /// <param name="maxCapacity">池的最大容量，默认为32。</param>
@@ -26,15 +26,15 @@ namespace EasyPack.EmeCardSystem
             }
 
             _pool = poolService.CreatePool(
-                factory: () => new Stack<(Card node, int depth)>(),
-                cleanup: stack => stack.Clear(),
-                maxCapacity: maxCapacity
+                () => new Stack<(Card node, int depth)>(),
+                stack => stack.Clear(),
+                maxCapacity
             );
             _isInitialized = true;
         }
 
         /// <summary>
-        /// 自动初始化（如果尚未初始化）。
+        ///     自动初始化（如果尚未初始化）。
         /// </summary>
         private static void EnsureInitialized()
         {
@@ -43,18 +43,20 @@ namespace EasyPack.EmeCardSystem
             // 尝试自动初始化
             try
             {
-                var poolService = EasyPackArchitecture.GetObjectPoolServiceAsync().GetAwaiter().GetResult();
+                IObjectPoolService poolService =
+                    EasyPackArchitecture.GetObjectPoolServiceAsync().GetAwaiter().GetResult();
                 Initialize(poolService);
             }
             catch (System.Exception ex)
             {
                 throw new System.InvalidOperationException(
-                    "TraversalStackPool 自动初始化失败。请确保 EasyPackArchitecture 已正确初始化，或手动调用 TraversalStackPool.Initialize()", ex);
+                    "TraversalStackPool 自动初始化失败。请确保 EasyPackArchitecture 已正确初始化，或手动调用 TraversalStackPool.Initialize()",
+                    ex);
             }
         }
 
         /// <summary>
-        /// 从池中租用一个遍历栈。
+        ///     从池中租用一个遍历栈。
         /// </summary>
         /// <returns>清洁的遍历栈实例。</returns>
         public static Stack<(Card node, int depth)> Rent()
@@ -64,15 +66,13 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 将遍历栈归还到池中。栈将自动清空。
+        ///     将遍历栈归还到池中。栈将自动清空。
         /// </summary>
         /// <param name="stack">要归还的遍历栈。</param>
         public static void Return(Stack<(Card node, int depth)> stack)
         {
-            if (!_isInitialized)
-            {
-                return;
-            }
+            if (!_isInitialized) return;
+
             _pool.Return(stack);
         }
     }

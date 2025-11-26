@@ -11,17 +11,11 @@ namespace EasyPack.Modifiers
         {
             float floatAfterAdd = 0;
             float rangeAfterAdd = 0;
-            foreach (var mod in modifiers)
-            {
+            foreach (IModifier mod in modifiers)
                 if (mod is FloatModifier fm)
-                {
                     floatAfterAdd += fm.Value;
-                }
-                else if (mod is RangeModifier rm)
-                {
-                    rangeAfterAdd += Random.Range(rm.Value.x, rm.Value.y);
-                }
-            }
+                else if (mod is RangeModifier rm) rangeAfterAdd += Random.Range(rm.Value.x, rm.Value.y);
+
             value += floatAfterAdd + rangeAfterAdd;
         }
     }

@@ -4,16 +4,16 @@ using UnityEngine;
 namespace EasyPack.ENekoFramework
 {
     /// <summary>
-    /// 帧末批处理管理器 - 在 LateUpdate 时统一刷新所有脏绑定
+    ///     帧末批处理管理器 - 在 LateUpdate 时统一刷新所有脏绑定
     /// </summary>
     public sealed class BindingBatchUpdater : MonoBehaviour
     {
         private static BindingBatchUpdater _instance;
-        private readonly HashSet<IBindable> _dirtyBindings = new HashSet<IBindable>();
+        private readonly HashSet<IBindable> _dirtyBindings = new();
         private bool _isUpdateScheduled = false;
-        
+
         /// <summary>
-        /// 获取单例实例
+        ///     获取单例实例
         /// </summary>
         public static BindingBatchUpdater Instance
         {
@@ -25,20 +25,21 @@ namespace EasyPack.ENekoFramework
                     DontDestroyOnLoad(go);
                     _instance = go.AddComponent<BindingBatchUpdater>();
                 }
+
                 return _instance;
             }
         }
-        
+
         /// <summary>
-        /// 是否有待处理的更新
+        ///     是否有待处理的更新
         /// </summary>
         public bool IsUpdateScheduled => _isUpdateScheduled;
-        
+
         /// <summary>
-        /// 脏绑定数量
+        ///     脏绑定数量
         /// </summary>
         public int DirtyBindingsCount => _dirtyBindings.Count;
-        
+
         private void Awake()
         {
             if (_instance != null && _instance != this)
@@ -46,20 +47,17 @@ namespace EasyPack.ENekoFramework
                 Destroy(gameObject);
                 return;
             }
-            
+
             _instance = this;
         }
-        
+
         private void OnDestroy()
         {
-            if (_instance == this)
-            {
-                _instance = null;
-            }
+            if (_instance == this) _instance = null;
         }
-        
+
         /// <summary>
-        /// 标记绑定为脏状态，等待帧末批处理
+        ///     标记绑定为脏状态，等待帧末批处理
         /// </summary>
         /// <param name="bindable">需要更新的绑定对象</param>
         public void MarkDirty(IBindable bindable)
@@ -69,26 +67,23 @@ namespace EasyPack.ENekoFramework
                 Debug.LogWarning("[BindingBatchUpdater] Attempted to mark null bindable as dirty");
                 return;
             }
-            
+
             _dirtyBindings.Add(bindable);
             _isUpdateScheduled = true;
         }
-        
+
         /// <summary>
-        /// 在 LateUpdate 时刷新所有脏绑定
+        ///     在 LateUpdate 时刷新所有脏绑定
         /// </summary>
         private void LateUpdate()
         {
-            if (!_isUpdateScheduled)
-            {
-                return;
-            }
-            
+            if (!_isUpdateScheduled) return;
+
             FlushAllUpdates();
         }
-        
+
         /// <summary>
-        /// 刷新所有待处理的绑定更新
+        ///     刷新所有待处理的绑定更新
         /// </summary>
         private void FlushAllUpdates()
         {
@@ -97,15 +92,14 @@ namespace EasyPack.ENekoFramework
                 _isUpdateScheduled = false;
                 return;
             }
-            
+
             // 性能监控（仅在开发模式）
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             var startTime = System.Diagnostics.Stopwatch.StartNew();
-            #endif
-            
+#endif
+
             // 批处理刷新所有脏绑定
-            foreach (var bindable in _dirtyBindings)
-            {
+            foreach (IBindable bindable in _dirtyBindings)
                 try
                 {
                     bindable?.FlushUpdates();
@@ -114,19 +108,16 @@ namespace EasyPack.ENekoFramework
                 {
                     Debug.LogWarning($"[BindingBatchUpdater] Exception during FlushUpdates: {ex}");
                 }
-            }
-            
+
             _dirtyBindings.Clear();
             _isUpdateScheduled = false;
-            
-            #if UNITY_EDITOR
+
+#if UNITY_EDITOR
             startTime.Stop();
             if (startTime.ElapsedMilliseconds > 16)
-            {
                 Debug.LogWarning($"[BindingBatchUpdater] Batch update took {startTime.ElapsedMilliseconds}ms " +
-                               $"(target: <16ms). Consider optimizing bindings.");
-            }
-            #endif
+                                 $"(target: <16ms). Consider optimizing bindings.");
+#endif
         }
     }
 }

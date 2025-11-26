@@ -6,28 +6,27 @@ using System.Threading.Tasks;
 namespace EasyPack.ENekoFramework
 {
     /// <summary>
-    /// 中央服务容器，管理服务注册、解析和生命周期。
-    /// 支持依赖注入与单例模式。
-    /// 注册和解析操作线程安全。
-    /// 支持延迟解析和循环依赖检测。
+    ///     中央服务容器，管理服务注册、解析和生命周期。
+    ///     支持依赖注入与单例模式。
+    ///     注册和解析操作线程安全。
+    ///     支持延迟解析和循环依赖检测。
     /// </summary>
     public class ServiceContainer : IDisposable
     {
-        private readonly Dictionary<Type, ServiceDescriptor> _services = new Dictionary<Type, ServiceDescriptor>();
-        private readonly object _lock = new object();
+        private readonly Dictionary<Type, ServiceDescriptor> _services = new();
+        private readonly object _lock = new();
 
         // 循环依赖检测：使用 ThreadLocal 支持多线程解析
-        [ThreadStatic]
-        private static Stack<Type> _resolutionStack;
+        [ThreadStatic] private static Stack<Type> _resolutionStack;
 
         /// <summary>
-        /// 可以注册的最大服务数量。
-        /// 默认：500
+        ///     可以注册的最大服务数量。
+        ///     默认：500
         /// </summary>
         public int MaxServiceCapacity { get; set; } = 500;
 
         /// <summary>
-        /// 当前已注册的服务数量。
+        ///     当前已注册的服务数量。
         /// </summary>
         public int RegisteredServiceCount
         {
@@ -41,7 +40,7 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 注册服务及其实现类型。
+        ///     注册服务及其实现类型。
         /// </summary>
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <typeparam name="TImplementation">具体实现类型</typeparam>
@@ -52,17 +51,13 @@ namespace EasyPack.ENekoFramework
         {
             lock (_lock)
             {
-                var serviceType = typeof(TService);
+                Type serviceType = typeof(TService);
 
                 if (_services.ContainsKey(serviceType))
-                {
                     throw new InvalidOperationException($"服务 {serviceType.Name} 已经被注册。");
-                }
 
                 if (_services.Count >= MaxServiceCapacity)
-                {
                     throw new InvalidOperationException($"服务容量已超限。最大容量：{MaxServiceCapacity}");
-                }
 
                 var descriptor = new ServiceDescriptor(serviceType, typeof(TImplementation));
                 _services[serviceType] = descriptor;
@@ -70,7 +65,7 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 解析服务实例，必要时创建并初始化它。
+        ///     解析服务实例，必要时创建并初始化它。
         /// </summary>
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <returns>服务实例</returns>
@@ -81,12 +76,10 @@ namespace EasyPack.ENekoFramework
 
             lock (_lock)
             {
-                var serviceType = typeof(TService);
+                Type serviceType = typeof(TService);
 
                 if (!_services.TryGetValue(serviceType, out descriptor))
-                {
                     throw new InvalidOperationException($"服务 {serviceType.Name} 未注册。");
-                }
 
                 descriptor.LastAccessedAt = DateTime.UtcNow;
             }
@@ -99,19 +92,16 @@ namespace EasyPack.ENekoFramework
                     // 检查实例是否已创建
                     descriptor.Instance ??= (IService)Activator.CreateInstance(descriptor.ImplementationType);
                 }
-                // 异步初始化IService的实例
-                if (descriptor.Instance is IService service)
-                {
-                    await service.InitializeAsync();
-                }
 
+                // 异步初始化IService的实例
+                if (descriptor.Instance is IService service) await service.InitializeAsync();
             }
 
             return descriptor.Instance as TService;
         }
 
         /// <summary>
-        /// 检查服务是否已注册。
+        ///     检查服务是否已注册。
         /// </summary>
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <returns>如果已注册返回 true，否则返回 false</returns>
@@ -124,7 +114,7 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 获取所有已注册的服务描述符
+        ///     获取所有已注册的服务描述符
         /// </summary>
         /// <returns>所有服务描述符的枚举</returns>
         public IEnumerable<ServiceDescriptor> GetAllServices()
@@ -136,7 +126,7 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 获取指定服务的描述符
+        ///     获取指定服务的描述符
         /// </summary>
         /// <typeparam name="TService">服务接口类型</typeparam>
         /// <returns>服务描述符，如果未注册则返回 null</returns>
@@ -144,14 +134,14 @@ namespace EasyPack.ENekoFramework
         {
             lock (_lock)
             {
-                var serviceType = typeof(TService);
+                Type serviceType = typeof(TService);
                 return _services.GetValueOrDefault(serviceType);
             }
         }
 
         /// <summary>
-        /// 释放所有服务并清空容器。
-        /// 服务按注册的逆序释放。
+        ///     释放所有服务并清空容器。
+        ///     服务按注册的逆序释放。
         /// </summary>
         public void Clear()
         {
@@ -160,20 +150,16 @@ namespace EasyPack.ENekoFramework
                 var descriptors = new List<ServiceDescriptor>(_services.Values);
                 descriptors.Reverse(); // 按逆序释放
 
-                foreach (var descriptor in descriptors)
-                {
+                foreach (ServiceDescriptor descriptor in descriptors)
                     if (descriptor.Instance is IDisposable disposable)
-                    {
                         disposable.Dispose();
-                    }
-                }
 
                 _services.Clear();
             }
         }
 
         /// <summary>
-        /// 注册延迟创建的服务
+        ///     注册延迟创建的服务
         /// </summary>
         /// <typeparam name="TService">服务类型</typeparam>
         /// <param name="factory">服务工厂函数</param>
@@ -181,17 +167,13 @@ namespace EasyPack.ENekoFramework
         {
             lock (_lock)
             {
-                var serviceType = typeof(TService);
+                Type serviceType = typeof(TService);
 
                 if (_services.ContainsKey(serviceType))
-                {
                     throw new InvalidOperationException($"服务 {serviceType.Name} 已经被注册。");
-                }
 
                 if (_services.Count >= MaxServiceCapacity)
-                {
                     throw new InvalidOperationException($"服务容量已超限。最大容量：{MaxServiceCapacity}");
-                }
 
                 var descriptor = new ServiceDescriptor(serviceType, factory);
                 _services[serviceType] = descriptor;
@@ -199,7 +181,7 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 注册单例服务实例
+        ///     注册单例服务实例
         /// </summary>
         /// <typeparam name="TService">服务类型</typeparam>
         /// <param name="instance">服务实例</param>
@@ -207,17 +189,13 @@ namespace EasyPack.ENekoFramework
         {
             lock (_lock)
             {
-                var serviceType = typeof(TService);
+                Type serviceType = typeof(TService);
 
                 if (_services.ContainsKey(serviceType))
-                {
                     throw new InvalidOperationException($"服务 {serviceType.Name} 已经被注册。");
-                }
 
                 if (_services.Count >= MaxServiceCapacity)
-                {
                     throw new InvalidOperationException($"服务容量已超限。最大容量：{MaxServiceCapacity}");
-                }
 
                 var descriptor = new ServiceDescriptor(serviceType, instance);
                 _services[serviceType] = descriptor;
@@ -225,32 +203,26 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 同步解析服务
+        ///     同步解析服务
         /// </summary>
         /// <typeparam name="TService">服务类型</typeparam>
         /// <returns>服务实例</returns>
-        public TService Resolve<TService>() where TService : class
-        {
-            return ResolveInternal<TService>();
-        }
+        public TService Resolve<TService>() where TService : class => ResolveInternal<TService>();
 
         /// <summary>
-        /// 内部解析方法，支持循环依赖检测
+        ///     内部解析方法，支持循环依赖检测
         /// </summary>
         private TService ResolveInternal<TService>() where TService : class
         {
-            var serviceType = typeof(TService);
+            Type serviceType = typeof(TService);
 
             // 初始化解析栈
-            if (_resolutionStack == null)
-            {
-                _resolutionStack = new Stack<Type>();
-            }
+            if (_resolutionStack == null) _resolutionStack = new();
 
             // 检测循环依赖
             if (_resolutionStack.Contains(serviceType))
             {
-                var path = BuildDependencyPath(serviceType);
+                string path = BuildDependencyPath(serviceType);
                 throw new CircularDependencyException(path);
             }
 
@@ -263,18 +235,13 @@ namespace EasyPack.ENekoFramework
                 lock (_lock)
                 {
                     if (!_services.TryGetValue(serviceType, out descriptor))
-                    {
                         throw new InvalidOperationException($"服务 {serviceType.Name} 未注册。");
-                    }
 
                     descriptor.LastAccessedAt = DateTime.UtcNow;
                 }
 
                 // 如果实例已存在，直接返回
-                if (descriptor.Instance != null)
-                {
-                    return descriptor.Instance as TService;
-                }
+                if (descriptor.Instance != null) return descriptor.Instance as TService;
 
                 // 创建实例（优先使用工厂，否则使用 Activator.CreateInstance）
                 lock (_lock)
@@ -282,15 +249,12 @@ namespace EasyPack.ENekoFramework
                     if (descriptor.Instance == null)
                     {
                         if (descriptor.Factory != null)
-                        {
                             descriptor.Instance = descriptor.Factory(this);
-                        }
                         else if (descriptor.ImplementationType != null)
-                        {
                             descriptor.Instance = Activator.CreateInstance(descriptor.ImplementationType);
-                        }
                     }
                 }
+
                 var service = descriptor.Instance as BaseService;
                 service?.InitializeAsync().GetAwaiter().GetResult();
                 return descriptor.Instance as TService;
@@ -302,26 +266,27 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 移除已注册的服务。
+        ///     移除已注册的服务。
         /// </summary>
         /// <typeparam name="TService">服务类型</typeparam>
         /// <returns>如果成功移除返回 true，否则返回 false</returns>
         public bool Unregister<TService>() where TService : class
         {
-            var serviceType = typeof(TService);
+            Type serviceType = typeof(TService);
             lock (_lock)
             {
-                if (_services.TryGetValue(serviceType, out var descriptor))
+                if (_services.TryGetValue(serviceType, out ServiceDescriptor descriptor))
                 {
                     (descriptor.Instance as IDisposable)?.Dispose();
                     return _services.Remove(serviceType);
                 }
+
                 return false;
             }
         }
 
         /// <summary>
-        /// 获取所有已注册的服务类型。
+        ///     获取所有已注册的服务类型。
         /// </summary>
         /// <returns>已注册的服务类型集合</returns>
         public IEnumerable<Type> GetRegisteredTypes()
@@ -333,21 +298,22 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 检查服务是否已实例化。
+        ///     检查服务是否已实例化。
         /// </summary>
         /// <typeparam name="TService">服务类型</typeparam>
         /// <returns>如果已实例化返回 true，否则返回 false</returns>
         public bool HasInstance<TService>() where TService : class
         {
-            var serviceType = typeof(TService);
+            Type serviceType = typeof(TService);
             lock (_lock)
             {
-                return _services.TryGetValue(serviceType, out var descriptor) && descriptor.Instance != null;
+                return _services.TryGetValue(serviceType, out ServiceDescriptor descriptor) &&
+                       descriptor.Instance != null;
             }
         }
 
         /// <summary>
-        /// 获取已注册的服务数量。
+        ///     获取已注册的服务数量。
         /// </summary>
         /// <returns>服务数量</returns>
         public int GetServiceCount()
@@ -359,21 +325,14 @@ namespace EasyPack.ENekoFramework
         }
 
 
-
-
-
-
         /// <summary>
-        /// 构建循环依赖路径字符串
+        ///     构建循环依赖路径字符串
         /// </summary>
         private string BuildDependencyPath(Type circularType)
         {
             var path = new List<string>();
 
-            foreach (var type in _resolutionStack)
-            {
-                path.Add(type.Name);
-            }
+            foreach (Type type in _resolutionStack) path.Add(type.Name);
 
             path.Reverse(); // 倒序以显示正确的依赖链
             path.Add(circularType.Name); // 添加导致循环的类型
@@ -382,7 +341,7 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 实现 IDisposable 接口
+        ///     实现 IDisposable 接口
         /// </summary>
         public void Dispose()
         {

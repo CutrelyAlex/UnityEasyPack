@@ -7,6 +7,6 @@ namespace EasyPack.InventorySystem
         ItemNotFound,
         SlotNotFound,
         InsufficientQuantity,
-        Failed
+        Failed,
     }
 }

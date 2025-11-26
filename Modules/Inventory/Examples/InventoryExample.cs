@@ -8,7 +8,7 @@ using UnityEngine;
 namespace EasyPack.InventorySystem.Example
 {
     /// <summary>
-    /// 展示背包系统的使用示例
+    ///     展示背包系统的使用示例
     /// </summary>
     public class InventoryExample : MonoBehaviour
     {
@@ -56,14 +56,14 @@ namespace EasyPack.InventorySystem.Example
             await ShowInventorySerialization();
 
             // 新增扩展示例（源于测试脚本中已有但示例未覆盖的功能）
-            ShowOrganizeInventory();                  // 案例8: OrganizeInventory 合并+排序
-            ShowAdvancedQueriesAndStatistics();       // 案例9: 各类查询与统计
-            ShowInventoryManagerBasics();             // 案例10: 容器注册/分类/优先级
-            ShowGlobalConditionsDemo();               // 案例11: 全局条件启用/禁用
-            ShowCrossContainerAdvancedOps();          // 案例12: Transfer / AutoMove / Batch / Distribute
-            ShowGlobalSearchDemo();                   // 案例13: 全局搜索与统计
+            ShowOrganizeInventory(); // 案例8: OrganizeInventory 合并+排序
+            ShowAdvancedQueriesAndStatistics(); // 案例9: 各类查询与统计
+            ShowInventoryManagerBasics(); // 案例10: 容器注册/分类/优先级
+            ShowGlobalConditionsDemo(); // 案例11: 全局条件启用/禁用
+            ShowCrossContainerAdvancedOps(); // 案例12: Transfer / AutoMove / Batch / Distribute
+            ShowGlobalSearchDemo(); // 案例13: 全局搜索与统计
             await ShowConditionAndAttributeSerialization(); // 案例14: 条件 + 属性序列化
-            ShowSlotAndCapacityEdgeCases();           // 案例15: 指定槽位/容量/满与空
+            ShowSlotAndCapacityEdgeCases(); // 案例15: 指定槽位/容量/满与空
 
 
             Debug.Log("===== 背包系统使用案例展示完成 =====");
@@ -75,11 +75,11 @@ namespace EasyPack.InventorySystem.Example
             Debug.Log("案例0: 从 EasyPackArchitecture 获取 InventoryService");
 
             // 获取库存服务实例
-            var inventoryService = await EasyPackArchitecture.GetInventoryServiceAsync();
+            IInventoryService inventoryService = await EasyPackArchitecture.GetInventoryServiceAsync();
             Debug.Log($"成功获取 InventoryService，当前状态: {inventoryService.State}");
 
             // 如果未初始化，则进行初始化
-            if (inventoryService.State == EasyPack.ENekoFramework.ServiceLifecycleState.Uninitialized)
+            if (inventoryService.State == ENekoFramework.ServiceLifecycleState.Uninitialized)
             {
                 await inventoryService.InitializeAsync();
                 Debug.Log("InventoryService 初始化完成");
@@ -87,11 +87,11 @@ namespace EasyPack.InventorySystem.Example
 
             // 创建并注册容器到服务
             var testBackpack = new LinerContainer("arch_test_backpack", "架构测试背包", "Backpack", 10);
-            inventoryService.RegisterContainer(testBackpack, priority: 1, category: "Test");
+            inventoryService.RegisterContainer(testBackpack, 1, "Test");
             Debug.Log($"已注册容器到服务，当前容器数量: {inventoryService.ContainerCount}");
 
             // 创建物品并添加到容器
-            var testItem = CreateGameItem("test_item", "测试物品", true, 10, "Item");
+            Item testItem = CreateGameItem("test_item", "测试物品", true, 10, "Item");
             testBackpack.AddItems(testItem, 5);
             Debug.Log("已向容器添加物品");
 
@@ -135,18 +135,18 @@ namespace EasyPack.InventorySystem.Example
             var playerBackpack = new LinerContainer("player_backpack", "冒险者背包", "Backpack", 10);
 
             // 创建各种游戏物品
-            var healthPotion = CreateGameItem("health_potion", "生命药水", true, 20, "Consumable");
-            var woodSword = CreateGameItem("wood_sword", "木剑", false, 1, "Equipment");
-            var goldCoin = CreateGameItem("gold_coin", "金币", true, 999, "Currency");
+            Item healthPotion = CreateGameItem("health_potion", "生命药水", true, 20, "Consumable");
+            Item woodSword = CreateGameItem("wood_sword", "木剑", false, 1, "Equipment");
+            Item goldCoin = CreateGameItem("gold_coin", "金币", true, 999, "Currency");
 
             // 向背包中添加物品
-            var (result, _) = playerBackpack.AddItems(healthPotion, 5);
+            (AddItemResult result, _) = playerBackpack.AddItems(healthPotion, 5);
             Debug.Log($"添加5瓶生命药水: {(result == AddItemResult.Success ? "成功" : "失败")}");
 
-            var swordResult = playerBackpack.AddItems(woodSword);
+            (AddItemResult result, int actualCount) swordResult = playerBackpack.AddItems(woodSword);
             Debug.Log($"添加木剑: {(swordResult.result == AddItemResult.Success ? "成功" : "失败")}");
 
-            var coinResult = playerBackpack.AddItems(goldCoin, 100);
+            (AddItemResult result, int actualCount) coinResult = playerBackpack.AddItems(goldCoin, 100);
             Debug.Log($"添加100金币: {(coinResult.result == AddItemResult.Success ? "成功" : "失败")}");
 
             // 显示背包内容
@@ -162,7 +162,7 @@ namespace EasyPack.InventorySystem.Example
             var playerBackpack = new LinerContainer("player_backpack", "冒险者背包", "Backpack", 10);
 
             // 创建可堆叠物品
-            var arrow = CreateGameItem("arrow", "箭矢", true, 99, "Ammunition");
+            Item arrow = CreateGameItem("arrow", "箭矢", true, 99, "Ammunition");
 
             // 第一次添加50支箭矢
             playerBackpack.AddItems(arrow, 50);
@@ -176,7 +176,7 @@ namespace EasyPack.InventorySystem.Example
             DisplayInventoryContents(playerBackpack);
 
             // 创建不可堆叠物品
-            var uniqueScroll = CreateGameItem("unique_scroll", "稀有卷轴", false, 1, "Quest");
+            Item uniqueScroll = CreateGameItem("unique_scroll", "稀有卷轴", false, 1, "Quest");
 
             // 添加多个不可堆叠物品
             playerBackpack.AddItems(uniqueScroll);
@@ -196,9 +196,9 @@ namespace EasyPack.InventorySystem.Example
             var storageChest = new LinerContainer("storage_chest", "储物箱", "Storage", 20);
 
             // 向背包添加一些物品
-            var ore = CreateGameItem("iron_ore", "铁矿石", true, 50, "Material");
-            var gem = CreateGameItem("ruby", "红宝石", true, 10, "Gem");
-            var helmet = CreateGameItem("leather_helmet", "皮革头盔", false, 1, "Equipment");
+            Item ore = CreateGameItem("iron_ore", "铁矿石", true, 50, "Material");
+            Item gem = CreateGameItem("ruby", "红宝石", true, 10, "Gem");
+            Item helmet = CreateGameItem("leather_helmet", "皮革头盔", false, 1, "Equipment");
 
             playerBackpack.AddItems(ore, 40);
             playerBackpack.AddItems(gem, 5);
@@ -211,10 +211,10 @@ namespace EasyPack.InventorySystem.Example
             DisplayInventoryContents(storageChest);
 
             // 将物品从背包移动到储物箱
-            var moveOreResult = playerBackpack.MoveItemToContainer(0, storageChest);
+            bool moveOreResult = playerBackpack.MoveItemToContainer(0, storageChest);
             Debug.Log($"将铁矿石从背包移动到储物箱: {(moveOreResult ? "成功" : "失败")}");
 
-            var moveHelmetResult = playerBackpack.MoveItemToContainer(2, storageChest);
+            bool moveHelmetResult = playerBackpack.MoveItemToContainer(2, storageChest);
             Debug.Log($"将皮革头盔从背包移动到储物箱: {(moveHelmetResult ? "成功" : "失败")}");
 
             Debug.Log("移动后背包内容:");
@@ -233,9 +233,9 @@ namespace EasyPack.InventorySystem.Example
             var playerBackpack = new LinerContainer("player_backpack", "冒险者背包", "Backpack", 10);
 
             // 添加一些物品
-            var healthPotion = CreateGameItem("health_potion", "生命药水", true, 20, "Consumable");
-            var manaPotion = CreateGameItem("mana_potion", "魔法药水", true, 20, "Consumable");
-            var bread = CreateGameItem("bread", "面包", true, 10, "Food");
+            Item healthPotion = CreateGameItem("health_potion", "生命药水", true, 20, "Consumable");
+            Item manaPotion = CreateGameItem("mana_potion", "魔法药水", true, 20, "Consumable");
+            Item bread = CreateGameItem("bread", "面包", true, 10, "Food");
 
             playerBackpack.AddItems(healthPotion, 5);
             playerBackpack.AddItems(manaPotion, 3);
@@ -246,17 +246,17 @@ namespace EasyPack.InventorySystem.Example
 
             // 使用物品(模拟)
             Debug.Log("玩家使用了1瓶生命药水...");
-            var useHealthPotion = playerBackpack.RemoveItem("health_potion", 1);
+            RemoveItemResult useHealthPotion = playerBackpack.RemoveItem("health_potion", 1);
             Debug.Log($"使用结果: {(useHealthPotion == RemoveItemResult.Success ? "成功" : "失败")}");
 
             // 使用多个物品
             Debug.Log("玩家吃了3个面包...");
-            var useBread = playerBackpack.RemoveItem("bread", 3);
+            RemoveItemResult useBread = playerBackpack.RemoveItem("bread", 3);
             Debug.Log($"使用结果: {(useBread == RemoveItemResult.Success ? "成功" : "失败")}");
 
             // 丢弃物品
             Debug.Log("玩家丢弃了所有魔法药水...");
-            var dropManaPotion = playerBackpack.RemoveItem("mana_potion", 3);
+            RemoveItemResult dropManaPotion = playerBackpack.RemoveItem("mana_potion", 3);
             Debug.Log($"丢弃结果: {(dropManaPotion == RemoveItemResult.Success ? "成功" : "失败")}");
 
             // 过度移除
@@ -298,7 +298,7 @@ namespace EasyPack.InventorySystem.Example
         }
 
         /// <summary>
-        /// 案例7: 序列化 / 反序列化（含完整 JSON 与精简 ID 模式）
+        ///     案例7: 序列化 / 反序列化（含完整 JSON 与精简 ID 模式）
         /// </summary>
         private async Task ShowInventorySerialization()
         {
@@ -306,15 +306,15 @@ namespace EasyPack.InventorySystem.Example
 
             // 1. 创建一个容器并添加物品
             var bag = new LinerContainer("serialize_demo_bag", "序列化演示背包", "Backpack", 12);
-            var potion = CreateGameItem("health_potion", "生命药水", true, 20, "Consumable");
-            var sword = CreateGameItem("iron_sword", "铁剑", false, 1, "Equipment");
-            var gem = CreateGameItem("ruby_gem", "红宝石", true, 50, "Gem");
+            Item potion = CreateGameItem("health_potion", "生命药水", true, 20, "Consumable");
+            Item sword = CreateGameItem("iron_sword", "铁剑", false, 1, "Equipment");
+            Item gem = CreateGameItem("ruby_gem", "红宝石", true, 50, "Gem");
             gem.SetCustomData("Quality", "Rare");
             gem.SetCustomData("Power", 12.5f);
 
             bag.AddItems(potion, 15);
             bag.AddItems(sword, 1);
-            bag.AddItems(gem, 7, slotIndex: 3);
+            bag.AddItems(gem, 7, 3);
 
             Debug.Log("原始背包内容：");
             DisplayInventoryContents(bag);
@@ -335,7 +335,8 @@ namespace EasyPack.InventorySystem.Example
 
             // 4. 修改原背包验证独立性
             bag.RemoveItem("health_potion", 5);
-            Debug.Log($"修改原背包后验证独立性：原={bag.GetItemTotalCount("health_potion")}, 反序列化副本={bagRestored.GetItemTotalCount("health_potion")} (应仍为15)");
+            Debug.Log(
+                $"修改原背包后验证独立性：原={bag.GetItemTotalCount("health_potion")}, 反序列化副本={bagRestored.GetItemTotalCount("health_potion")} (应仍为15)");
 
             Debug.Log("案例7 序列化 / 反序列化 完成\n");
         }
@@ -346,15 +347,15 @@ namespace EasyPack.InventorySystem.Example
             Debug.Log("案例8: OrganizeInventory 合并与紧凑整理");
             var bag = new LinerContainer("organize_demo", "整理演示包", "Backpack", 12);
 
-            var apple = CreateGameItem("apple", "苹果", true, 10, "Food");
-            var potion = CreateGameItem("potion", "药水", true, 20, "Consumable");
-            var sword = CreateGameItem("iron_sword", "铁剑", false, 1, "Weapon");
+            Item apple = CreateGameItem("apple", "苹果", true, 10, "Food");
+            Item potion = CreateGameItem("potion", "药水", true, 20, "Consumable");
+            Item sword = CreateGameItem("iron_sword", "铁剑", false, 1, "Weapon");
 
-            bag.AddItems(apple, 7, 0);   // 0: 7
-            bag.AddItems(apple, 9, 3);   // 3: 9 -> 会与0合并成 10 + 6
+            bag.AddItems(apple, 7, 0); // 0: 7
+            bag.AddItems(apple, 9, 3); // 3: 9 -> 会与0合并成 10 + 6
             bag.AddItems(potion, 15, 6); // 6: 15
-            bag.AddItems(potion, 8, 8);  // 8: 8 -> 合并 20 + 3
-            bag.AddItems(sword, 5);      // 若不可堆叠多把占多个槽
+            bag.AddItems(potion, 8, 8); // 8: 8 -> 合并 20 + 3
+            bag.AddItems(sword, 5); // 若不可堆叠多把占多个槽
 
             Debug.Log("整理前：");
             DisplayInventoryContents(bag);
@@ -371,18 +372,18 @@ namespace EasyPack.InventorySystem.Example
             Debug.Log("案例9: 高级查询与统计");
             var bag = new LinerContainer("query_demo", "查询演示包", "Backpack", 10);
 
-            var ironSword = CreateGameItem("iron_sword", "铁剑", false, 1, "Weapon");
+            Item ironSword = CreateGameItem("iron_sword", "铁剑", false, 1, "Weapon");
             ironSword.SetCustomData("Damage", 12);
             ironSword.SetCustomData("Material", "Iron");
 
-            var steelSword = CreateGameItem("steel_sword", "钢剑", false, 1, "Weapon");
+            Item steelSword = CreateGameItem("steel_sword", "钢剑", false, 1, "Weapon");
             steelSword.SetCustomData("Damage", 18);
             steelSword.SetCustomData("Material", "Steel");
 
-            var hp = CreateGameItem("health_potion", "生命药水", true, 20, "Potion");
+            Item hp = CreateGameItem("health_potion", "生命药水", true, 20, "Potion");
             hp.SetCustomData("Healing", 50);
 
-            var mp = CreateGameItem("mana_potion", "魔法药水", true, 20, "Potion");
+            Item mp = CreateGameItem("mana_potion", "魔法药水", true, 20, "Potion");
             mp.SetCustomData("Mana", 40);
 
             bag.AddItems(ironSword);
@@ -407,6 +408,7 @@ namespace EasyPack.InventorySystem.Example
             var highDamage = bag.GetItemsWhere(i => i.Type == "Weapon" && i.GetCustomData<int>("Damage", 0) >= 15);
             Debug.Log($"高伤害武器条目数(>=15)={highDamage.Count}");
         }
+
         // 案例10: InventoryManager 基础（注册 / 分类 / 优先级 / 查询）
         private void ShowInventoryManagerBasics()
         {
@@ -415,9 +417,9 @@ namespace EasyPack.InventorySystem.Example
             var bag2 = new LinerContainer("player_bag2", "玩家背包2", "Backpack", 15);
             var chest = new LinerContainer("home_chest", "家用储物箱", "Storage", 30);
 
-            _inventoryService.RegisterContainer(bag1, priority: 100, category: "Player");
-            _inventoryService.RegisterContainer(bag2, priority: 80, category: "Player");
-            _inventoryService.RegisterContainer(chest, priority: 20, category: "Home");
+            _inventoryService.RegisterContainer(bag1, 100, "Player");
+            _inventoryService.RegisterContainer(bag2, 80, "Player");
+            _inventoryService.RegisterContainer(chest, 20, "Home");
 
             var byType = _inventoryService.GetContainersByType("Backpack");
             Debug.Log($"类型=Backpack 数量={byType.Count}");
@@ -448,18 +450,18 @@ namespace EasyPack.InventorySystem.Example
             // 启用
             _inventoryService.SetGlobalConditionsEnabled(true);
 
-            var rareSword = CreateGameItem("rare_sword", "稀有剑", false, 1, "Weapon");
+            Item rareSword = CreateGameItem("rare_sword", "稀有剑", false, 1, "Weapon");
             rareSword.SetCustomData("Rarity", "Rare");
 
-            var commonSword = CreateGameItem("common_sword", "普通剑", false, 1, "Weapon");
+            Item commonSword = CreateGameItem("common_sword", "普通剑", false, 1, "Weapon");
             commonSword.SetCustomData("Rarity", "Common");
 
-            var potion = CreateGameItem("potion", "药水", true, 10, "Consumable");
+            Item potion = CreateGameItem("potion", "药水", true, 10, "Consumable");
             potion.SetCustomData("Rarity", "Rare");
 
-            var (r1, _) = bag.AddItems(rareSword);
-            var (r2, _) = bag.AddItems(commonSword);
-            var (r3, _) = bag.AddItems(potion);
+            (AddItemResult r1, _) = bag.AddItems(rareSword);
+            (AddItemResult r2, _) = bag.AddItems(commonSword);
+            (AddItemResult r3, _) = bag.AddItems(potion);
 
             Debug.Log($"添加稀有剑结果={r1} (应 Success)");
             Debug.Log($"添加普通剑结果={r2} (应 ItemConditionNotMet)");
@@ -467,9 +469,10 @@ namespace EasyPack.InventorySystem.Example
 
             // 关闭全局条件再试
             _inventoryService.SetGlobalConditionsEnabled(false);
-            var (r4, _) = bag.AddItems(potion);
+            (AddItemResult r4, _) = bag.AddItems(potion);
             Debug.Log($"关闭后添加药水结果={r4} (应 Success)");
         }
+
         // 案例12: 跨容器高级操作（Transfer / AutoMove / BatchMove / Distribute）
         private void ShowCrossContainerAdvancedOps()
         {
@@ -481,29 +484,32 @@ namespace EasyPack.InventorySystem.Example
             _inventoryService.RegisterContainer(dst);
             _inventoryService.RegisterContainer(extra);
 
-            var apple = CreateGameItem("apple", "苹果", true, 10, "Food");
+            Item apple = CreateGameItem("apple", "苹果", true, 10, "Food");
             src.AddItems(apple, 23); // 10 + 10 + 3
 
             // Transfer 指定数量
-            var (trRes, movedCount) = _inventoryService.TransferItems("apple", 8, "src_bag", "dst_bag");
+            (InventoryService.MoveResult trRes, int movedCount) =
+                _inventoryService.TransferItems("apple", 8, "src_bag", "dst_bag");
             Debug.Log($"Transfer 8苹果 结果={trRes} 实际移动={movedCount}");
 
             // AutoMove 剩余全部
-            var (autoRes, autoCount) = _inventoryService.AutoMoveItem("apple", "src_bag", "dst_bag");
+            (InventoryService.MoveResult autoRes, int autoCount) =
+                _inventoryService.AutoMoveItem("apple", "src_bag", "dst_bag");
             Debug.Log($"AutoMove 剩余苹果 结果={autoRes} 移动={autoCount}");
 
             // BatchMove （构造一个移动列表 - 这里移动 dst 的第0槽到 extra）
             var batch = new List<InventoryService.MoveRequest>
             {
                 new("dst_bag", 0, "extra_bag"),
-                new("dst_bag", 1, "extra_bag")
+                new("dst_bag", 1, "extra_bag"),
             };
             var batchResults = _inventoryService.BatchMoveItems(batch);
             Debug.Log($"BatchMove 条目数={batchResults.Count}");
 
             // Distribute 分发（把 125 个苹果按顺序分配回三个容器）
-            var distItem = CreateGameItem("apple", "苹果", true, 10, "Food");
-            var distribution = _inventoryService.DistributeItems(distItem, 125, new List<string> { "src_bag", "dst_bag", "extra_bag" });
+            Item distItem = CreateGameItem("apple", "苹果", true, 10, "Food");
+            var distribution = _inventoryService.DistributeItems(distItem, 125,
+                new() { "src_bag", "dst_bag", "extra_bag" });
             Debug.Log($"分发苹果结果: {string.Join(";", distribution)}");
         }
 
@@ -518,10 +524,10 @@ namespace EasyPack.InventorySystem.Example
             _inventoryService.RegisterContainer(b2);
             _inventoryService.RegisterContainer(eq);
 
-            var apple = CreateGameItem("apple", "苹果", true, 10, "Food");
-            var sword = CreateGameItem("sword", "剑", false, 1, "Weapon");
+            Item apple = CreateGameItem("apple", "苹果", true, 10, "Food");
+            Item sword = CreateGameItem("sword", "剑", false, 1, "Weapon");
             sword.SetCustomData("Material", "Iron");
-            var potion = CreateGameItem("potion", "药水", true, 20, "Consumable");
+            Item potion = CreateGameItem("potion", "药水", true, 20, "Consumable");
 
             b1.AddItems(apple, 7);
             b2.AddItems(apple, 11);
@@ -550,9 +556,10 @@ namespace EasyPack.InventorySystem.Example
             Debug.Log("案例14: 条件与属性序列化");
             var chest = new LinerContainer("cond_serial_chest", "条件箱", "Chest", 6);
             chest.ContainerCondition.Add(new ItemTypeCondition("Gem"));
-            chest.ContainerCondition.Add(new AttributeCondition("Level", 5, AttributeComparisonType.GreaterThanOrEqual));
+            chest.ContainerCondition.Add(new AttributeCondition("Level", 5,
+                AttributeComparisonType.GreaterThanOrEqual));
 
-            var gem = CreateGameItem("mystic_gem", "秘法宝石", true, 30, "Gem");
+            Item gem = CreateGameItem("mystic_gem", "秘法宝石", true, 30, "Gem");
             gem.SetCustomData("Level", 8);
             gem.SetCustomData("Quality", "Epic");
             chest.AddItems(gem, 12);
@@ -567,17 +574,18 @@ namespace EasyPack.InventorySystem.Example
             DisplayInventoryContents(restored);
 
             // 验证条件功能仍有效
-            var lowGem = CreateGameItem("low_gem", "低阶宝石", true, 30, "Gem");
+            Item lowGem = CreateGameItem("low_gem", "低阶宝石", true, 30, "Gem");
             lowGem.SetCustomData("Level", 2);
-            var (rAdd, _) = restored.AddItems(lowGem, 1);
+            (AddItemResult rAdd, _) = restored.AddItems(lowGem, 1);
             Debug.Log($"向反序列化容器添加低阶宝石结果={rAdd} (应 ItemConditionNotMet)");
 
             // 验证属性保持
-            var idx = restored.FindFirstSlotIndex("mystic_gem");
+            int idx = restored.FindFirstSlotIndex("mystic_gem");
             if (idx >= 0)
             {
-                var slot = restored.Slots[idx];
-                Debug.Log($"宝石属性: Level={slot.Item.GetCustomData<int>("Level", 0)}, Quality={slot.Item.GetCustomData<string>("Quality", "")}");
+                ISlot slot = restored.Slots[idx];
+                Debug.Log(
+                    $"宝石属性: Level={slot.Item.GetCustomData<int>("Level", 0)}, Quality={slot.Item.GetCustomData<string>("Quality", "")}");
             }
         }
 
@@ -586,21 +594,21 @@ namespace EasyPack.InventorySystem.Example
         {
             Debug.Log("案例15: 槽位与容量边界");
             var limited = new LinerContainer("limited_bag", "有限包", "Backpack", 3);
-            var itemA = CreateGameItem("a_item", "物品A", false, 1, "Misc");
-            var itemB = CreateGameItem("b_item", "物品B", false, 1, "Misc");
+            Item itemA = CreateGameItem("a_item", "物品A", false, 1, "Misc");
+            Item itemB = CreateGameItem("b_item", "物品B", false, 1, "Misc");
 
             // 指定槽位
-            limited.AddItems(itemA, 1, slotIndex: 2);
+            limited.AddItems(itemA, 1, 2);
             Debug.Log("指定槽位2放入物品A");
             DisplayInventoryContents(limited);
 
             // 再放不同物品到同槽 -> 应失败
-            var (resFail, _) = limited.AddItems(itemB, 1, slotIndex: 2);
+            (AddItemResult resFail, _) = limited.AddItems(itemB, 1, 2);
             Debug.Log($"尝试在已占用不同物品槽添加 => {resFail}");
 
             // 填满
-            limited.AddItems(itemB);              // 自动填0
-            limited.AddItems(itemB.Clone());      // 自动填1
+            limited.AddItems(itemB); // 自动填0
+            limited.AddItems(itemB.Clone()); // 自动填1
             Debug.Log($"Full = {limited.Full} (应为 True)");
             DisplayInventoryContents(limited);
 
@@ -613,18 +621,17 @@ namespace EasyPack.InventorySystem.Example
 
 
         // 辅助方法: 创建游戏物品
-        private Item CreateGameItem(string id, string name, bool isStackable, int maxStack = 1, string type = "Default")
-        {
-            return new Item
+        private Item CreateGameItem(string id, string name, bool isStackable, int maxStack = 1,
+                                    string type = "Default") =>
+            new()
             {
                 ID = id,
                 Name = name,
                 IsStackable = isStackable,
                 MaxStackCount = maxStack,
                 Type = type,
-                Description = $"{name}的描述信息" // 添加简单描述
+                Description = $"{name}的描述信息", // 添加简单描述
             };
-        }
 
         // 辅助方法: 显示容器内容
         private void DisplayInventoryContents(Container container)
@@ -638,15 +645,11 @@ namespace EasyPack.InventorySystem.Example
             Debug.Log($"容器 '{container.Name}' 内容 ({container.Slots.Count}格):");
             for (int i = 0; i < container.Slots.Count; i++)
             {
-                var slot = container.Slots[i];
+                ISlot slot = container.Slots[i];
                 if (slot.IsOccupied)
-                {
                     Debug.Log($"  [{i}] {slot.Item.Name} x{slot.ItemCount} ({slot.Item.Type})");
-                }
                 else
-                {
                     Debug.Log($"  [{i}] 空");
-                }
             }
         }
     }

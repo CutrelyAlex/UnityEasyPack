@@ -5,13 +5,13 @@ using UnityEngine;
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
-    /// EmeCard 序列化系统初始化器
-    /// 负责向 SerializationService 注册 Card 序列化器
+    ///     EmeCard 序列化系统初始化器
+    ///     负责向 SerializationService 注册 Card 序列化器
     /// </summary>
     public static class CardSerializationInitializer
     {
         /// <summary>
-        /// 向序列化服务注册所有 Card 相关的序列化器
+        ///     向序列化服务注册所有 Card 相关的序列化器
         /// </summary>
         /// <param name="service">序列化服务实例</param>
         public static void RegisterSerializers(ISerializationService service)

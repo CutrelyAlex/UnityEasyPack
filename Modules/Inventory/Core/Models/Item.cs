@@ -21,7 +21,7 @@ namespace EasyPack.InventorySystem
     }
 
     /// <summary>
-    /// IItem 接口的扩展方法，提供 CustomData 操作的便利方法
+    ///     IItem 接口的扩展方法，提供 CustomData 操作的便利方法
     /// </summary>
     public static class IItemExtensions
     {
@@ -31,10 +31,8 @@ namespace EasyPack.InventorySystem
         /// <param name="id">数据键</param>
         /// <param name="defaultValue">默认值</param>
         /// <returns>找到的值或默认值</returns>
-        public static T GetCustomData<T>(this IItem item, string id, T defaultValue = default)
-        {
-            return item.CustomData.GetValue(id, defaultValue);
-        }
+        public static T GetCustomData<T>(this IItem item, string id, T defaultValue = default) =>
+            item.CustomData.GetValue(id, defaultValue);
 
         /// <summary>设置自定义数据值</summary>
         /// <param name="item">物品实例</param>
@@ -42,7 +40,7 @@ namespace EasyPack.InventorySystem
         /// <param name="value">要设置的值</param>
         public static void SetCustomData(this IItem item, string id, object value)
         {
-            item.CustomData ??= new CustomDataCollection();
+            item.CustomData ??= new();
 
             item.CustomData.SetValue(id, value);
         }
@@ -51,24 +49,19 @@ namespace EasyPack.InventorySystem
         /// <param name="item">物品实例</param>
         /// <param name="id">数据键</param>
         /// <returns>是否成功移除</returns>
-        public static bool RemoveCustomData(this IItem item, string id)
-        {
-            return item.CustomData.RemoveValue(id);
-        }
+        public static bool RemoveCustomData(this IItem item, string id) => item.CustomData.RemoveValue(id);
 
         /// <summary>检查是否存在自定义数据</summary>
         /// <param name="item">物品实例</param>
         /// <param name="id">数据键</param>
         /// <returns>是否存在</returns>
-        public static bool HasCustomData(this IItem item, string id)
-        {
-            return item.CustomData.HasValue(id);
-        }
+        public static bool HasCustomData(this IItem item, string id) => item.CustomData.HasValue(id);
     }
 
     public class Item : IItem
     {
         #region 基本属性
+
         public string ID { get; set; }
 
         public string Name { get; set; }
@@ -83,9 +76,9 @@ namespace EasyPack.InventorySystem
         public int MaxStackCount { get; set; } = -1; // -1代表无限堆叠
 
         /// <summary>
-        /// 自定义数据列表
+        ///     自定义数据列表
         /// </summary>
-        public CustomDataCollection CustomData { get; set; } = new CustomDataCollection();
+        public CustomDataCollection CustomData { get; set; } = new();
 
 
         public bool IsContainerItem = false;
@@ -94,6 +87,7 @@ namespace EasyPack.InventorySystem
         #endregion
 
         #region 克隆
+
         public IItem Clone()
         {
             var clone = new Item
@@ -105,18 +99,16 @@ namespace EasyPack.InventorySystem
                 Weight = Weight,
                 IsStackable = IsStackable,
                 MaxStackCount = MaxStackCount,
-                IsContainerItem = IsContainerItem
+                IsContainerItem = IsContainerItem,
             };
 
             clone.CustomData = CustomData.Clone();
 
-            if (ContainerIds is { Count: > 0 })
-            {
-                clone.ContainerIds = new List<string>(ContainerIds);
-            }
+            if (ContainerIds is { Count: > 0 }) clone.ContainerIds = new(ContainerIds);
 
             return clone;
         }
+
         #endregion
 
         #region CustomData 辅助方法
@@ -128,13 +120,13 @@ namespace EasyPack.InventorySystem
         public void SetCustomData(string id, object value)
         {
             if (CustomData == null)
-                CustomData = new CustomDataCollection();
+                CustomData = new();
 
             CustomData.SetValue(id, value);
         }
 
         /// <summary>移除自定义数据</summary>
-        public bool RemoveCustomData(string id) => CustomData.RemoveValue( id);
+        public bool RemoveCustomData(string id) => CustomData.RemoveValue(id);
 
         /// <summary>检查是否存在自定义数据</summary>
         public bool HasCustomData(string id) => CustomData.HasValue(id);
@@ -142,4 +134,3 @@ namespace EasyPack.InventorySystem
         #endregion
     }
 }
-

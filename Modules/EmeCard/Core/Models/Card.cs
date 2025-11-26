@@ -5,25 +5,24 @@ using EasyPack.GamePropertySystem;
 
 namespace EasyPack.EmeCardSystem
 {
-
     /// <summary>
-    /// 抽象卡牌：<br/>
-    /// - 作为"容器"可持有子卡牌（<see cref="Children"/>），并维护所属关系（<see cref="Owner"/>）。<br/>
-    /// - 具备标签系统（<see cref="Tags"/>），用于规则匹配与检索。<br/>
-    /// - 暴露统一事件入口（<see cref="OnEvent"/>），通过 <see cref="RaiseEvent(ICardEvent)"/> 分发，包括
-    ///   Tick、Use、自定义事件，以及持有关系变化（AddedToOwner / RemovedFromOwner）。<br/>
-    ///   事件类型定义在 <see cref="CardEventTypes"/> 中。<br/>
-    /// - 可选关联多个 <see cref="GameProperty"/>
+    ///     抽象卡牌：<br />
+    ///     - 作为"容器"可持有子卡牌（<see cref="Children" />），并维护所属关系（<see cref="Owner" />）。<br />
+    ///     - 具备标签系统（<see cref="Tags" />），用于规则匹配与检索。<br />
+    ///     - 暴露统一事件入口（<see cref="OnEvent" />），通过 <see cref="RaiseEvent(ICardEvent)" /> 分发，包括
+    ///     Tick、Use、自定义事件，以及持有关系变化（AddedToOwner / RemovedFromOwner）。<br />
+    ///     事件类型定义在 <see cref="CardEventTypes" /> 中。<br />
+    ///     - 可选关联多个 <see cref="GameProperty" />
     /// </summary>
     public class Card
     {
         /// <summary>
-        /// 卡牌所属的CardEngine
+        ///     卡牌所属的CardEngine
         /// </summary>
         internal CardEngine Engine { get; set; }
 
         /// <summary>
-        /// 构造函数：创建卡牌，可选单个属性
+        ///     构造函数：创建卡牌，可选单个属性
         /// </summary>
         /// <param name="data">卡牌数据</param>
         /// <param name="gameProperty">可选的单个游戏属性</param>
@@ -31,30 +30,19 @@ namespace EasyPack.EmeCardSystem
         public Card(CardData data, GameProperty gameProperty = null, params string[] extraTags)
         {
             Data = data;
-            if (gameProperty != null)
-            {
-                Properties.Add(gameProperty);
-            }
+            if (gameProperty != null) Properties.Add(gameProperty);
 
             if (Data?.DefaultTags != null)
-            {
-                foreach (var t in Data.DefaultTags)
-                {
+                foreach (string t in Data.DefaultTags)
                     _tags.Add(t);
 
-                }
-            }
             if (extraTags != null)
-            {
-                foreach (var t in extraTags)
-                {
+                foreach (string t in extraTags)
                     _tags.Add(t);
-                }
-            }
         }
 
         /// <summary>
-        /// 构造函数：创建卡牌，可选多个属性
+        ///     构造函数：创建卡牌，可选多个属性
         /// </summary>
         /// <param name="data">卡牌数据</param>
         /// <param name="properties">属性列表</param>
@@ -65,24 +53,17 @@ namespace EasyPack.EmeCardSystem
             Properties = properties?.ToList() ?? new List<GameProperty>();
 
             if (Data?.DefaultTags != null)
-            {
-                foreach (var t in Data.DefaultTags)
-                {
+                foreach (string t in Data.DefaultTags)
                     _tags.Add(t);
-                }
-            }
+
             if (extraTags != null)
-            {
-                foreach (var t in extraTags)
-                {
+                foreach (string t in extraTags)
                     _tags.Add(t);
-                }
-            }
         }
 
         /// <summary>
-        /// 简化构造函数
-        /// 提供卡牌数据和标签
+        ///     简化构造函数
+        ///     提供卡牌数据和标签
         /// </summary>
         /// <param name="data">卡牌数据</param>
         /// <param name="extraTags">额外标签</param>
@@ -97,8 +78,8 @@ namespace EasyPack.EmeCardSystem
         private CardData _data;
 
         /// <summary>
-        /// 该卡牌的静态数据（ID/名称/描述/默认标签等）。
-        /// 赋值时会清空并载入默认标签（<see cref="CardData.DefaultTags"/>）。
+        ///     该卡牌的静态数据（ID/名称/描述/默认标签等）。
+        ///     赋值时会清空并载入默认标签（<see cref="CardData.DefaultTags" />）。
         /// </summary>
         public CardData Data
         {
@@ -108,54 +89,55 @@ namespace EasyPack.EmeCardSystem
                 _data = value;
                 _tags.Clear();
                 if (_data is { DefaultTags: not null })
-                {
-                    foreach (var t in _data.DefaultTags)
-                    {
+                    foreach (string t in _data.DefaultTags)
                         _tags.Add(t);
-                    }
-                }
             }
         }
 
         /// <summary>
-        /// 唯一标识符：由 CardFactory 分配，全局唯一，线程安全。
-        /// 未分配时默认为 -1。
+        ///     唯一标识符：由 CardFactory 分配，全局唯一，线程安全。
+        ///     未分配时默认为 -1。
         /// </summary>
         public int UID { get; internal set; } = -1;
 
         /// <summary>
-        /// 实例索引：用于区分同一 ID 的多个实例（由CardEgnine在 AddCard 时分配，从 0 起）。
-        /// 未分配时默认为 -1。
+        ///     实例索引：用于区分同一 ID 的多个实例（由CardEgnine在 AddCard 时分配，从 0 起）。
+        ///     未分配时默认为 -1。
         /// </summary>
         public int Index { get; set; } = -1;
 
         /// <summary>
-        /// 卡牌标识，来自 <see cref="Data"/>。
+        ///     卡牌标识，来自 <see cref="Data" />。
         /// </summary>
         public string Id => Data != null ? Data.ID : string.Empty;
 
         public string IdAndIndex => Id + Index;
 
         /// <summary>
-        /// 卡牌显示名称，来自 <see cref="Data"/>。
+        ///     卡牌显示名称，来自 <see cref="Data" />。
         /// </summary>
         public string Name => Data != null ? Data.Name : string.Empty;
 
         /// <summary>
-        /// 卡牌描述，来自 <see cref="Data"/>。
+        ///     卡牌描述，来自 <see cref="Data" />。
         /// </summary>
         public string Description => Data != null ? Data.Description : string.Empty;
 
         /// <summary>
-        /// 卡牌类别，来自 <see cref="Data"/>；若为空则默认 <see cref="CardCategory.Object"/>。
+        ///     卡牌类别，来自 <see cref="Data" />；若为空则默认 <see cref="CardCategory.Object" />。
         /// </summary>
         public CardCategory Category => Data?.Category ?? CardCategory.Object;
 
         /// <summary>
-        /// 数值属性。
+        ///     数值属性。
         /// </summary>
-        public List<GameProperty> Properties { get; set; } = new List<GameProperty>();
-        public GameProperty GetProperty(string id) => Properties?.FirstOrDefault(p => p.ID == id);
+        public List<GameProperty> Properties { get; set; } = new();
+
+        public GameProperty GetProperty(string id)
+        {
+            return Properties?.FirstOrDefault(p => p.ID == id);
+        }
+
         public GameProperty GetProperty(int index = 0)
         {
             if (index < 0 || index >= Properties.Count) return null;
@@ -169,19 +151,19 @@ namespace EasyPack.EmeCardSystem
         private readonly HashSet<string> _tags = new(StringComparer.Ordinal);
 
         /// <summary>
-        /// 标签集合。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal"/>）。
+        ///     标签集合。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal" />）。
         /// </summary>
         public IReadOnlyCollection<string> Tags => _tags;
 
         /// <summary>
-        /// 判断是否包含指定标签。
+        ///     判断是否包含指定标签。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若包含返回 true。</returns>
         public bool HasTag(string tag) => _tags.Contains(tag);
 
         /// <summary>
-        /// 添加一个标签。
+        ///     添加一个标签。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功新增（之前不存在）返回 true；否则返回 false。</returns>
@@ -193,11 +175,12 @@ namespace EasyPack.EmeCardSystem
                 TargetSelector.OnCardTagAdded(this, tag);
                 return true;
             }
+
             return false;
         }
 
         /// <summary>
-        /// 移除一个标签。
+        ///     移除一个标签。
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功移除返回 true；否则返回 false。</returns>
@@ -209,19 +192,20 @@ namespace EasyPack.EmeCardSystem
                 TargetSelector.OnCardTagRemoved(this, tag);
                 return true;
             }
+
             return false;
         }
 
         /// <summary>
-        /// 当前卡牌的持有者（父卡）。
+        ///     当前卡牌的持有者（父卡）。
         /// </summary>
         public Card Owner { get; private set; }
 
         private readonly List<Card> _children = new();
 
         /// <summary>
-        /// 子卡牌列表（只读视图）。
-        /// 规则匹配通常只扫描该层级，不会递归扫描更深层级。
+        ///     子卡牌列表（只读视图）。
+        ///     规则匹配通常只扫描该层级，不会递归扫描更深层级。
         /// </summary>
         public IReadOnlyList<Card> Children => _children;
 
@@ -233,7 +217,7 @@ namespace EasyPack.EmeCardSystem
         private readonly HashSet<Card> _intrinsics = new();
 
         /// <summary>
-        /// 判断某子卡是否为固有子卡。
+        ///     判断某子卡是否为固有子卡。
         /// </summary>
         /// <param name="child">要检查的子卡。</param>
         /// <returns>如果是固有子卡返回 true</returns>
@@ -244,7 +228,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 判断某子卡是否为子卡。
+        ///     判断某子卡是否为子卡。
         /// </summary>
         /// <param name="child">要检查的子卡。</param>
         /// <returns>如果是固有子卡返回 true</returns>
@@ -255,9 +239,8 @@ namespace EasyPack.EmeCardSystem
         }
 
 
-
         /// <summary>
-        /// 检测传入卡牌是否是当前卡牌的祖父卡牌
+        ///     检测传入卡牌是否是当前卡牌的祖父卡牌
         /// </summary>
         /// <param name="potentialChild">传入卡牌。</param>
         /// <returns>若 potentialChild 是当前卡牌的祖父卡牌，返回 true；否则返回 false。</returns>
@@ -267,7 +250,7 @@ namespace EasyPack.EmeCardSystem
             if (potentialChild == this) return true;
 
             var visited = new HashSet<Card>();
-            var current = Owner;
+            Card current = Owner;
 
             while (current != null)
             {
@@ -283,17 +266,20 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 将子卡牌加入当前卡牌作为持有者。
+        ///     将子卡牌加入当前卡牌作为持有者。
         /// </summary>
         /// <param name="child">子卡牌实例。</param>
         /// <param name="intrinsic">是否作为"固有子卡"；固有子卡无法通过规则消耗或普通移除。</param>
         /// <remarks>
-        /// 成功加入后，将向子卡派发 AddedToOwner 事件，
-        /// 其事件数据为新持有者（<c>this</c>）。
+        ///     成功加入后，将向子卡派发 AddedToOwner 事件，
+        ///     其事件数据为新持有者（<c>this</c>）。
         /// </remarks>
         public Card AddChild(Card child, bool intrinsic = false)
         {
-            if (intrinsic && child.Id == "Signal") { }
+            if (intrinsic && child.Id == "Signal")
+            {
+            }
+
             if (child == null) throw new ArgumentNullException(nameof(child));
             if (child.Owner != null) throw new InvalidOperationException("子卡牌已被其他卡牌持有。");
 
@@ -310,26 +296,27 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 从当前卡牌移除一个子卡牌。
+        ///     从当前卡牌移除一个子卡牌。
         /// </summary>
         /// <param name="child">要移除的子卡牌。</param>
         /// <param name="force">是否强制移除；当为 false 时，固有子卡不会被移除。</param>
         /// <returns>若移除成功返回 true；否则返回 false。</returns>
         /// <remarks>
-        /// 移除成功后，将向子卡派发 RemovedFromOwner 事件，
-        /// 其 Data 为旧持有者实例。
+        ///     移除成功后，将向子卡派发 RemovedFromOwner 事件，
+        ///     其 Data 为旧持有者实例。
         /// </remarks>
         public bool RemoveChild(Card child, bool force = false)
         {
             if (child == null) return false;
             if (!force && _intrinsics.Contains(child)) return false; // 固有不可移除
-            var removed = _children.Remove(child);
+            bool removed = _children.Remove(child);
             if (removed)
             {
                 _intrinsics.Remove(child);
                 child.RaiseEvent(CardEventTypes.RemovedFromOwner.Create(this));
                 child.Owner = null;
             }
+
             return removed;
         }
 
@@ -338,13 +325,13 @@ namespace EasyPack.EmeCardSystem
         #region 事件回调
 
         /// <summary>
-        /// 卡牌统一事件回调。
-        /// 订阅者（如规则引擎）可监听以实现配方、效果与副作用。
+        ///     卡牌统一事件回调。
+        ///     订阅者（如规则引擎）可监听以实现配方、效果与副作用。
         /// </summary>
         public event Action<Card, ICardEvent> OnEvent;
 
         /// <summary>
-        /// 分发一个卡牌事件到 <see cref="OnEvent"/>。
+        ///     分发一个卡牌事件到 <see cref="OnEvent" />。
         /// </summary>
         /// <param name="evt">事件载体（ICardEvent 接口）。</param>
         private void RaiseEvent(ICardEvent evt)
@@ -353,7 +340,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 触发按时事件（Tick）。
+        ///     触发按时事件（Tick）。
         /// </summary>
         /// <param name="deltaTime">时间步长（秒）。将作为事件 Data 传递。</param>
         public void Tick(float deltaTime)
@@ -362,32 +349,45 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 触发主动使用事件（Use）。
+        ///     触发主动使用事件（Use）。
         /// </summary>
         /// <param name="data">可选自定义信息；由订阅者按需解释（例如目标信息）。</param>
-        public void Use(Card target = null) => RaiseEvent(CardEventTypes.Use.Create(target));
+        public void Use(Card target = null)
+        {
+            RaiseEvent(CardEventTypes.Use.Create(target));
+        }
 
         /// <summary>
-        /// 触发无数据事件。
+        ///     触发无数据事件。
         /// </summary>
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
-        public void RaiseEvent(string eventType) => RaiseEvent(new CardEvent<Unit>(eventType, Unit.Default));
+        public void RaiseEvent(string eventType)
+        {
+            RaiseEvent(new CardEvent<Unit>(eventType, Unit.Default));
+        }
 
         /// <summary>
-        /// 触发自定义事件。
+        ///     触发自定义事件。
         /// </summary>
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
         /// <param name="data">事件数据。</param>
-        public void RaiseEvent<T>(string eventType, T data) => RaiseEvent(new CardEvent<T>(eventType, data));
+        public void RaiseEvent<T>(string eventType, T data)
+        {
+            RaiseEvent(new CardEvent<T>(eventType, data));
+        }
 
         /// <summary>
-        /// 触发自定义事件（使用事件定义）。
+        ///     触发自定义事件（使用事件定义）。
         /// </summary>
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="eventDef">事件类型定义。</param>
         /// <param name="data">事件数据。</param>
-        public void RaiseEvent<T>(CardEventDefinition<T> eventDef, T data) => RaiseEvent(eventDef.Create(data));
+        public void RaiseEvent<T>(CardEventDefinition<T> eventDef, T data)
+        {
+            RaiseEvent(eventDef.Create(data));
+        }
+
         #endregion
     }
 }

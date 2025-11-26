@@ -7,6 +7,7 @@ namespace EasyPack.CustomData
     public class IntValueHandler : IValueHandler
     {
         public CustomDataType SupportedType => CustomDataType.Int;
+
         public object GetValue(CustomDataEntry entry) => entry.IntValue;
 
         public void SetValue(CustomDataEntry entry, object value)
@@ -18,7 +19,7 @@ namespace EasyPack.CustomData
 
         public bool TryDeserialize(CustomDataEntry entry, string data, Type jsonClrType = null)
         {
-            if (!int.TryParse(data, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+            if (!int.TryParse(data, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
                 return false;
             entry.IntValue = value;
             entry.Type = CustomDataType.Int;
@@ -26,10 +27,12 @@ namespace EasyPack.CustomData
             return true;
         }
 
-        public string Serialize(CustomDataEntry entry)
-            => entry.IntValue.ToString(CultureInfo.InvariantCulture);
+        public string Serialize(CustomDataEntry entry) => entry.IntValue.ToString(CultureInfo.InvariantCulture);
 
-        public void Clear(CustomDataEntry entry) => entry.IntValue = 0;
+        public void Clear(CustomDataEntry entry)
+        {
+            entry.IntValue = 0;
+        }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

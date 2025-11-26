@@ -7,42 +7,37 @@ using UnityEngine;
 namespace EasyPack.CustomData
 {
     /// <summary>
-    /// CustomData 集合类
-    /// 实现 IList&lt;CustomDataEntry&gt;
-    /// 接口内部维护字典缓存
-    /// 建议使用此类作为集合，因为性能是O(1)的
+    ///     CustomData 集合类
+    ///     实现 IList&lt;CustomDataEntry&gt;
+    ///     接口内部维护字典缓存
+    ///     建议使用此类作为集合，因为性能是O(1)的
     /// </summary>
     [Serializable]
     public class CustomDataCollection : IList<CustomDataEntry>, ISerializationCallbackReceiver
     {
-        [SerializeField]
-        private List<CustomDataEntry> _list = new();
+        [SerializeField] private List<CustomDataEntry> _list = new();
 
         /// <summary>
-        /// 缓存映射 key -> index
+        ///     缓存映射 key -> index
         /// </summary>
-        [NonSerialized]
-        private Dictionary<string, int> _keyIndexMap;
+        [NonSerialized] private Dictionary<string, int> _keyIndexMap;
 
         /// <summary>
-        /// Entry对象缓存：key -> entry
+        ///     Entry对象缓存：key -> entry
         /// </summary>
-        [NonSerialized]
-        private Dictionary<string, CustomDataEntry> _entryCache;
+        [NonSerialized] private Dictionary<string, CustomDataEntry> _entryCache;
 
-        [NonSerialized]
-        private bool _cacheDirty = true;
+        [NonSerialized] private bool _cacheDirty = true;
 
-        public CustomDataCollection() { }
-
-        public CustomDataCollection(int capacity)
+        public CustomDataCollection()
         {
-            _list = new List<CustomDataEntry>(capacity);
         }
+
+        public CustomDataCollection(int capacity) => _list = new(capacity);
 
         public CustomDataCollection(IEnumerable<CustomDataEntry> collection)
         {
-            _list = new List<CustomDataEntry>(collection);
+            _list = new(collection);
             _cacheDirty = true;
         }
 
@@ -79,20 +74,14 @@ namespace EasyPack.CustomData
             _cacheDirty = false;
         }
 
-        public bool Contains(CustomDataEntry item)
-        {
-            return _list.Contains(item);
-        }
+        public bool Contains(CustomDataEntry item) => _list.Contains(item);
 
         public void CopyTo(CustomDataEntry[] array, int arrayIndex)
         {
             _list.CopyTo(array, arrayIndex);
         }
 
-        public int IndexOf(CustomDataEntry item)
-        {
-            return _list.IndexOf(item);
-        }
+        public int IndexOf(CustomDataEntry item) => _list.IndexOf(item);
 
         public void Insert(int index, CustomDataEntry item)
         {
@@ -102,7 +91,7 @@ namespace EasyPack.CustomData
 
         public bool Remove(CustomDataEntry item)
         {
-            var result = _list.Remove(item);
+            bool result = _list.Remove(item);
             if (result) MarkDirty();
             return result;
         }
@@ -117,22 +106,16 @@ namespace EasyPack.CustomData
 
         #region IEnumerable<CustomDataEntry> 实现
 
-        public IEnumerator<CustomDataEntry> GetEnumerator()
-        {
-            return _list.GetEnumerator();
-        }
+        public IEnumerator<CustomDataEntry> GetEnumerator() => _list.GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _list.GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => _list.GetEnumerator();
 
         #endregion
 
         #region 扩展方法
 
         /// <summary>
-        /// 添加多个项
+        ///     添加多个项
         /// </summary>
         public void AddRange(IEnumerable<CustomDataEntry> collection)
         {
@@ -141,7 +124,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 在指定位置插入多个项
+        ///     在指定位置插入多个项
         /// </summary>
         public void InsertRange(int index, IEnumerable<CustomDataEntry> collection)
         {
@@ -150,7 +133,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 移除多个项
+        ///     移除多个项
         /// </summary>
         public void RemoveRange(int index, int count)
         {
@@ -159,17 +142,17 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 移除满足条件的所有项
+        ///     移除满足条件的所有项
         /// </summary>
         public int RemoveAll(Predicate<CustomDataEntry> match)
         {
-            var result = _list.RemoveAll(match);
+            int result = _list.RemoveAll(match);
             if (result > 0) MarkDirty();
             return result;
         }
 
         /// <summary>
-        /// 排序
+        ///     排序
         /// </summary>
         public void Sort()
         {
@@ -178,7 +161,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 使用比较器排序
+        ///     使用比较器排序
         /// </summary>
         public void Sort(IComparer<CustomDataEntry> comparer)
         {
@@ -187,7 +170,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 使用比较方法排序
+        ///     使用比较方法排序
         /// </summary>
         public void Sort(Comparison<CustomDataEntry> comparison)
         {
@@ -196,7 +179,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 反转
+        ///     反转
         /// </summary>
         public void Reverse()
         {
@@ -205,90 +188,68 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 获取子列表
+        ///     获取子列表
         /// </summary>
-        public List<CustomDataEntry> GetRange(int index, int count)
-        {
-            return _list.GetRange(index, count);
-        }
+        public List<CustomDataEntry> GetRange(int index, int count) => _list.GetRange(index, count);
 
         /// <summary>
-        /// 二分查找
+        ///     二分查找
         /// </summary>
-        public int BinarySearch(CustomDataEntry item)
-        {
-            return _list.BinarySearch(item);
-        }
+        public int BinarySearch(CustomDataEntry item) => _list.BinarySearch(item);
 
         /// <summary>
-        /// 查找第一个匹配项
+        ///     查找第一个匹配项
         /// </summary>
-        public CustomDataEntry Find(Predicate<CustomDataEntry> match)
-        {
-            return _list.Find(match);
-        }
+        public CustomDataEntry Find(Predicate<CustomDataEntry> match) => _list.Find(match);
 
         /// <summary>
-        /// 查找所有匹配项
+        ///     查找所有匹配项
         /// </summary>
-        public List<CustomDataEntry> FindAll(Predicate<CustomDataEntry> match)
-        {
-            return _list.FindAll(match);
-        }
+        public List<CustomDataEntry> FindAll(Predicate<CustomDataEntry> match) => _list.FindAll(match);
 
         #endregion
 
         #region 缓存管理
 
         /// <summary>
-        /// 重建缓存索引映射和Entry对象缓存
+        ///     重建缓存索引映射和Entry对象缓存
         /// </summary>
         private void RebuildCache()
         {
             if (_keyIndexMap == null)
-            {
-                _keyIndexMap = new Dictionary<string, int>(_list.Count);
-            }
+                _keyIndexMap = new(_list.Count);
             else
-            {
                 _keyIndexMap.Clear();
-            }
 
             if (_entryCache == null)
-            {
-                _entryCache = new Dictionary<string, CustomDataEntry>(_list.Count);
-            }
+                _entryCache = new(_list.Count);
             else
-            {
                 _entryCache.Clear();
-            }
 
             // 构建 key -> index 和 key -> entry 映射
             for (int i = 0; i < _list.Count; i++)
             {
-                var entry = _list[i];
+                CustomDataEntry entry = _list[i];
                 if (!string.IsNullOrEmpty(entry.Key))
                 {
                     _keyIndexMap[entry.Key] = i;
                     _entryCache[entry.Key] = entry;
                 }
             }
+
             _cacheDirty = false;
         }
 
         /// <summary>
-        /// 确保缓存索引已初始化
+        ///     确保缓存索引已初始化
         /// </summary>
         private void EnsureCache()
         {
-            if (_cacheDirty || _keyIndexMap == null)
-            {
-                RebuildCache();
-            }
+            if (_cacheDirty || _keyIndexMap == null) RebuildCache();
         }
 
         /// <summary>
-        /// 标记缓存为脏
+        ///     标记缓存为脏
         /// </summary>
         private void MarkDirty()
         {
@@ -300,8 +261,8 @@ namespace EasyPack.CustomData
         #region 查找方法
 
         /// <summary>
-        /// 尝试获取指定键的值，如果存在则返回true并设置out参数
-        /// 时间复杂度：O(1)
+        ///     尝试获取指定键的值，如果存在则返回true并设置out参数
+        ///     时间复杂度：O(1)
         /// </summary>
         /// <typeparam name="T">值的类型</typeparam>
         /// <param name="key">要查找的键</param>
@@ -311,12 +272,12 @@ namespace EasyPack.CustomData
         {
             value = default;
             if (string.IsNullOrEmpty(key)) return false;
-            
+
             EnsureCache();
-            
-            if (_entryCache.TryGetValue(key, out var entry))
+
+            if (_entryCache.TryGetValue(key, out CustomDataEntry entry))
             {
-                var obj = entry.GetValue();
+                object obj = entry.GetValue();
                 if (obj is T t)
                 {
                     value = t;
@@ -331,16 +292,17 @@ namespace EasyPack.CustomData
                         return true;
                     }
                 }
-                catch(SystemException)
+                catch (SystemException)
                 {
                     Debug.LogWarning("从Key转换到值失败");
                 }
             }
+
             return false;
         }
 
         /// <summary>
-        /// 获取指定键的值，如果不存在则返回默认值
+        ///     获取指定键的值，如果不存在则返回默认值
         /// </summary>
         /// <typeparam name="T">值的类型</typeparam>
         /// <param name="key">要查找的键</param>
@@ -353,7 +315,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 设置指定键的值，如果键不存在则添加新条目
+        ///     设置指定键的值，如果键不存在则添加新条目
         /// </summary>
         /// <param name="key">要设置的键</param>
         /// <param name="value">要设置的值</param>
@@ -364,7 +326,7 @@ namespace EasyPack.CustomData
             if (_keyIndexMap.TryGetValue(key, out int index))
             {
                 // 存在：直接更新entry和缓存
-                var entry = _list[index];
+                CustomDataEntry entry = _list[index];
                 entry.SetValue(value);
                 _entryCache[key] = entry;
             }
@@ -373,81 +335,71 @@ namespace EasyPack.CustomData
                 // 不存在：添加新条目
                 var newEntry = new CustomDataEntry { Key = key };
                 newEntry.SetValue(value);
-                int newIndex = _list.Count;  // 新条目会被添加到末尾
+                int newIndex = _list.Count; // 新条目会被添加到末尾
                 _list.Add(newEntry);
-                _keyIndexMap[key] = newIndex;  // 缓存索引
-                _entryCache[key] = newEntry;    // 缓存entry对象
+                _keyIndexMap[key] = newIndex; // 缓存索引
+                _entryCache[key] = newEntry; // 缓存entry对象
             }
         }
 
         /// <summary>
-        /// 移除指定键的值，如果存在则返回true
-        /// 时间复杂度：O(1) 平均情况
+        ///     移除指定键的值，如果存在则返回true
+        ///     时间复杂度：O(1) 平均情况
         /// </summary>
         /// <param name="key">要移除的键</param>
         /// <returns>如果键存在并成功移除则返回true，否则返回false</returns>
         public bool RemoveValue(string key)
         {
             if (string.IsNullOrEmpty(key)) return false;
-            
+
             EnsureCache();
 
-            if (!_keyIndexMap.TryGetValue(key, out int indexToRemove))
-            {
-                return false; 
-            }
-            
+            if (!_keyIndexMap.TryGetValue(key, out int indexToRemove)) return false;
+
             int lastIndex = _list.Count - 1;
-            
+
             if (indexToRemove != lastIndex)
             {
                 // 交换：将末尾元素移到删除位置
-                var lastEntry = _list[lastIndex];
+                CustomDataEntry lastEntry = _list[lastIndex];
                 _list[indexToRemove] = lastEntry;
-                
+
                 // 更新被交换元素的索引缓存
-                if (!string.IsNullOrEmpty(lastEntry.Key))
-                {
-                    _keyIndexMap[lastEntry.Key] = indexToRemove;
-                }
+                if (!string.IsNullOrEmpty(lastEntry.Key)) _keyIndexMap[lastEntry.Key] = indexToRemove;
             }
-            
+
             // 移除末尾
             _list.RemoveAt(lastIndex);
             _keyIndexMap.Remove(key);
-            _entryCache.Remove(key);  // 同时删除entry缓存
-            
+            _entryCache.Remove(key); // 同时删除entry缓存
+
             return true;
         }
 
         /// <summary>
-        /// 批量删除指定键
+        ///     批量删除指定键
         /// </summary>
         /// <param name="keys">要删除的键集合</param>
         /// <returns>实际删除的元素个数</returns>
         public int RemoveValues(IEnumerable<string> keys)
         {
             EnsureCache();
-            
+
             var keysToRemove = new HashSet<string>(keys);
             int removedCount = 0;
-            int writeIndex = 0;  // 写指针
-            
+            int writeIndex = 0; // 写指针
+
             for (int i = 0; i < _list.Count; i++)
             {
-                var entry = _list[i];
+                CustomDataEntry entry = _list[i];
                 if (!keysToRemove.Contains(entry.Key))
                 {
                     // 保留此元素
-                    if (writeIndex != i)
-                    {
-                        _list[writeIndex] = _list[i];
-                    }
+                    if (writeIndex != i) _list[writeIndex] = _list[i];
+
                     // 更新索引缓存
-                    if (!string.IsNullOrEmpty(entry.Key))
-                    {
-                        _keyIndexMap[entry.Key] = writeIndex;
-                    }
+                    if (!string.IsNullOrEmpty(entry.Key)) _keyIndexMap[entry.Key] = writeIndex;
+
                     writeIndex++;
                 }
                 else
@@ -455,22 +407,19 @@ namespace EasyPack.CustomData
                     // 删除此元素
                     removedCount++;
                     _keyIndexMap.Remove(entry.Key);
-                    _entryCache.Remove(entry.Key);  // 同时删除entry缓存
+                    _entryCache.Remove(entry.Key); // 同时删除entry缓存
                 }
             }
-            
+
             // 移除末尾多余元素
-            if (writeIndex < _list.Count)
-            {
-                _list.RemoveRange(writeIndex, _list.Count - writeIndex);
-            }
-            
+            if (writeIndex < _list.Count) _list.RemoveRange(writeIndex, _list.Count - writeIndex);
+
             return removedCount;
         }
 
         /// <summary>
-        /// 检查指定键是否存在
-        /// 时间复杂度：O(1)
+        ///     检查指定键是否存在
+        ///     时间复杂度：O(1)
         /// </summary>
         /// <param name="key">要检查的键</param>
         /// <returns>如果键存在则返回true，否则返回false</returns>
@@ -478,57 +427,50 @@ namespace EasyPack.CustomData
         {
             if (string.IsNullOrEmpty(key)) return false;
             EnsureCache();
-            return _entryCache.ContainsKey(key);  // 使用entry缓存查询
+            return _entryCache.ContainsKey(key); // 使用entry缓存查询
         }
 
         /// <summary>
-        /// 批量获取多个值
+        ///     批量获取多个值
         /// </summary>
         public Dictionary<string, T> GetValues<T>(IEnumerable<string> ids, T defaultValue = default)
         {
             var result = new Dictionary<string, T>();
             if (ids == null) return result;
 
-            foreach (var id in ids)
-            {
-                result[id] = GetValue(id, defaultValue);
-            }
+            foreach (string id in ids) result[id] = GetValue(id, defaultValue);
+
             return result;
         }
 
         /// <summary>
-        /// 获取第一个匹配条件的值
+        ///     获取第一个匹配条件的值
         /// </summary>
         public T GetFirstValue<T>(Func<string, T, bool> predicate, T defaultValue = default)
         {
             if (predicate == null) return defaultValue;
 
-            foreach (var entry in _list)
+            foreach (CustomDataEntry entry in _list)
             {
                 if (entry.Key == null) continue;
-                if (TryGetValue(entry.Key, out T value) && predicate(entry.Key, value))
-                {
-                    return value;
-                }
+                if (TryGetValue(entry.Key, out T value) && predicate(entry.Key, value)) return value;
             }
+
             return defaultValue;
         }
 
         /// <summary>
-        /// 批量设置多个自定义数据值
+        ///     批量设置多个自定义数据值
         /// </summary>
         public void SetValues(Dictionary<string, object> values)
         {
             if (values == null) return;
 
-            foreach (var kv in values)
-            {
-                SetValue(kv.Key, kv.Value);
-            }
+            foreach (var kv in values) SetValue(kv.Key, kv.Value);
         }
 
         /// <summary>
-        /// 获取所有数据的键
+        ///     获取所有数据的键
         /// </summary>
         public IEnumerable<string> GetKeys()
         {
@@ -536,7 +478,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 获取指定类型的所有数据键
+        ///     获取指定类型的所有数据键
         /// </summary>
         public IEnumerable<string> GetKeysByType(CustomDataType type)
         {
@@ -544,33 +486,28 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 获取满足条件的所有数据条目
+        ///     获取满足条件的所有数据条目
         /// </summary>
-        public IEnumerable<CustomDataEntry> GetEntriesWhere(Func<CustomDataEntry, bool> predicate)
-        {
-            return predicate == null ? Enumerable.Empty<CustomDataEntry>() : _list.Where(predicate);
-        }
+        public IEnumerable<CustomDataEntry> GetEntriesWhere(Func<CustomDataEntry, bool> predicate) =>
+            predicate == null ? Enumerable.Empty<CustomDataEntry>() : _list.Where(predicate);
 
         /// <summary>
-        /// 判断列表是否为空
+        ///     判断列表是否为空
         /// </summary>
         public bool IsEmpty => _list.Count == 0;
 
         /// <summary>
-        /// 将另一个 CustomData 列表合并到当前列表（覆盖模式）
+        ///     将另一个 CustomData 列表合并到当前列表（覆盖模式）
         /// </summary>
         public void Merge(CustomDataCollection other)
         {
             if (other == null) return;
 
-            foreach (var entry in other)
-            {
-                SetValue(entry.Key, entry.GetValue());
-            }
+            foreach (CustomDataEntry entry in other) SetValue(entry.Key, entry.GetValue());
         }
 
         /// <summary>
-        /// 获取差异（返回在 other 中存在但在当前列表中不存在的键）
+        ///     获取差异（返回在 other 中存在但在当前列表中不存在的键）
         /// </summary>
         public IEnumerable<string> GetDifference(CustomDataCollection other)
         {
@@ -581,15 +518,15 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 深拷贝当前列表
+        ///     深拷贝当前列表
         /// </summary>
         public CustomDataCollection Clone()
         {
             if (Count == 0)
-                return new CustomDataCollection();
+                return new();
 
             var cloned = new CustomDataCollection();
-            foreach (var entry in _list)
+            foreach (CustomDataEntry entry in _list)
             {
                 var clonedEntry = new CustomDataEntry
                 {
@@ -604,15 +541,16 @@ namespace EasyPack.CustomData
                     ColorValue = entry.ColorValue,
                     JsonValue = entry.JsonValue,
                     JsonClrType = entry.JsonClrType,
-                    Serializer = entry.Serializer
+                    Serializer = entry.Serializer,
                 };
                 cloned.Add(clonedEntry);
             }
+
             return cloned;
         }
 
         /// <summary>
-        /// 增加 int 值
+        ///     增加 int 值
         /// </summary>
         public int AddInt(string id, int delta = 1)
         {
@@ -623,7 +561,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        /// 增加 float 值
+        ///     增加 float 值
         /// </summary>
         public float AddFloat(string id, float delta = 1f)
         {
@@ -634,25 +572,46 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>快速设置 int 值</summary>
-        public void SetInt(string id, int value) => SetValue(id, value);
+        public void SetInt(string id, int value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 float 值</summary>
-        public void SetFloat(string id, float value) => SetValue(id, value);
+        public void SetFloat(string id, float value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 bool 值</summary>
-        public void SetBool(string id, bool value) => SetValue(id, value);
+        public void SetBool(string id, bool value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 string 值</summary>
-        public void SetString(string id, string value) => SetValue(id, value);
+        public void SetString(string id, string value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 Vector2 值</summary>
-        public void SetVector2(string id, Vector2 value) => SetValue(id, value);
+        public void SetVector2(string id, Vector2 value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 Vector3 值</summary>
-        public void SetVector3(string id, Vector3 value) => SetValue(id, value);
+        public void SetVector3(string id, Vector3 value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 Color 值</summary>
-        public void SetColor(string id, Color value) => SetValue(id, value);
+        public void SetColor(string id, Color value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速获取 int 值</summary>
         public int GetInt(string id, int defaultValue = 0) => GetValue(id, defaultValue);
@@ -667,10 +626,12 @@ namespace EasyPack.CustomData
         public string GetString(string id, string defaultValue = "") => GetValue(id, defaultValue);
 
         /// <summary>快速获取 Vector2 值</summary>
-        public Vector2 GetVector2(string id, Vector2? defaultValue = null) => GetValue(id, defaultValue ?? Vector2.zero);
+        public Vector2 GetVector2(string id, Vector2? defaultValue = null) =>
+            GetValue(id, defaultValue ?? Vector2.zero);
 
         /// <summary>快速获取 Vector3 值</summary>
-        public Vector3 GetVector3(string id, Vector3? defaultValue = null) => GetValue(id, defaultValue ?? Vector3.zero);
+        public Vector3 GetVector3(string id, Vector3? defaultValue = null) =>
+            GetValue(id, defaultValue ?? Vector3.zero);
 
         /// <summary>快速获取 Color 值</summary>
         public Color GetColor(string id, Color? defaultValue = null) => GetValue(id, defaultValue ?? Color.white);
@@ -683,6 +644,7 @@ namespace EasyPack.CustomData
                 action?.Invoke(value);
                 return true;
             }
+
             return false;
         }
 
@@ -700,12 +662,9 @@ namespace EasyPack.CustomData
         #region 序列化支持
 
         /// <summary>
-        /// 获取内部列表
+        ///     获取内部列表
         /// </summary>
-        public List<CustomDataEntry> GetInternalList()
-        {
-            return _list;
-        }
+        public List<CustomDataEntry> GetInternalList() => _list;
 
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {

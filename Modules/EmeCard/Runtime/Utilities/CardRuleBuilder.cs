@@ -5,19 +5,20 @@ using UnityEngine;
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
-    /// 规则流式构建器
-    /// 提供核心方法和便捷语法糖
+    ///     规则流式构建器
+    ///     提供核心方法和便捷语法糖
     /// </summary>
     public sealed partial class CardRuleBuilder
     {
         private readonly CardRule _rule = new()
         {
-            Requirements = new List<IRuleRequirement>(),
-            Effects = new List<IRuleEffect>(),
-            Policy = new RulePolicy { DistinctMatched = true }
+            Requirements = new(),
+            Effects = new(),
+            Policy = new() { DistinctMatched = true },
         };
 
         #region 基础配置
+
         /// <summary>设置事件触发类型（使用字符串）</summary>
         public CardRuleBuilder On(string eventType, string customId = null)
         {
@@ -89,9 +90,11 @@ namespace EasyPack.EmeCardSystem
             _rule.Policy.StopEventOnSuccess = stop;
             return this;
         }
+
         #endregion
 
         #region 条件要求 - 核心
+
         /// <summary>添加条件判断</summary>
         /// <param name="predicate">条件判断委托</param>
         /// <returns>构建器自身，用于链式调用</returns>
@@ -103,9 +106,9 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 添加条件判断和卡牌输出
-        /// <para>返回值格式：(matched: 是否匹配, cards: 匹配的卡牌列表)</para>
-        /// <para>优势：用户委托仅被调用一次，避免重复计算</para>
+        ///     添加条件判断和卡牌输出
+        ///     <para>返回值格式：(matched: 是否匹配, cards: 匹配的卡牌列表)</para>
+        ///     <para>优势：用户委托仅被调用一次，避免重复计算</para>
         /// </summary>
         /// <param name="predicate">返回匹配结果和卡牌列表的委托</param>
         /// <returns>构建器自身，用于链式调用</returns>
@@ -135,7 +138,7 @@ namespace EasyPack.EmeCardSystem
                 FilterValue = filterValue,
                 MinCount = minCount,
                 MaxMatched = maxMatched,
-                MaxDepth = maxDepth
+                MaxDepth = maxDepth,
             });
             return this;
         }
@@ -147,110 +150,154 @@ namespace EasyPack.EmeCardSystem
                 _rule.Requirements.Add(requirement);
             return this;
         }
+
         #endregion
 
         #region 条件要求 - When语法糖
+
         /// <summary>要求源卡牌的类别为指定类别</summary>
         public CardRuleBuilder WhenSourceCategory(CardCategory category)
-            => When(ctx => ctx.Source?.Category == category);
+        {
+            return When(ctx => ctx.Source?.Category == category);
+        }
 
         /// <summary>要求源卡牌为对象类别</summary>
         public CardRuleBuilder WhenSourceIsObject()
-            => When(ctx => ctx.Source?.Category == CardCategory.Object);
+        {
+            return When(ctx => ctx.Source?.Category == CardCategory.Object);
+        }
 
         /// <summary>要求源卡牌为动作类别</summary>
         public CardRuleBuilder WhenSourceIsAction()
-            => When(ctx => ctx.Source?.Category == CardCategory.Action);
+        {
+            return When(ctx => ctx.Source?.Category == CardCategory.Action);
+        }
 
         /// <summary>要求源卡牌为属性类别</summary>
         public CardRuleBuilder WhenSourceIsAttribute()
-            => When(ctx => ctx.Source?.Category == CardCategory.Attribute);
+        {
+            return When(ctx => ctx.Source?.Category == CardCategory.Attribute);
+        }
 
         /// <summary>要求源卡牌有指定标签</summary>
         public CardRuleBuilder WhenSourceHasTag(string tag)
-            => When(ctx => ctx.Source?.HasTag(tag) ?? false);
+        {
+            return When(ctx => ctx.Source?.HasTag(tag) ?? false);
+        }
 
         /// <summary>要求源卡牌没有指定标签</summary>
         public CardRuleBuilder WhenSourceNotHasTag(string tag)
-            => When(ctx => !(ctx.Source?.HasTag(tag) ?? false));
+        {
+            return When(ctx => !(ctx.Source?.HasTag(tag) ?? false));
+        }
 
         /// <summary>要求源卡牌的ID为指定值</summary>
         public CardRuleBuilder WhenSourceId(string id)
-            => When(ctx => string.Equals(ctx.Source?.Id, id, StringComparison.Ordinal));
+        {
+            return When(ctx => string.Equals(ctx.Source?.Id, id, StringComparison.Ordinal));
+        }
 
         /// <summary>要求容器的类别为指定类别</summary>
         public CardRuleBuilder WhenContainerCategory(CardCategory category)
-            => When(ctx => ctx.MatchRoot?.Category == category);
+        {
+            return When(ctx => ctx.MatchRoot?.Category == category);
+        }
 
         /// <summary>要求容器为对象类别</summary>
         public CardRuleBuilder WhenContainerIsObject()
-            => When(ctx => ctx.MatchRoot?.Category == CardCategory.Object);
+        {
+            return When(ctx => ctx.MatchRoot?.Category == CardCategory.Object);
+        }
 
         /// <summary>要求容器为动作类别</summary>
         public CardRuleBuilder WhenContainerIsAction()
-            => When(ctx => ctx.MatchRoot?.Category == CardCategory.Action);
+        {
+            return When(ctx => ctx.MatchRoot?.Category == CardCategory.Action);
+        }
 
         /// <summary>要求容器为属性类别</summary>
         public CardRuleBuilder WhenContainerIsAttribute()
-            => When(ctx => ctx.MatchRoot?.Category == CardCategory.Attribute);
+        {
+            return When(ctx => ctx.MatchRoot?.Category == CardCategory.Attribute);
+        }
 
         /// <summary>要求容器有指定标签</summary>
         public CardRuleBuilder WhenContainerHasTag(string tag)
-            => When(ctx => ctx.MatchRoot?.HasTag(tag) ?? false);
+        {
+            return When(ctx => ctx.MatchRoot?.HasTag(tag) ?? false);
+        }
 
         /// <summary>要求容器没有指定标签</summary>
         public CardRuleBuilder WhenContainerNotHasTag(string tag)
-            => When(ctx => !(ctx.MatchRoot?.HasTag(tag) ?? false));
+        {
+            return When(ctx => !(ctx.MatchRoot?.HasTag(tag) ?? false));
+        }
 
         /// <summary>要求事件数据为指定类型</summary>
         public CardRuleBuilder WhenEventDataIs<T>() where T : class
-            => When(ctx => ctx.Event.DataObject is T);
+        {
+            return When(ctx => ctx.Event.DataObject is T);
+        }
 
         /// <summary>要求事件数据不为空</summary>
         public CardRuleBuilder WhenEventDataNotNull()
-            => When(ctx => ctx.Event.DataObject != null);
+        {
+            return When(ctx => ctx.Event.DataObject != null);
+        }
 
         #endregion
 
         #region 条件要求 - 便捷语法糖
+
         /// <summary>需要容器的直接子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedTag(string tag, int minCount = 1, int maxMatched = -1)
-            => Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByTag, tag, minCount, maxMatched);
+        public CardRuleBuilder NeedTag(string tag, int minCount = 1, int maxMatched = -1) => Need(
+            SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByTag, tag, minCount, maxMatched);
 
         /// <summary>需要容器的直接子卡中有指定ID的卡牌</summary>
-        public CardRuleBuilder NeedId(string id, int minCount = 1, int maxMatched = -1)
-            => Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ById, id, minCount, maxMatched);
+        public CardRuleBuilder NeedId(string id, int minCount = 1, int maxMatched = -1) => Need(SelectionRoot.Container,
+            TargetScope.Children, CardFilterMode.ById, id, minCount, maxMatched);
 
         /// <summary>需要容器的直接子卡中有指定类别的卡牌</summary>
-        public CardRuleBuilder NeedCategory(CardCategory category, int minCount = 1, int maxMatched = -1)
-            => Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByCategory, category.ToString(), minCount, maxMatched);
+        public CardRuleBuilder NeedCategory(CardCategory category, int minCount = 1, int maxMatched = -1) =>
+            Need(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByCategory, category.ToString(),
+                minCount, maxMatched);
 
         /// <summary>需要容器的所有后代中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedTagRecursive(string tag, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
-            => Need(SelectionRoot.Container, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount, maxMatched, maxDepth);
+        public CardRuleBuilder NeedTagRecursive(string tag, int minCount = 1, int maxMatched = -1,
+                                                int? maxDepth = null) =>
+            Need(SelectionRoot.Container, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount,
+                maxMatched, maxDepth);
 
         /// <summary>需要容器的所有后代中有指定ID的卡牌</summary>
-        public CardRuleBuilder NeedIdRecursive(string id, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
-            => Need(SelectionRoot.Container, TargetScope.Descendants, CardFilterMode.ById, id, minCount, maxMatched, maxDepth);
+        public CardRuleBuilder
+            NeedIdRecursive(string id, int minCount = 1, int maxMatched = -1, int? maxDepth = null) =>
+            Need(SelectionRoot.Container, TargetScope.Descendants, CardFilterMode.ById, id, minCount, maxMatched,
+                maxDepth);
 
         /// <summary>需要容器的所有后代中有指定类别的卡牌</summary>
-        public CardRuleBuilder NeedCategoryRecursive(CardCategory category, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
-            => Need(SelectionRoot.Container, TargetScope.Descendants, CardFilterMode.ByCategory, category.ToString(), minCount, maxMatched, maxDepth);
+        public CardRuleBuilder NeedCategoryRecursive(CardCategory category, int minCount = 1, int maxMatched = -1,
+                                                     int? maxDepth = null) =>
+            Need(SelectionRoot.Container, TargetScope.Descendants, CardFilterMode.ByCategory,
+                category.ToString(), minCount, maxMatched, maxDepth);
 
         /// <summary>需要源卡的直接子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceTag(string tag, int minCount = 1, int maxMatched = -1)
-            => Need(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ByTag, tag, minCount, maxMatched);
+        public CardRuleBuilder NeedSourceTag(string tag, int minCount = 1, int maxMatched = -1) =>
+            Need(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ByTag, tag, minCount, maxMatched);
 
         /// <summary>需要源卡的直接子卡中有指定ID的卡牌</summary>
-        public CardRuleBuilder NeedSourceId(string id, int minCount = 1, int maxMatched = -1)
-            => Need(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ById, id, minCount, maxMatched);
+        public CardRuleBuilder NeedSourceId(string id, int minCount = 1, int maxMatched = -1) =>
+            Need(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ById, id, minCount, maxMatched);
 
         /// <summary>需要源卡的所有后代中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceTagRecursive(string tag, int minCount = 1, int maxMatched = -1, int? maxDepth = null)
-            => Need(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount, maxMatched, maxDepth);
+        public CardRuleBuilder NeedSourceTagRecursive(string tag, int minCount = 1, int maxMatched = -1,
+                                                      int? maxDepth = null) =>
+            Need(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount, maxMatched,
+                maxDepth);
+
         #endregion
 
         #region 效果执行 - 核心
+
         /// <summary>添加自定义效果</summary>
         public CardRuleBuilder Do(IRuleEffect effect)
         {
@@ -258,17 +305,15 @@ namespace EasyPack.EmeCardSystem
                 _rule.Effects.Add(effect);
             return this;
         }
+
         /// <summary>添加多个自定义效果</summary>
         public CardRuleBuilder Do(params IRuleEffect[] effects)
         {
             if (effects != null)
-            {
-                foreach (var effect in effects)
-                {
+                foreach (IRuleEffect effect in effects)
                     if (effect != null)
                         _rule.Effects.Add(effect);
-                }
-            }
+
             return this;
         }
 
@@ -276,13 +321,10 @@ namespace EasyPack.EmeCardSystem
         public CardRuleBuilder Do(IEnumerable<IRuleEffect> effects)
         {
             if (effects != null)
-            {
-                foreach (var effect in effects)
-                {
+                foreach (IRuleEffect effect in effects)
                     if (effect != null)
                         _rule.Effects.Add(effect);
-                }
-            }
+
             return this;
         }
 
@@ -302,7 +344,7 @@ namespace EasyPack.EmeCardSystem
                 Filter = filter,
                 FilterValue = filterValue,
                 Take = take,
-                MaxDepth = maxDepth
+                MaxDepth = maxDepth,
             });
             return this;
         }
@@ -329,7 +371,7 @@ namespace EasyPack.EmeCardSystem
                 Filter = filter,
                 FilterValue = filterValue,
                 Take = take,
-                MaxDepth = maxDepth
+                MaxDepth = maxDepth,
             });
             return this;
         }
@@ -352,7 +394,7 @@ namespace EasyPack.EmeCardSystem
                 Filter = filter,
                 FilterValue = filterValue,
                 Take = take,
-                MaxDepth = maxDepth
+                MaxDepth = maxDepth,
             });
             return this;
         }
@@ -362,8 +404,8 @@ namespace EasyPack.EmeCardSystem
         {
             _rule.Effects.Add(new CreateCardsEffect
             {
-                CardIds = new List<string> { cardId },
-                CountPerId = count
+                CardIds = new() { cardId },
+                CountPerId = count,
             });
             return this;
         }
@@ -375,52 +417,63 @@ namespace EasyPack.EmeCardSystem
                 _rule.Effects.Add(new InvokeEffect(action));
             return this;
         }
+
         #endregion
 
         #region 效果执行 - 便捷语法糖
+
         /// <summary>移除匹配结果中指定标签的卡牌</summary>
-        public CardRuleBuilder DoRemoveByTag(string tag, int? take = null)
-            => DoRemove(SelectionRoot.Container, TargetScope.Matched, CardFilterMode.ByTag, tag, take);
+        public CardRuleBuilder DoRemoveByTag(string tag, int? take = null) => DoRemove(SelectionRoot.Container,
+            TargetScope.Matched, CardFilterMode.ByTag, tag, take);
 
         /// <summary>移除匹配结果中指定ID的卡牌</summary>
-        public CardRuleBuilder DoRemoveById(string id, int? take = null)
-            => DoRemove(SelectionRoot.Container, TargetScope.Matched, CardFilterMode.ById, id, take);
+        public CardRuleBuilder DoRemoveById(string id, int? take = null) => DoRemove(SelectionRoot.Container,
+            TargetScope.Matched, CardFilterMode.ById, id, take);
 
         /// <summary>移除容器子卡中指定标签的卡牌</summary>
-        public CardRuleBuilder DoRemoveInChildByTag(string tag, int? take = null)
-            => DoRemove(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByTag, tag, take);
+        public CardRuleBuilder DoRemoveInChildByTag(string tag, int? take = null) => DoRemove(SelectionRoot.Container,
+            TargetScope.Children, CardFilterMode.ByTag, tag, take);
 
         /// <summary>移除容器子卡中指定ID的卡牌</summary>
-        public CardRuleBuilder DoRemoveInChildById(string id, int? take = null)
-            => DoRemove(SelectionRoot.Container, TargetScope.Children, CardFilterMode.ById, id, take);
+        public CardRuleBuilder DoRemoveInChildById(string id, int? take = null) => DoRemove(SelectionRoot.Container,
+            TargetScope.Children, CardFilterMode.ById, id, take);
 
         /// <summary>给匹配结果添加标签</summary>
-        public CardRuleBuilder DoAddTagToMatched(string tag)
-            => DoAddTag(tag, SelectionRoot.Container, TargetScope.Matched);
+        public CardRuleBuilder DoAddTagToMatched(string tag) =>
+            DoAddTag(tag, SelectionRoot.Container, TargetScope.Matched);
 
         /// <summary>给源卡牌自身添加标签</summary>
         public CardRuleBuilder DoAddTagToSource(string tag)
-            => DoInvoke((ctx, matched) => ctx.Source.AddTag(tag));
+        {
+            return DoInvoke((ctx, matched) => ctx.Source.AddTag(tag));
+        }
 
         /// <summary>给容器卡牌自身添加标签</summary>
         public CardRuleBuilder DoAddTagToContainer(string tag)
-            => DoInvoke((ctx, matched) => ctx.MatchRoot.AddTag(tag));
+        {
+            return DoInvoke((ctx, matched) => ctx.MatchRoot.AddTag(tag));
+        }
 
         /// <summary>给容器子卡中指定标签的卡牌添加新标签</summary>
-        public CardRuleBuilder DoAddTagToTag(string targetTag, string newTag, int? take = null)
-            => DoAddTag(newTag, SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByTag, targetTag, take);
+        public CardRuleBuilder DoAddTagToTag(string targetTag, string newTag, int? take = null) =>
+            DoAddTag(newTag, SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByTag, targetTag,
+                take);
 
         /// <summary>给容器子卡中指定ID的卡牌添加标签</summary>
-        public CardRuleBuilder DoAddTagToId(string targetId, string newTag, int? take = null)
-            => DoAddTag(newTag, SelectionRoot.Container, TargetScope.Children, CardFilterMode.ById, targetId, take);
+        public CardRuleBuilder DoAddTagToId(string targetId, string newTag, int? take = null) => DoAddTag(newTag,
+            SelectionRoot.Container, TargetScope.Children, CardFilterMode.ById, targetId, take);
 
         /// <summary>给源卡牌自身移除标签</summary>
         public CardRuleBuilder DoRemoveTagFromSource(string tag)
-            => DoInvoke((ctx, matched) => ctx.Source.RemoveTag(tag));
+        {
+            return DoInvoke((ctx, matched) => ctx.Source.RemoveTag(tag));
+        }
 
         /// <summary>给容器卡牌自身移除标签</summary>
         public CardRuleBuilder DoRemoveTagFromContainer(string tag)
-            => DoInvoke((ctx, matched) => ctx.MatchRoot.RemoveTag(tag));
+        {
+            return DoInvoke((ctx, matched) => ctx.MatchRoot.RemoveTag(tag));
+        }
 
         /// <summary>修改匹配结果中指定标签的卡牌的属性</summary>
         public CardRuleBuilder DoModifyTag(
@@ -428,82 +481,86 @@ namespace EasyPack.EmeCardSystem
             string propertyName,
             float value,
             ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase,
-            int? take = null)
-            => DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Children, CardFilterMode.ByTag, tag, take);
+            int? take = null) =>
+            DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Children,
+                CardFilterMode.ByTag, tag, take);
 
         /// <summary>修改匹配结果的属性</summary>
         public CardRuleBuilder DoModifyMatched(
             string propertyName,
             float value,
-            ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase)
-            => DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Matched);
+            ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase) =>
+            DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Matched);
 
         /// <summary>批量触发匹配卡牌的自定义事件</summary>
-        public CardRuleBuilder DoBatchCustom(string eventId, Func<CardRuleContext, object> data = null, bool haveSource = false)
+        public CardRuleBuilder DoBatchCustom(string eventId, Func<CardRuleContext, object> data = null,
+                                             bool haveSource = false)
         {
             return DoInvoke((ctx, matched) =>
             {
                 object newData = data == null ? ctx.Event.DataObject : data.Invoke(ctx);
-                if (haveSource)
-                {
-                    ctx.Source.RaiseEvent(eventId, newData);
-                }
+                if (haveSource) ctx.Source.RaiseEvent(eventId, newData);
 
-                foreach (var card in matched)
-                {
-                    card.RaiseEvent(eventId, newData);
-                }
+                foreach (Card card in matched) card.RaiseEvent(eventId, newData);
             });
         }
+
         #endregion
 
         #region Debug
+
 #if UNITY_EDITOR
 
-        public CardRuleBuilder LogContext() => DoInvoke((context, list) =>
+        public CardRuleBuilder LogContext()
         {
-            Debug.Log(
-                $"[Rule Debug] 规则触发上下文：\n" +
-                $"- 规则名称：{context.EventId}\n" +
-                $"- 事件类型：{context.Event.EventType})\n" +
-                $"- 事件数据：{context.Event.DataObject}\n" +
-                $"- 源卡牌：{context.Source?.Name} (ID: {context.Source?.Id})\n" +
-                $"- 容器卡牌：{context.MatchRoot?.Name} (ID: {context.MatchRoot?.Id})\n" +
-                $"- 匹配卡牌数量：{list?.Count}");
-        });
+            return DoInvoke((context, list) =>
+            {
+                Debug.Log(
+                    $"[Rule Debug] 规则触发上下文：\n" +
+                    $"- 规则名称：{context.EventId}\n" +
+                    $"- 事件类型：{context.Event.EventType})\n" +
+                    $"- 事件数据：{context.Event.DataObject}\n" +
+                    $"- 源卡牌：{context.Source?.Name} (ID: {context.Source?.Id})\n" +
+                    $"- 容器卡牌：{context.MatchRoot?.Name} (ID: {context.MatchRoot?.Id})\n" +
+                    $"- 匹配卡牌数量：{list?.Count}");
+            });
+        }
 
         /// <summary>
-        /// 调试时输出日志
+        ///     调试时输出日志
         /// </summary>
         public CardRuleBuilder WhenLog(string message)
-            => When(context =>
+        {
+            return When(context =>
             {
                 Debug.Log(message);
                 return true;
             });
+        }
 
         /// <summary>
-        /// 仅在编辑器中执行调试逻辑
+        ///     仅在编辑器中执行调试逻辑
         /// </summary>
         public CardRuleBuilder WhenDebugInvoke(Func<CardRuleContext, bool> debugAction = null)
-            => When(context =>
+        {
+            return When(context =>
             {
                 debugAction?.Invoke(context);
                 return true;
             });
+        }
 
         /// <summary>
-        /// 仅在编辑器中执行调试效果
+        ///     仅在编辑器中执行调试效果
         /// </summary>
         public CardRuleBuilder DoDebugInvoke(Action<CardRuleContext, IReadOnlyList<Card>> debugAction = null)
         {
-            if (debugAction != null)
-            {
-                _rule.Effects.Add(new InvokeEffect(debugAction));
-            }
+            if (debugAction != null) _rule.Effects.Add(new InvokeEffect(debugAction));
+
             return this;
         }
 #endif
+
         #endregion
 
         /// <summary>构建规则</summary>
@@ -511,7 +568,7 @@ namespace EasyPack.EmeCardSystem
     }
 
     /// <summary>
-    /// 规则注册扩展方法
+    ///     规则注册扩展方法
     /// </summary>
     public static class RuleRegistrationExtensions
     {
@@ -520,17 +577,15 @@ namespace EasyPack.EmeCardSystem
         {
             var builder = new CardRuleBuilder();
             configure?.Invoke(builder);
-            var rule = builder.Build();
+            CardRule rule = builder.Build();
             engine.RegisterRule(rule);
             return rule;
         }
+
         /// <summary>注册规则集</summary>
         public static void RegisterRule(this CardEngine engine, IReadOnlyList<Action<CardRuleBuilder>> configures)
         {
-            foreach (var configure in configures)
-            {
-                RegisterRule(engine, configure);
-            }
+            foreach (var configure in configures) RegisterRule(engine, configure);
         }
     }
 }

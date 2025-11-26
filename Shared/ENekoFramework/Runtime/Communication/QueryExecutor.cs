@@ -5,23 +5,20 @@ using System.Diagnostics;
 namespace EasyPack.ENekoFramework
 {
     /// <summary>
-    /// 查询执行器
-    /// 负责同步执行查询，支持查询历史跟踪
+    ///     查询执行器
+    ///     负责同步执行查询，支持查询历史跟踪
     /// </summary>
     public class QueryExecutor
     {
         private readonly List<QueryDescriptor> _queryHistory;
 
         /// <summary>
-        /// 构造函数
+        ///     构造函数
         /// </summary>
-        public QueryExecutor()
-        {
-            _queryHistory = new List<QueryDescriptor>();
-        }
+        public QueryExecutor() => _queryHistory = new();
 
         /// <summary>
-        /// 同步执行查询
+        ///     同步执行查询
         /// </summary>
         /// <typeparam name="TResult">查询返回类型</typeparam>
         /// <param name="query">要执行的查询</param>
@@ -36,7 +33,7 @@ namespace EasyPack.ENekoFramework
                 QueryType = query.GetType(),
                 ExecutionId = Guid.NewGuid(),
                 StartedAt = DateTime.UtcNow,
-                Status = QueryStatus.Running
+                Status = QueryStatus.Running,
             };
 
             _queryHistory.Add(descriptor);
@@ -44,7 +41,7 @@ namespace EasyPack.ENekoFramework
             try
             {
                 var stopwatch = Stopwatch.StartNew();
-                var result = query.Execute();
+                TResult result = query.Execute();
                 stopwatch.Stop();
 
                 descriptor.CompletedAt = DateTime.UtcNow;
@@ -64,16 +61,13 @@ namespace EasyPack.ENekoFramework
         }
 
         /// <summary>
-        /// 获取查询执行历史
+        ///     获取查询执行历史
         /// </summary>
         /// <returns>查询描述符列表（只读）</returns>
-        public IReadOnlyList<QueryDescriptor> GetQueryHistory()
-        {
-            return _queryHistory.AsReadOnly();
-        }
+        public IReadOnlyList<QueryDescriptor> GetQueryHistory() => _queryHistory.AsReadOnly();
 
         /// <summary>
-        /// 清空查询历史
+        ///     清空查询历史
         /// </summary>
         public void ClearHistory()
         {
@@ -82,8 +76,8 @@ namespace EasyPack.ENekoFramework
     }
 
     /// <summary>
-    /// 查询描述符
-    /// 封装查询执行的元数据
+    ///     查询描述符
+    ///     封装查询执行的元数据
     /// </summary>
     public class QueryDescriptor
     {
@@ -113,15 +107,17 @@ namespace EasyPack.ENekoFramework
     }
 
     /// <summary>
-    /// 查询执行状态
+    ///     查询执行状态
     /// </summary>
     public enum QueryStatus
     {
         /// <summary>运行中</summary>
         Running,
+
         /// <summary>成功</summary>
         Succeeded,
+
         /// <summary>失败</summary>
-        Failed
+        Failed,
     }
 }

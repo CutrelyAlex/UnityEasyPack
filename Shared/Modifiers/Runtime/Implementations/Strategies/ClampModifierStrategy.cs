@@ -12,18 +12,14 @@ namespace EasyPack.Modifiers
             // Clamp修改器只对RangeModifier生效
             RangeModifier clampMod = null;
             int maxPriority = int.MinValue;
-            foreach (var mod in modifiers)
-            {
+            foreach (IModifier mod in modifiers)
                 if (mod is RangeModifier rm && rm.Priority > maxPriority)
                 {
                     maxPriority = rm.Priority;
                     clampMod = rm;
                 }
-            }
-            if (clampMod != null)
-            {
-                value = Mathf.Clamp(value, clampMod.Value.x, clampMod.Value.y);
-            }
+
+            if (clampMod != null) value = Mathf.Clamp(value, clampMod.Value.x, clampMod.Value.y);
         }
     }
 }

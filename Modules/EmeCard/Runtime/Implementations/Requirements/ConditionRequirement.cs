@@ -4,10 +4,10 @@ using System.Collections.Generic;
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
-    /// 自定义条件要求（不基于子卡筛选）<br></br>
-    /// 支持两种模式：<br></br>
-    /// 1. 仅条件判断 - 返回 bool<br></br>
-    /// 2. 条件判断 + 卡牌选择 - 返回 (bool matched, List&lt;Card&gt; cards)<br></br>
+    ///     自定义条件要求（不基于子卡筛选）<br></br>
+    ///     支持两种模式：<br></br>
+    ///     1. 仅条件判断 - 返回 bool<br></br>
+    ///     2. 条件判断 + 卡牌选择 - 返回 (bool matched, List&lt;Card&gt; cards)<br></br>
     /// </summary>
     public sealed class ConditionRequirement : IRuleRequirement
     {
@@ -34,13 +34,13 @@ namespace EasyPack.EmeCardSystem
         {
             if (_tuplePredicate != null)
             {
-                var (isMatched, cards) = _tuplePredicate(ctx);
+                (bool isMatched, var cards) = _tuplePredicate(ctx);
                 matched = cards ?? new List<Card>();
                 return isMatched;
             }
             else
             {
-                matched = new List<Card>();
+                matched = new();
                 return _boolPredicate(ctx);
             }
         }

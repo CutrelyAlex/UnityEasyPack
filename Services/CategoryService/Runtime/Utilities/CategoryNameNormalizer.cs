@@ -1,8 +1,8 @@
 namespace EasyPack.Category
 {
     /// <summary>
-    /// 分类名称规范化工具
-    /// 处理分类名称的验证和标准化
+    ///     分类名称规范化工具
+    ///     处理分类名称的验证和标准化
     /// </summary>
     public static class CategoryNameNormalizer
     {
@@ -10,7 +10,7 @@ namespace EasyPack.Category
         private const char Separator = '.';
 
         /// <summary>
-        /// 规范化分类名称
+        ///     规范化分类名称
         /// </summary>
         /// <param name="categoryName">原始分类名称</param>
         /// <returns>规范化后的分类名称</returns>
@@ -25,7 +25,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 验证分类名称是否有效
+        ///     验证分类名称是否有效
         /// </summary>
         /// <param name="categoryName">分类名称</param>
         /// <param name="errorMessage">错误消息（如果无效）</param>
@@ -60,7 +60,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 获取父分类名称
+        ///     获取父分类名称
         /// </summary>
         /// <param name="categoryName">分类名称</param>
         /// <returns>父分类名称，如果没有父分类则返回 null</returns>
@@ -73,13 +73,11 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        /// 获取分类的层级深度
+        ///     获取分类的层级深度
         /// </summary>
         /// <param name="categoryName">分类名称</param>
         /// <returns>层级深度</returns>
-        public static int GetDepth(string categoryName)
-        {
-            return string.IsNullOrWhiteSpace(categoryName) ? 0 : categoryName.Split(Separator).Length;
-        }
+        public static int GetDepth(string categoryName) =>
+            string.IsNullOrWhiteSpace(categoryName) ? 0 : categoryName.Split(Separator).Length;
     }
 }

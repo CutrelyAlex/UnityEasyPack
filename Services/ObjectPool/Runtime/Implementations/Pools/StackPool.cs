@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace EasyPack.ObjectPool
 {
     /// <summary>
-    /// 泛型 Stack&lt;T&gt; 专用对象池。
+    ///     泛型 Stack&lt;T&gt; 专用对象池。
     /// </summary>
     /// <typeparam name="T">栈中元素的类型。</typeparam>
     public static class StackPool<T>
@@ -14,7 +14,7 @@ namespace EasyPack.ObjectPool
         private static readonly object _lockObj = new();
 
         /// <summary>
-        /// 初始化栈池。
+        ///     初始化栈池。
         /// </summary>
         /// <param name="poolService">对象池服务实例。</param>
         /// <param name="maxCapacity">池的最大容量，默认为32。</param>
@@ -31,28 +31,28 @@ namespace EasyPack.ObjectPool
                 if (_isInitialized) return;
 
                 _pool = poolService.CreatePool(
-                    factory: () => new Stack<T>(),
-                    cleanup: stack => stack.Clear(),
-                    maxCapacity: maxCapacity
+                    () => new Stack<T>(),
+                    stack => stack.Clear(),
+                    maxCapacity
                 );
                 _isInitialized = true;
             }
         }
 
         /// <summary>
-        /// 异步初始化栈池。在 EasyPackArchitecture 启动时集中调用。
+        ///     异步初始化栈池。在 EasyPackArchitecture 启动时集中调用。
         /// </summary>
         /// <param name="maxCapacity">池的最大容量，默认为32。</param>
         public static async System.Threading.Tasks.Task InitializeAsync(int maxCapacity = 32)
         {
             if (_isInitialized) return;
 
-            var poolService = await EasyPackArchitecture.GetObjectPoolServiceAsync();
+            IObjectPoolService poolService = await EasyPackArchitecture.GetObjectPoolServiceAsync();
             Initialize(poolService, maxCapacity);
         }
 
         /// <summary>
-        /// 确保池已初始化，否则抛出异常。
+        ///     确保池已初始化，否则抛出异常。
         /// </summary>
         private static void EnsureInitialized()
         {
@@ -63,7 +63,7 @@ namespace EasyPack.ObjectPool
         }
 
         /// <summary>
-        /// 从池中租用一个栈。
+        ///     从池中租用一个栈。
         /// </summary>
         /// <returns>清洁的栈实例。</returns>
         public static Stack<T> Rent()
@@ -73,17 +73,14 @@ namespace EasyPack.ObjectPool
         }
 
         /// <summary>
-        /// 将栈归还到池中。栈将自动清空。
+        ///     将栈归还到池中。栈将自动清空。
         /// </summary>
         /// <param name="stack">要归还的栈。</param>
         public static void Return(Stack<T> stack)
         {
-            if (!_isInitialized)
-            {
-                return;
-            }
+            if (!_isInitialized) return;
+
             _pool.Return(stack);
         }
-
     }
 }

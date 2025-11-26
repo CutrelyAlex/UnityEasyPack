@@ -6,12 +6,12 @@ using UnityEngine;
 namespace EasyPack.Modifiers
 {
     /// <summary>
-    /// IModifier 的 JSON 序列化器
+    ///     IModifier 的 JSON 序列化器
     /// </summary>
     public class ModifierSerializer : JsonSerializerBase<IModifier>
     {
         /// <summary>
-        /// 将 IModifier 转换为可序列化的 DTO 对象
+        ///     将 IModifier 转换为可序列化的 DTO 对象
         /// </summary>
         /// <param name="obj">要转换的 IModifier 对象</param>
         /// <returns>SerializableModifier 对象，如果输入为 null 则返回 null</returns>
@@ -22,7 +22,7 @@ namespace EasyPack.Modifiers
             var serializable = new SerializableModifier
             {
                 Type = obj.Type,
-                Priority = obj.Priority
+                Priority = obj.Priority,
             };
 
             if (obj is FloatModifier floatModifier)
@@ -45,7 +45,7 @@ namespace EasyPack.Modifiers
 
         public override string SerializeToJson(IModifier obj)
         {
-            var serializable = ToSerializable(obj);
+            SerializableModifier serializable = ToSerializable(obj);
             return serializable == null ? null : JsonUtility.ToJson(serializable);
         }
 
@@ -57,26 +57,22 @@ namespace EasyPack.Modifiers
             if (serializable == null) return null;
 
             if (serializable.IsRangeModifier)
-            {
                 return new RangeModifier(
                     serializable.Type,
                     serializable.Priority,
                     serializable.RangeValue
                 );
-            }
             else
-            {
                 return new FloatModifier(
                     serializable.Type,
                     serializable.Priority,
                     serializable.FloatValue
                 );
-            }
         }
     }
 
     /// <summary>
-    /// FloatModifier 的 JSON 序列化器
+    ///     FloatModifier 的 JSON 序列化器
     /// </summary>
     public class FloatModifierSerializer : JsonSerializerBase<FloatModifier>
     {
@@ -89,7 +85,7 @@ namespace EasyPack.Modifiers
                 Type = obj.Type,
                 Priority = obj.Priority,
                 IsRangeModifier = false,
-                FloatValue = obj.Value
+                FloatValue = obj.Value,
             };
 
             return JsonUtility.ToJson(serializable);
@@ -102,7 +98,7 @@ namespace EasyPack.Modifiers
             var serializable = JsonUtility.FromJson<SerializableModifier>(json);
             if (serializable == null) return null;
 
-            return new FloatModifier(
+            return new(
                 serializable.Type,
                 serializable.Priority,
                 serializable.FloatValue
@@ -111,7 +107,7 @@ namespace EasyPack.Modifiers
     }
 
     /// <summary>
-    /// RangeModifier 的 JSON 序列化器
+    ///     RangeModifier 的 JSON 序列化器
     /// </summary>
     public class RangeModifierSerializer : JsonSerializerBase<RangeModifier>
     {
@@ -124,7 +120,7 @@ namespace EasyPack.Modifiers
                 Type = obj.Type,
                 Priority = obj.Priority,
                 IsRangeModifier = true,
-                RangeValue = obj.Value
+                RangeValue = obj.Value,
             };
 
             return JsonUtility.ToJson(serializable);
@@ -137,7 +133,7 @@ namespace EasyPack.Modifiers
             var serializable = JsonUtility.FromJson<SerializableModifier>(json);
             if (serializable == null) return null;
 
-            return new RangeModifier(
+            return new(
                 serializable.Type,
                 serializable.Priority,
                 serializable.RangeValue
@@ -146,7 +142,7 @@ namespace EasyPack.Modifiers
     }
 
     /// <summary>
-    /// 修饰器列表的 JSON 序列化器
+    ///     修饰器列表的 JSON 序列化器
     /// </summary>
     public class ModifierListSerializer : JsonSerializerBase<List<IModifier>>
     {
@@ -156,17 +152,17 @@ namespace EasyPack.Modifiers
 
             var wrapper = new ModifierListWrapper
             {
-                Modifiers = new List<SerializableModifier>()
+                Modifiers = new(),
             };
 
-            foreach (var modifier in obj)
+            foreach (IModifier modifier in obj)
             {
                 if (modifier == null) continue;
 
                 var serializable = new SerializableModifier
                 {
                     Type = modifier.Type,
-                    Priority = modifier.Priority
+                    Priority = modifier.Priority,
                 };
 
                 if (modifier is FloatModifier floatModifier)
@@ -188,33 +184,29 @@ namespace EasyPack.Modifiers
 
         public override List<IModifier> DeserializeFromJson(string json)
         {
-            if (string.IsNullOrEmpty(json)) return new List<IModifier>();
+            if (string.IsNullOrEmpty(json)) return new();
 
             var wrapper = JsonUtility.FromJson<ModifierListWrapper>(json);
-            if (wrapper?.Modifiers == null) return new List<IModifier>();
+            if (wrapper?.Modifiers == null) return new();
 
             var result = new List<IModifier>();
 
-            foreach (var serializable in wrapper.Modifiers)
+            foreach (SerializableModifier serializable in wrapper.Modifiers)
             {
                 IModifier modifier;
 
                 if (serializable.IsRangeModifier)
-                {
                     modifier = new RangeModifier(
                         serializable.Type,
                         serializable.Priority,
                         serializable.RangeValue
                     );
-                }
                 else
-                {
                     modifier = new FloatModifier(
                         serializable.Type,
                         serializable.Priority,
                         serializable.FloatValue
                     );
-                }
 
                 result.Add(modifier);
             }
