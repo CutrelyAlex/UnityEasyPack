@@ -130,7 +130,7 @@ namespace EasyPack.EmeCardSystem
                     DefaultTags = card.Data.DefaultTags,
                     Index = card.Index,
                     Properties = Array.Empty<SerializableGameProperty>(),
-                    Tags = card.Tags is { Count: > 0 } ? new List<string>(card.Tags).ToArray() : Array.Empty<string>(),
+                    Tags = card.GetTagsInternal() is { Count: > 0 } tags ? new List<string>(tags).ToArray() : Array.Empty<string>(),
                     ChildrenJson = null, // 默认为空，有子卡时才序列化
                     IsIntrinsic = false,
                 };

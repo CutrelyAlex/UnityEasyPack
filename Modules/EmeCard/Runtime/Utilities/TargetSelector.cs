@@ -90,8 +90,8 @@ namespace EasyPack.EmeCardSystem
                 return _categoryManager.GetTags(card);
             }
 
-            // 回退到 Card.Tags
-            return card.Tags;
+            // 回退到 Card 内部标签集
+            return card.GetTagsInternal();
         }
 
         /// <summary>

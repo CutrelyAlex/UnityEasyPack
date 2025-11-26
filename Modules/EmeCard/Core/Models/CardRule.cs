@@ -128,8 +128,6 @@ namespace EasyPack.EmeCardSystem
                     }
                     return target;
                 }
-                default:
-                    return null;
             }
         }
 

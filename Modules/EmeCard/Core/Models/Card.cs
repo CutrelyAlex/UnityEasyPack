@@ -154,13 +154,14 @@ namespace EasyPack.EmeCardSystem
         private readonly HashSet<string> _tags = new(StringComparer.Ordinal);
 
         /// <summary>
-        ///     标签集合。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal" />）。
+        ///     内部获取标签集合，仅供序列化和内部使用。
         /// </summary>
-        /// <remarks>
-        ///     [已弃用] 标签现由 CategoryManager 统一管理。
-        ///     请使用 CardEngine.CategoryManager.GetEntityTags(entityId) 获取标签。
-        /// </remarks>
-        [Obsolete("标签现由 CategoryManager 统一管理。请使用 CardEngine.CategoryManager.GetEntityTags() 获取标签。保留此属性仅用于向后兼容和内部使用。")]
+        internal IReadOnlyCollection<string> GetTagsInternal() => _tags;
+
+        /// <summary>
+        ///     标签集合。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal" />）。
+        ///     <para>推荐使用 <see cref="HasTag"/>、<see cref="AddTag"/>、<see cref="RemoveTag"/> 方法操作标签。</para>
+        /// </summary>
         public IReadOnlyCollection<string> Tags => _tags;
 
         /// <summary>

@@ -821,7 +821,7 @@ namespace EasyPack.EmeCardSystem
             cardList.Add(c);
 
             // 第五步: 将卡牌的所有标签加入TargetSelector缓存（确保新创建的卡牌标签也被缓存）
-            foreach (string tag in c.Tags)
+            foreach (string tag in c.GetTagsInternal())
             {
                 TargetSelector.OnCardTagAdded(c, tag);
             }
@@ -862,7 +862,7 @@ namespace EasyPack.EmeCardSystem
                 }
 
                 // 从TargetSelector缓存中移除卡牌的标签
-                foreach (string tag in c.Tags)
+                foreach (string tag in c.GetTagsInternal())
                 {
                     TargetSelector.OnCardTagRemoved(c, tag);
                 }
