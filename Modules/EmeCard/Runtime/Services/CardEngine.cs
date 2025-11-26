@@ -909,7 +909,7 @@ namespace EasyPack.EmeCardSystem
             // 注册实体
             var registration = CategoryManager.RegisterEntity(card, category);
 
-            // 应用默认CardData.DefaultTags
+            // 应用运行时的DefaultTags（来自CardData）
             if (card.Data?.DefaultTags != null)
             {
                 foreach (string tag in card.Data.DefaultTags)
@@ -921,8 +921,8 @@ namespace EasyPack.EmeCardSystem
                 }
             }
 
-            // 应用构造函数中传入的额外标签
-            if (card.PendingExtraTags != null)
+            // 待应用
+            if (card.PendingExtraTags != null && card.PendingExtraTags.Count > 0)
             {
                 foreach (string tag in card.PendingExtraTags)
                 {

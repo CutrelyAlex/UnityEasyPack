@@ -126,7 +126,8 @@ namespace EasyPack.EmeCardSystem
                     ID = card.Data.ID,
                     Name = card.Data.Name,
                     Description = card.Data.Description,
-                    DefaultCategory = card.Category,
+                    // 序列化时使用 CardData.Category，确保一致性
+                    DefaultCategory = card.Data?.Category ?? CardData.DEFAULT_CATEGORY,
                     DefaultTags = card.Data.DefaultTags,
                     Index = card.Index,
                     Properties = Array.Empty<SerializableGameProperty>(),
@@ -186,7 +187,6 @@ namespace EasyPack.EmeCardSystem
                 visited.Remove(card);
             }
         }
-
         private Card DeserializeCardRecursive(SerializableCard data)
         {
             if (data == null)
@@ -196,12 +196,14 @@ namespace EasyPack.EmeCardSystem
                 throw new SerializationException("CardData.ID 是必需字段", typeof(Card),
                     SerializationErrorCode.DeserializationFailed);
 
+            // 反序列化时创建的CardData不应包含DefaultTags
+            // DefaultTags仅在新建卡牌时使用，反序列化的卡牌标签完全由序列化数据决定
             var cardData = new CardData(
                 data.ID,
                 data.Name ?? "Default",
                 data.Description ?? string.Empty,
                 data.DefaultCategory,
-                data.DefaultTags ?? Array.Empty<string>(),
+                Array.Empty<string>(),  // 反序列化时不应用DefaultTags
                 null
             );
 
@@ -223,13 +225,24 @@ namespace EasyPack.EmeCardSystem
                     }
                 }
 
-            // 恢复标签
-            if (data.Tags != null)
+            // 恢复标签 - 直接保存序列化时的所有标签
+            // 注意：反序列化时不应用DefaultTags，这些标签完全由序列化数据决定
+
+            if (data.Tags != null && data.Tags.Length > 0)
+            {
+                var allTags = new List<string>();
                 foreach (string tag in data.Tags)
                 {
                     if (!string.IsNullOrEmpty(tag))
-                        card.AddTag(tag);
+                    {
+                        allTags.Add(tag);
+                    }
                 }
+                if (allTags.Count > 0)
+                {
+                    card.PendingExtraTags = allTags;
+                }
+            }
 
             // 恢复子卡
             if (!string.IsNullOrEmpty(data.ChildrenJson))
