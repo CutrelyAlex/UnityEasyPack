@@ -785,7 +785,7 @@ namespace EasyPack.EmeCardSystem
                 {
                     if (!string.IsNullOrWhiteSpace(tag))
                     {
-                        registration = registration.WithTag(tag);
+                        registration = registration.WithTags(tag);
                     }
                 }
             }
@@ -824,12 +824,13 @@ namespace EasyPack.EmeCardSystem
         {
             if (card?.Data == null)
             {
-                return "Uncategorized";
+                return CardData.DEFAULT_CATEGORY;
             }
 
-            // TODO: 将 CardCategory 枚举转换为字符串
-            // 未来可以扩展支持更复杂的层级分类（如 "Creature.Monster.Elite"）
-            return card.Data.Category.ToString();
+            // 优先使用新的 DefaultCategory，如果为空则回退到 DEFAULT_CATEGORY
+            return string.IsNullOrEmpty(card.Data.DefaultCategory) 
+                ? CardData.DEFAULT_CATEGORY 
+                : card.Data.DefaultCategory;
         }
 
         #endregion
