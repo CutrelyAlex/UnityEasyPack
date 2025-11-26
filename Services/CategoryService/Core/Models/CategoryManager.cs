@@ -1070,30 +1070,41 @@ namespace EasyPack.Category
         /// </summary>
         /// <param name="entityId">实体ID。</param>
         /// <param name="category">分类名称。</param>
-        /// <param name="includeChildren">是否检查子分类。</param>
+        /// <param name="includeChildren">是否检查子分类（即实体是否在该分类或其子分类中）。</param>
         /// <returns>如果实体在该分类中返回 true。</returns>
         public bool IsInCategory(string entityId, string category, bool includeChildren = false)
         {
             if (string.IsNullOrEmpty(entityId) || string.IsNullOrEmpty(category))
                 return false;
 
+            // 获取目标分类的整数ID
+            if (!_categoryTermMapper.TryGetId(category, out int targetCategoryId))
+                return false;
+
             _treeLock.EnterReadLock();
             try
             {
-                if (!_entityIdToNode.TryGetValue(entityId, out var node))
+                // 获取实体所在的节点
+                if (!_entityIdToNode.TryGetValue(entityId, out var entityNode))
                     return false;
 
-                string entityCategory = _categoryIdToName.GetValueOrDefault(node.TermId, string.Empty);
-
-                if (includeChildren)
+                if (!includeChildren)
                 {
-                    // 检查实体的分类是否以目标分类开头（即是目标分类或其子分类）
-                    return entityCategory.Equals(category, StringComparison.Ordinal) ||
-                           entityCategory.StartsWith(category + ".", StringComparison.Ordinal);
+                    // 实体节点的ID必须等于目标分类ID
+                    return entityNode.TermId == targetCategoryId;
                 }
                 else
                 {
-                    return entityCategory.Equals(category, StringComparison.Ordinal);
+                    // 检查实体节点是否是目标分类或其子分类
+                    // 通过向上遍历父节点链来检查
+                    CategoryNode current = entityNode;
+                    while (current != null)
+                    {
+                        if (current.TermId == targetCategoryId)
+                            return true;
+                        current = current.ParentNode;
+                    }
+                    return false;
                 }
             }
             finally
