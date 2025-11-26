@@ -119,9 +119,24 @@ namespace EasyPack.Category
         bool HasTag(string entityId, string tag);
 
         /// <summary>
+        ///     检查实体是否拥有指定标签
+        /// </summary>
+        bool HasTag(T entity, string tag);
+
+        /// <summary>
         ///     获取实体的所有标签
         /// </summary>
         IReadOnlyList<string> GetEntityTags(string entityId);
+
+        /// <summary>
+        ///     获取实体的所有标签
+        /// </summary>
+        IReadOnlyList<string> GetTags(T entity);
+
+        /// <summary>
+        ///     检查实体是否在指定分类中
+        /// </summary>
+        bool IsInCategory(T entity, string category, bool includeChildren = false);
 
         /// <summary>
         ///     根据标签获取实体

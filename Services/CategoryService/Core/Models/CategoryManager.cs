@@ -1066,6 +1066,45 @@ namespace EasyPack.Category
         }
 
         /// <summary>
+        ///     检查实体是否拥有指定标签（基于实体对象）。
+        /// </summary>
+        /// <param name="entity">实体对象。</param>
+        /// <param name="tag">标签名称。</param>
+        /// <returns>如果实体拥有该标签返回 true。</returns>
+        public bool HasTag(T entity, string tag)
+        {
+            if (entity == null) return false;
+            string entityId = _idExtractor(entity);
+            return HasTag(entityId, tag);
+        }
+
+        /// <summary>
+        ///     获取实体的所有标签（基于实体对象）。
+        /// </summary>
+        /// <param name="entity">实体对象。</param>
+        /// <returns>标签列表；若实体不存在则返回空列表。</returns>
+        public IReadOnlyList<string> GetTags(T entity)
+        {
+            if (entity == null) return Array.Empty<string>();
+            string entityId = _idExtractor(entity);
+            return GetEntityTags(entityId);
+        }
+
+        /// <summary>
+        ///     检查实体是否在指定分类中（基于实体对象）。
+        /// </summary>
+        /// <param name="entity">实体对象。</param>
+        /// <param name="category">分类名称。</param>
+        /// <param name="includeChildren">是否检查子分类。</param>
+        /// <returns>如果实体在该分类中返回 true。</returns>
+        public bool IsInCategory(T entity, string category, bool includeChildren = false)
+        {
+            if (entity == null) return false;
+            string entityId = _idExtractor(entity);
+            return IsInCategory(entityId, category, includeChildren);
+        }
+
+        /// <summary>
         ///     检查实体是否在指定分类中。
         /// </summary>
         /// <param name="entityId">实体ID。</param>

@@ -362,8 +362,10 @@ namespace EasyPack.EmeCardSystem
             var fallbackResults = new List<Card>(cards.Count / 2);
             foreach (var card in cards)
             {
+#pragma warning disable CS0618
                 if (card.HasTag(tag))
                     fallbackResults.Add(card);
+#pragma warning restore CS0618
             }
             return fallbackResults;
         }
@@ -393,24 +395,16 @@ namespace EasyPack.EmeCardSystem
             string categoryStr,
             ICategoryManager<Card> categoryManager)
         {
-            // 使用 CategoryManager 的层级分类
+            // 使用 CategoryManager 检查分类
             if (categoryManager != null && !string.IsNullOrEmpty(categoryStr))
             {
                 var results = new List<Card>(cards.Count / 2);
                 foreach (var card in cards)
                 {
-                    // 检查是否属于该分类
-                    var cardCategories = categoryManager.GetCategories(card);
-                    if (cardCategories != null)
+                    // 使用 IsInCategory 检查
+                    if (categoryManager.IsInCategory(card, categoryStr, includeChildren: true))
                     {
-                        foreach (var cat in cardCategories)
-                        {
-                            if (cat != null && cat.StartsWith(categoryStr, StringComparison.Ordinal))
-                            {
-                                results.Add(card);
-                                break;
-                            }
-                        }
+                        results.Add(card);
                     }
                 }
                 return results;
@@ -422,8 +416,10 @@ namespace EasyPack.EmeCardSystem
                 var catResults = new List<Card>(cards.Count / 2);
                 foreach (var card in cards)
                 {
+#pragma warning disable CS0618 // 抑制过时警告
                     if (card.Category == cat)
                         catResults.Add(card);
+#pragma warning restore CS0618
                 }
                 return catResults;
             }
