@@ -84,14 +84,14 @@ namespace EasyPack.EmeCardSystem
         {
             if (card == null) return null;
 
-            // 优先使用 CategoryManager
+            // 使用 CategoryManager 获取标签
             if (_categoryManager != null)
             {
                 return _categoryManager.GetTags(card);
             }
 
-            // 回退到 Card 内部标签集
-            return card.GetTagsInternal();
+            // 没有 CategoryManager 时返回空集合
+            return Array.Empty<string>();
         }
 
         /// <summary>

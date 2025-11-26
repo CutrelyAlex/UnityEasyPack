@@ -22,7 +22,16 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         internal CardEngine Engine { get; set; }
 
-        private string entityId;
+        /// <summary>
+        ///     实体ID，用于CategoryManager中的唯一标识。
+        ///     格式为 "{Id}#{Index}"
+        /// </summary>
+        public string EntityId => Index >= 0 ? $"{Id}#{Index}" : null;
+
+        /// <summary>
+        ///     构造函数中临时收集的额外标签，在注册到Engine时同步到CategoryManager后清空。
+        /// </summary>
+        internal List<string> PendingExtraTags { get; set; }
 
         /// <summary>
         ///     构造函数：创建卡牌，可选单个属性
@@ -38,23 +47,11 @@ namespace EasyPack.EmeCardSystem
                 Properties.Add(gameProperty);
             }
 
-            if (Data?.DefaultTags != null)
+            // 临时收集额外标签，等待注册到Engine时同步
+            if (extraTags != null && extraTags.Length > 0)
             {
-                foreach (string t in Data.DefaultTags)
-                {
-                    _tags.Add(t);
-                }
+                PendingExtraTags = new List<string>(extraTags);
             }
-
-            if (extraTags != null)
-            {
-                foreach (string t in extraTags)
-                {
-                    _tags.Add(t);
-                }
-            }
-            
-            entityId = $"{Id}#{Index}";
         }
 
         /// <summary>
@@ -68,17 +65,11 @@ namespace EasyPack.EmeCardSystem
             Data = data;
             Properties = properties?.ToList() ?? new List<GameProperty>();
 
-            if (Data?.DefaultTags != null)
-                foreach (string t in Data.DefaultTags)
-                {
-                    _tags.Add(t);
-                }
-
-            if (extraTags != null)
-                foreach (string t in extraTags)
-                {
-                    _tags.Add(t);
-                }
+            // 临时收集额外标签，等待注册到Engine时同步
+            if (extraTags != null && extraTags.Length > 0)
+            {
+                PendingExtraTags = new List<string>(extraTags);
+            }
         }
 
         /// <summary>
@@ -97,21 +88,13 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     该卡牌的静态数据（ID/名称/描述/默认标签等）。
-        ///     赋值时会清空并载入默认标签（<see cref="CardData.DefaultTags" />）。
+        ///     注意：更改 Data 不会自动更新 CategoryManager 中的标签，
+        ///     标签管理统一由 Engine 在注册时处理。
         /// </summary>
         public CardData Data
         {
             get => _data;
-            set
-            {
-                _data = value;
-                _tags.Clear();
-                if (_data is { DefaultTags: not null })
-                    foreach (string t in _data.DefaultTags)
-                    {
-                        _tags.Add(t);
-                    }
-            }
+            set => _data = value;
         }
 
         /// <summary>
@@ -177,122 +160,92 @@ namespace EasyPack.EmeCardSystem
 
         #region 标签和持有关系
 
-        private readonly HashSet<string> _tags = new(StringComparer.Ordinal);
-
         /// <summary>
-        ///     内部获取标签集合，仅供序列化和内部使用。
-        /// </summary>
-        internal IReadOnlyCollection<string> GetTagsInternal() => _tags;
-
-        /// <summary>
-        ///     标签集合。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal" />）。
+        ///     标签集合。标签由 CategoryManager 统一管理。
         ///     <para>推荐使用 <see cref="HasTag"/>、<see cref="AddTag"/>、<see cref="RemoveTag"/> 方法操作标签。</para>
         /// </summary>
-        public IReadOnlyCollection<string> Tags => _tags;
+        /// <exception cref="InvalidOperationException">卡牌未注册到引擎时访问。</exception>
+        public IReadOnlyCollection<string> Tags
+        {
+            get
+            {
+                if (Engine?.CategoryManager == null || Index < 0)
+                    return Array.Empty<string>();
+                return Engine.CategoryManager.GetTags(this);
+            }
+        }
 
         /// <summary>
         ///     检查卡牌是否包含指定标签。
-        ///     <para>优先使用 CategoryManager（如果引擎已设置），否则使用内部标签集。</para>
         /// </summary>
         /// <param name="tag">要检查的标签。</param>
         /// <returns>如果包含该标签返回 true。</returns>
         public bool HasTag(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return false;
+            if (Engine?.CategoryManager == null || Index < 0) return false;
             
-            // 优先使用 CategoryManager
-            if (Engine?.CategoryManager != null)
-            {
-                return Engine.CategoryManager.HasTag(this, tag);
-            }
-            
-            // 回退到内部标签集
-            return _tags.Contains(tag);
+            return Engine.CategoryManager.HasTag(this, tag);
         }
 
         /// <summary>
         ///     添加标签到卡牌。
-        ///     <para>同时更新 CategoryManager（如果引擎已设置）和内部标签集。</para>
         /// </summary>
         /// <param name="tag">要添加的标签。</param>
         /// <returns>如果成功添加返回 true（标签之前不存在）。</returns>
         public bool AddTag(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return false;
+            if (Engine?.CategoryManager == null || Index < 0) return false;
             
-            _tags.Add(tag);
+            // 检查是否已存在
+            if (Engine.CategoryManager.HasTag(this, tag)) return false;
             
-            // 同步到 CategoryManager
-            if (Engine?.CategoryManager != null)
-            {
-                OperationResult op = Engine.CategoryManager.AddTag(entityId, tag);
-                if (!op.IsSuccess)
-                {
-                    // 回滚
-                    _tags.Remove(tag);
-                    return false;
-                }
-                else
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            OperationResult op = Engine.CategoryManager.AddTag(EntityId, tag);
+            return op.IsSuccess;
         }
 
+        /// <summary>
+        ///     添加多个标签到卡牌。
+        /// </summary>
+        /// <param name="tags">要添加的标签数组。</param>
+        /// <returns>如果成功添加至少一个新标签返回 true。</returns>
         public bool AddTags(string[] tags)
         {
-            if(tags == null || tags.Length == 0) return false;
+            if (tags == null || tags.Length == 0) return false;
+            if (Engine?.CategoryManager == null || Index < 0) return false;
             
+            // 过滤出未存在的标签
+            var newTags = new List<string>();
             foreach (string tag in tags)
             {
-                _tags.Add(tag);
-            }
-            // 同步到 CategoryManager
-            if (Engine?.CategoryManager == null)
-            {
-                return false;
-            }
-
-            {
-                OperationResult op = Engine.CategoryManager.AddTags(entityId, tags);
-                if (!op.IsSuccess)
+                if (!string.IsNullOrEmpty(tag) && !Engine.CategoryManager.HasTag(this, tag))
                 {
-                    // 回滚s
-                    foreach (string tag in tags)
-                    {
-                        _tags.Remove(tag);
-                    }
-                    return false;
-                }
-                else
-                {
-                    return true;
+                    newTags.Add(tag);
                 }
             }
+            
+            if (newTags.Count == 0) return false;
+            
+            OperationResult op = Engine.CategoryManager.AddTags(EntityId, newTags.ToArray());
+            return op.IsSuccess;
         }
-        
         
         /// <summary>
         ///     从卡牌移除标签。
-        ///     <para>同时更新 CategoryManager（如果引擎已设置）和内部标签集。</para>
         /// </summary>
         /// <param name="tag">要移除的标签。</param>
         /// <returns>如果成功移除返回 true（标签之前存在）。</returns>
         public bool RemoveTag(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return false;
+            if (Engine?.CategoryManager == null || Index < 0) return false;
             
-            bool removed = _tags.Remove(tag);
+            // 检查是否存在
+            if (!Engine.CategoryManager.HasTag(this, tag)) return false;
             
-            // 同步到 CategoryManager
-            if (removed && Engine?.CategoryManager != null)
-            {
-                Engine.CategoryManager.RemoveTag(entityId, tag);
-            }
-            
-            return removed;
+            OperationResult op = Engine.CategoryManager.RemoveTag(EntityId, tag);
+            return op.IsSuccess;
         }
 
         /// <summary>

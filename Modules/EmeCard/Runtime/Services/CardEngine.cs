@@ -820,14 +820,14 @@ namespace EasyPack.EmeCardSystem
 
             cardList.Add(c);
 
-            // 第五步: 将卡牌的所有标签加入TargetSelector缓存（确保新创建的卡牌标签也被缓存）
-            foreach (string tag in c.GetTagsInternal())
+            // 第五步: 注册到 CategoryManager（同时处理标签）
+            RegisterToCategoryManager(c);
+
+            // 第六步: 将卡牌的所有标签加入TargetSelector缓存
+            foreach (string tag in c.Tags)
             {
                 TargetSelector.OnCardTagAdded(c, tag);
             }
-
-            // 第六步: 注册到 CategoryManager
-            RegisterToCategoryManager(c);
 
             return this;
         }
@@ -861,14 +861,17 @@ namespace EasyPack.EmeCardSystem
                     if (cardList.Count == 0) _cardsById.Remove(c.Id);
                 }
 
-                // 从TargetSelector缓存中移除卡牌的标签
-                foreach (string tag in c.GetTagsInternal())
+                // 从TargetSelector缓存中移除卡牌的标签（在注销前获取标签）
+                var tagsToRemove = c.Tags.ToList();
+                
+                // 从 CategoryManager 注销
+                UnregisterFromCategoryManager(c);
+                
+                // 移除标签缓存
+                foreach (string tag in tagsToRemove)
                 {
                     TargetSelector.OnCardTagRemoved(c, tag);
                 }
-
-                // 从 CategoryManager 注销
-                UnregisterFromCategoryManager(c);
             }
 
             return this;
@@ -893,7 +896,7 @@ namespace EasyPack.EmeCardSystem
         #region CategoryManager 集成
 
         /// <summary>
-        ///     将卡牌注册到 CategoryManager，提取分类并应用默认标签。
+        ///     将卡牌注册到 CategoryManager，提取分类并应用所有标签（默认标签+额外标签）。
         /// </summary>
         /// <param name="card">要注册的卡牌。</param>
         private void RegisterToCategoryManager(Card card)
@@ -915,6 +918,20 @@ namespace EasyPack.EmeCardSystem
                         registration = registration.WithTags(tag);
                     }
                 }
+            }
+
+            // 应用构造函数中传入的额外标签
+            if (card.PendingExtraTags != null)
+            {
+                foreach (string tag in card.PendingExtraTags)
+                {
+                    if (!string.IsNullOrWhiteSpace(tag))
+                    {
+                        registration = registration.WithTags(tag);
+                    }
+                }
+                // 清空临时标签列表
+                card.PendingExtraTags = null;
             }
 
             // 完成注册
