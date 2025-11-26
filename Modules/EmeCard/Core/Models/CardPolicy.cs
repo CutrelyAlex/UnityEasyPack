@@ -9,6 +9,41 @@ namespace EasyPack.EmeCardSystem
         // 命中规则的裁决方式
         public RuleSelectionMode RuleSelection { get; set; } = RuleSelectionMode.RegistrationOrder;
 
+        // ===== 并行处理配置 =====
+
+        /// <summary>
+        ///     是否启用并行 Requirement 评估。
+        ///     <para>当规则数量超过 ParallelThreshold 时，使用并行评估</para>
+        ///     <remarks>默认值：false</remarks>
+        /// </summary>
+        public bool EnableParallelMatching { get; set; } = false;
+
+        /// <summary>
+        ///     启用并行评估的规则数量阈值。
+        ///     <para>仅当 EnableParallelMatching=true 且规则数≥此值时启用并行。</para>
+        ///     <remarks>默认值：10</remarks>
+        /// </summary>
+        public int ParallelThreshold { get; set; } = 10;
+
+        /// <summary>
+        ///     并行评估的最大并发度。
+        ///     <para>-1 表示使用系统默认（CPU 核心数）</para>
+        ///     <remarks>默认值：-1</remarks>
+        /// </summary>
+        public int MaxDegreeOfParallelism { get; set; } = -1;
+
+        // ===== 效果池配置 =====
+
+        /// <summary>
+        ///     是否启用效果池模式。
+        ///     <para>
+        ///         启用后，所有命中规则的效果会先收集到池中，
+        ///         按优先级排序后统一执行，确保执行顺序确定。
+        ///     </para>
+        ///     <remarks>默认值：false</remarks>
+        /// </summary>
+        public bool EnableEffectPool { get; set; } = false;
+
         // ===== 分帧处理配置 =====
 
         /// <summary>

@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using EasyPack.Category;
 using UnityEngine;
 
@@ -379,23 +381,16 @@ namespace EasyPack.EmeCardSystem
 
             if (rulesToProcess.Count == 0) return;
 
-            var evals =
-                new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rulesToProcess
-                    .Count);
-            for (int i = 0; i < rulesToProcess.Count; i++)
+            // 根据配置选择串行或并行评估
+            List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals;
+            
+            if (Policy.EnableParallelMatching && rulesToProcess.Count >= Policy.ParallelThreshold)
             {
-                CardRule rule = rulesToProcess[i];
-
-                CardRuleContext ctx = BuildContext(rule, source, evt);
-                if (ctx == null) continue;
-
-                if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
-                {
-                    if ((rule.Policy?.DistinctMatched ?? true) && matched is { Count: > 1 })
-                        matched = matched.Distinct().ToList();
-
-                    evals.Add((rule, matched, ctx, i));
-                }
+                evals = EvaluateRulesParallel(rulesToProcess, source, evt);
+            }
+            else
+            {
+                evals = EvaluateRulesSerial(rulesToProcess, source, evt);
             }
 
             if (evals.Count == 0) return;
@@ -410,16 +405,109 @@ namespace EasyPack.EmeCardSystem
             else
                 evals.Sort((a, b) => a.orderIndex.CompareTo(b.orderIndex));
 
-            var ordered = evals;
+            // 根据配置选择效果池模式或即时执行模式
+            if (Policy.EnableEffectPool)
+            {
+                ExecuteWithEffectPool(evals);
+            }
+            else
+            {
+                ExecuteImmediate(evals);
+            }
+        }
 
+        /// <summary>
+        ///     串行评估规则（默认模式）。
+        /// </summary>
+        private List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> 
+            EvaluateRulesSerial(List<CardRule> rules, Card source, ICardEvent evt)
+        {
+            var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rules.Count);
+            
+            for (int i = 0; i < rules.Count; i++)
+            {
+                CardRule rule = rules[i];
+
+                CardRuleContext ctx = BuildContext(rule, source, evt);
+                if (ctx == null) continue;
+
+                if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
+                {
+                    if ((rule.Policy?.DistinctMatched ?? true) && matched is { Count: > 1 })
+                        matched = matched.Distinct().ToList();
+
+                    evals.Add((rule, matched, ctx, i));
+                }
+            }
+
+            return evals;
+        }
+
+        /// <summary>
+        ///     并行评估规则
+        ///     <para>
+        ///         注意：Requirements 实现必须是线程安全的才能使用此模式。
+        ///         建议仅在 Requirements 不修改共享状态时启用。
+        ///     </para>
+        /// </summary>
+        private List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> 
+            EvaluateRulesParallel(List<CardRule> rules, Card source, ICardEvent evt)
+        {
+            var results = new ConcurrentBag<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>();
+            
+            var options = new ParallelOptions();
+            if (Policy.MaxDegreeOfParallelism > 0)
+                options.MaxDegreeOfParallelism = Policy.MaxDegreeOfParallelism;
+
+            Parallel.For(0, rules.Count, options, i =>
+            {
+                CardRule rule = rules[i];
+
+                CardRuleContext ctx = BuildContext(rule, source, evt);
+                if (ctx == null) return;
+
+                if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
+                {
+                    if ((rule.Policy?.DistinctMatched ?? true) && matched is { Count: > 1 })
+                        matched = matched.Distinct().ToList();
+
+                    results.Add((rule, matched, ctx, i));
+                }
+            });
+
+            return results.ToList();
+        }
+
+        /// <summary>
+        ///     使用效果池执行
+        /// </summary>
+        private void ExecuteWithEffectPool(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+        {
+            var pool = new EffectPool();
+
+            // 收集所有效果到池中
+            foreach (var e in evals)
+            {
+                pool.AddRuleEffects(e.rule, e.ctx, e.matched, e.orderIndex);
+            }
+
+            // 统一执行
+            pool.ExecuteAll();
+        }
+
+        /// <summary>
+        ///     即时执行模式。
+        /// </summary>
+        private void ExecuteImmediate(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+        {
             if (Policy.FirstMatchOnly)
             {
-                var first = ordered.First();
+                var first = evals.First();
                 ExecuteOne(first);
             }
             else
             {
-                foreach (var e in ordered)
+                foreach (var e in evals)
                 {
                     if (ExecuteOne(e))
                         break;

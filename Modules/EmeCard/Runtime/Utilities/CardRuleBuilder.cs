@@ -123,7 +123,7 @@ namespace EasyPack.EmeCardSystem
         [System.Obsolete("使用 MatchAtRoot() 或 EffectAtRoot()")]
         public CardRuleBuilder AtRoot() => OwnerHops(-1);
 
-        #endregion;
+        #endregion
 
         /// <summary>设置递归最大深度</summary>
         public CardRuleBuilder MaxDepth(int depth)
@@ -138,6 +138,9 @@ namespace EasyPack.EmeCardSystem
             _rule.Priority = priority;
             return this;
         }
+
+        /// <summary>设置规则优先级</summary>
+        public CardRuleBuilder WithPriority(int priority) => Priority(priority);
 
         /// <summary>是否对匹配结果去重</summary>
         public CardRuleBuilder DistinctMatched(bool enabled = true)
