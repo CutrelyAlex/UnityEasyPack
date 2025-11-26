@@ -192,7 +192,7 @@ namespace EasyPack.EmeCardSystem
             var localCtx = new CardRuleContext(
                 source: ctx.Source,
                 matchRoot: root,
-                evt: ctx.Event,
+                @event: ctx.Event,
                 factory: ctx.Factory,
                 maxDepth: selection.MaxDepth ?? ctx.MaxDepth
             );

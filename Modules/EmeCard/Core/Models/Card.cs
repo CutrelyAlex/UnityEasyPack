@@ -8,11 +8,11 @@ namespace EasyPack.EmeCardSystem
 
     /// <summary>
     /// 抽象卡牌：<br/>
-    /// - 作为“容器”可持有子卡牌（<see cref="Children"/>），并维护所属关系（<see cref="Owner"/>）。<br/>
+    /// - 作为"容器"可持有子卡牌（<see cref="Children"/>），并维护所属关系（<see cref="Owner"/>）。<br/>
     /// - 具备标签系统（<see cref="Tags"/>），用于规则匹配与检索。<br/>
-    /// - 暴露统一事件入口（<see cref="OnEvent"/>），通过 <see cref="RaiseEvent(CardEvent)"/> 分发，包括
-    ///   <see cref="CardEventType.Tick"/>、<see cref="CardEventType.Use"/>、<see cref="CardEventType.Custom"/>，
-    ///   以及持有关系变化（<see cref="CardEventType.AddedToOwner"/> / <see cref="CardEventType.RemovedFromOwner"/>）。<br/>
+    /// - 暴露统一事件入口（<see cref="OnEvent"/>），通过 <see cref="RaiseEvent(ICardEvent)"/> 分发，包括
+    ///   Tick、Use、自定义事件，以及持有关系变化（AddedToOwner / RemovedFromOwner）。<br/>
+    ///   事件类型定义在 <see cref="CardEventTypes"/> 中。<br/>
     /// - 可选关联多个 <see cref="GameProperty"/>
     /// </summary>
     public class Card
@@ -288,8 +288,8 @@ namespace EasyPack.EmeCardSystem
         /// <param name="child">子卡牌实例。</param>
         /// <param name="intrinsic">是否作为"固有子卡"；固有子卡无法通过规则消耗或普通移除。</param>
         /// <remarks>
-        /// 成功加入后，将向子卡派发 <see cref="CardEventType.AddedToOwner"/> 事件，
-        /// 其 <see cref="CardEvent.Data"/> 为旧持有者（此处即 <c>this</c>）。
+        /// 成功加入后，将向子卡派发 AddedToOwner 事件，
+        /// 其事件数据为新持有者（<c>this</c>）。
         /// </remarks>
         public Card AddChild(Card child, bool intrinsic = false)
         {
@@ -305,7 +305,7 @@ namespace EasyPack.EmeCardSystem
             if (intrinsic) _intrinsics.Add(child);
 
             // 通知子卡
-            child.RaiseEvent(new CardEvent(CardEventType.AddedToOwner, data: this));
+            child.RaiseEvent(CardEventTypes.AddedToOwner.Create(this));
             return this;
         }
 
@@ -316,8 +316,8 @@ namespace EasyPack.EmeCardSystem
         /// <param name="force">是否强制移除；当为 false 时，固有子卡不会被移除。</param>
         /// <returns>若移除成功返回 true；否则返回 false。</returns>
         /// <remarks>
-        /// 移除成功后，将向子卡派发 <see cref="CardEventType.RemovedFromOwner"/> 事件，
-        /// 其 <see cref="CardEvent.Data"/> 为旧持有者实例。
+        /// 移除成功后，将向子卡派发 RemovedFromOwner 事件，
+        /// 其 Data 为旧持有者实例。
         /// </remarks>
         public bool RemoveChild(Card child, bool force = false)
         {
@@ -327,7 +327,7 @@ namespace EasyPack.EmeCardSystem
             if (removed)
             {
                 _intrinsics.Remove(child);
-                child.RaiseEvent(new CardEvent(CardEventType.RemovedFromOwner, data: this));
+                child.RaiseEvent(CardEventTypes.RemovedFromOwner.Create(this));
                 child.Owner = null;
             }
             return removed;
@@ -341,38 +341,53 @@ namespace EasyPack.EmeCardSystem
         /// 卡牌统一事件回调。
         /// 订阅者（如规则引擎）可监听以实现配方、效果与副作用。
         /// </summary>
-        public event Action<Card, CardEvent> OnEvent;
+        public event Action<Card, ICardEvent> OnEvent;
 
         /// <summary>
         /// 分发一个卡牌事件到 <see cref="OnEvent"/>。
         /// </summary>
-        /// <param name="evt">事件载体。</param>
-        public void RaiseEvent(CardEvent evt)
+        /// <param name="evt">事件载体（ICardEvent 接口）。</param>
+        public void RaiseEvent(ICardEvent evt)
         {
             OnEvent?.Invoke(this, evt);
         }
 
         /// <summary>
-        /// 触发按时事件（<see cref="CardEventType.Tick"/>）。
+        /// 触发按时事件（Tick）。
         /// </summary>
-        /// <param name="deltaTime">时间步长（秒）。将作为 <see cref="CardEvent.Data"/> 传递。</param>
+        /// <param name="deltaTime">时间步长（秒）。将作为事件 Data 传递。</param>
         public void Tick(float deltaTime)
         {
-            RaiseEvent(new CardEvent(CardEventType.Tick, data: deltaTime));
+            RaiseEvent(CardEventTypes.Tick.Create(deltaTime));
         }
 
         /// <summary>
-        /// 触发主动使用事件（<see cref="CardEventType.Use"/>）。
+        /// 触发主动使用事件（Use）。
         /// </summary>
         /// <param name="data">可选自定义信息；由订阅者按需解释（例如目标信息）。</param>
-        public void Use(object data = null) => RaiseEvent(new CardEvent(CardEventType.Use, data: data));
+        public void Use(Card target = null) => RaiseEvent(CardEventTypes.Use.Create(target));
 
         /// <summary>
-        /// 触发自定义事件（<see cref="CardEventType.Custom"/>）。
+        /// 触发自定义事件（无数据）。
         /// </summary>
-        /// <param name="id">自定义事件标识，用于规则过滤。</param>
-        /// <param name="data">可选自定义信息。</param>
-        public void Custom(string id, object data = null) => RaiseEvent(new CardEvent(CardEventType.Custom, id, data));
+        /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
+        public void RaiseEvent(string eventType) => RaiseEvent(new CardEvent<object>(eventType, null));
+
+        /// <summary>
+        /// 触发自定义事件。
+        /// </summary>
+        /// <typeparam name="T">事件数据类型。</typeparam>
+        /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
+        /// <param name="data">事件数据。</param>
+        public void RaiseEvent<T>(string eventType, T data) => RaiseEvent(new CardEvent<T>(eventType, data));
+
+        /// <summary>
+        /// 触发自定义事件（使用事件定义）。
+        /// </summary>
+        /// <typeparam name="T">事件数据类型。</typeparam>
+        /// <param name="eventDef">事件类型定义。</param>
+        /// <param name="data">事件数据。</param>
+        public void RaiseEvent<T>(CardEventDefinition<T> eventDef, T data) => RaiseEvent(eventDef.Create(data));
         #endregion
     }
 }

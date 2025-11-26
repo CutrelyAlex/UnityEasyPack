@@ -16,8 +16,11 @@ namespace EasyPack.EmeCardSystem
             PreCacheAllCardTemplates();
             InitializeTargetSelectorCache();
 
-            foreach (CardEventType t in Enum.GetValues(typeof(CardEventType)))
-                _rules[t] = new List<CardRule>();
+            // 预注册标准事件类型
+            _rules[CardEventTypes.TICK] = new List<CardRule>();
+            _rules[CardEventTypes.ADDED_TO_OWNER] = new List<CardRule>();
+            _rules[CardEventTypes.REMOVED_FROM_OWNER] = new List<CardRule>();
+            _rules[CardEventTypes.USE] = new List<CardRule>();
         }
 
         public void Init()
@@ -100,15 +103,15 @@ namespace EasyPack.EmeCardSystem
         private struct EventEntry
         {
             public Card Source;
-            public CardEvent Event;
-            public EventEntry(Card s, CardEvent e)
+            public ICardEvent Event;
+            public EventEntry(Card s, ICardEvent e)
             {
                 Source = s;
                 Event = e;
             }
         }
-        // 规则表
-        private readonly Dictionary<CardEventType, List<CardRule>> _rules = new();
+        // 规则表（按事件类型字符串索引）
+        private readonly Dictionary<string, List<CardRule>> _rules = new();
         // 卡牌事件队列
         private readonly Queue<EventEntry> _queue = new();
 
@@ -135,17 +138,26 @@ namespace EasyPack.EmeCardSystem
         public void RegisterRule(CardRule rule)
         {
             if (rule == null) throw new ArgumentNullException(nameof(rule));
-            _rules[rule.Trigger].Add(rule);
+            if (string.IsNullOrEmpty(rule.EventType))
+                throw new ArgumentException("Rule must have an EventType", nameof(rule));
 
-            // 如果是Custom规则且有CustomId，添加到分组缓存
-            if (rule.Trigger == CardEventType.Custom && !string.IsNullOrEmpty(rule.CustomId))
+            // 确保事件类型的规则列表存在
+            if (!_rules.TryGetValue(rule.EventType, out var ruleList))
             {
-                if (!_customRulesById.TryGetValue(rule.CustomId, out var ruleList))
+                ruleList = new List<CardRule>();
+                _rules[rule.EventType] = ruleList;
+            }
+            ruleList.Add(rule);
+
+            // 如果有 CustomId，也添加到 CustomId 索引
+            if (!string.IsNullOrEmpty(rule.CustomId))
+            {
+                if (!_customRulesById.TryGetValue(rule.CustomId, out var customRuleList))
                 {
-                    ruleList = new List<CardRule>();
-                    _customRulesById[rule.CustomId] = ruleList;
+                    customRuleList = new List<CardRule>();
+                    _customRulesById[rule.CustomId] = customRuleList;
                 }
-                ruleList.Add(rule);
+                customRuleList.Add(rule);
             }
         }
 
@@ -156,17 +168,21 @@ namespace EasyPack.EmeCardSystem
         /// <returns>如果成功注销返回true，否则返回false。</returns>
         public bool UnregisterRule(CardRule rule)
         {
-            if (rule == null) return false;
+            if (rule == null || string.IsNullOrEmpty(rule.EventType)) return false;
 
-            bool removed = _rules[rule.Trigger].Remove(rule);
-
-            // 如果是Custom规则且有CustomId，从分组缓存移除
-            if (removed && rule.Trigger == CardEventType.Custom && !string.IsNullOrEmpty(rule.CustomId))
+            bool removed = false;
+            if (_rules.TryGetValue(rule.EventType, out var ruleList))
             {
-                if (_customRulesById.TryGetValue(rule.CustomId, out var ruleList))
+                removed = ruleList.Remove(rule);
+            }
+
+            // 如果有 CustomId，也从 CustomId 索引移除
+            if (removed && !string.IsNullOrEmpty(rule.CustomId))
+            {
+                if (_customRulesById.TryGetValue(rule.CustomId, out var customRuleList))
                 {
-                    ruleList.Remove(rule);
-                    if (ruleList.Count == 0)
+                    customRuleList.Remove(rule);
+                    if (customRuleList.Count == 0)
                     {
                         _customRulesById.Remove(rule.CustomId);
                     }
@@ -179,7 +195,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         /// 卡牌事件回调，入队并驱动事件处理。
         /// </summary>
-        private void OnCardEvent(Card source, CardEvent evt)
+        private void OnCardEvent(Card source, ICardEvent evt)
         {
             _queue.Enqueue(new EventEntry(source, evt));
 
@@ -340,7 +356,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         /// 处理单个事件，匹配规则并执行效果。
         /// </summary>
-        private void Process(Card source, CardEvent evt)
+        private void Process(Card source, ICardEvent evt)
         {
             ProcessCore(source, evt);
         }
@@ -348,26 +364,26 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         /// 核心事件处理逻辑。
         /// </summary>
-        private void ProcessCore(Card source, CardEvent evt)
+        private void ProcessCore(Card source, ICardEvent evt)
         {
-            List<CardRule> rulesToProcess;
+            List<CardRule> rulesToProcess = new List<CardRule>();
 
-            if (evt.Type == CardEventType.Custom)
+            // 获取匹配事件类型的规则
+            if (_rules.TryGetValue(evt.EventType, out var typeRules) && typeRules.Count > 0)
             {
-                rulesToProcess = new List<CardRule>();
+                rulesToProcess.AddRange(typeRules);
+            }
 
-                // 添加匹配CustomId的规则
-                if (_customRulesById.TryGetValue(evt.ID, out var matchedRules))
+            // 对于自定义事件，也检查 EventId 匹配
+            if (!string.IsNullOrEmpty(evt.EventId) && evt.EventId != evt.EventType)
+            {
+                if (_customRulesById.TryGetValue(evt.EventId, out var idRules))
                 {
-                    rulesToProcess.AddRange(matchedRules);
+                    rulesToProcess.AddRange(idRules);
                 }
             }
-            else
-            {
-                rulesToProcess = _rules[evt.Type];
-            }
 
-            if (rulesToProcess == null || rulesToProcess.Count == 0) return;
+            if (rulesToProcess.Count == 0) return;
 
             var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rulesToProcess.Count);
             for (int i = 0; i < rulesToProcess.Count; i++)
@@ -429,14 +445,14 @@ namespace EasyPack.EmeCardSystem
             return e.rule.Policy?.StopEventOnSuccess == true;
         }
 
-        private CardRuleContext BuildContext(CardRule rule, Card source, CardEvent evt)
+        private CardRuleContext BuildContext(CardRule rule, Card source, ICardEvent evt)
         {
             var container = SelectContainer(rule.OwnerHops, source);
             if (container == null) return null;
             return new CardRuleContext(
                 source: source,
                 matchRoot: container,
-                evt: evt,
+                @event: evt,
                 factory: CardFactory,
                 maxDepth: rule.MaxDepth
             );
@@ -596,7 +612,7 @@ namespace EasyPack.EmeCardSystem
             // 第一步: 分配 UID（如果还未分配）
             if (c.UID < 0)
             {
-                CardFactory.AssignUID(c);
+                EmeCardSystem.CardFactory.AssignUID(c);
             }
             else if (_cardsByUID.ContainsKey(c.UID))
             {

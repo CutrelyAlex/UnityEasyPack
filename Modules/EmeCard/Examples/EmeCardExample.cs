@@ -147,7 +147,7 @@ namespace EasyPack.EmeCardSystem.Example
 
             // 规则1：使用制作工具时，如果有玩家和树木，消耗树木创建木棍
             _engine.RegisterRule(b => b
-                .On(CardEventType.Use)
+                .OnUse()
                 .When(ctx => ctx.Source.HasTag("制作"))
                 .NeedTag("玩家")
                 .NeedId("树木")
@@ -160,7 +160,7 @@ namespace EasyPack.EmeCardSystem.Example
 
             // 规则2：使用制作工具时，如果有玩家、木棍和火，消耗木棍和火创建火把
             _engine.RegisterRule(b => b
-                .On(CardEventType.Use)
+                .OnUse()
                 .When(ctx => ctx.Source.HasTag("制作"))
                 .NeedTag("玩家")
                 .NeedTag("木棍")
@@ -188,13 +188,13 @@ namespace EasyPack.EmeCardSystem.Example
             testCard.OnEvent += (source, evt) =>
             {
                 eventCount++;
-                Debug.Log($"收到事件: {evt.Type}，来源: {source.Id}，总事件数: {eventCount}");
+                Debug.Log($"收到事件: {evt.EventType}，来源: {source.Id}，总事件数: {eventCount}");
             };
 
             // 触发不同类型的事件
             testCard.Use();
             testCard.Tick(1f);
-            testCard.Custom("test_event");
+            testCard.RaiseEvent("test_event");
 
             Debug.Log($"事件驱动演示完成，共触发 {eventCount} 个事件\n");
         }
@@ -248,7 +248,7 @@ namespace EasyPack.EmeCardSystem.Example
 
             // 注册一个递归规则：检查整个世界是否有"夜晚"标签
             _engine.RegisterRule(b => b
-                .On(CardEventType.Custom, "检查夜晚")
+                .On("检查夜晚")
                 .AtRoot()
                 .NeedTagRecursive("夜晚", minCount: 1)
                 .DoInvoke((ctx, matched) =>
@@ -261,7 +261,7 @@ namespace EasyPack.EmeCardSystem.Example
             area1.AddTag("夜晚");
 
             // 触发检查
-            root.Custom("检查夜晚");
+            root.RaiseEvent("检查夜晚");
             _engine.Pump();
 
             Debug.Log("递归选择演示完成\n");
@@ -276,7 +276,7 @@ namespace EasyPack.EmeCardSystem.Example
 
             // 注册火把燃烧规则
             _engine.RegisterRule(b => b
-                .On(CardEventType.Tick)
+                .OnTick()
                 .AtSelf()
                 .NeedTag("火把")
                 .DoModifyTag("火把", "Ticks", 1f)
@@ -290,7 +290,7 @@ namespace EasyPack.EmeCardSystem.Example
 
             // 注册燃尽规则
             _engine.RegisterRule(b => b
-                .On(CardEventType.Tick)
+                .OnTick()
                 .AtSelf()
                 .WhenWithCards(ctx =>
                 {

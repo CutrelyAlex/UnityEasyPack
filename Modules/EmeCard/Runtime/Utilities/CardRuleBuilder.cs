@@ -18,13 +18,33 @@ namespace EasyPack.EmeCardSystem
         };
 
         #region 基础配置
-        /// <summary>设置事件触发类型</summary>
-        public CardRuleBuilder On(CardEventType eventType, string customId = null)
+        /// <summary>设置事件触发类型（使用字符串）</summary>
+        public CardRuleBuilder On(string eventType, string customId = null)
         {
-            _rule.Trigger = eventType;
+            _rule.EventType = eventType;
             _rule.CustomId = customId;
             return this;
         }
+
+        /// <summary>设置事件触发类型（使用事件定义）</summary>
+        public CardRuleBuilder On<T>(CardEventDefinition<T> eventDef, string customId = null)
+        {
+            _rule.EventType = eventDef?.EventType;
+            _rule.CustomId = customId;
+            return this;
+        }
+
+        /// <summary>监听 Tick 事件</summary>
+        public CardRuleBuilder OnTick() => On(CardEventTypes.TICK);
+
+        /// <summary>监听 Use 事件</summary>
+        public CardRuleBuilder OnUse() => On(CardEventTypes.USE);
+
+        /// <summary>监听 AddedToOwner 事件</summary>
+        public CardRuleBuilder OnAddedToOwner() => On(CardEventTypes.ADDED_TO_OWNER);
+
+        /// <summary>监听 RemovedFromOwner 事件</summary>
+        public CardRuleBuilder OnRemovedFromOwner() => On(CardEventTypes.REMOVED_FROM_OWNER);
 
         /// <summary>设置容器锚点（0=Self, 1=Owner, -1=Root, N>1=向上N层）</summary>
         public CardRuleBuilder OwnerHops(int hops)
@@ -184,11 +204,11 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>要求事件数据为指定类型</summary>
         public CardRuleBuilder WhenEventDataIs<T>() where T : class
-            => When(ctx => ctx.Event.Data is T);
+            => When(ctx => ctx.Event.DataObject is T);
 
         /// <summary>要求事件数据不为空</summary>
         public CardRuleBuilder WhenEventDataNotNull()
-            => When(ctx => ctx.Event.Data != null);
+            => When(ctx => ctx.Event.DataObject != null);
 
         #endregion
 
@@ -423,15 +443,15 @@ namespace EasyPack.EmeCardSystem
         {
             return DoInvoke((ctx, matched) =>
             {
-                object newData = data == null ? ctx.Event.Data : data.Invoke(ctx);
+                object newData = data == null ? ctx.Event.DataObject : data.Invoke(ctx);
                 if (haveSource)
                 {
-                    ctx.Source.Custom(eventId, newData);
+                    ctx.Source.RaiseEvent(eventId, newData);
                 }
 
                 foreach (var card in matched)
                 {
-                    card.Custom(eventId, newData);
+                    card.RaiseEvent(eventId, newData);
                 }
             });
         }
@@ -445,8 +465,8 @@ namespace EasyPack.EmeCardSystem
             Debug.Log(
                 $"[Rule Debug] 规则触发上下文：\n" +
                 $"- 规则名称：{context.EventId}\n" +
-                $"- 事件类型：{context.Event.Type})\n" +
-                $"- 事件数据：{context.Event.Data}\n" +
+                $"- 事件类型：{context.Event.EventType})\n" +
+                $"- 事件数据：{context.Event.DataObject}\n" +
                 $"- 源卡牌：{context.Source?.Name} (ID: {context.Source?.Id})\n" +
                 $"- 容器卡牌：{context.MatchRoot?.Name} (ID: {context.MatchRoot?.Id})\n" +
                 $"- 匹配卡牌数量：{list?.Count}");
