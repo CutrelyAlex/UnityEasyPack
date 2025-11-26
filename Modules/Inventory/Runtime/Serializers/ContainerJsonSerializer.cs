@@ -38,6 +38,7 @@ namespace EasyPack.InventorySystem
             // 序列化容器条件
             if (obj.ContainerCondition != null)
                 foreach (IItemCondition cond in obj.ContainerCondition)
+                {
                     if (cond != null)
                     {
                         // 使用注入的序列化服务序列化条件（而不是接口类型）
@@ -48,6 +49,7 @@ namespace EasyPack.InventorySystem
                             if (serializedCond != null) dto.ContainerConditions.Add(serializedCond);
                         }
                     }
+                }
 
             // 序列化槽位
             foreach (ISlot slot in obj.Slots)

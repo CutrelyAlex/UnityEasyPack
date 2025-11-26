@@ -138,6 +138,7 @@ namespace EasyPack.EmeCardSystem
                 // 序列化 GameProperty 列表
                 if (card.Properties != null)
                     foreach (GameProperty prop in card.Properties)
+                    {
                         try
                         {
                             string propJson = _propertySerializer.SerializeToJson(prop);
@@ -153,6 +154,7 @@ namespace EasyPack.EmeCardSystem
                             Debug.LogWarning(
                                 $"[CardJsonSerializer] 跳过序列化失败的 GameProperty [ID={prop?.ID}]: {ex.Message}");
                         }
+                    }
 
                 // 递归序列化子卡
                 if (card.Children is { Count: > 0 })
@@ -208,6 +210,7 @@ namespace EasyPack.EmeCardSystem
             // 恢复属性
             if (data.Properties != null)
                 foreach (SerializableGameProperty sProp in data.Properties)
+                {
                     try
                     {
                         string propJson = JsonUtility.ToJson(sProp);
@@ -218,12 +221,15 @@ namespace EasyPack.EmeCardSystem
                     {
                         Debug.LogWarning($"[CardJsonSerializer] 跳过反序列化失败的 GameProperty: {ex.Message}");
                     }
+                }
 
             // 恢复标签
             if (data.Tags != null)
                 foreach (string tag in data.Tags)
+                {
                     if (!string.IsNullOrEmpty(tag))
                         card.AddTag(tag);
+                }
 
             // 恢复子卡
             if (!string.IsNullOrEmpty(data.ChildrenJson))

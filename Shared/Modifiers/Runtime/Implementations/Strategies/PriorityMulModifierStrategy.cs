@@ -12,8 +12,10 @@ namespace EasyPack.Modifiers
             var floatMods = new List<FloatModifier>();
             var rangeMods = new List<RangeModifier>();
             foreach (IModifier mod in modifiers)
+            {
                 if (mod is FloatModifier fm) floatMods.Add(fm);
                 else if (mod is RangeModifier rm) rangeMods.Add(rm);
+            }
 
             floatMods.Sort((a, b) => b.Priority.CompareTo(a.Priority));
             rangeMods.Sort((a, b) => b.Priority.CompareTo(a.Priority));

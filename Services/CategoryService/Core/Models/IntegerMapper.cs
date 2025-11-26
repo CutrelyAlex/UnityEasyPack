@@ -281,6 +281,9 @@ namespace EasyPack.Category
         /// <summary>
         ///     释放所有资源
         /// </summary>
-        public void Dispose() { _lock?.Dispose(); }
+        public void Dispose()
+        {
+            _lock?.Dispose();
+        }
     }
 }

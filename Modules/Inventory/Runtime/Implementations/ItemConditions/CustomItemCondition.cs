@@ -14,7 +14,10 @@ namespace EasyPack.InventorySystem
 
         public CustomItemCondition(Func<IItem, bool> condition) => Condition = condition;
 
-        public void SetItemCondition(Func<IItem, bool> condition) { Condition = condition; }
+        public void SetItemCondition(Func<IItem, bool> condition)
+        {
+            Condition = condition;
+        }
 
         public bool CheckCondition(IItem item)
         {

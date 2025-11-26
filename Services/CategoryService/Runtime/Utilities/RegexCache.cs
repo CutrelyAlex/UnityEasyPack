@@ -26,7 +26,10 @@ namespace EasyPack.Category
         /// <summary>
         ///     清空缓存
         /// </summary>
-        public static void Clear() { _cache.Clear(); }
+        public static void Clear()
+        {
+            _cache.Clear();
+        }
 
         /// <summary>
         ///     获取缓存大小

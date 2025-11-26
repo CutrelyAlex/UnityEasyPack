@@ -26,31 +26,46 @@ namespace EasyPack.ENekoFramework.Editor
         ///     打开架构总览窗口
         /// </summary>
         [MenuItem(VisualizationMenu + "架构总览")]
-        public static void OpenArchitectureOverview() { ArchitectureOverviewWindow.ShowWindow(); }
+        public static void OpenArchitectureOverview()
+        {
+            ArchitectureOverviewWindow.ShowWindow();
+        }
 
         /// <summary>
         ///     打开服务总览窗口
         /// </summary>
         [MenuItem(VisualizationMenu + "服务总览")]
-        public static void OpenServiceOverview() { ServiceOverviewWindow.ShowWindow(); }
+        public static void OpenServiceOverview()
+        {
+            ServiceOverviewWindow.ShowWindow();
+        }
 
         /// <summary>
         ///     打开事件监视器窗口
         /// </summary>
         [MenuItem(VisualizationMenu + "事件监视器")]
-        public static void OpenEventMonitor() { EventMonitorWindow.ShowWindow(); }
+        public static void OpenEventMonitor()
+        {
+            EventMonitorWindow.ShowWindow();
+        }
 
         /// <summary>
         ///     打开命令历史窗口
         /// </summary>
         [MenuItem(VisualizationMenu + "命令历史")]
-        public static void OpenCommandHistory() { CommandHistoryWindow.ShowWindow(); }
+        public static void OpenCommandHistory()
+        {
+            CommandHistoryWindow.ShowWindow();
+        }
 
         /// <summary>
         ///     打开依赖关系图窗口
         /// </summary>
         [MenuItem(VisualizationMenu + "依赖关系图")]
-        public static void OpenDependencyGraph() { DependencyGraphWindow.ShowWindow(); }
+        public static void OpenDependencyGraph()
+        {
+            DependencyGraphWindow.ShowWindow();
+        }
 
         #endregion
 
@@ -60,25 +75,37 @@ namespace EasyPack.ENekoFramework.Editor
         ///     生成服务脚手架代码
         /// </summary>
         [MenuItem(CodeGenMenu + "生成服务...")]
-        public static void GenerateService() { ServiceScaffold.ShowWizard(); }
+        public static void GenerateService()
+        {
+            ServiceScaffold.ShowWizard();
+        }
 
         /// <summary>
         ///     生成命令脚手架代码
         /// </summary>
         [MenuItem(CodeGenMenu + "生成命令...")]
-        public static void GenerateCommand() { ServiceScaffold.ShowWizard("Command"); }
+        public static void GenerateCommand()
+        {
+            ServiceScaffold.ShowWizard("Command");
+        }
 
         /// <summary>
         ///     生成查询脚手架代码
         /// </summary>
         [MenuItem(CodeGenMenu + "生成查询...")]
-        public static void GenerateQuery() { ServiceScaffold.ShowWizard("Query"); }
+        public static void GenerateQuery()
+        {
+            ServiceScaffold.ShowWizard("Query");
+        }
 
         /// <summary>
         ///     生成事件脚手架代码
         /// </summary>
         [MenuItem(CodeGenMenu + "生成事件...")]
-        public static void GenerateEvent() { ServiceScaffold.ShowWizard("Event"); }
+        public static void GenerateEvent()
+        {
+            ServiceScaffold.ShowWizard("Event");
+        }
 
         #endregion
 
@@ -88,7 +115,10 @@ namespace EasyPack.ENekoFramework.Editor
         ///     打开编辑器监控偏好设置
         /// </summary>
         [MenuItem(SettingsMenu + "监控偏好设置")]
-        public static void OpenMonitoringPreferences() { EditorMonitoringPreferences.ShowWindow(); }
+        public static void OpenMonitoringPreferences()
+        {
+            EditorMonitoringPreferences.ShowWindow();
+        }
 
         #endregion
 

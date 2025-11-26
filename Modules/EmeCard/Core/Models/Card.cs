@@ -34,11 +34,15 @@ namespace EasyPack.EmeCardSystem
 
             if (Data?.DefaultTags != null)
                 foreach (string t in Data.DefaultTags)
+                {
                     _tags.Add(t);
+                }
 
             if (extraTags != null)
                 foreach (string t in extraTags)
+                {
                     _tags.Add(t);
+                }
         }
 
         /// <summary>
@@ -54,11 +58,15 @@ namespace EasyPack.EmeCardSystem
 
             if (Data?.DefaultTags != null)
                 foreach (string t in Data.DefaultTags)
+                {
                     _tags.Add(t);
+                }
 
             if (extraTags != null)
                 foreach (string t in extraTags)
+                {
                     _tags.Add(t);
+                }
         }
 
         /// <summary>
@@ -68,9 +76,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="data">卡牌数据</param>
         /// <param name="extraTags">额外标签</param>
         public Card(CardData data, params string[] extraTags)
-            : this(data, (IEnumerable<GameProperty>)null, extraTags)
-        {
-        }
+            : this(data, (IEnumerable<GameProperty>)null, extraTags) { }
 
 
         #region 基本数据
@@ -90,7 +96,9 @@ namespace EasyPack.EmeCardSystem
                 _tags.Clear();
                 if (_data is { DefaultTags: not null })
                     foreach (string t in _data.DefaultTags)
+                    {
                         _tags.Add(t);
+                    }
             }
         }
 
@@ -126,6 +134,11 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     卡牌类别，来自 <see cref="Data" />；若为空则默认 <see cref="CardCategory.Object" />。
         /// </summary>
+        /// <remarks>
+        ///     [已弃用] 分类现由 CategoryManager 统一管理。
+        ///     请使用 CardEngine.CategoryManager.GetReadableCategoryPath(entityId)。
+        /// </remarks>
+        [Obsolete("分类现由 CategoryManager 统一管理。请使用 CardEngine.CategoryManager.GetReadableCategoryPath()。保留此属性仅用于向后兼容。")]
         public CardCategory Category => Data?.Category ?? CardCategory.Object;
 
         /// <summary>
@@ -133,7 +146,10 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public List<GameProperty> Properties { get; set; } = new();
 
-        public GameProperty GetProperty(string id) { return Properties?.FirstOrDefault(p => p.ID == id); }
+        public GameProperty GetProperty(string id)
+        {
+            return Properties?.FirstOrDefault(p => p.ID == id);
+        }
 
         public GameProperty GetProperty(int index = 0)
         {
@@ -150,6 +166,11 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     标签集合。标签用于规则匹配（大小写敏感，比较器为 <see cref="StringComparer.Ordinal" />）。
         /// </summary>
+        /// <remarks>
+        ///     [已弃用] 标签现由 CategoryManager 统一管理。
+        ///     请使用 CardEngine.CategoryManager.GetEntityTags(entityId) 获取标签。
+        /// </remarks>
+        [Obsolete("标签现由 CategoryManager 统一管理。请使用 CardEngine.CategoryManager.GetEntityTags() 获取标签。保留此属性仅用于向后兼容和内部使用。")]
         public IReadOnlyCollection<string> Tags => _tags;
 
         /// <summary>
@@ -157,6 +178,11 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若包含返回 true。</returns>
+        /// <remarks>
+        ///     [已弃用] 标签现由 CategoryManager 统一管理。
+        ///     请使用 CardEngine.CategoryManager.HasTag(entityId, tag)。
+        /// </remarks>
+        [Obsolete("标签现由 CategoryManager 统一管理。请使用 CardEngine.CategoryManager.HasTag()。保留此方法仅用于向后兼容。")]
         public bool HasTag(string tag) => _tags.Contains(tag);
 
         /// <summary>
@@ -164,6 +190,11 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功新增（之前不存在）返回 true；否则返回 false。</returns>
+        /// <remarks>
+        ///     [已弃用] 标签现由 CategoryManager 统一管理。
+        ///     请使用 CardEngine.CategoryManager.AddTag(entityId, tag)。
+        /// </remarks>
+        [Obsolete("标签现由 CategoryManager 统一管理。请使用 CardEngine.CategoryManager.AddTag()。保留此方法仅用于向后兼容。")]
         public bool AddTag(string tag)
         {
             if (_tags.Add(tag))
@@ -181,6 +212,11 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="tag">标签文本。</param>
         /// <returns>若成功移除返回 true；否则返回 false。</returns>
+        /// <remarks>
+        ///     [已弃用] 标签现由 CategoryManager 统一管理。
+        ///     请使用 CardEngine.CategoryManager.RemoveTag(entityId, tag)。
+        /// </remarks>
+        [Obsolete("标签现由 CategoryManager 统一管理。请使用 CardEngine.CategoryManager.RemoveTag()。保留此方法仅用于向后兼容。")]
         public bool RemoveTag(string tag)
         {
             if (_tags.Remove(tag))
@@ -273,9 +309,7 @@ namespace EasyPack.EmeCardSystem
         /// </remarks>
         public Card AddChild(Card child, bool intrinsic = false)
         {
-            if (intrinsic && child.Id == "Signal")
-            {
-            }
+            if (intrinsic && child.Id == "Signal") { }
 
             if (child == null) throw new ArgumentNullException(nameof(child));
             if (child.Owner != null) throw new InvalidOperationException("子卡牌已被其他卡牌持有。");
@@ -331,25 +365,37 @@ namespace EasyPack.EmeCardSystem
         ///     分发一个卡牌事件到 <see cref="OnEvent" />。
         /// </summary>
         /// <param name="evt">事件载体（ICardEvent 接口）。</param>
-        private void RaiseEvent(ICardEvent evt) { OnEvent?.Invoke(this, evt); }
+        private void RaiseEvent(ICardEvent evt)
+        {
+            OnEvent?.Invoke(this, evt);
+        }
 
         /// <summary>
         ///     触发按时事件（Tick）。
         /// </summary>
         /// <param name="deltaTime">时间步长（秒）。将作为事件 Data 传递。</param>
-        public void Tick(float deltaTime) { RaiseEvent(CardEventTypes.Tick.Create(deltaTime)); }
+        public void Tick(float deltaTime)
+        {
+            RaiseEvent(CardEventTypes.Tick.Create(deltaTime));
+        }
 
         /// <summary>
         ///     触发主动使用事件（Use）。
         /// </summary>
         /// <param name="data">可选自定义信息；由订阅者按需解释（例如目标信息）。</param>
-        public void Use(Card target = null) { RaiseEvent(CardEventTypes.Use.Create(target)); }
+        public void Use(Card target = null)
+        {
+            RaiseEvent(CardEventTypes.Use.Create(target));
+        }
 
         /// <summary>
         ///     触发无数据事件。
         /// </summary>
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
-        public void RaiseEvent(string eventType) { RaiseEvent(new CardEvent<Unit>(eventType, Unit.Default)); }
+        public void RaiseEvent(string eventType)
+        {
+            RaiseEvent(new CardEvent<Unit>(eventType, Unit.Default));
+        }
 
         /// <summary>
         ///     触发自定义事件。
@@ -357,7 +403,10 @@ namespace EasyPack.EmeCardSystem
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
         /// <param name="data">事件数据。</param>
-        public void RaiseEvent<T>(string eventType, T data) { RaiseEvent(new CardEvent<T>(eventType, data)); }
+        public void RaiseEvent<T>(string eventType, T data)
+        {
+            RaiseEvent(new CardEvent<T>(eventType, data));
+        }
 
         /// <summary>
         ///     触发自定义事件（使用事件定义）。
@@ -365,7 +414,10 @@ namespace EasyPack.EmeCardSystem
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="eventDef">事件类型定义。</param>
         /// <param name="data">事件数据。</param>
-        public void RaiseEvent<T>(CardEventDefinition<T> eventDef, T data) { RaiseEvent(eventDef.Create(data)); }
+        public void RaiseEvent<T>(CardEventDefinition<T> eventDef, T data)
+        {
+            RaiseEvent(eventDef.Create(data));
+        }
 
         #endregion
     }

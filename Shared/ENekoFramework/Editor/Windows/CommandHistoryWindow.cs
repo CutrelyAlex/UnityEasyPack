@@ -111,7 +111,9 @@ namespace EasyPack.ENekoFramework.Editor
             EditorGUILayout.LabelField("架构:", GUILayout.Width(50));
             _filterScrollPosition = EditorGUILayout.BeginScrollView(_filterScrollPosition, GUILayout.Height(40));
             for (int i = 0; i < _architectureNames.Count; i++)
+            {
                 _architectureFilters[i] = EditorGUILayout.ToggleLeft(_architectureNames[i], _architectureFilters[i]);
+            }
 
             EditorGUILayout.EndScrollView();
 
@@ -196,7 +198,9 @@ namespace EasyPack.ENekoFramework.Editor
             if (filteredHistory is { Count: > 0 })
                 // 倒序显示
                 for (int i = filteredHistory.Count - 1; i >= 0; i--)
+                {
                     DrawCommandItem(filteredHistory[i]);
+                }
             else
                 EditorGUILayout.HelpBox("暂无匹配的命令记录", MessageType.Info);
 
@@ -209,8 +213,10 @@ namespace EasyPack.ENekoFramework.Editor
             // 检查筛选条件是否改变
             var currentSelectedArchitectures = new List<string>();
             for (int i = 0; i < _architectureNames.Count; i++)
+            {
                 if (_architectureFilters[i])
                     currentSelectedArchitectures.Add(_architectureNames[i]);
+            }
 
             bool filterChanged = !_filterCacheValid ||
                                  !_lastSelectedArchitectures.SequenceEqual(currentSelectedArchitectures) ||
@@ -283,7 +289,9 @@ namespace EasyPack.ENekoFramework.Editor
             // 保存当前的筛选状态
             var previousFilters = new Dictionary<string, bool>();
             for (int i = 0; i < _architectureNames.Count; i++)
+            {
                 previousFilters[_architectureNames[i]] = _architectureFilters[i];
+            }
 
             _architectureNames.Clear();
             _architectureFilters.Clear();
@@ -473,7 +481,10 @@ namespace EasyPack.ENekoFramework.Editor
             }
         }
 
-        private void RefreshHistory() { RefreshHistoryAsync(); }
+        private void RefreshHistory()
+        {
+            RefreshHistoryAsync();
+        }
 
         private void RefreshHistoryAsync()
         {

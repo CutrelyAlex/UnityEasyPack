@@ -120,8 +120,10 @@ namespace EasyPack.ENekoFramework.Editor
 
                 // 收集所有事件类型
                 foreach (EventLogEntry entry in _eventLog)
+                {
                     if (entry.EventType != null)
                         eventTypes.Add(entry.EventType);
+                }
 
                 // 重新计算每个事件类型的订阅者数量
                 foreach (Type eventType in eventTypes)
@@ -129,6 +131,7 @@ namespace EasyPack.ENekoFramework.Editor
                     int totalCount = 0;
 
                     foreach (object architecture in architectures)
+                    {
                         try
                         {
                             EventBus eventBus = ServiceInspector.GetEventBusFromArchitecture(architecture);
@@ -144,6 +147,7 @@ namespace EasyPack.ENekoFramework.Editor
                         {
                             Debug.LogWarning($"[EventMonitor] 刷新订阅者缓存失败: {ex.Message}");
                         }
+                    }
 
                     _subscriberCountCache[eventType] = totalCount;
                 }
@@ -163,12 +167,14 @@ namespace EasyPack.ENekoFramework.Editor
 
             // 更新所有事件日志条目的订阅者数量
             foreach (EventLogEntry entry in _eventLog)
+            {
                 if (entry.EventType != null && _subscriberCountCache.TryGetValue(entry.EventType, out int cachedCount))
                     if (entry.SubscriberCount != cachedCount)
                     {
                         entry.SubscriberCount = cachedCount;
                         needsRepaint = true;
                     }
+            }
 
             if (needsRepaint) Repaint();
         }
@@ -212,7 +218,9 @@ namespace EasyPack.ENekoFramework.Editor
             EditorGUILayout.LabelField("架构:", GUILayout.Width(50));
             _filterScrollPosition = EditorGUILayout.BeginScrollView(_filterScrollPosition, GUILayout.Height(40));
             for (int i = 0; i < _architectureNames.Count; i++)
+            {
                 _architectureFilters[i] = EditorGUILayout.ToggleLeft(_architectureNames[i], _architectureFilters[i]);
+            }
 
             EditorGUILayout.EndScrollView();
 
@@ -284,7 +292,10 @@ namespace EasyPack.ENekoFramework.Editor
             }
             else
             {
-                foreach (EventLogEntry entry in filteredLogs) DrawEventEntry(entry);
+                foreach (EventLogEntry entry in filteredLogs)
+                {
+                    DrawEventEntry(entry);
+                }
 
                 if (_autoScroll) _scrollPosition.y = float.MaxValue;
             }
@@ -349,8 +360,10 @@ namespace EasyPack.ENekoFramework.Editor
             // 检查筛选条件是否改变
             var currentSelectedArchitectures = new List<string>();
             for (int i = 0; i < _architectureNames.Count; i++)
+            {
                 if (_architectureFilters[i])
                     currentSelectedArchitectures.Add(_architectureNames[i]);
+            }
 
             bool filterChanged = !_filterCacheValid ||
                                  !_lastSelectedArchitectures.SequenceEqual(currentSelectedArchitectures) ||
@@ -419,7 +432,9 @@ namespace EasyPack.ENekoFramework.Editor
             // 保存当前的筛选状态
             var previousFilters = new Dictionary<string, bool>();
             for (int i = 0; i < _architectureNames.Count; i++)
+            {
                 previousFilters[_architectureNames[i]] = _architectureFilters[i];
+            }
 
             _architectureNames.Clear();
             _architectureFilters.Clear();
@@ -566,6 +581,7 @@ namespace EasyPack.ENekoFramework.Editor
                 // 反序列化事件日志
                 _eventLog.Clear();
                 foreach (SerializableEventLogEntry serializableEntry in serializableData.Entries)
+                {
                     try
                     {
                         var eventType =
@@ -587,6 +603,7 @@ namespace EasyPack.ENekoFramework.Editor
                     {
                         Debug.LogWarning($"[EventMonitor] 恢复事件日志条目失败: {ex.Message}");
                     }
+                }
 
                 // 清除筛选缓存，因为数据已更新
                 _filterCacheValid = false;

@@ -83,7 +83,10 @@ namespace EasyPack.InventorySystem
         /// </summary>
         private void InitializeSlots()
         {
-            for (int i = 0; i < Capacity; i++) _slots.Add(new Slot { Index = i, Container = this });
+            for (int i = 0; i < Capacity; i++)
+            {
+                _slots.Add(new Slot { Index = i, Container = this });
+            }
         }
 
         #endregion

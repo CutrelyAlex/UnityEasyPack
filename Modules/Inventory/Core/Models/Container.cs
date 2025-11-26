@@ -186,8 +186,10 @@ namespace EasyPack.InventorySystem
                 if (_pendingTotalCountUpdates.Count > 0)
                 {
                     foreach (string itemId in _pendingTotalCountUpdates)
+                    {
                         TriggerItemTotalCountChanged(itemId,
                             _itemRefCache.GetValueOrDefault(itemId));
+                    }
 
                     _pendingTotalCountUpdates.Clear();
                     _itemRefCache.Clear();
@@ -238,8 +240,10 @@ namespace EasyPack.InventorySystem
 
             if (ContainerCondition is { Count: > 0 })
                 foreach (IItemCondition condition in ContainerCondition)
+                {
                     if (!condition.CheckCondition(item))
                         return false;
+                }
 
             return true;
         }
@@ -265,6 +269,7 @@ namespace EasyPack.InventorySystem
                 {
                     if (_cacheService.TryGetItemSlotIndices(item.ID, out var indices))
                         foreach (int slotIndex in indices)
+                        {
                             if (slotIndex < _slots.Count)
                             {
                                 ISlot slot = _slots[slotIndex];
@@ -273,6 +278,7 @@ namespace EasyPack.InventorySystem
                                                               slot.ItemCount < slot.Item.MaxStackCount))
                                     return AddItemResult.Success;
                             }
+                        }
 
                     return AddItemResult.StackLimitReached;
                 }
@@ -331,15 +337,21 @@ namespace EasyPack.InventorySystem
 
             // 批量更新槽位索引缓存
             foreach ((int slotIndex, bool isAdding) in updates.SlotIndexUpdates)
+            {
                 _cacheService.UpdateItemSlotIndexCache(updates.ItemId, slotIndex, isAdding);
+            }
 
             // 批量更新类型索引缓存
             foreach ((int slotIndex, bool isAdding) in updates.TypeIndexUpdates)
+            {
                 _cacheService.UpdateItemTypeCache(updates.ItemType, slotIndex, isAdding);
+            }
 
             // 批量更新空槽位缓存
             foreach ((int slotIndex, bool isEmpty) in updates.EmptySlotUpdates)
+            {
                 _cacheService.UpdateEmptySlotCache(slotIndex, isEmpty);
+            }
         }
 
         #endregion
@@ -1140,12 +1152,18 @@ namespace EasyPack.InventorySystem
         /// <summary>
         ///     获取所有被占用的槽位
         /// </summary>
-        public virtual List<ISlot> GetOccupiedSlots() { return _slots.Where(s => s.IsOccupied).ToList(); }
+        public virtual List<ISlot> GetOccupiedSlots()
+        {
+            return _slots.Where(s => s.IsOccupied).ToList();
+        }
 
         /// <summary>
         ///     获取所有空闲槽位
         /// </summary>
-        public virtual List<ISlot> GetFreeSlots() { return _slots.Where(s => !s.IsOccupied).ToList(); }
+        public virtual List<ISlot> GetFreeSlots()
+        {
+            return _slots.Where(s => !s.IsOccupied).ToList();
+        }
 
         /// <summary>
         ///     清空指定槽位
@@ -1180,8 +1198,10 @@ namespace EasyPack.InventorySystem
         public virtual void ClearAllSlots()
         {
             for (int i = 0; i < _slots.Count; i++)
+            {
                 if (_slots[i].IsOccupied)
                     ClearSlot(i);
+            }
         }
 
         /// <summary>

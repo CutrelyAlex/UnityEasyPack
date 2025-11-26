@@ -27,7 +27,10 @@ namespace EasyPack.CustomData
 
         public string Serialize(CustomDataEntry entry) => entry.BoolValue ? "true" : "false";
 
-        public void Clear(CustomDataEntry entry) { entry.BoolValue = false; }
+        public void Clear(CustomDataEntry entry)
+        {
+            entry.BoolValue = false;
+        }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

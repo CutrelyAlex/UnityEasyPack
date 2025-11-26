@@ -30,7 +30,10 @@ namespace EasyPack.CustomData
             var dict = new Dictionary<string, object>();
             if (entries == null) return dict;
 
-            foreach (CustomDataEntry e in entries) dict[e.Key] = e.GetValue();
+            foreach (CustomDataEntry e in entries)
+            {
+                dict[e.Key] = e.GetValue();
+            }
 
             return dict;
         }
@@ -46,7 +49,10 @@ namespace EasyPack.CustomData
         {
             if (entries == null || other == null) return;
 
-            foreach (CustomDataEntry entry in other) entries.SetValue(entry.Key, entry.GetValue());
+            foreach (CustomDataEntry entry in other)
+            {
+                entries.SetValue(entry.Key, entry.GetValue());
+            }
         }
 
         /// <summary>获取差异（返回在 other 中存在但在 entries 中不存在的键）</summary>

@@ -781,7 +781,10 @@ namespace EasyPack.BuffSystem.Example
             RegisterCallback("HighDamage", OnHighDamage);
         }
 
-        private void OnCreate(Buff buff, object[] parameters) { Debug.Log($"[{buff.BuffData.Name}] 条件Buff已激活，等待触发条件"); }
+        private void OnCreate(Buff buff, object[] parameters)
+        {
+            Debug.Log($"[{buff.BuffData.Name}] 条件Buff已激活，等待触发条件");
+        }
 
         private void OnLowHealth(Buff buff, object[] parameters)
         {
@@ -858,9 +861,15 @@ namespace EasyPack.BuffSystem.Example
             RegisterCallback(BuffCallBackType.OnRemove, OnRemove);
         }
 
-        private void OnCreate(Buff buff, object[] parameters) { Debug.Log($"[DEBUG] {buff.BuffData.Name} 创建"); }
+        private void OnCreate(Buff buff, object[] parameters)
+        {
+            Debug.Log($"[DEBUG] {buff.BuffData.Name} 创建");
+        }
 
-        private void OnTick(Buff buff, object[] parameters) { Debug.Log($"[DEBUG] {buff.BuffData.Name} 触发"); }
+        private void OnTick(Buff buff, object[] parameters)
+        {
+            Debug.Log($"[DEBUG] {buff.BuffData.Name} 触发");
+        }
 
         private void OnUpdate(Buff buff, object[] parameters)
         {
@@ -869,7 +878,10 @@ namespace EasyPack.BuffSystem.Example
                 Debug.Log($"[DEBUG] {buff.BuffData.Name} 更新 - 剩余时间: {buff.DurationTimer:F1}s");
         }
 
-        private void OnRemove(Buff buff, object[] parameters) { Debug.Log($"[DEBUG] {buff.BuffData.Name} 移除"); }
+        private void OnRemove(Buff buff, object[] parameters)
+        {
+            Debug.Log($"[DEBUG] {buff.BuffData.Name} 移除");
+        }
     }
 
     #endregion

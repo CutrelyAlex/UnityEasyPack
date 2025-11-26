@@ -38,7 +38,10 @@ namespace EasyPack.EmeCardSystem
 
         public void Register(IReadOnlyDictionary<string, Func<Card>> productionList)
         {
-            foreach ((string id, var ctor) in productionList) Register(id, ctor);
+            foreach ((string id, var ctor) in productionList)
+            {
+                Register(id, ctor);
+            }
         }
 
         /// <summary>
@@ -52,7 +55,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <returns>分配的 UID，从 1001 开始。</returns>
         /// <exception cref="InvalidOperationException">当 UID 达到上限时抛出。</exception>
-        public static int AllocateUID()
+        private static int AllocateUID()
         {
             int uid = Interlocked.Increment(ref _nextUID);
             if (uid > MAX_UID) throw new InvalidOperationException($"无法分配 UID：已达到上限 {MAX_UID}。");
@@ -81,7 +84,10 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     重置 UID 计数器。
         /// </summary>
-        internal static void ResetForTesting() { _nextUID = 1000; }
+        internal static void ResetForTesting()
+        {
+            _nextUID = 1000;
+        }
 
         /// <summary>
         ///     获取当前的 UID 计数器值。
@@ -96,7 +102,7 @@ namespace EasyPack.EmeCardSystem
             if (_constructors.TryGetValue(id, out var ctor))
             {
                 var card = ctor() as T;
-                if (card != null && card.UID == -1) AssignUID(card);
+                if (card is { UID: -1 }) AssignUID(card);
 
                 return card;
             }

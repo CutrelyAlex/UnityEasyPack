@@ -29,7 +29,10 @@ namespace EasyPack.CustomData
 
         public string Serialize(CustomDataEntry entry) => entry.IntValue.ToString(CultureInfo.InvariantCulture);
 
-        public void Clear(CustomDataEntry entry) { entry.IntValue = 0; }
+        public void Clear(CustomDataEntry entry)
+        {
+            entry.IntValue = 0;
+        }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

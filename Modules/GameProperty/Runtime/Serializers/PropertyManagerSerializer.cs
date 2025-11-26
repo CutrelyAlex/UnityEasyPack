@@ -31,11 +31,13 @@ namespace EasyPack.GamePropertySystem
 
                 string category = "Default";
                 foreach (string cat in obj.GetAllCategories())
+                {
                     if (obj.GetByCategory(cat).Any(p => p.ID == propertyId))
                     {
                         category = cat;
                         break;
                     }
+                }
 
                 propertiesList.Add(new() { ID = propertyId, Category = category, SerializedProperty = propertyJson });
 

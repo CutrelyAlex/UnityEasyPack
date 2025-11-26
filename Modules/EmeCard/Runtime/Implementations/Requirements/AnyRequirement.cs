@@ -25,7 +25,9 @@ namespace EasyPack.EmeCardSystem
                     any = true;
                     if (picks is { Count: > 0 })
                         foreach (Card c in picks)
+                        {
                             set.Add(c);
+                        }
                 }
             }
 

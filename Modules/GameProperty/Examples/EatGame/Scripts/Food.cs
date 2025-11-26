@@ -36,6 +36,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         public void ApplyImmediateEffects(PlayerAttributes player)
         {
             foreach (var effect in ImmediateEffects)
+            {
                 switch (effect.Key)
                 {
                     case "Satiety":
@@ -51,6 +52,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
                             player.SanityCapacity.GetValue()));
                         break;
                 }
+            }
         }
 
         /// <summary>

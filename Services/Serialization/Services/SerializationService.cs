@@ -136,8 +136,10 @@ namespace EasyPack.Serialization
 
                 // 3. 尝试查找接口的序列化器
                 foreach (Type interfaceType in type.GetInterfaces())
+                {
                     if (_serializers.TryGetValue(interfaceType, out serializer))
                         return serializer;
+                }
 
                 // 4. 如果没有注册的序列化器，检查是否有 [Serializable] 特性
                 if (type.GetCustomAttributes(typeof(SerializableAttribute), true).Length > 0)
@@ -403,7 +405,10 @@ namespace EasyPack.Serialization
             lock (_lock)
             {
                 var result = new Dictionary<Type, SerializationStrategy>();
-                foreach (var kvp in _serializers) result[kvp.Key] = kvp.Value.SupportedStrategy;
+                foreach (var kvp in _serializers)
+                {
+                    result[kvp.Key] = kvp.Value.SupportedStrategy;
+                }
 
                 return result;
             }

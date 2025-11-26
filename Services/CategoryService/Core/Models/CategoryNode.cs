@@ -164,7 +164,10 @@ namespace EasyPack.Category
             var queue = new Queue<CategoryNode>();
 
             // 初始化队列：将所有直接子节点加入
-            foreach (CategoryNode child in _children.Values) queue.Enqueue(child);
+            foreach (CategoryNode child in _children.Values)
+            {
+                queue.Enqueue(child);
+            }
 
             // 广度优先遍历所有子孙节点
             while (queue.Count > 0)
@@ -175,7 +178,10 @@ namespace EasyPack.Category
                 result.AddRange(node._entityIds);
 
                 // 将其子节点加入队列
-                foreach (CategoryNode child in node._children.Values) queue.Enqueue(child);
+                foreach (CategoryNode child in node._children.Values)
+                {
+                    queue.Enqueue(child);
+                }
             }
 
             // 更新缓存

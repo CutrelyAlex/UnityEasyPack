@@ -244,8 +244,10 @@ namespace EasyPack.EmeCardSystem
                         // 使用缓存：取缓存中与候选集的交集
                         var tagResults = new List<Card>(Math.Min(cards.Count, cachedCardSet.Count));
                         for (int i = 0; i < cards.Count; i++)
+                        {
                             if (cachedCardSet.Contains(cards[i]))
                                 tagResults.Add(cards[i]);
+                        }
 
                         return tagResults;
                     }
@@ -253,8 +255,10 @@ namespace EasyPack.EmeCardSystem
                     // 回退：缓存未初始化，使用原有逻辑
                     var tagResultsFallback = new List<Card>(cards.Count / 2);
                     for (int i = 0; i < cards.Count; i++)
+                    {
                         if (cards[i].HasTag(filterValue))
                             tagResultsFallback.Add(cards[i]);
+                    }
 
                     return tagResultsFallback;
 
@@ -263,8 +267,10 @@ namespace EasyPack.EmeCardSystem
                         return Array.Empty<Card>();
                     var idResults = new List<Card>(cards.Count / 4);
                     for (int i = 0; i < cards.Count; i++)
+                    {
                         if (string.Equals(cards[i].Id, filterValue, StringComparison.Ordinal))
                             idResults.Add(cards[i]);
+                    }
 
                     return idResults;
 
@@ -273,8 +279,10 @@ namespace EasyPack.EmeCardSystem
                     {
                         var catResults = new List<Card>(cards.Count / 2);
                         for (int i = 0; i < cards.Count; i++)
+                        {
                             if (cards[i].Category == cat)
                                 catResults.Add(cards[i]);
+                        }
 
                         return catResults;
                     }

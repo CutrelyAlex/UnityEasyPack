@@ -27,12 +27,18 @@ namespace EasyPack.ObjectPool
         /// <summary>
         ///     服务暂停时调用。
         /// </summary>
-        protected override void OnPause() { Debug.Log("[ObjectPoolService] 对象池服务已暂停"); }
+        protected override void OnPause()
+        {
+            Debug.Log("[ObjectPoolService] 对象池服务已暂停");
+        }
 
         /// <summary>
         ///     服务恢复时调用。
         /// </summary>
-        protected override void OnResume() { Debug.Log("[ObjectPoolService] 对象池服务已恢复"); }
+        protected override void OnResume()
+        {
+            Debug.Log("[ObjectPoolService] 对象池服务已恢复");
+        }
 
         /// <summary>
         ///     服务释放时调用，清空所有对象池。
@@ -42,6 +48,7 @@ namespace EasyPack.ObjectPool
             Debug.Log("[ObjectPoolService] 开始释放对象池服务");
 
             foreach (var kvp in _pools)
+            {
                 if (kvp.Value is IDisposable disposable)
                 {
                     disposable.Dispose();
@@ -53,6 +60,7 @@ namespace EasyPack.ObjectPool
                     MethodInfo clearMethod = poolType.GetMethod("Clear");
                     clearMethod?.Invoke(kvp.Value, null);
                 }
+            }
 
             _pools.Clear();
             Debug.Log("[ObjectPoolService] 对象池服务释放完成");

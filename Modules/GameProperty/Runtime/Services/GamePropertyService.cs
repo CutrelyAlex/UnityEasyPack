@@ -152,6 +152,7 @@ namespace EasyPack.GamePropertySystem
                 // 更新标签索引（线程安全）
                 if (metadata.Tags != null)
                     foreach (string tag in metadata.Tags)
+                    {
                         lock (_tagLock)
                         {
                             if (!_tagIndex.ContainsKey(tag))
@@ -159,6 +160,7 @@ namespace EasyPack.GamePropertySystem
 
                             _tagIndex[tag].Add(property.ID);
                         }
+                    }
             }
 
             // 更新分类索引（线程安全）
@@ -182,7 +184,10 @@ namespace EasyPack.GamePropertySystem
             if (properties == null)
                 throw new ArgumentNullException(nameof(properties));
 
-            foreach (GameProperty property in properties) Register(property, category, null);
+            foreach (GameProperty property in properties)
+            {
+                Register(property, category, null);
+            }
         }
 
         #endregion
@@ -231,8 +236,10 @@ namespace EasyPack.GamePropertySystem
                 lock (_categoryLock)
                 {
                     foreach (var kvp in _categories)
+                    {
                         if (kvp.Key == category || kvp.Key.StartsWith(prefix))
                             results.AddRange(kvp.Value.ToList().Select(id => _properties[id]).Where(p => p != null));
+                    }
                 }
 
                 return results;
@@ -324,7 +331,10 @@ namespace EasyPack.GamePropertySystem
             // 从标签索引移除（线程安全）
             lock (_tagLock)
             {
-                foreach (var tagSet in _tagIndex.Values) tagSet.Remove(id);
+                foreach (var tagSet in _tagIndex.Values)
+                {
+                    tagSet.Remove(id);
+                }
             }
 
             return true;
@@ -340,7 +350,9 @@ namespace EasyPack.GamePropertySystem
 
             if (_categories.TryRemove(category, out var ids))
                 foreach (string id in ids.ToList())
+                {
                     Unregister(id);
+                }
         }
 
         #endregion
@@ -366,6 +378,7 @@ namespace EasyPack.GamePropertySystem
             }
 
             foreach (GameProperty property in properties)
+            {
                 try
                 {
                     // GameProperty没有直接的Active属性，这里通过Enable/Disable修饰符来实现
@@ -377,6 +390,7 @@ namespace EasyPack.GamePropertySystem
                 {
                     failures.Add(new(property.ID, ex.Message, FailureType.UnknownError));
                 }
+            }
 
             return failures.Count == 0
                 ? OperationResult<List<string>>.Success(successIds, successIds.Count)
@@ -405,6 +419,7 @@ namespace EasyPack.GamePropertySystem
             }
 
             foreach (GameProperty property in properties)
+            {
                 try
                 {
                     property.AddModifier(modifier);
@@ -414,6 +429,7 @@ namespace EasyPack.GamePropertySystem
                 {
                     failures.Add(new(property.ID, ex.Message, FailureType.InvalidModifier));
                 }
+            }
 
             return failures.Count == 0
                 ? OperationResult<List<string>>.Success(successIds, successIds.Count)

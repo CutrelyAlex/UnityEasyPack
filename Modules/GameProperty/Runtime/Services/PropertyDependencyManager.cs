@@ -113,6 +113,7 @@ namespace EasyPack.GamePropertySystem
                 return;
 
             foreach (GameProperty dependent in _dependents)
+            {
                 if (dependent.DependencyManager._dependencyCalculators.TryGetValue(_owner, out var calculator))
                 {
                     float newValue = calculator(_owner, currentValue);
@@ -123,6 +124,7 @@ namespace EasyPack.GamePropertySystem
                     dependent.MakeDirty();
                     dependent.GetValue();
                 }
+            }
         }
 
         /// <summary>
@@ -130,7 +132,10 @@ namespace EasyPack.GamePropertySystem
         /// </summary>
         public void PropagateDirtyTowardsDependents()
         {
-            foreach (GameProperty dependent in _dependents) dependent.MakeDirty();
+            foreach (GameProperty dependent in _dependents)
+            {
+                dependent.MakeDirty();
+            }
         }
 
         /// <summary>
@@ -146,11 +151,13 @@ namespace EasyPack.GamePropertySystem
             bool result = false;
             foreach (GameProperty dep in _dependencies)
                 // 检查依赖项是否脏，或者依赖项的依赖项是否脏（递归检查）
+            {
                 if (dep.IsDirty || dep.DependencyManager.HasDirtyDependencies())
                 {
                     result = true;
                     break; // 早期退出
                 }
+            }
 
             _hasDirtyDepsCache = result;
             _hasDirtyDepsCacheValid = true;
@@ -169,7 +176,10 @@ namespace EasyPack.GamePropertySystem
             _hasDirtyDepsCacheValid = false;
 
             // 向所有依赖者传播缓存失效
-            foreach (GameProperty dependent in _dependents) dependent.DependencyManager.InvalidateDirtyCache();
+            foreach (GameProperty dependent in _dependents)
+            {
+                dependent.DependencyManager.InvalidateDirtyCache();
+            }
         }
 
         /// <summary>
@@ -180,7 +190,10 @@ namespace EasyPack.GamePropertySystem
             if (_dependencies.Count == 0)
                 return;
 
-            foreach (GameProperty dep in _dependencies) dep.GetValue();
+            foreach (GameProperty dep in _dependencies)
+            {
+                dep.GetValue();
+            }
         }
 
         /// <summary>
@@ -205,7 +218,9 @@ namespace EasyPack.GamePropertySystem
                 }
 
                 foreach (GameProperty subDep in dep.DependencyManager._dependencies)
+                {
                     queue.Enqueue(subDep);
+                }
             }
 
             _hasRandomDependency = hasRandom;
@@ -237,8 +252,10 @@ namespace EasyPack.GamePropertySystem
                 if (current == _owner) return true;
 
                 foreach (GameProperty dep in current.DependencyManager._dependencies)
+                {
                     if (!visited.Contains(dep))
                         stack.Push(dep);
+                }
             }
 
             return false;
@@ -259,15 +276,19 @@ namespace EasyPack.GamePropertySystem
             {
                 int maxDepth = 0;
                 foreach (GameProperty dep in _dependencies)
+                {
                     if (dep.DependencyManager._dependencyDepth > maxDepth)
                         maxDepth = dep.DependencyManager._dependencyDepth;
+                }
 
                 _dependencyDepth = maxDepth + 1;
             }
 
             if (oldDepth != _dependencyDepth)
                 foreach (GameProperty dependent in _dependents)
+                {
                     dependent.DependencyManager.UpdateDependencyDepth();
+                }
         }
 
         /// <summary>
@@ -276,12 +297,18 @@ namespace EasyPack.GamePropertySystem
         public void ClearAll()
         {
             // 清理正向依赖
-            foreach (GameProperty dependency in _dependencies) dependency.DependencyManager._dependents.Remove(_owner);
+            foreach (GameProperty dependency in _dependencies)
+            {
+                dependency.DependencyManager._dependents.Remove(_owner);
+            }
 
             _dependencies.Clear();
 
             // 清理反向依赖
-            foreach (GameProperty dependent in _dependents) dependent.DependencyManager._dependencies.Remove(_owner);
+            foreach (GameProperty dependent in _dependents)
+            {
+                dependent.DependencyManager._dependencies.Remove(_owner);
+            }
 
             _dependents.Clear();
 

@@ -81,8 +81,10 @@ namespace EasyPack.EmeCardSystem
                 return;
 
             foreach (Card t in targets.ToArray())
+            {
                 if (t?.Owner != null)
                     t.Owner.RemoveChild(t, false);
+            }
         }
     }
 }

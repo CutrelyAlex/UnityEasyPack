@@ -68,7 +68,10 @@ namespace EasyPack.ENekoFramework
             if (!target || !_bindings.TryGetValue(target, out var cleanups))
                 return;
 
-            foreach (Action cleanup in cleanups) cleanup?.Invoke();
+            foreach (Action cleanup in cleanups)
+            {
+                cleanup?.Invoke();
+            }
 
             _bindings.Remove(target);
         }
@@ -80,7 +83,10 @@ namespace EasyPack.ENekoFramework
         public int GetBindingCount()
         {
             int total = 0;
-            foreach (var list in _bindings.Values) total += list.Count;
+            foreach (var list in _bindings.Values)
+            {
+                total += list.Count;
+            }
 
             return total;
         }
@@ -90,7 +96,9 @@ namespace EasyPack.ENekoFramework
             // 清理所有绑定
             foreach (var kvp in _bindings)
             foreach (Action cleanup in kvp.Value)
+            {
                 cleanup?.Invoke();
+            }
 
             _bindings.Clear();
         }
@@ -107,6 +115,9 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         public event Action OnDestroyed;
 
-        private void OnDestroy() { OnDestroyed?.Invoke(); }
+        private void OnDestroy()
+        {
+            OnDestroyed?.Invoke();
+        }
     }
 }

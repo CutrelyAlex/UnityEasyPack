@@ -139,7 +139,10 @@ namespace EasyPack.ENekoFramework.Editor
             {
                 _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
 
-                foreach (ArchitectureInfo arch in _architectures) DrawArchitectureItem(arch);
+                foreach (ArchitectureInfo arch in _architectures)
+                {
+                    DrawArchitectureItem(arch);
+                }
 
                 EditorGUILayout.EndScrollView();
             }
@@ -290,7 +293,10 @@ namespace EasyPack.ENekoFramework.Editor
             }
         }
 
-        private void RefreshArchitectures() { RefreshArchitecturesAsync(); }
+        private void RefreshArchitectures()
+        {
+            RefreshArchitecturesAsync();
+        }
 
         private void RefreshArchitecturesAsync()
         {

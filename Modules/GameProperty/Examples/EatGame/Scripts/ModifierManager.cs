@@ -83,7 +83,9 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         public void ClearAllModifiers()
         {
             foreach (TimedModifier timedModifier in _activeModifiers)
+            {
                 timedModifier.TargetProperty.RemoveModifier(timedModifier.Modifier);
+            }
 
             _activeModifiers.Clear();
         }

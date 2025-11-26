@@ -345,6 +345,7 @@ namespace EasyPack.GamePropertySystem
             });
 
             foreach (IModifier modifier in toRemove)
+            {
                 if (_modifierIndexMap.ContainsKey(modifier))
                 {
                     Modifiers.Remove(modifier);
@@ -358,10 +359,14 @@ namespace EasyPack.GamePropertySystem
                             _groupedModifiers.Remove(modifier.Type);
                     }
                 }
+            }
 
             // 重建索引映射
             _modifierIndexMap.Clear();
-            for (int i = 0; i < Modifiers.Count; i++) _modifierIndexMap[Modifiers[i]] = i;
+            for (int i = 0; i < Modifiers.Count; i++)
+            {
+                _modifierIndexMap[Modifiers[i]] = i;
+            }
 
             _hasNonClampRangeModifier = HasNonClampRangeModifiers();
             MakeDirty();
@@ -438,11 +443,13 @@ namespace EasyPack.GamePropertySystem
 
             // 使用预定义的顺序数组
             foreach (ModifierType type in ModifierStrategyManager.MODIFIER_TYPE_ORDER)
+            {
                 if (_groupedModifiers.TryGetValue(type, out var modifiers) && modifiers.Count > 0)
                 {
                     IModifierStrategy strategy = GetCachedStrategy(type);
                     strategy.Apply(ref value, modifiers);
                 }
+            }
         }
 
         #endregion

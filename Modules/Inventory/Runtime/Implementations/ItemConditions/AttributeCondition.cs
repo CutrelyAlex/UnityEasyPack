@@ -120,8 +120,10 @@ namespace EasyPack.InventorySystem
 
             if (container is System.Collections.IEnumerable enumerable and not string)
                 foreach (object item in enumerable)
+                {
                     if (item != null && item.Equals(value))
                         return true;
+                }
 
             return false;
         }

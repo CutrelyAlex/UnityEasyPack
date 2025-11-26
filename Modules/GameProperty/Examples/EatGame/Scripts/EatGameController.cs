@@ -83,7 +83,9 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             Debug.Log($"\n=== 第 {currentDay} 天开始 ===");
             Debug.Log($"今日可选食物:");
             for (int i = 0; i < currentFoods.Count; i++)
+            {
                 Debug.Log($"[{i + 1}] {foodGenerator.GetFoodEffectDescription(currentFoods[i])}");
+            }
 
             // 更新UI
             dayText.text = $"第 {currentDay} 天";
@@ -130,7 +132,10 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             }
 
             // 禁用食物按钮
-            foreach (Button button in foodButtons) button.interactable = false;
+            foreach (Button button in foodButtons)
+            {
+                button.interactable = false;
+            }
         }
 
         public void ConfirmEat()
@@ -184,7 +189,10 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             if (confirmPanel != null) confirmPanel.SetActive(false);
 
             // 重新启用食物按钮
-            foreach (Button button in foodButtons) button.interactable = true;
+            foreach (Button button in foodButtons)
+            {
+                button.interactable = true;
+            }
 
             UpdateUI();
         }
@@ -222,12 +230,18 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             Debug.Log($"✅ 第 {currentDay - 1} 天完成，进入下一天\n");
 
             // 重新启用所有食物按钮
-            foreach (Button button in foodButtons) button.interactable = true;
+            foreach (Button button in foodButtons)
+            {
+                button.interactable = true;
+            }
 
             StartNewDay();
         }
 
-        private void OnAttributeChanged(float oldValue, float newValue) { UpdateUI(); }
+        private void OnAttributeChanged(float oldValue, float newValue)
+        {
+            UpdateUI();
+        }
 
         private void UpdateUI()
         {
@@ -258,7 +272,10 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             if (restartButton != null) restartButton.gameObject.SetActive(true);
 
             // 禁用食物按钮
-            foreach (Button button in foodButtons) button.gameObject.SetActive(false);
+            foreach (Button button in foodButtons)
+            {
+                button.gameObject.SetActive(false);
+            }
         }
 
         public void RestartGame()

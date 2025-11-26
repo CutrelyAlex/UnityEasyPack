@@ -292,6 +292,7 @@ namespace EasyPack.InventorySystem
                 if (requests == null) return results;
 
                 foreach (MoveRequest request in requests)
+                {
                     if (request.Count > 0)
                     {
                         // 指定数量移动
@@ -359,12 +360,16 @@ namespace EasyPack.InventorySystem
 
                         results.Add((request, result, movedCount));
                     }
+                }
 
                 OnBatchMoveCompleted?.Invoke(results);
             }
             catch
             {
-                while (results.Count < requests.Count) results.Add((requests[results.Count], MoveResult.Failed, 0));
+                while (results.Count < requests.Count)
+                {
+                    results.Add((requests[results.Count], MoveResult.Failed, 0));
+                }
             }
 
             return results;

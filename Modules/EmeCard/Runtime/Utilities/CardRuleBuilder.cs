@@ -160,10 +160,16 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>要求源卡牌为对象类别</summary>
-        public CardRuleBuilder WhenSourceIsObject() { return When(ctx => ctx.Source?.Category == CardCategory.Object); }
+        public CardRuleBuilder WhenSourceIsObject()
+        {
+            return When(ctx => ctx.Source?.Category == CardCategory.Object);
+        }
 
         /// <summary>要求源卡牌为动作类别</summary>
-        public CardRuleBuilder WhenSourceIsAction() { return When(ctx => ctx.Source?.Category == CardCategory.Action); }
+        public CardRuleBuilder WhenSourceIsAction()
+        {
+            return When(ctx => ctx.Source?.Category == CardCategory.Action);
+        }
 
         /// <summary>要求源卡牌为属性类别</summary>
         public CardRuleBuilder WhenSourceIsAttribute()
@@ -172,7 +178,10 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>要求源卡牌有指定标签</summary>
-        public CardRuleBuilder WhenSourceHasTag(string tag) { return When(ctx => ctx.Source?.HasTag(tag) ?? false); }
+        public CardRuleBuilder WhenSourceHasTag(string tag)
+        {
+            return When(ctx => ctx.Source?.HasTag(tag) ?? false);
+        }
 
         /// <summary>要求源卡牌没有指定标签</summary>
         public CardRuleBuilder WhenSourceNotHasTag(string tag)
@@ -223,10 +232,16 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>要求事件数据为指定类型</summary>
-        public CardRuleBuilder WhenEventDataIs<T>() where T : class { return When(ctx => ctx.Event.DataObject is T); }
+        public CardRuleBuilder WhenEventDataIs<T>() where T : class
+        {
+            return When(ctx => ctx.Event.DataObject is T);
+        }
 
         /// <summary>要求事件数据不为空</summary>
-        public CardRuleBuilder WhenEventDataNotNull() { return When(ctx => ctx.Event.DataObject != null); }
+        public CardRuleBuilder WhenEventDataNotNull()
+        {
+            return When(ctx => ctx.Event.DataObject != null);
+        }
 
         #endregion
 
@@ -294,8 +309,10 @@ namespace EasyPack.EmeCardSystem
         {
             if (effects != null)
                 foreach (IRuleEffect effect in effects)
+                {
                     if (effect != null)
                         _rule.Effects.Add(effect);
+                }
 
             return this;
         }
@@ -305,8 +322,10 @@ namespace EasyPack.EmeCardSystem
         {
             if (effects != null)
                 foreach (IRuleEffect effect in effects)
+                {
                     if (effect != null)
                         _rule.Effects.Add(effect);
+                }
 
             return this;
         }
@@ -480,7 +499,10 @@ namespace EasyPack.EmeCardSystem
                 object newData = data == null ? ctx.Event.DataObject : data.Invoke(ctx);
                 if (haveSource) ctx.Source.RaiseEvent(eventId, newData);
 
-                foreach (Card card in matched) card.RaiseEvent(eventId, newData);
+                foreach (Card card in matched)
+                {
+                    card.RaiseEvent(eventId, newData);
+                }
             });
         }
 
@@ -564,7 +586,10 @@ namespace EasyPack.EmeCardSystem
         /// <summary>注册规则集</summary>
         public static void RegisterRule(this CardEngine engine, IReadOnlyList<Action<CardRuleBuilder>> configures)
         {
-            foreach (var configure in configures) RegisterRule(engine, configure);
+            foreach (var configure in configures)
+            {
+                RegisterRule(engine, configure);
+            }
         }
     }
 }

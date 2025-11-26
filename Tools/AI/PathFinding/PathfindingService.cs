@@ -51,8 +51,10 @@ namespace EasyPack.Tools.PathFinding
 
             if (fromTilemaps != null)
                 foreach (Tilemap tm in fromTilemaps)
+                {
                     if (tm != null && !globalTilemaps.Contains(tm))
                         globalTilemaps.Add(tm);
+                }
 
             if (globalTilemaps.Count > 0) BuildUnifiedMapInternal(globalTilemaps);
         }
@@ -82,8 +84,10 @@ namespace EasyPack.Tools.PathFinding
                 if (g == null) continue;
                 var tms = g.GetComponentsInChildren<Tilemap>();
                 foreach (Tilemap tm in tms)
+                {
                     if (tm != null && !outList.Contains(tm))
                         outList.Add(tm);
+                }
             }
         }
 

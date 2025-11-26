@@ -127,17 +127,21 @@ namespace EasyPack.Category
             // 序列化标签
             var tagIndex = manager.GetTagIndex();
             foreach (var kvp in tagIndex)
+            {
                 data.Tags.Add(new() { TagName = kvp.Key, EntityIds = kvp.Value.ToList() });
+            }
 
             // 序列化元数据
             var metadataStore = manager.GetMetadataStore();
             foreach (var kvp in metadataStore)
+            {
                 data.Metadata.Add(new()
                 {
                     EntityId = kvp.Key,
                     MetadataJson =
                         JsonUtility.ToJson(new CustomDataCollectionWrapper { Entries = kvp.Value.ToList() }),
                 });
+            }
 
             return data;
         }
@@ -157,6 +161,7 @@ namespace EasyPack.Category
                 new List<(T entity, string category, List<string> tags, CustomDataCollection metadata)>();
 
             foreach (SerializableCategoryManagerState<T>.SerializedEntity serializedEntity in data.Entities)
+            {
                 try
                 {
                     // 使用 SerializationService 反序列化实体
@@ -178,7 +183,10 @@ namespace EasyPack.Category
                     {
                         var wrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(metadataEntry.MetadataJson);
                         metadata = new();
-                        foreach (CustomDataEntry entry in wrapper.Entries) metadata.Add(entry);
+                        foreach (CustomDataEntry entry in wrapper.Entries)
+                        {
+                            metadata.Add(entry);
+                        }
                     }
 
                     entityRegistrations.Add((entity, serializedEntity.Category, tags, metadata));
@@ -187,6 +195,7 @@ namespace EasyPack.Category
                 {
                     Debug.LogWarning($"反序列化实体 '{serializedEntity.Id}' 失败: {ex.Message}");
                 }
+            }
 
             // 注册所有实体
             foreach ((T entity, string category, var tags, CustomDataCollection metadata) in entityRegistrations)
@@ -279,10 +288,13 @@ namespace EasyPack.Category
 
                 // 序列化 Tag
                 foreach (var kvp in tagIndex)
+                {
                     data.Tags.Add(new() { TagName = kvp.Key, EntityIds = new(kvp.Value) });
+                }
 
                 // 序列化元数据 
                 foreach (var kvp in entityMetadataIndex)
+                {
                     data.Metadata.Add(new()
                     {
                         EntityId = kvp.Key,
@@ -291,6 +303,7 @@ namespace EasyPack.Category
                             Entries = kvp.Value.ToList(),
                         }),
                     });
+                }
 
                 return JsonUtility.ToJson(data, true);
             }
@@ -348,7 +361,11 @@ namespace EasyPack.Category
                     if (wrapper?.Entries != null)
                     {
                         var metadata = new CustomDataCollection();
-                        foreach (CustomDataEntry entry in wrapper.Entries) metadata.Add(entry);
+                        foreach (CustomDataEntry entry in wrapper.Entries)
+                        {
+                            metadata.Add(entry);
+                        }
+
                         entityMetadataIndex[metadataEntry.EntityId] = metadata;
                     }
                 }
@@ -362,6 +379,7 @@ namespace EasyPack.Category
                         )>();
 
                 foreach (SerializableCategoryManagerState<T>.SerializedEntity serializedEntity in data.Entities)
+                {
                     try
                     {
                         T entity = default;
@@ -405,6 +423,7 @@ namespace EasyPack.Category
                     {
                         Debug.LogWarning($"处理实体 '{serializedEntity.Id}' 时发生异常: {ex.Message}");
                     }
+                }
 
                 // 注册所有实体
                 foreach ((string id, T entity, string category, var tags, CustomDataCollection metadata) in

@@ -47,11 +47,13 @@ namespace EasyPack.GamePropertySystem
         {
             // 查找是否已存在
             foreach (CustomDataEntry entry in CustomData)
+            {
                 if (entry.Key == key)
                 {
                     entry.SetValue(value);
                     return;
                 }
+            }
 
             // 不存在则添加新条目
             var newEntry = new CustomDataEntry { Key = key };

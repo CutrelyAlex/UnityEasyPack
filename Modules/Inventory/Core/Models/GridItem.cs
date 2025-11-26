@@ -147,7 +147,9 @@ namespace EasyPack.InventorySystem
             var cells = new List<(int x, int y)>();
             for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
+            {
                 cells.Add((x, y));
+            }
 
             return cells;
         }

@@ -69,7 +69,10 @@ namespace EasyPack.ENekoFramework
         /// <summary>
         ///     清空查询历史
         /// </summary>
-        public void ClearHistory() { _queryHistory.Clear(); }
+        public void ClearHistory()
+        {
+            _queryHistory.Clear();
+        }
     }
 
     /// <summary>

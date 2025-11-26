@@ -73,28 +73,40 @@ namespace EasyPack.BuffSystem
         /// </summary>
         /// <param name="buff">Buff 实例</param>
         /// <param name="parameters">回调参数</param>
-        private void OnCreate(Buff buff, object[] parameters) { AddModifier(); }
+        private void OnCreate(Buff buff, object[] parameters)
+        {
+            AddModifier();
+        }
 
         /// <summary>
         ///     处理 Buff 堆叠层数增加时的回调，添加修饰符到目标属性
         /// </summary>
         /// <param name="buff">Buff 实例</param>
         /// <param name="parameters">回调参数</param>
-        private void OnAddStack(Buff buff, object[] parameters) { AddModifier(); }
+        private void OnAddStack(Buff buff, object[] parameters)
+        {
+            AddModifier();
+        }
 
         /// <summary>
         ///     处理 Buff 移除时的回调，移除所有已应用的修饰符
         /// </summary>
         /// <param name="buff">Buff 实例</param>
         /// <param name="parameters">回调参数</param>
-        private void OnRemove(Buff buff, object[] parameters) { RemoveAllModifiers(); }
+        private void OnRemove(Buff buff, object[] parameters)
+        {
+            RemoveAllModifiers();
+        }
 
         /// <summary>
         ///     处理 Buff 堆叠层数减少时的回调，移除一个修饰符
         /// </summary>
         /// <param name="buff">Buff 实例</param>
         /// <param name="parameters">回调参数</param>
-        private void OnReduceStack(Buff buff, object[] parameters) { RemoveSingleModifier(); }
+        private void OnReduceStack(Buff buff, object[] parameters)
+        {
+            RemoveSingleModifier();
+        }
 
         /// <summary>
         ///     添加修饰符到目标属性
@@ -139,7 +151,10 @@ namespace EasyPack.BuffSystem
                 return;
 
             // 逆序移除所有已应用的修饰符
-            for (int i = _appliedModifiers.Count - 1; i >= 0; i--) property.RemoveModifier(_appliedModifiers[i]);
+            for (int i = _appliedModifiers.Count - 1; i >= 0; i--)
+            {
+                property.RemoveModifier(_appliedModifiers[i]);
+            }
 
             _appliedModifiers.Clear();
         }

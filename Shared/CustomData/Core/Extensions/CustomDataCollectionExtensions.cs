@@ -65,7 +65,10 @@ namespace EasyPack.CustomData
             var dict = new Dictionary<string, object>();
             if (entries == null) return dict;
 
-            foreach (CustomDataEntry e in entries) dict[e.Key] = e.GetValue();
+            foreach (CustomDataEntry e in entries)
+            {
+                dict[e.Key] = e.GetValue();
+            }
 
             return dict;
         }
@@ -78,8 +81,10 @@ namespace EasyPack.CustomData
 
             var customDataEntries = entries as CustomDataEntry[] ?? entries.ToArray();
             foreach (CustomDataEntry e in customDataEntries)
+            {
                 if (e.Key != null && customDataEntries.TryGetValue(e.Key, out T value))
                     dict[e.Key] = value;
+            }
 
             return dict;
         }

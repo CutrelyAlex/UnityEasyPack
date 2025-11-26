@@ -10,7 +10,10 @@ namespace EasyPack.InventorySystem
 
         public ItemTypeCondition(string itemType) => ItemType = itemType;
 
-        public void SetItemType(string itemType) { ItemType = itemType; }
+        public void SetItemType(string itemType)
+        {
+            ItemType = itemType;
+        }
 
         public bool CheckCondition(IItem item) => item != null && item.Type == ItemType;
 
@@ -31,11 +34,13 @@ namespace EasyPack.InventorySystem
             if (dto == null || dto.Params == null) return this;
             string t = null;
             foreach (CustomDataEntry p in dto.Params)
+            {
                 if (p?.Key == "ItemType")
                 {
                     t = p.StringValue ?? p.GetValue() as string;
                     break;
                 }
+            }
 
             if (!string.IsNullOrEmpty(t)) ItemType = t;
 

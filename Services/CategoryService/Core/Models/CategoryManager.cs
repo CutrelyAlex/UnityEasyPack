@@ -314,10 +314,14 @@ namespace EasyPack.Category
 
                         if (includeChildren)
                             foreach (string id in node.GetSubtreeEntityIds())
+                            {
                                 entityIds.Add(id);
+                            }
                         else
                             foreach (string id in node.EntityIds)
+                            {
                                 entityIds.Add(id);
+                            }
                     }
                 }
                 else
@@ -327,10 +331,14 @@ namespace EasyPack.Category
                     {
                         if (includeChildren)
                             foreach (string id in node.GetSubtreeEntityIds())
+                            {
                                 entityIds.Add(id);
+                            }
                         else
                             foreach (string id in node.EntityIds)
+                            {
                                 entityIds.Add(id);
+                            }
                     }
                 }
             }
@@ -422,8 +430,10 @@ namespace EasyPack.Category
             {
                 var leafCategories = new List<string>();
                 foreach ((int key, CategoryNode node) in _categoryNodes)
+                {
                     if (node.Children.Count == 0)
                         leafCategories.Add(_categoryIdToName[key]);
+                }
 
                 return leafCategories;
             }
@@ -472,7 +482,9 @@ namespace EasyPack.Category
                     CategoryNode parent = kvp.Value.ParentNode;
                     while (parent != null)
                         //affectedNodePaths.Add(_categoryIdToName[parent.TermId]);
+                    {
                         parent = parent.ParentNode;
+                    }
                 }
 
                 // 从实体存储移除
@@ -560,7 +572,9 @@ namespace EasyPack.Category
                 CategoryNode parent = node.ParentNode;
                 while (parent != null)
                     //affectedNodePaths.Add(_categoryIdToName[parent.TermId]);
+                {
                     parent = parent.ParentNode;
+                }
 
                 // 从字典移除
                 _categoryNodes.Remove(node.TermId);
@@ -916,10 +930,14 @@ namespace EasyPack.Category
 
                     if (includeChildren)
                         foreach (string id in node.GetSubtreeEntityIds())
+                        {
                             entityIds.Add(id);
+                        }
                     else
                         foreach (string id in node.EntityIds)
+                        {
                             entityIds.Add(id);
+                        }
                 }
             }
             finally
@@ -999,6 +1017,88 @@ namespace EasyPack.Category
             finally
             {
                 _entitiesLock.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        ///     检查实体是否拥有指定标签。
+        /// </summary>
+        /// <param name="entityId">实体ID。</param>
+        /// <param name="tag">标签名称。</param>
+        /// <returns>如果实体拥有该标签返回 true。</returns>
+        public bool HasTag(string entityId, string tag)
+        {
+            if (string.IsNullOrEmpty(entityId) || string.IsNullOrWhiteSpace(tag))
+                return false;
+
+            if (!_tagMapper.TryGetId(tag, out int tagId))
+                return false;
+
+            if (!_entityToTagIds.TryGetValue(entityId, out var tagIds))
+                return false;
+
+            return tagIds.Contains(tagId);
+        }
+
+        /// <summary>
+        ///     获取实体的所有标签。
+        /// </summary>
+        /// <param name="entityId">实体ID。</param>
+        /// <returns>标签列表；若实体不存在则返回空列表。</returns>
+        public IReadOnlyList<string> GetEntityTags(string entityId)
+        {
+            if (string.IsNullOrEmpty(entityId))
+                return Array.Empty<string>();
+
+            if (!_entityToTagIds.TryGetValue(entityId, out var tagIds))
+                return Array.Empty<string>();
+
+            var tags = new List<string>(tagIds.Count);
+            foreach (int tagId in tagIds)
+            {
+                if (_tagMapper.TryGetString(tagId, out string tagName))
+                {
+                    tags.Add(tagName);
+                }
+            }
+
+            return tags;
+        }
+
+        /// <summary>
+        ///     检查实体是否在指定分类中。
+        /// </summary>
+        /// <param name="entityId">实体ID。</param>
+        /// <param name="category">分类名称。</param>
+        /// <param name="includeChildren">是否检查子分类。</param>
+        /// <returns>如果实体在该分类中返回 true。</returns>
+        public bool IsInCategory(string entityId, string category, bool includeChildren = false)
+        {
+            if (string.IsNullOrEmpty(entityId) || string.IsNullOrEmpty(category))
+                return false;
+
+            _treeLock.EnterReadLock();
+            try
+            {
+                if (!_entityIdToNode.TryGetValue(entityId, out var node))
+                    return false;
+
+                string entityCategory = _categoryIdToName.GetValueOrDefault(node.TermId, string.Empty);
+
+                if (includeChildren)
+                {
+                    // 检查实体的分类是否以目标分类开头（即是目标分类或其子分类）
+                    return entityCategory.Equals(category, StringComparison.Ordinal) ||
+                           entityCategory.StartsWith(category + ".", StringComparison.Ordinal);
+                }
+                else
+                {
+                    return entityCategory.Equals(category, StringComparison.Ordinal);
+                }
+            }
+            finally
+            {
+                _treeLock.ExitReadLock();
             }
         }
 
@@ -1192,7 +1292,9 @@ namespace EasyPack.Category
                     CategoryNode parent = kvp.Value.ParentNode;
                     while (parent != null)
                         //affectedNodePaths.Add(_categoryIdToName[parent.TermId]);
+                    {
                         parent = parent.ParentNode;
+                    }
                 }
 
                 // 添加到新分类
@@ -1204,7 +1306,9 @@ namespace EasyPack.Category
                 CategoryNode newParent = node.ParentNode;
                 while (newParent != null)
                     // affectedNodePaths.Add(_categoryIdToName[newParent.TermId]);
+                {
                     newParent = newParent.ParentNode;
+                }
 
                 return OperationResult.Success();
             }
@@ -1297,7 +1401,10 @@ namespace EasyPack.Category
             result.Add((node.TermId, node, oldPath, newPath));
 
             // 递归子节点
-            foreach (CategoryNode child in node.Children) CollectNodesToRename(child, oldPrefix, newPrefix, result);
+            foreach (CategoryNode child in node.Children)
+            {
+                CollectNodesToRename(child, oldPrefix, newPrefix, result);
+            }
         }
 
         #endregion
@@ -1315,8 +1422,10 @@ namespace EasyPack.Category
 
             foreach ((int tagId, var entityIds) in _tagToEntityIds)
                 // 从 _tagMapper 获取标签名称
+            {
                 if (_tagMapper.TryGetString(tagId, out string tagName))
                     tagIndex[tagName] = entityIds.ToList();
+            }
 
             return tagIndex;
         }
@@ -1405,8 +1514,10 @@ namespace EasyPack.Category
 
                 var tagNames = new List<string>(tagIds.Count);
                 foreach (int tagId in tagIds)
+                {
                     if (_tagMapper.TryGetString(tagId, out string tagName))
                         tagNames.Add(tagName);
+                }
 
                 if (tagNames.Count > 0) entityTagIndex[entityId] = tagNames;
             }
@@ -1444,20 +1555,53 @@ namespace EasyPack.Category
                     Clear_NoLock();
 
                     // 复制数据
-                    foreach (var kvp in newManager._entities) _entities[kvp.Key] = kvp.Value;
-                    foreach (var kvp in newManager._categoryNodes) _categoryNodes[kvp.Key] = kvp.Value;
-                    foreach (var kvp in newManager._categoryNameToId) _categoryNameToId[kvp.Key] = kvp.Value;
-                    foreach (var kvp in newManager._categoryIdToName) _categoryIdToName[kvp.Key] = kvp.Value;
+                    foreach (var kvp in newManager._entities)
+                    {
+                        _entities[kvp.Key] = kvp.Value;
+                    }
+
+                    foreach (var kvp in newManager._categoryNodes)
+                    {
+                        _categoryNodes[kvp.Key] = kvp.Value;
+                    }
+
+                    foreach (var kvp in newManager._categoryNameToId)
+                    {
+                        _categoryNameToId[kvp.Key] = kvp.Value;
+                    }
+
+                    foreach (var kvp in newManager._categoryIdToName)
+                    {
+                        _categoryIdToName[kvp.Key] = kvp.Value;
+                    }
+
                     foreach (var kvp in newManager._tagToEntityIds)
+                    {
                         _tagToEntityIds[kvp.Key] = new(kvp.Value);
+                    }
+
                     foreach (var kvp in newManager._entityToTagIds)
+                    {
                         _entityToTagIds[kvp.Key] = new(kvp.Value);
-                    foreach (var kvp in newManager._metadataStore) _metadataStore[kvp.Key] = kvp.Value;
+                    }
+
+                    foreach (var kvp in newManager._metadataStore)
+                    {
+                        _metadataStore[kvp.Key] = kvp.Value;
+                    }
+
                     // 复制标签映射器状态
                     var tagSnapshot = newManager._tagMapper.GetSnapshot();
-                    foreach (var kvp in tagSnapshot) _tagMapper.GetOrAssignId(kvp.Value);
+                    foreach (var kvp in tagSnapshot)
+                    {
+                        _tagMapper.GetOrAssignId(kvp.Value);
+                    }
+
                     var categorySnapshot = newManager._categoryTermMapper.GetSnapshot();
-                    foreach (var kvp in categorySnapshot) _categoryTermMapper.GetOrAssignId(kvp.Value);
+                    foreach (var kvp in categorySnapshot)
+                    {
+                        _categoryTermMapper.GetOrAssignId(kvp.Value);
+                    }
                 }
                 finally
                 {
@@ -1512,7 +1656,11 @@ namespace EasyPack.Category
             _cacheMisses = 0;
 #endif
 
-            foreach (ReaderWriterLockSlim lockObj in _tagLocks.Values) lockObj?.Dispose();
+            foreach (ReaderWriterLockSlim lockObj in _tagLocks.Values)
+            {
+                lockObj?.Dispose();
+            }
+
             _tagLocks.Clear();
         }
 
@@ -1535,7 +1683,10 @@ namespace EasyPack.Category
         /// <summary>
         ///     清除缓存清空所有缓存（不清除实体数据）
         /// </summary>
-        public void ClearCache() { _tagCache.Clear(); }
+        public void ClearCache()
+        {
+            _tagCache.Clear();
+        }
 
         #endregion
 
@@ -1574,7 +1725,10 @@ namespace EasyPack.Category
 
                 long memoryUsage = _entities.Count * 64 + _categoryNodes.Count * 128;
 
-                foreach (var kvp in _tagToEntityIds) memoryUsage += kvp.Value.Count * 16;
+                foreach (var kvp in _tagToEntityIds)
+                {
+                    memoryUsage += kvp.Value.Count * 16;
+                }
 
                 memoryUsage += _metadataStore.Count * 64;
 
@@ -1621,7 +1775,10 @@ namespace EasyPack.Category
         /// <summary>
         /// 预业业场准。
         /// </summary>
-        public Statistics GetStatistics() { return new Statistics(); }
+        public Statistics GetStatistics()
+        {
+            return new Statistics();
+        }
 
         private void RecordCacheQuery(bool isHit) { }
 #endif
@@ -1638,10 +1795,7 @@ namespace EasyPack.Category
         {
             if (string.IsNullOrEmpty(tag)) return;
 
-            if (_tagMapper.TryGetId(tag, out int tagId))
-            {
-                _tagCache.Remove(tagId);
-            }
+            if (_tagMapper.TryGetId(tag, out int tagId)) _tagCache.Remove(tagId);
         }
 
         /// <summary>
@@ -1669,7 +1823,10 @@ namespace EasyPack.Category
                         .Where(n => n.ParentNode == null)
                         .ToList();
 
-                    foreach (CategoryNode root in roots) RebuildSubtreeIndices_Recursive(root);
+                    foreach (CategoryNode root in roots)
+                    {
+                        RebuildSubtreeIndices_Recursive(root);
+                    }
 
                     return OperationResult.Success();
                 }
@@ -1690,7 +1847,10 @@ namespace EasyPack.Category
         /// </summary>
         private static void RebuildSubtreeIndices_Recursive(CategoryNode node)
         {
-            foreach (CategoryNode child in node.Children) RebuildSubtreeIndices_Recursive(child);
+            foreach (CategoryNode child in node.Children)
+            {
+                RebuildSubtreeIndices_Recursive(child);
+            }
         }
 
         #endregion
@@ -1706,7 +1866,10 @@ namespace EasyPack.Category
             _entitiesLock?.Dispose();
             _metadataLock?.Dispose();
 
-            foreach (ReaderWriterLockSlim lockObj in _tagLocks.Values) lockObj?.Dispose();
+            foreach (ReaderWriterLockSlim lockObj in _tagLocks.Values)
+            {
+                lockObj?.Dispose();
+            }
         }
 
         #endregion
@@ -1785,7 +1948,10 @@ namespace EasyPack.Category
                     }
 
                     // 添加标签
-                    foreach (string tag in _tags) _manager.AddTag(_entityId, tag);
+                    foreach (string tag in _tags)
+                    {
+                        _manager.AddTag(_entityId, tag);
+                    }
 
                     // 存储元数据
                     if (_metadata != null)

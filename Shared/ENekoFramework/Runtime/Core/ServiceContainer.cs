@@ -151,8 +151,10 @@ namespace EasyPack.ENekoFramework
                 descriptors.Reverse(); // 按逆序释放
 
                 foreach (ServiceDescriptor descriptor in descriptors)
+                {
                     if (descriptor.Instance is IDisposable disposable)
                         disposable.Dispose();
+                }
 
                 _services.Clear();
             }
@@ -332,7 +334,10 @@ namespace EasyPack.ENekoFramework
         {
             var path = new List<string>();
 
-            foreach (Type type in _resolutionStack) path.Add(type.Name);
+            foreach (Type type in _resolutionStack)
+            {
+                path.Add(type.Name);
+            }
 
             path.Reverse(); // 倒序以显示正确的依赖链
             path.Add(circularType.Name); // 添加导致循环的类型
@@ -343,6 +348,9 @@ namespace EasyPack.ENekoFramework
         /// <summary>
         ///     实现 IDisposable 接口
         /// </summary>
-        public void Dispose() { Clear(); }
+        public void Dispose()
+        {
+            Clear();
+        }
     }
 }

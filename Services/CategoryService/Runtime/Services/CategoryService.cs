@@ -44,8 +44,10 @@ namespace EasyPack.Category
         {
             // 释放所有 Manager
             foreach (ICategoryManager manager in _managers.Values)
+            {
                 if (manager is IDisposable disposable)
                     disposable.Dispose();
+            }
 
             _managers.Clear();
             _serializers.Clear();
@@ -126,8 +128,10 @@ namespace EasyPack.Category
             try
             {
                 foreach (ICategoryManager manager in _managers.Values)
+                {
                     if (manager is IDisposable disposable)
                         disposable.Dispose();
+                }
 
                 _managers.Clear();
                 return true;

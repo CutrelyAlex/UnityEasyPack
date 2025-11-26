@@ -107,6 +107,9 @@ namespace EasyPack.BuffSystem
         ///     设置父级 Buff 引用
         /// </summary>
         /// <param name="parentBuff">父级 Buff 实例</param>
-        public void SetParentBuff(Buff parentBuff) { ParentBuff = parentBuff; }
+        public void SetParentBuff(Buff parentBuff)
+        {
+            ParentBuff = parentBuff;
+        }
     }
 }

@@ -75,6 +75,7 @@ namespace EasyPack.ENekoFramework
 
             // 在锁外调用监听器
             foreach (Delegate listener in listeners)
+            {
                 try
                 {
                     if (listener is Action<string, TEventData> typedListener)
@@ -88,6 +89,7 @@ namespace EasyPack.ENekoFramework
                 {
                     Debug.LogError($"[EventBridge] 事件 '{eventName}' 的监听器执行异常: {ex}");
                 }
+            }
         }
 
         /// <summary>

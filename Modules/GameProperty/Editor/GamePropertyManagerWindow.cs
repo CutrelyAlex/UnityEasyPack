@@ -24,7 +24,10 @@ namespace EasyPack.GamePropertySystem.Editor
         private Vector2 _scrollPosition;
         private bool _initialized = false;
 
-        private void OnEnable() { TryResolveManager(); }
+        private void OnEnable()
+        {
+            TryResolveManager();
+        }
 
         [MenuItem("EasyPack/Modules/GameProperty (游戏属性)/Manager Window (管理器窗口)")]
         public static void OpenGamePropertyManagerWindow()
@@ -147,7 +150,9 @@ namespace EasyPack.GamePropertySystem.Editor
                 PropertyMetadata metadata = _manager.GetMetadata(propId);
                 if (metadata?.Tags != null)
                     foreach (string tag in metadata.Tags)
+                    {
                         allTags.Add(tag);
+                    }
             }
 
             tags.AddRange(allTags.OrderBy(t => t));
@@ -181,7 +186,10 @@ namespace EasyPack.GamePropertySystem.Editor
 
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
 
-            foreach (GameProperty property in properties) DrawPropertyItem(property);
+            foreach (GameProperty property in properties)
+            {
+                DrawPropertyItem(property);
+            }
 
             EditorGUILayout.EndScrollView();
         }

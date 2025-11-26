@@ -11,7 +11,10 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
     {
         private readonly List<Food> _foodTemplates = new();
 
-        public FoodGenerator() { InitializeFoodTemplates(); }
+        public FoodGenerator()
+        {
+            InitializeFoodTemplates();
+        }
 
         private void InitializeFoodTemplates()
         {

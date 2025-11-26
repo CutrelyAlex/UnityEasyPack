@@ -15,6 +15,7 @@ namespace EasyPack.Modifiers
             int maxRangePriority = int.MinValue;
 
             foreach (IModifier mod in modifiers)
+            {
                 if (mod is FloatModifier fm && fm.Priority > maxFloatPriority)
                 {
                     maxFloatPriority = fm.Priority;
@@ -25,6 +26,7 @@ namespace EasyPack.Modifiers
                     maxRangePriority = rm.Priority;
                     rangeOverrideMod = rm;
                 }
+            }
 
             if (floatOverrideMod != null && rangeOverrideMod != null)
                 value = floatOverrideMod.Priority >= rangeOverrideMod.Priority

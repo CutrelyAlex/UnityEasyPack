@@ -43,7 +43,10 @@ namespace EasyPack.CustomData
 
         public string Serialize(CustomDataEntry entry) => JsonUtility.ToJson(entry.ColorValue);
 
-        public void Clear(CustomDataEntry entry) { entry.ColorValue = default; }
+        public void Clear(CustomDataEntry entry)
+        {
+            entry.ColorValue = default;
+        }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

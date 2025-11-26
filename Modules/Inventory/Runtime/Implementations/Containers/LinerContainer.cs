@@ -97,7 +97,10 @@ namespace EasyPack.InventorySystem
         {
             if (capacity <= 0) return;
 
-            for (int i = 0; i < capacity; i++) _slots.Add(new Slot { Index = i, Container = this });
+            for (int i = 0; i < capacity; i++)
+            {
+                _slots.Add(new Slot { Index = i, Container = this });
+            }
         }
 
         private bool ValidateSourceSlot(int sourceSlotIndex, out ISlot sourceSlot, out IItem sourceItem,
@@ -237,7 +240,10 @@ namespace EasyPack.InventorySystem
 
         private void ClearAllSlotsInternal()
         {
-            foreach (ISlot slot in _slots) slot.ClearSlot();
+            foreach (ISlot slot in _slots)
+            {
+                slot.ClearSlot();
+            }
         }
 
         private void FillSlotsWithSortedItems(List<(int index, IItem item, int count)> sortedItems)
@@ -280,8 +286,10 @@ namespace EasyPack.InventorySystem
         private void ConsolidateItemGroups(Dictionary<string, List<(int slotIndex, IItem item, int count)>> itemGroups)
         {
             foreach (var itemGroup in itemGroups.Values)
+            {
                 if (itemGroup.Count >= 2)
                     ConsolidateSingleItemGroup(itemGroup);
+            }
         }
 
         private void ConsolidateSingleItemGroup(List<(int slotIndex, IItem item, int count)> itemSlots)
@@ -306,7 +314,10 @@ namespace EasyPack.InventorySystem
 
         private void ClearItemGroupSlots(List<(int slotIndex, IItem item, int count)> itemSlots)
         {
-            foreach ((int slotIndex, IItem _, int _) in itemSlots) _slots[slotIndex].ClearSlot();
+            foreach ((int slotIndex, IItem _, int _) in itemSlots)
+            {
+                _slots[slotIndex].ClearSlot();
+            }
         }
 
         private void RedistributeItemsToSlots(IItem item, int totalCount, List<int> targetSlots)

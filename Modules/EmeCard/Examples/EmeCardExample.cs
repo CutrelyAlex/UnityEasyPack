@@ -380,7 +380,10 @@ namespace EasyPack.EmeCardSystem.Example
                 : "";
             Debug.Log($"{indent}{card.Id}{tags}{props}");
 
-            foreach (Card child in card.Children) DisplayCardRecursive(child, depth + 1);
+            foreach (Card child in card.Children)
+            {
+                DisplayCardRecursive(child, depth + 1);
+            }
         }
     }
 }

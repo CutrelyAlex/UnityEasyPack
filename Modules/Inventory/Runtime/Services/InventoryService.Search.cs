@@ -46,10 +46,12 @@ namespace EasyPack.InventorySystem
                 lock (_lock)
                 {
                     foreach (Container container in _containers.Values)
+                    {
                         if (container.HasItem(itemId)) // 利用缓存快速检查
                         {
                             var slotIndices = container.FindSlotIndices(itemId); // 利用缓存获取槽位索引
                             foreach (int slotIndex in slotIndices)
+                            {
                                 if (slotIndex < container.Slots.Count)
                                 {
                                     ISlot slot = container.Slots[slotIndex];
@@ -57,7 +59,9 @@ namespace EasyPack.InventorySystem
                                         results.Add(new(container.ID, slotIndex, slot.Item,
                                             slot.ItemCount));
                                 }
+                            }
                         }
+                    }
                 }
             }
             catch
@@ -66,12 +70,14 @@ namespace EasyPack.InventorySystem
                 lock (_lock)
                 {
                     foreach (Container container in _containers.Values)
+                    {
                         for (int i = 0; i < container.Slots.Count; i++)
                         {
                             ISlot slot = container.Slots[i];
                             if (slot.IsOccupied && slot.Item?.ID == itemId)
                                 results.Add(new(container.ID, i, slot.Item, slot.ItemCount));
                         }
+                    }
                 }
             }
 
@@ -90,7 +96,10 @@ namespace EasyPack.InventorySystem
             int totalCount = 0;
             lock (_lock)
             {
-                foreach (Container container in _containers.Values) totalCount += container.GetItemTotalCount(itemId);
+                foreach (Container container in _containers.Values)
+                {
+                    totalCount += container.GetItemTotalCount(itemId);
+                }
             }
 
             return totalCount;
@@ -112,11 +121,13 @@ namespace EasyPack.InventorySystem
                 lock (_lock)
                 {
                     foreach (Container container in _containers.Values)
+                    {
                         if (container.HasItem(itemId))
                         {
                             int count = container.GetItemTotalCount(itemId);
                             if (count > 0) results[container.ID] = count;
                         }
+                    }
                 }
             }
             catch (System.Exception ex)
@@ -143,12 +154,14 @@ namespace EasyPack.InventorySystem
                 lock (_lock)
                 {
                     foreach (Container container in _containers.Values)
+                    {
                         for (int i = 0; i < container.Slots.Count; i++)
                         {
                             ISlot slot = container.Slots[i];
                             if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
                                 results.Add(new(container.ID, i, slot.Item, slot.ItemCount));
                         }
+                    }
                 }
             }
             catch (System.Exception ex)
@@ -179,7 +192,9 @@ namespace EasyPack.InventorySystem
                         // 利用容器的类型缓存查询
                         var typeItems = container.GetItemsByType(itemType);
                         foreach ((int slotIndex, IItem item, int count) in typeItems)
+                        {
                             results.Add(new(container.ID, slotIndex, item, count));
+                        }
                     }
                 }
             }
@@ -213,7 +228,9 @@ namespace EasyPack.InventorySystem
                         // 利用容器的名称缓存查询
                         var nameItems = container.GetItemsByName(namePattern);
                         foreach ((int slotIndex, IItem item, int count) in nameItems)
+                        {
                             results.Add(new(container.ID, slotIndex, item, count));
+                        }
                     }
                 }
             }
@@ -247,7 +264,9 @@ namespace EasyPack.InventorySystem
                         // 利用容器的属性缓存查询
                         var attributeItems = container.GetItemsByAttribute(attributeName, attributeValue);
                         foreach ((int slotIndex, IItem item, int count) in attributeItems)
+                        {
                             results.Add(new(container.ID, slotIndex, item, count));
+                        }
                     }
                 }
             }

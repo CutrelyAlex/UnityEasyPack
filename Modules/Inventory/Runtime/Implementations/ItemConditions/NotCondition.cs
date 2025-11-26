@@ -62,6 +62,7 @@ namespace EasyPack.InventorySystem
 
             // 反序列化内部条件
             foreach (CustomDataEntry p in dto.Params)
+            {
                 if (p?.Key == "Inner" && !string.IsNullOrEmpty(p.StringValue))
                     try
                     {
@@ -77,6 +78,7 @@ namespace EasyPack.InventorySystem
                     {
                         Debug.LogError($"[NotCondition] 反序列化内部条件失败: {ex.Message}");
                     }
+            }
 
             return this;
         }

@@ -67,7 +67,10 @@ namespace EasyPack.EmeCardSystem
                 {
                     var limited = new List<Card>(Take.Value);
                     for (int i = 0; i < Take.Value && i < targets.Count; i++)
+                    {
                         limited.Add(targets[i]);
+                    }
+
                     targets = limited;
                 }
             }
@@ -81,8 +84,10 @@ namespace EasyPack.EmeCardSystem
 
             // 添加标签
             for (int i = 0; i < targets.Count; i++)
+            {
                 if (!string.IsNullOrEmpty(Tag))
                     targets[i].AddTag(Tag);
+            }
         }
     }
 }

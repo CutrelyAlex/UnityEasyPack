@@ -61,7 +61,10 @@ namespace EasyPack.CustomData
             // 对于自定义类型，JsonValue已经存储了序列化形式，无需额外序列化
             entry.JsonValue ?? string.Empty;
 
-        public void Clear(CustomDataEntry entry) { ClearOtherValues(entry); }
+        public void Clear(CustomDataEntry entry)
+        {
+            ClearOtherValues(entry);
+        }
 
         private static void ClearOtherValues(CustomDataEntry entry)
         {

@@ -74,7 +74,10 @@ namespace EasyPack.CustomData
 
         public bool Contains(CustomDataEntry item) => _list.Contains(item);
 
-        public void CopyTo(CustomDataEntry[] array, int arrayIndex) { _list.CopyTo(array, arrayIndex); }
+        public void CopyTo(CustomDataEntry[] array, int arrayIndex)
+        {
+            _list.CopyTo(array, arrayIndex);
+        }
 
         public int IndexOf(CustomDataEntry item) => _list.IndexOf(item);
 
@@ -246,7 +249,10 @@ namespace EasyPack.CustomData
         /// <summary>
         ///     标记缓存为脏
         /// </summary>
-        private void MarkDirty() { _cacheDirty = true; }
+        private void MarkDirty()
+        {
+            _cacheDirty = true;
+        }
 
         #endregion
 
@@ -430,7 +436,10 @@ namespace EasyPack.CustomData
             var result = new Dictionary<string, T>();
             if (ids == null) return result;
 
-            foreach (string id in ids) result[id] = GetValue(id, defaultValue);
+            foreach (string id in ids)
+            {
+                result[id] = GetValue(id, defaultValue);
+            }
 
             return result;
         }
@@ -458,13 +467,19 @@ namespace EasyPack.CustomData
         {
             if (values == null) return;
 
-            foreach (var kv in values) SetValue(kv.Key, kv.Value);
+            foreach (var kv in values)
+            {
+                SetValue(kv.Key, kv.Value);
+            }
         }
 
         /// <summary>
         ///     获取所有数据的键
         /// </summary>
-        public IEnumerable<string> GetKeys() { return _list.Select(e => e.Key); }
+        public IEnumerable<string> GetKeys()
+        {
+            return _list.Select(e => e.Key);
+        }
 
         /// <summary>
         ///     获取指定类型的所有数据键
@@ -492,7 +507,10 @@ namespace EasyPack.CustomData
         {
             if (other == null) return;
 
-            foreach (CustomDataEntry entry in other) SetValue(entry.Key, entry.GetValue());
+            foreach (CustomDataEntry entry in other)
+            {
+                SetValue(entry.Key, entry.GetValue());
+            }
         }
 
         /// <summary>
@@ -561,25 +579,46 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>快速设置 int 值</summary>
-        public void SetInt(string id, int value) { SetValue(id, value); }
+        public void SetInt(string id, int value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 float 值</summary>
-        public void SetFloat(string id, float value) { SetValue(id, value); }
+        public void SetFloat(string id, float value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 bool 值</summary>
-        public void SetBool(string id, bool value) { SetValue(id, value); }
+        public void SetBool(string id, bool value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 string 值</summary>
-        public void SetString(string id, string value) { SetValue(id, value); }
+        public void SetString(string id, string value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 Vector2 值</summary>
-        public void SetVector2(string id, Vector2 value) { SetValue(id, value); }
+        public void SetVector2(string id, Vector2 value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 Vector3 值</summary>
-        public void SetVector3(string id, Vector3 value) { SetValue(id, value); }
+        public void SetVector3(string id, Vector3 value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速设置 Color 值</summary>
-        public void SetColor(string id, Color value) { SetValue(id, value); }
+        public void SetColor(string id, Color value)
+        {
+            SetValue(id, value);
+        }
 
         /// <summary>快速获取 int 值</summary>
         public int GetInt(string id, int defaultValue = 0) => GetValue(id, defaultValue);

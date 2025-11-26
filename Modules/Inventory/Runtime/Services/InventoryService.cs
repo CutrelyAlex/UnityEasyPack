@@ -107,7 +107,9 @@ namespace EasyPack.InventorySystem
                 // 清理所有容器
                 foreach (Container container in _containers.Values)
                     // 容器可能有自己的清理逻辑
+                {
                     container?.ClearAllSlots();
+                }
 
                 _containers.Clear();
                 _containersByType.Clear();
@@ -136,7 +138,10 @@ namespace EasyPack.InventorySystem
                 }
 
                 // 清理所有容器
-                foreach (Container container in _containers.Values) container?.ClearAllSlots();
+                foreach (Container container in _containers.Values)
+                {
+                    container?.ClearAllSlots();
+                }
 
                 _containers.Clear();
                 _containersByType.Clear();
@@ -338,8 +343,10 @@ namespace EasyPack.InventorySystem
 
                 var result = new List<Container>();
                 foreach (string containerId in containerIds)
+                {
                     if (_containers.TryGetValue(containerId, out Container container))
                         result.Add(container);
+                }
 
                 return result;
             }
@@ -361,8 +368,10 @@ namespace EasyPack.InventorySystem
 
                 var result = new List<Container>();
                 foreach (var kvp in _containerCategories)
+                {
                     if (kvp.Value == category && _containers.TryGetValue(kvp.Key, out Container container))
                         result.Add(container);
+                }
 
                 return result;
             }
@@ -525,8 +534,10 @@ namespace EasyPack.InventorySystem
                 try
                 {
                     foreach (IItemCondition condition in _globalItemConditions)
+                    {
                         if (!condition.CheckCondition(item))
                             return false;
+                    }
 
                     return true;
                 }
@@ -560,8 +571,10 @@ namespace EasyPack.InventorySystem
                     // 如果全局条件已启用，添加到所有容器
                     if (_enableGlobalConditions)
                         foreach (Container container in _containers.Values)
+                        {
                             if (!container.ContainerCondition.Contains(condition))
                                 container.ContainerCondition.Add(condition);
+                        }
                 }
 
                 OnGlobalConditionAdded?.Invoke(condition);
@@ -588,7 +601,9 @@ namespace EasyPack.InventorySystem
                 if (removed)
                     // 从所有容器中移除此条件
                     foreach (Container container in _containers.Values)
+                    {
                         container.ContainerCondition.Remove(condition);
+                    }
             }
 
             if (removed) OnGlobalConditionRemoved?.Invoke(condition);
@@ -612,10 +627,14 @@ namespace EasyPack.InventorySystem
 
                 if (enable)
                     foreach (Container container in _containers.Values)
+                    {
                         ApplyGlobalConditionsToContainer(container);
+                    }
                 else
                     foreach (Container container in _containers.Values)
+                    {
                         RemoveGlobalConditionsFromContainer(container);
+                    }
             }
         }
 
@@ -642,8 +661,10 @@ namespace EasyPack.InventorySystem
         private void ApplyGlobalConditionsToContainer(Container container)
         {
             foreach (IItemCondition condition in _globalItemConditions)
+            {
                 if (!container.ContainerCondition.Contains(condition))
                     container.ContainerCondition.Add(condition);
+            }
         }
 
         /// <summary>
@@ -652,7 +673,10 @@ namespace EasyPack.InventorySystem
         /// <param name="container">目标容器</param>
         private void RemoveGlobalConditionsFromContainer(Container container)
         {
-            foreach (IItemCondition condition in _globalItemConditions) container.ContainerCondition.Remove(condition);
+            foreach (IItemCondition condition in _globalItemConditions)
+            {
+                container.ContainerCondition.Remove(condition);
+            }
         }
 
         #endregion
@@ -712,7 +736,10 @@ namespace EasyPack.InventorySystem
 
             lock (_lock)
             {
-                foreach (Container container in _containers.Values) container?.RebuildCaches();
+                foreach (Container container in _containers.Values)
+                {
+                    container?.RebuildCaches();
+                }
             }
 
             OnGlobalCacheRefreshed?.Invoke();
@@ -727,7 +754,10 @@ namespace EasyPack.InventorySystem
 
             lock (_lock)
             {
-                foreach (Container container in _containers.Values) container?.ValidateCaches();
+                foreach (Container container in _containers.Values)
+                {
+                    container?.ValidateCaches();
+                }
             }
 
             OnGlobalCacheValidated?.Invoke();

@@ -89,7 +89,10 @@ namespace EasyPack.ENekoFramework.Editor
             rootVisualElement.Add(toolbar);
         }
 
-        private void RefreshGraph() { _graphView?.RefreshGraph(); }
+        private void RefreshGraph()
+        {
+            _graphView?.RefreshGraph();
+        }
     }
 
     /// <summary>
@@ -143,7 +146,9 @@ namespace EasyPack.ENekoFramework.Editor
                                       where serviceNodes.ContainsKey(service.ServiceType) &&
                                             serviceNodes.ContainsKey(depType)
                                       select CreateEdge(serviceNodes[service.ServiceType], serviceNodes[depType]))
+                {
                     AddElement(edge);
+                }
 
                 // 检查循环依赖
                 if (!ServiceInspector.HasCircularDependency(service.ServiceType)) continue;
@@ -201,7 +206,10 @@ namespace EasyPack.ENekoFramework.Editor
             var layers = new List<List<ServiceNode>>();
             var processed = new HashSet<ServiceNode>();
             var nodesByType = new Dictionary<Type, ServiceNode>();
-            foreach (ServiceNode node in serviceNodes) nodesByType[node.ServiceType] = node;
+            foreach (ServiceNode node in serviceNodes)
+            {
+                nodesByType[node.ServiceType] = node;
+            }
 
             // 第一层：没有依赖的节点
             var layer0 = new List<ServiceNode>();
@@ -216,7 +224,10 @@ namespace EasyPack.ENekoFramework.Editor
                 layer0.AddRange(serviceNodes);
 
             layers.Add(layer0);
-            foreach (ServiceNode node in layer0) processed.Add(node);
+            foreach (ServiceNode node in layer0)
+            {
+                processed.Add(node);
+            }
 
             // 后续层
             const int maxIterations = 100;
@@ -254,13 +265,18 @@ namespace EasyPack.ENekoFramework.Editor
                 if (nextLayer.Count == 0)
                     // 剩余的节点可能涉及循环依赖，全部放入下一层
                     foreach (ServiceNode node in serviceNodes)
+                    {
                         if (!processed.Contains(node))
                             nextLayer.Add(node);
+                    }
 
                 if (nextLayer.Count <= 0)
                 {
                     layers.Add(nextLayer);
-                    foreach (ServiceNode node in nextLayer) processed.Add(node);
+                    foreach (ServiceNode node in nextLayer)
+                    {
+                        processed.Add(node);
+                    }
                 }
             }
 

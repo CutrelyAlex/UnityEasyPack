@@ -101,11 +101,13 @@ namespace EasyPack.ENekoFramework
             lock (_lock)
             {
                 for (int i = _listeners.Count - 1; i >= 0; i--)
+                {
                     if (!_listeners[i].IsAlive || _listeners[i].Target == listener)
                     {
                         _listeners.RemoveAt(i);
                         _callbacks.RemoveAt(i);
                     }
+                }
             }
         }
 
@@ -147,7 +149,10 @@ namespace EasyPack.ENekoFramework
         ///     适用于初始化场景。
         /// </summary>
         /// <param name="value">新值</param>
-        public void SetValueWithoutNotify(T value) { _value = value; }
+        public void SetValueWithoutNotify(T value)
+        {
+            _value = value;
+        }
 
         private void NotifyListeners()
         {

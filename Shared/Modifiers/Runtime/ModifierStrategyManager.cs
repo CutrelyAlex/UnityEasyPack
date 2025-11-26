@@ -24,7 +24,10 @@ namespace EasyPack.Modifiers
             RegisterStrategy(new OverrideModifierStrategy());
         }
 
-        public static void RegisterStrategy(IModifierStrategy strategy) { _strategies[strategy.Type] = strategy; }
+        public static void RegisterStrategy(IModifierStrategy strategy)
+        {
+            _strategies[strategy.Type] = strategy;
+        }
 
         public static IModifierStrategy GetStrategy(ModifierType type)
         {

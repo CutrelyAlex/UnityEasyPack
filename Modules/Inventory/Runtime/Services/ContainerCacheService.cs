@@ -130,11 +130,13 @@ namespace EasyPack.InventorySystem
         {
             if (_itemSlotIndexCache.TryGetValue(itemId, out var indices) && indices.Count > 0)
                 foreach (int index in indices)
+                {
                     if (index < slots.Count)
                     {
                         ISlot slot = slots[index];
                         if (slot.IsOccupied && slot.Item?.ID == itemId) return slot.Item;
                     }
+                }
 
             return null;
         }
@@ -188,9 +190,11 @@ namespace EasyPack.InventorySystem
             {
                 var validIndices = new HashSet<int>();
                 foreach (int index in kvp.Value)
+                {
                     if (index < slots.Count && slots[index].IsOccupied &&
                         slots[index].Item != null && slots[index].Item.ID == kvp.Key)
                         validIndices.Add(index);
+                }
 
                 if (validIndices.Count == 0)
                     itemsToRemove.Add(kvp.Key);
@@ -198,15 +202,23 @@ namespace EasyPack.InventorySystem
                     _itemSlotIndexCache[kvp.Key] = validIndices;
             }
 
-            foreach (string itemId in itemsToRemove) _itemSlotIndexCache.Remove(itemId);
+            foreach (string itemId in itemsToRemove)
+            {
+                _itemSlotIndexCache.Remove(itemId);
+            }
 
             // 验证空槽位缓存
             var emptyToRemove = new List<int>();
             foreach (int index in _emptySlotIndices)
+            {
                 if (index >= slots.Count || slots[index].IsOccupied)
                     emptyToRemove.Add(index);
+            }
 
-            foreach (int index in emptyToRemove) _emptySlotIndices.Remove(index);
+            foreach (int index in emptyToRemove)
+            {
+                _emptySlotIndices.Remove(index);
+            }
         }
 
         public void ClearAllCaches()

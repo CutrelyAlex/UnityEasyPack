@@ -52,11 +52,13 @@ namespace EasyPack.InventorySystem
         {
             if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices) && indices.Count > 0)
                 foreach (int index in indices)
+                {
                     if (index < _slots.Count)
                     {
                         ISlot slot = _slots[index];
                         if (slot.IsOccupied && slot.Item?.ID == itemId) return slot.Item;
                     }
+                }
 
             return null;
         }
@@ -72,12 +74,14 @@ namespace EasyPack.InventorySystem
                 int totalCount = 0;
 
                 foreach (int index in indices)
+                {
                     if (index < _slots.Count)
                     {
                         ISlot slot = _slots[index];
                         if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
                             totalCount += slot.ItemCount;
                     }
+                }
 
                 // 更新缓存
                 if (totalCount > 0)
@@ -121,6 +125,7 @@ namespace EasyPack.InventorySystem
                 bool needsUpdate = false;
 
                 foreach (int idx in indices)
+                {
                     if (idx < _slots.Count)
                     {
                         ISlot slot = _slots[idx];
@@ -133,13 +138,16 @@ namespace EasyPack.InventorySystem
                     {
                         needsUpdate = true;
                     }
+                }
 
                 // 如果需要更新缓存
                 if (needsUpdate)
                     foreach (int idx in indices)
+                    {
                         if (idx >= _slots.Count || !_slots[idx].IsOccupied ||
                             _slots[idx].Item == null || _slots[idx].Item.ID != itemId)
                             _cacheManager.UpdateItemSlotIndexCache(itemId, idx, false);
+                    }
 
                 return validIndices;
             }
@@ -200,12 +208,14 @@ namespace EasyPack.InventorySystem
             if (_cacheManager.TryGetItemTypeIndices(itemType, out var indices))
             {
                 foreach (int index in indices)
+                {
                     if (index < _slots.Count)
                     {
                         ISlot slot = _slots[index];
                         if (slot.IsOccupied && slot.Item != null && slot.Item.Type == itemType)
                             result.Add((index, slot.Item, slot.ItemCount));
                     }
+                }
 
                 return result;
             }
@@ -340,12 +350,14 @@ namespace EasyPack.InventorySystem
                 // 验证缓存是否完整
                 bool cacheComplete = true;
                 foreach (ISlot slot in _slots)
+                {
                     if (slot.IsOccupied && slot.Item != null)
                         if (!result.ContainsKey(slot.Item.ID))
                         {
                             cacheComplete = false;
                             break;
                         }
+                }
 
                 if (cacheComplete)
                     return result;
@@ -353,6 +365,7 @@ namespace EasyPack.InventorySystem
 
             var counts = new Dictionary<string, int>();
             foreach (ISlot slot in _slots)
+            {
                 if (slot.IsOccupied && slot.Item != null)
                 {
                     string itemId = slot.Item.ID;
@@ -360,6 +373,7 @@ namespace EasyPack.InventorySystem
 
                     if (!counts.TryAdd(itemId, count)) counts[itemId] += count;
                 }
+            }
 
             return counts;
         }
@@ -386,8 +400,10 @@ namespace EasyPack.InventorySystem
             float totalWeight = 0;
 
             foreach (ISlot slot in _slots)
+            {
                 if (slot.IsOccupied && slot.Item != null)
                     totalWeight += slot.Item.Weight * slot.ItemCount;
+            }
 
             return totalWeight;
         }

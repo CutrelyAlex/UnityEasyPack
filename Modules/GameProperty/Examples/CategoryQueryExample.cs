@@ -43,7 +43,10 @@ namespace EasyPack.GamePropertySystem.Example
                 "armor_wild", "magicResist_wild",
             };
 
-            foreach (string id in exampleIds) _manager.Unregister(id);
+            foreach (string id in exampleIds)
+            {
+                _manager.Unregister(id);
+            }
         }
 
         /// <summary>
@@ -244,6 +247,9 @@ namespace EasyPack.GamePropertySystem.Example
             return Task.CompletedTask;
         }
 
-        private void OnDestroy() { _manager?.Dispose(); }
+        private void OnDestroy()
+        {
+            _manager?.Dispose();
+        }
     }
 }

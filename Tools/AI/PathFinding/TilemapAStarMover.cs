@@ -8,15 +8,9 @@ using Random = UnityEngine.Random;
 
 namespace EasyPack.Tools.PathFinding
 {
-    [Serializable]
-    public class PathfindingEvent : UnityEvent<List<Vector3Int>>
-    {
-    }
+    [Serializable] public class PathfindingEvent : UnityEvent<List<Vector3Int>> { }
 
-    [Serializable]
-    public class MovementEvent : UnityEvent<Vector3>
-    {
-    }
+    [Serializable] public class MovementEvent : UnityEvent<Vector3> { }
 
     public sealed class TilemapAStarMover : MonoBehaviour
     {
@@ -274,8 +268,10 @@ namespace EasyPack.Tools.PathFinding
                 if (grid == null) continue;
                 var tilemaps = grid.GetComponentsInChildren<Tilemap>();
                 foreach (Tilemap tm in tilemaps)
+                {
                     if (tm != null && !allTilemaps.Contains(tm))
                         allTilemaps.Add(tm);
+                }
             }
         }
 
@@ -417,9 +413,15 @@ namespace EasyPack.Tools.PathFinding
                 dynamicObstacles.Add(obstacle);
         }
 
-        public void RemoveDynamicObstacle(Transform obstacle) { dynamicObstacles.Remove(obstacle); }
+        public void RemoveDynamicObstacle(Transform obstacle)
+        {
+            dynamicObstacles.Remove(obstacle);
+        }
 
-        public void SetTileCost(TileBase tile, float cost) { TileCostMap[tile] = cost; }
+        public void SetTileCost(TileBase tile, float cost)
+        {
+            TileCostMap[tile] = cost;
+        }
 
         public PathfindingStats GetLastPathfindingStats() => _lastStats;
 
@@ -702,9 +704,11 @@ namespace EasyPack.Tools.PathFinding
             {
                 int farthest = currentIndex + 1;
                 for (int i = currentIndex + 2; i < path.Count; i++)
+                {
                     if (HasLineOfSight(path[currentIndex], path[i]))
                         farthest = i;
                     else break;
+                }
 
                 smoothed.Add(path[farthest]);
                 currentIndex = farthest;
@@ -749,8 +753,10 @@ namespace EasyPack.Tools.PathFinding
         {
             var pts = GetPointsOnLine(start, end);
             foreach (Vector3Int p in pts)
+            {
                 if (!IsPositionValid(p) || HasDynamicObstacle(p))
                     return false;
+            }
 
             return true;
         }
@@ -846,8 +852,11 @@ namespace EasyPack.Tools.PathFinding
             if (lengthDiff > 0.3f) return true;
             int check = Mathf.Min(3, Mathf.Min(_currentPath.Count, newPath.Count));
             for (int i = 0; i < check; i++)
+            {
                 if (_currentPath[i] != newPath[i])
                     return true;
+            }
+
             return false;
         }
 
@@ -1019,23 +1028,44 @@ namespace EasyPack.Tools.PathFinding
             return worldPos;
         }
 
-        public void SetTargetObject(GameObject target) { targetObject = target; }
+        public void SetTargetObject(GameObject target)
+        {
+            targetObject = target;
+        }
 
-        public void SetPathfindingObject(GameObject pathfinder) { pathfindingObject = pathfinder; }
+        public void SetPathfindingObject(GameObject pathfinder)
+        {
+            pathfindingObject = pathfinder;
+        }
 
         public bool IsMoving => _moveCoroutine != null;
 
         public int GetWalkableTileCount() => _unifiedMap?.walkableTiles.Count ?? 0;
 
-        public void SetJitterEnabled(bool enabled) { enableMovementJitter = enabled; }
+        public void SetJitterEnabled(bool enabled)
+        {
+            enableMovementJitter = enabled;
+        }
 
-        public void SetJitterStrength(float strength) { jitterStrength = Mathf.Clamp01(strength); }
+        public void SetJitterStrength(float strength)
+        {
+            jitterStrength = Mathf.Clamp01(strength);
+        }
 
-        public void SetJitterFrequency(float frequency) { jitterFrequency = Mathf.Max(0.1f, frequency); }
+        public void SetJitterFrequency(float frequency)
+        {
+            jitterFrequency = Mathf.Max(0.1f, frequency);
+        }
 
-        public void SetSmoothPathTransition(bool enabled) { enableSmoothPathTransition = enabled; }
+        public void SetSmoothPathTransition(bool enabled)
+        {
+            enableSmoothPathTransition = enabled;
+        }
 
-        public void SetMaxBacktrackDistance(float distance) { maxBacktrackDistance = Mathf.Max(0.1f, distance); }
+        public void SetMaxBacktrackDistance(float distance)
+        {
+            maxBacktrackDistance = Mathf.Max(0.1f, distance);
+        }
 
         private void OnDrawGizmos()
         {
@@ -1044,7 +1074,9 @@ namespace EasyPack.Tools.PathFinding
             {
                 Gizmos.color = walkableAreaColor;
                 foreach (Vector3Int tile in _unifiedMap.walkableTiles.Keys)
+                {
                     Gizmos.DrawWireCube(GetWorldPosition(tile), Vector3.one * 0.3f);
+                }
             }
 
             if (showDebugPath && _currentPath is { Count: > 0 })
@@ -1067,8 +1099,10 @@ namespace EasyPack.Tools.PathFinding
             {
                 Gizmos.color = obstacleColor;
                 foreach (Transform o in dynamicObstacles)
+                {
                     if (o != null)
                         Gizmos.DrawWireSphere(o.position, obstacleCheckRadius);
+                }
             }
 
             if (pathfindingObject != null)
@@ -1126,7 +1160,10 @@ namespace EasyPack.Tools.PathFinding
                 return root;
             }
 
-            public void Update(PathNode node) { HeapifyUp(node.heapIndex); }
+            public void Update(PathNode node)
+            {
+                HeapifyUp(node.heapIndex);
+            }
 
             private void HeapifyUp(int i)
             {

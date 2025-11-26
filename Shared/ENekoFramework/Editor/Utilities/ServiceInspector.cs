@@ -127,23 +127,29 @@ namespace EasyPack.ENekoFramework.Editor
                 {
                     var parameters = ctor.GetParameters();
                     foreach (ParameterInfo param in parameters)
+                    {
                         if (typeof(IService).IsAssignableFrom(param.ParameterType))
                             dependencies.Add(param.ParameterType);
+                    }
                 }
 
                 var fields = serviceType.GetFields(
                     BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 
                 foreach (FieldInfo field in fields)
+                {
                     if (typeof(IService).IsAssignableFrom(field.FieldType))
                         dependencies.Add(field.FieldType);
+                }
 
                 var properties = serviceType.GetProperties(
                     BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 
                 foreach (PropertyInfo prop in properties)
+                {
                     if (typeof(IService).IsAssignableFrom(prop.PropertyType))
                         dependencies.Add(prop.PropertyType);
+                }
             }
             catch (Exception ex)
             {
@@ -164,8 +170,10 @@ namespace EasyPack.ENekoFramework.Editor
 
             var dependencies = GetServiceDependencies(serviceType);
             foreach (Type dependency in dependencies)
+            {
                 if (HasCircularDependency(dependency, new(visited)))
                     return true;
+            }
 
             return false;
         }

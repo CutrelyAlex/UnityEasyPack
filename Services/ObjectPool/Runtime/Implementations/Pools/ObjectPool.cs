@@ -76,6 +76,9 @@ namespace EasyPack.ObjectPool
         /// <summary>
         ///     清空池中的所有对象。
         /// </summary>
-        public void Clear() { _pool.Clear(); }
+        public void Clear()
+        {
+            _pool.Clear();
+        }
     }
 }

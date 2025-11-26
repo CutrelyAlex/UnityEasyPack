@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
@@ -27,6 +28,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     卡牌类别（物品/动作/环境等），用于规则匹配或统计
         /// </summary>
+        [Obsolete("使用 CategoryManager 进行分类管理。此属性将在未来版本移除。")]
         public CardCategory Category { get; }
 
         /// <summary>

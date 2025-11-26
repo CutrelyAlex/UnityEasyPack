@@ -51,8 +51,10 @@ namespace EasyPack.InventorySystem
         {
             if (conditions != null)
                 foreach (IItemCondition c in conditions)
+                {
                     if (c != null)
                         Children.Add(c);
+                }
 
             return this;
         }
@@ -67,6 +69,7 @@ namespace EasyPack.InventorySystem
             // 序列化子条件
             int childIndex = 0;
             foreach (IItemCondition child in Children)
+            {
                 if (child is ISerializableCondition serializableChild)
                 {
                     SerializedCondition childDto = serializableChild.ToDto();
@@ -78,6 +81,7 @@ namespace EasyPack.InventorySystem
                         childIndex++;
                     }
                 }
+            }
 
             // 存储子条件数量
             var countEntry = new CustomDataEntry { Key = "ChildCount" };
@@ -98,17 +102,20 @@ namespace EasyPack.InventorySystem
             // 获取子条件数量
             int childCount = 0;
             foreach (CustomDataEntry p in dto.Params)
+            {
                 if (p?.Key == "ChildCount")
                 {
                     childCount = p.IntValue;
                     break;
                 }
+            }
 
             // 反序列化每个子条件
             for (int i = 0; i < childCount; i++)
             {
                 string childId = $"Child_{i}";
                 foreach (CustomDataEntry p in dto.Params)
+                {
                     if (p?.Key == childId)
                     {
                         string childJsonStr = p.StringValue ?? p.GetValue() as string;
@@ -126,6 +133,7 @@ namespace EasyPack.InventorySystem
 
                         break;
                     }
+                }
             }
 
             return this;

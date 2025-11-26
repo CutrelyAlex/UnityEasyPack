@@ -46,7 +46,10 @@ namespace EasyPack.GamePropertySystem.Example
                 "crit_adv",
             };
 
-            foreach (string id in exampleIds) _manager.Unregister(id);
+            foreach (string id in exampleIds)
+            {
+                _manager.Unregister(id);
+            }
         }
 
         /// <summary>
@@ -72,7 +75,10 @@ namespace EasyPack.GamePropertySystem.Example
 
             // 4. 按分类查询
             var vitalProps = _manager.GetByCategory("Character.Vital");
-            foreach (GameProperty prop in vitalProps) Debug.Log($"重要属性: {prop.ID} = {prop.GetValue()}");
+            foreach (GameProperty prop in vitalProps)
+            {
+                Debug.Log($"重要属性: {prop.ID} = {prop.GetValue()}");
+            }
 
             return Task.CompletedTask;
         }
@@ -149,7 +155,9 @@ namespace EasyPack.GamePropertySystem.Example
             {
                 Debug.LogWarning($"部分成功: {result.SuccessCount}/{result.SuccessCount + result.Failures.Count}");
                 foreach (FailureRecord failure in result.Failures)
+                {
                     Debug.LogError($"失败: {failure.ItemId} - {failure.ErrorMessage}");
+                }
             }
 
             return Task.CompletedTask;
@@ -180,7 +188,10 @@ namespace EasyPack.GamePropertySystem.Example
 
             // 组合查询: Vital分类 + UI标签
             var vitalUIProps = _manager.GetByCategoryAndTag("Character.Vital", "ui");
-            foreach (GameProperty prop in vitalUIProps) Debug.Log($"Vital UI属性: {prop.ID}");
+            foreach (GameProperty prop in vitalUIProps)
+            {
+                Debug.Log($"Vital UI属性: {prop.ID}");
+            }
 
             // 获取所有分类
             var categories = _manager.GetAllCategories();
@@ -220,6 +231,9 @@ namespace EasyPack.GamePropertySystem.Example
             Debug.Log($"提升力量后伤害: {finalDamage.GetValue()}"); // 50 + 20*2 = 90
         }
 
-        private void OnDestroy() { _manager?.Dispose(); }
+        private void OnDestroy()
+        {
+            _manager?.Dispose();
+        }
     }
 }

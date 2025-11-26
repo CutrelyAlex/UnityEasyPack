@@ -100,6 +100,7 @@ namespace EasyPack.ENekoFramework
 
             // 批处理刷新所有脏绑定
             foreach (IBindable bindable in _dirtyBindings)
+            {
                 try
                 {
                     bindable?.FlushUpdates();
@@ -108,6 +109,7 @@ namespace EasyPack.ENekoFramework
                 {
                     Debug.LogWarning($"[BindingBatchUpdater] Exception during FlushUpdates: {ex}");
                 }
+            }
 
             _dirtyBindings.Clear();
             _isUpdateScheduled = false;
