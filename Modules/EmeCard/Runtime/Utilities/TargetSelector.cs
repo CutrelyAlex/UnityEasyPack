@@ -1,50 +1,109 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using EasyPack.Category;
 
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
-    ///     目标选择器：根据 TargetScope、FilterMode 等参数从上下文中选择卡牌。
+    ///     线程安全目标选择器：根据 TargetScope、FilterMode 等参数从上下文中选择卡牌。
     /// </summary>
     public static class TargetSelector
     {
         // Tag → 拥有该Tag的所有卡牌集合
-        private static readonly Dictionary<string, HashSet<Card>> _tagCardCache = new();
+        private static readonly ConcurrentDictionary<string, HashSet<Card>> _tagCardCache = new();
+
+        // 缓存更新锁
+        private static readonly ReaderWriterLockSlim _cacheLock = new(LockRecursionPolicy.SupportsRecursion);
 
         // 标记缓存是否已初始化
-        private static bool _isCacheInitialized = false;
+        private static volatile bool _isCacheInitialized = false;
+
+        // CategoryManager 引用
+        private static ICategoryManager<Card> _categoryManager;
 
         /// <summary>
-        ///     初始化Tag→Card缓存。应
-        ///     在系统初始化完成后调用一次。
+        ///     设置 CategoryManager 引用。
+        /// </summary>
+        public static void SetCategoryManager(ICategoryManager<Card> categoryManager)
+        {
+            _categoryManager = categoryManager;
+        }
+
+        /// <summary>
+        ///     初始化Tag→Card缓存。
+        ///     应在系统初始化完成后调用一次。
         /// </summary>
         /// <param name="allCards">系统中所有已注册的卡牌</param>
-        public static void InitializeTagCache(IEnumerable<Card> allCards)
+        /// <param name="categoryManager">可选的 CategoryManager 引用</param>
+        public static void InitializeTagCache(IEnumerable<Card> allCards, ICategoryManager<Card> categoryManager = null)
         {
-            _tagCardCache.Clear();
+            if (categoryManager != null)
+                _categoryManager = categoryManager;
 
-            if (allCards == null) return;
-
-            foreach (Card card in allCards)
+            _cacheLock.EnterWriteLock();
+            try
             {
-                if (card == null || card.Tags == null) continue;
+                _tagCardCache.Clear();
 
-                foreach (string tag in card.Tags)
+                if (allCards == null)
                 {
-                    if (string.IsNullOrEmpty(tag)) continue;
-
-                    if (!_tagCardCache.TryGetValue(tag, out var cardSet))
-                    {
-                        cardSet = new();
-                        _tagCardCache[tag] = cardSet;
-                    }
-
-                    cardSet.Add(card);
+                    _isCacheInitialized = true;
+                    return;
                 }
+
+                foreach (Card card in allCards)
+                {
+                    if (card == null) continue;
+
+                    // 优先使用 CategoryManager，回退到 Card.Tags
+                    IEnumerable<string> tags = GetCardTags(card);
+                    if (tags == null) continue;
+
+                    foreach (string tag in tags)
+                    {
+                        if (string.IsNullOrEmpty(tag)) continue;
+                        AddCardToTagCache(card, tag);
+                    }
+                }
+
+                _isCacheInitialized = true;
+            }
+            finally
+            {
+                _cacheLock.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
+        ///     获取卡牌的标签。
+        /// </summary>
+        private static IEnumerable<string> GetCardTags(Card card)
+        {
+            if (card == null) return null;
+
+            // 优先使用 CategoryManager
+            if (_categoryManager != null)
+            {
+                return _categoryManager.GetTags(card);
             }
 
-            _isCacheInitialized = true;
+            // 回退到 Card.Tags
+            return card.Tags;
+        }
+
+        /// <summary>
+        ///     向缓存添加卡牌-标签关系（内部方法，需在写锁内调用）。
+        /// </summary>
+        private static void AddCardToTagCache(Card card, string tag)
+        {
+            var cardSet = _tagCardCache.GetOrAdd(tag, _ => new HashSet<Card>());
+            lock (cardSet)
+            {
+                cardSet.Add(card);
+            }
         }
 
         /// <summary>
@@ -52,8 +111,16 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public static void ClearTagCache()
         {
-            _tagCardCache.Clear();
-            _isCacheInitialized = false;
+            _cacheLock.EnterWriteLock();
+            try
+            {
+                _tagCardCache.Clear();
+                _isCacheInitialized = false;
+            }
+            finally
+            {
+                _cacheLock.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -64,13 +131,11 @@ namespace EasyPack.EmeCardSystem
             if (!_isCacheInitialized || card == null || string.IsNullOrEmpty(tag))
                 return;
 
-            if (!_tagCardCache.TryGetValue(tag, out var cardSet))
+            var cardSet = _tagCardCache.GetOrAdd(tag, _ => new HashSet<Card>());
+            lock (cardSet)
             {
-                cardSet = new();
-                _tagCardCache[tag] = cardSet;
+                cardSet.Add(card);
             }
-
-            cardSet.Add(card);
         }
 
         /// <summary>
@@ -83,13 +148,21 @@ namespace EasyPack.EmeCardSystem
 
             if (_tagCardCache.TryGetValue(tag, out var cardSet))
             {
-                cardSet.Remove(card);
-                if (cardSet.Count == 0) _tagCardCache.Remove(tag);
+                lock (cardSet)
+                {
+                    cardSet.Remove(card);
+                }
+
+                // 如果集合为空，尝试移除
+                if (cardSet.Count == 0)
+                {
+                    _tagCardCache.TryRemove(tag, out _);
+                }
             }
         }
 
         /// <summary>
-        ///     获取拥有指定Tag的所有卡牌（来自缓存）
+        ///     获取拥有指定Tag的所有卡牌
         /// </summary>
         private static HashSet<Card> GetCardsByTagFromCache(string tag)
         {
@@ -119,7 +192,7 @@ namespace EasyPack.EmeCardSystem
             if (ctx == null || ctx.MatchRoot == null)
                 return Array.Empty<Card>();
 
-            return Select(scope, filter, ctx.MatchRoot, filterValue, maxDepth ?? ctx.MaxDepth);
+            return Select(scope, filter, ctx.MatchRoot, filterValue, maxDepth ?? ctx.MaxDepth, ctx.Engine?.CategoryManager);
         }
 
         /// <summary>
@@ -130,7 +203,8 @@ namespace EasyPack.EmeCardSystem
             CardFilterMode filter,
             Card root,
             string filterValue = null,
-            int maxDepth = int.MaxValue)
+            int maxDepth = int.MaxValue,
+            ICategoryManager<Card> categoryManager = null)
         {
             if (root == null)
                 return Array.Empty<Card>();
@@ -144,7 +218,8 @@ namespace EasyPack.EmeCardSystem
             switch (scope)
             {
                 case TargetScope.Children:
-                    candidates = new(root.Children);
+                    // 创建副本以避免并发修改
+                    candidates = new List<Card>(root.Children);
                     break;
 
                 case TargetScope.Descendants:
@@ -160,7 +235,7 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 第二步：根据 FilterMode 过滤
-            return ApplyFilter(candidates, filter, filterValue);
+            return ApplyFilter(candidates, filter, filterValue, categoryManager);
         }
 
         /// <summary>
@@ -178,27 +253,19 @@ namespace EasyPack.EmeCardSystem
             if (selection.Scope == TargetScope.Matched)
                 return Array.Empty<Card>();
 
-            // 确定根容器
-            Card root = selection.Root == SelectionRoot.Source ? ctx.Source : ctx.MatchRoot;
+            // 确定根容器：效果使用 EffectRoot
+            Card root = selection.Root == SelectionRoot.Source ? ctx.Source : ctx.EffectRoot;
             if (root == null)
                 return Array.Empty<Card>();
-
-            // 构建局部上下文
-            var localCtx = new CardRuleContext(
-                ctx.Source,
-                root,
-                ctx.Event,
-                ctx.Factory,
-                selection.MaxDepth ?? ctx.MaxDepth
-            );
 
             // 选择目标
             var targets = Select(
                 selection.Scope,
                 selection.Filter,
-                localCtx,
+                root,
                 selection.FilterValue,
-                selection.MaxDepth
+                selection.MaxDepth ?? ctx.MaxDepth,
+                ctx.Engine?.CategoryManager
             );
 
             // 应用 Take 限制
@@ -216,14 +283,18 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     对已有的卡牌列表应用过滤条件。
+        ///     对已有的卡牌列表应用过滤条件（线程安全）。
         /// </summary>
         /// <param name="cards">要过滤的卡牌列表</param>
         /// <param name="filter">过滤模式</param>
         /// <param name="filterValue">过滤值</param>
+        /// <param name="categoryManager">可选的 CategoryManager（用于标签和分类查询）</param>
         /// <returns>过滤后的卡牌列表</returns>
-        public static IReadOnlyList<Card> ApplyFilter(IReadOnlyList<Card> cards, CardFilterMode filter,
-                                                      string filterValue)
+        public static IReadOnlyList<Card> ApplyFilter(
+            IReadOnlyList<Card> cards,
+            CardFilterMode filter,
+            string filterValue,
+            ICategoryManager<Card> categoryManager = null)
         {
             if (cards == null || cards.Count == 0)
                 return Array.Empty<Card>();
@@ -234,64 +305,130 @@ namespace EasyPack.EmeCardSystem
                     return cards;
 
                 case CardFilterMode.ByTag:
-                    if (string.IsNullOrEmpty(filterValue))
-                        return Array.Empty<Card>();
-
-                    // 尝试使用缓存
-                    var cachedCardSet = GetCardsByTagFromCache(filterValue);
-                    if (cachedCardSet is { Count: > 0 })
-                    {
-                        // 使用缓存：取缓存中与候选集的交集
-                        var tagResults = new List<Card>(Math.Min(cards.Count, cachedCardSet.Count));
-                        for (int i = 0; i < cards.Count; i++)
-                        {
-                            if (cachedCardSet.Contains(cards[i]))
-                                tagResults.Add(cards[i]);
-                        }
-
-                        return tagResults;
-                    }
-
-                    // 回退：缓存未初始化，使用原有逻辑
-                    var tagResultsFallback = new List<Card>(cards.Count / 2);
-                    for (int i = 0; i < cards.Count; i++)
-                    {
-                        if (cards[i].HasTag(filterValue))
-                            tagResultsFallback.Add(cards[i]);
-                    }
-
-                    return tagResultsFallback;
+                    return FilterByTag(cards, filterValue, categoryManager);
 
                 case CardFilterMode.ById:
-                    if (string.IsNullOrEmpty(filterValue))
-                        return Array.Empty<Card>();
-                    var idResults = new List<Card>(cards.Count / 4);
-                    for (int i = 0; i < cards.Count; i++)
-                    {
-                        if (string.Equals(cards[i].Id, filterValue, StringComparison.Ordinal))
-                            idResults.Add(cards[i]);
-                    }
-
-                    return idResults;
+                    return FilterById(cards, filterValue);
 
                 case CardFilterMode.ByCategory:
-                    if (TryParseCategory(filterValue, out CardCategory cat))
-                    {
-                        var catResults = new List<Card>(cards.Count / 2);
-                        for (int i = 0; i < cards.Count; i++)
-                        {
-                            if (cards[i].Category == cat)
-                                catResults.Add(cards[i]);
-                        }
-
-                        return catResults;
-                    }
-
-                    return Array.Empty<Card>();
+                    return FilterByCategory(cards, filterValue, categoryManager);
 
                 default:
                     return Array.Empty<Card>();
             }
+        }
+
+        /// <summary>
+        ///     按标签过滤（线程安全）。
+        /// </summary>
+        private static IReadOnlyList<Card> FilterByTag(
+            IReadOnlyList<Card> cards,
+            string tag,
+            ICategoryManager<Card> categoryManager)
+        {
+            if (string.IsNullOrEmpty(tag))
+                return Array.Empty<Card>();
+
+            // 优先使用 CategoryManager
+            if (categoryManager != null)
+            {
+                var results = new List<Card>(cards.Count / 2);
+                foreach (var card in cards)
+                {
+                    if (categoryManager.HasTag(card, tag))
+                        results.Add(card);
+                }
+                return results;
+            }
+
+            // 尝试使用缓存
+            var cachedCardSet = GetCardsByTagFromCache(tag);
+            if (cachedCardSet is { Count: > 0 })
+            {
+                // 使用缓存：取缓存中与候选集的交集
+                var tagResults = new List<Card>(Math.Min(cards.Count, cachedCardSet.Count));
+                lock (cachedCardSet)
+                {
+                    foreach (var card in cards)
+                    {
+                        if (cachedCardSet.Contains(card))
+                            tagResults.Add(card);
+                    }
+                }
+                return tagResults;
+            }
+
+            // 回退：缓存未初始化，使用 Card.HasTag
+            var fallbackResults = new List<Card>(cards.Count / 2);
+            foreach (var card in cards)
+            {
+                if (card.HasTag(tag))
+                    fallbackResults.Add(card);
+            }
+            return fallbackResults;
+        }
+
+        /// <summary>
+        ///     按 ID 过滤。
+        /// </summary>
+        private static IReadOnlyList<Card> FilterById(IReadOnlyList<Card> cards, string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return Array.Empty<Card>();
+
+            var results = new List<Card>(cards.Count / 4);
+            foreach (var card in cards)
+            {
+                if (string.Equals(card.Id, id, StringComparison.Ordinal))
+                    results.Add(card);
+            }
+            return results;
+        }
+
+        /// <summary>
+        ///     按分类过滤。
+        /// </summary>
+        private static IReadOnlyList<Card> FilterByCategory(
+            IReadOnlyList<Card> cards,
+            string categoryStr,
+            ICategoryManager<Card> categoryManager)
+        {
+            // 使用 CategoryManager 的层级分类
+            if (categoryManager != null && !string.IsNullOrEmpty(categoryStr))
+            {
+                var results = new List<Card>(cards.Count / 2);
+                foreach (var card in cards)
+                {
+                    // 检查是否属于该分类
+                    var cardCategories = categoryManager.GetCategories(card);
+                    if (cardCategories != null)
+                    {
+                        foreach (var cat in cardCategories)
+                        {
+                            if (cat != null && cat.StartsWith(categoryStr, StringComparison.Ordinal))
+                            {
+                                results.Add(card);
+                                break;
+                            }
+                        }
+                    }
+                }
+                return results;
+            }
+
+            // 回退：使用 Card.Category 枚举
+            if (TryParseCategory(categoryStr, out CardCategory cat))
+            {
+                var catResults = new List<Card>(cards.Count / 2);
+                foreach (var card in cards)
+                {
+                    if (card.Category == cat)
+                        catResults.Add(card);
+                }
+                return catResults;
+            }
+
+            return Array.Empty<Card>();
         }
     }
 }
