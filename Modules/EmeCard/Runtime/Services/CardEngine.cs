@@ -956,9 +956,9 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 优先使用新的 DefaultCategory，如果为空则回退到 DEFAULT_CATEGORY
-            return string.IsNullOrEmpty(card.Data.DefaultCategory) 
+            return string.IsNullOrEmpty(card.Data.Category) 
                 ? CardData.DEFAULT_CATEGORY 
-                : card.Data.DefaultCategory;
+                : card.Data.Category;
         }
 
         #endregion

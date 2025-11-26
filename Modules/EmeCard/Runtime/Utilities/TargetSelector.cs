@@ -412,7 +412,7 @@ namespace EasyPack.EmeCardSystem
             var catResults = new List<Card>(cards.Count / 2);
             foreach (var card in cards)
             {
-                if (string.Equals(card.Data?.DefaultCategory, categoryStr, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(card.Data?.Category, categoryStr, StringComparison.OrdinalIgnoreCase))
                     catResults.Add(card);
             }
             return catResults;

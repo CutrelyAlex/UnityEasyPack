@@ -223,7 +223,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>要求源卡牌的默认分类为指定分类</summary>
         public CardRuleBuilder WhenSourceCategory(string category)
         {
-            return When(ctx => string.Equals(ctx.Source?.Data?.DefaultCategory, category, StringComparison.OrdinalIgnoreCase));
+            return When(ctx => string.Equals(ctx.Source?.Data?.Category, category, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>要求源卡牌为对象类别</summary>
@@ -265,7 +265,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>要求容器的默认分类为指定分类</summary>
         public CardRuleBuilder WhenContainerCategory(string category)
         {
-            return When(ctx => string.Equals(ctx.MatchRoot?.Data?.DefaultCategory, category, StringComparison.OrdinalIgnoreCase));
+            return When(ctx => string.Equals(ctx.MatchRoot?.Data?.Category, category, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>要求容器为对象类别</summary>
