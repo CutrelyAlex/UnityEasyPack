@@ -29,7 +29,7 @@ namespace EasyPack.Category
         // 实体存储 (字符串ID)
         private readonly Dictionary<string, T> _entities; // 实体ID->实体对象
 
-        // 实体存储 (整数ID) - 独立缓存体系
+        // 实体存储 (整数ID) - 
         private readonly Dictionary<int, T> _entitiesInt; // 整数实体ID->实体对象
 
         // 分类树
@@ -43,14 +43,14 @@ namespace EasyPack.Category
         private readonly Dictionary<int, ReaderWriterLockSlim> _tagLocks;
         private readonly Dictionary<int, List<T>> _tagCache; // 整数键缓存
 
-        // 标签系统 (整数ID) - 独立缓存体系
+        // 标签系统 (整数ID) - 
         private readonly Dictionary<int, HashSet<int>> _tagToEntityIdsInt; // tagId → entityIds (int)
         private readonly Dictionary<int, HashSet<int>> _entityToTagIdsInt; // entityId (int) → tagIds
 
         // 反向索引缓存 (字符串ID)
         private readonly Dictionary<string, CategoryNode> _entityIdToNode; // entityId (string) → 所属分类节点
 
-        // 反向索引缓存 (整数ID) - 独立缓存体系
+        // 反向索引缓存 (整数ID) - 
         private readonly Dictionary<int, CategoryNode> _entityIdToNodeInt; // entityId (int) → 所属分类节点
 
         // 映射层
@@ -60,7 +60,7 @@ namespace EasyPack.Category
         // 元数据存储 (字符串ID)
         private readonly Dictionary<string, CustomDataCollection> _metadataStore;
 
-        // 元数据存储 (整数ID) - 独立缓存体系
+        // 元数据存储 (整数ID) - 
         private readonly Dictionary<int, CustomDataCollection> _metadataStoreInt;
 
         // 锁
@@ -316,7 +316,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     使用整数ID注册实体到指定分类（独立整数ID缓存体系）。
+        ///     使用整数ID注册实体到指定分类（整数ID）。
         /// </summary>
         /// <param name="entityId">实体整数ID。</param>
         /// <param name="entity">要注册的实体。</param>
@@ -357,7 +357,7 @@ namespace EasyPack.Category
                 }
 
                 // 添加到分类节点（使用整数ID的字符串表示用于节点内部）
-                // 但整数ID缓存使用独立的映射
+                // 但整数ID缓存使用的映射
                 _entityIdToNodeInt[entityId] = node;
 
 #if UNITY_EDITOR
@@ -373,7 +373,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     使用整数ID注册实体并添加标签（独立整数ID缓存体系）。
+        ///     使用整数ID注册实体并添加标签（整数ID）。
         /// </summary>
         /// <param name="entityId">实体整数ID。</param>
         /// <param name="entity">要注册的实体。</param>
@@ -400,7 +400,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     使用整数ID注册实体并添加元数据（独立整数ID缓存体系）。
+        ///     使用整数ID注册实体并添加元数据（整数ID）。
         /// </summary>
         /// <param name="entityId">实体整数ID。</param>
         /// <param name="entity">要注册的实体。</param>
@@ -526,7 +526,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     按整数 ID 查询实体（使用独立整数ID缓存体系）。
+        ///     按整数 ID 查询实体（使用整数ID）。
         /// </summary>
         /// <param name="id">实体整数 ID。</param>
         /// <returns>包含实体的操作结果；若没有找到，返回失败。</returns>
@@ -707,7 +707,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     从所有分类和标签中删除实体（使用独立整数ID缓存体系）。
+        ///     从所有分类和标签中删除实体（使用整数ID）。
         /// </summary>
         /// <param name="id">实体整数ID。</param>
         /// <returns>操作结果。</returns>
@@ -1035,7 +1035,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     为实体添加标签（使用独立整数ID缓存体系）。
+        ///     为实体添加标签（使用整数ID）。
         /// </summary>
         /// <param name="entityId">实体整数ID。</param>
         /// <param name="tag">标签名称。</param>
@@ -1125,6 +1125,80 @@ namespace EasyPack.Category
         }
 
         /// <summary>
+        ///     为实体批量添加标签。
+        /// </summary>
+        /// <param name="entityId">实体ID。</param>
+        /// <param name="tags">标签名称数组。</param>
+        /// <returns>操作结果。</returns>
+        public OperationResult AddTags(string entityId, params string[] tags)
+        {
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                if (!_entities.TryGetValue(entityId, out _))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
+
+            if (tags == null || tags.Length == 0)
+                return OperationResult.Success();
+
+            int successCount = 0;
+            foreach (string tag in tags)
+            {
+                if (!string.IsNullOrWhiteSpace(tag))
+                {
+                    OperationResult result = AddTag(entityId, tag);
+                    if (result.IsSuccess) successCount++;
+                }
+            }
+
+            return successCount > 0 
+                ? OperationResult.Success() 
+                : OperationResult.Failure(ErrorCode.InvalidCategory, "未成功添加任何标签");
+        }
+
+        /// <summary>
+        ///     为整数ID实体批量添加标签（使用独立整数ID缓存体系）。
+        /// </summary>
+        /// <param name="entityId">实体整数ID。</param>
+        /// <param name="tags">标签名称数组。</param>
+        /// <returns>操作结果。</returns>
+        public OperationResult AddTags(int entityId, params string[] tags)
+        {
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                if (!_entitiesInt.TryGetValue(entityId, out _))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到整数 ID 为 '{entityId}' 的实体");
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
+
+            if (tags == null || tags.Length == 0)
+                return OperationResult.Success();
+
+            int successCount = 0;
+            foreach (string tag in tags)
+            {
+                if (!string.IsNullOrWhiteSpace(tag))
+                {
+                    OperationResult result = AddTag(entityId, tag);
+                    if (result.IsSuccess) successCount++;
+                }
+            }
+
+            return successCount > 0 
+                ? OperationResult.Success() 
+                : OperationResult.Failure(ErrorCode.InvalidCategory, "未成功添加任何标签");
+        }
+
+        /// <summary>
         ///     从实体移除标签。
         /// </summary>
         /// <param name="entityId">实体ID。</param>
@@ -1174,7 +1248,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     从实体移除标签（使用独立整数ID缓存体系）。
+        ///     从实体移除标签（使用整数ID）。
         /// </summary>
         /// <param name="entityId">实体整数ID。</param>
         /// <param name="tag">标签名称。</param>
@@ -1423,7 +1497,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     检查实体是否拥有指定标签（使用独立整数ID缓存体系）。
+        ///     检查实体是否拥有指定标签（使用整数ID）。
         /// </summary>
         /// <param name="entityId">实体整数ID。</param>
         /// <param name="tag">标签名称。</param>
@@ -1468,7 +1542,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     获取实体的所有标签（使用独立整数ID缓存体系）。
+        ///     获取实体的所有标签（使用整数ID）。
         /// </summary>
         /// <param name="entityId">实体整数ID。</param>
         /// <returns>标签列表；若实体不存在则返回空列表。</returns>
@@ -1577,7 +1651,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     检查实体是否在指定分类中（使用独立整数ID缓存体系）。
+        ///     检查实体是否在指定分类中（使用整数ID）。
         /// </summary>
         /// <param name="entityId">实体整数ID。</param>
         /// <param name="category">分类名称。</param>
@@ -1658,7 +1732,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     获取实体的元数据（使用独立整数ID缓存体系）。
+        ///     获取实体的元数据（使用整数ID）。
         /// </summary>
         /// <param name="id">实体整数ID。</param>
         /// <returns>元数据集合，不存在则返回空集。</returns>
@@ -1752,7 +1826,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     更新实体的元数据（使用独立整数ID缓存体系）。
+        ///     更新实体的元数据（使用整数ID）。
         /// </summary>
         /// <param name="id">实体整数ID。</param>
         /// <param name="metadata">新的元数据集合。</param>
@@ -2037,7 +2111,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     根据实体整数 ID 获取其所在分类的可读路径字符串（使用独立整数ID缓存体系）。
+        ///     根据实体整数 ID 获取其所在分类的可读路径字符串（使用整数ID）。
         /// </summary>
         /// <param name="entityId">实体整数 ID</param>
         /// <returns>可读的分类路径字符串；若实体不存在，返回空字符串</returns>

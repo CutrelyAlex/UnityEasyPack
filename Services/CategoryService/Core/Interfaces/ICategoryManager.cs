@@ -149,6 +149,16 @@ namespace EasyPack.Category
         OperationResult AddTag(int entityId, string tag);
 
         /// <summary>
+        ///     为实体批量添加标签
+        /// </summary>
+        OperationResult AddTags(string entityId, params string[] tags);
+
+        /// <summary>
+        ///     为整数ID实体批量添加标签
+        /// </summary>
+        OperationResult AddTags(int entityId, params string[] tags);
+
+        /// <summary>
         ///     从实体移除标签
         /// </summary>
         OperationResult RemoveTag(string entityId, string tag);
