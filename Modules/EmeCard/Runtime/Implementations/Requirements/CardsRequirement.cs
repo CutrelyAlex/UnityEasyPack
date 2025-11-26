@@ -73,7 +73,13 @@ namespace EasyPack.EmeCardSystem
             Card root = Root == SelectionRoot.Container ? ctx.MatchRoot : ctx.Source;
             if (root == null) return false;
 
-            var picks = TargetSelector.Select(Scope, FilterMode, root, FilterValue, MaxDepth ?? ctx.MaxDepth);
+            var picks = TargetSelector.Select(
+                Scope, 
+                FilterMode, 
+                root, 
+                FilterValue, 
+                MaxDepth ?? ctx.MaxDepth,
+                ctx.Engine?.CategoryManager);
             int count = picks?.Count ?? 0;
 
             // 检查匹配条件：至少 MinCount 个

@@ -41,7 +41,8 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void InitializeTargetSelectorCache()
         {
-            TargetSelector.InitializeTagCache(_registeredCardsTemplates);
+            // 同时传递 CategoryManager 以支持线程安全的标签查询
+            TargetSelector.InitializeTagCache(_registeredCardsTemplates, CategoryManager);
         }
 
         /// <summary>
@@ -113,23 +114,11 @@ namespace EasyPack.EmeCardSystem
 
         #region 事件和缓存
 
-        private struct EventEntry
-        {
-            public Card Source;
-            public ICardEvent Event;
-
-            public EventEntry(Card s, ICardEvent e)
-            {
-                Source = s;
-                Event = e;
-            }
-        }
-
         // 规则表（按事件类型字符串索引）
         private readonly Dictionary<string, List<CardRule>> _rules = new();
 
-        // 卡牌事件队列
-        private readonly Queue<EventEntry> _queue = new();
+        // 卡牌事件队列（统一使用 IEventEntry）
+        private readonly Queue<IEventEntry> _queue = new();
 
         // 已注册的卡牌集合
         private readonly HashSet<Card> _registeredCardsTemplates = new();
@@ -213,7 +202,9 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void OnCardEvent(Card source, ICardEvent evt)
         {
-            _queue.Enqueue(new(source, evt));
+            // 创建 CardEventEntry 作为 IEventEntry
+            var entry = new CardEventEntry(source, evt);
+            _queue.Enqueue(entry);
 
             // 分帧模式下不自动Pump，等待下一帧主动调用PumpFrame
             // 非分帧模式保持原有即时处理行为
@@ -234,8 +225,8 @@ namespace EasyPack.EmeCardSystem
             {
                 while (_queue.Count > 0)
                 {
-                    EventEntry entry = _queue.Dequeue();
-                    Process(entry.Source, entry.Event);
+                    IEventEntry entry = _queue.Dequeue();
+                    Process(entry.SourceCard, entry.Event);
                 }
             }
             finally
@@ -273,8 +264,8 @@ namespace EasyPack.EmeCardSystem
                             break;
                     }
 
-                    EventEntry entry = _queue.Dequeue();
-                    Process(entry.Source, entry.Event);
+                    IEventEntry entry = _queue.Dequeue();
+                    Process(entry.SourceCard, entry.Event);
                     processed++;
                     _frameProcessedCount++;
                 }
@@ -332,8 +323,8 @@ namespace EasyPack.EmeCardSystem
                        Time.realtimeSinceStartup - frameStart < frameBudgetSec &&
                        processedInFrame < maxEvents)
                 {
-                    EventEntry entry = _queue.Dequeue();
-                    Process(entry.Source, entry.Event);
+                    IEventEntry entry = _queue.Dequeue();
+                    Process(entry.SourceCard, entry.Event);
                     processedInFrame++;
                 }
 
@@ -345,8 +336,8 @@ namespace EasyPack.EmeCardSystem
                 // 超时：同步完成所有剩余事件
                 while (_queue.Count > 0)
                 {
-                    EventEntry entry = _queue.Dequeue();
-                    Process(entry.Source, entry.Event);
+                    IEventEntry entry = _queue.Dequeue();
+                    Process(entry.SourceCard, entry.Event);
                 }
 
                 _isBatchProcessing = false;
