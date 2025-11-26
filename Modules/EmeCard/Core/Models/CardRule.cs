@@ -44,9 +44,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     创建空规则。
         /// </summary>
-        public CardRule()
-        {
-        }
+        public CardRule() { }
 
         /// <summary>
         ///     创建指定事件类型的规则。

@@ -81,10 +81,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     重置 UID 计数器。
         /// </summary>
-        internal static void ResetForTesting()
-        {
-            _nextUID = 1000;
-        }
+        internal static void ResetForTesting() { _nextUID = 1000; }
 
         /// <summary>
         ///     获取当前的 UID 计数器值。
