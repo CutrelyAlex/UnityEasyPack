@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EasyPack.Category;
 using EasyPack.GamePropertySystem;
 
 namespace EasyPack.EmeCardSystem
@@ -21,6 +22,8 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         internal CardEngine Engine { get; set; }
 
+        private string entityId;
+
         /// <summary>
         ///     构造函数：创建卡牌，可选单个属性
         /// </summary>
@@ -30,19 +33,28 @@ namespace EasyPack.EmeCardSystem
         public Card(CardData data, GameProperty gameProperty = null, params string[] extraTags)
         {
             Data = data;
-            if (gameProperty != null) Properties.Add(gameProperty);
+            if (gameProperty != null)
+            {
+                Properties.Add(gameProperty);
+            }
 
             if (Data?.DefaultTags != null)
+            {
                 foreach (string t in Data.DefaultTags)
                 {
                     _tags.Add(t);
                 }
+            }
 
             if (extraTags != null)
+            {
                 foreach (string t in extraTags)
                 {
                     _tags.Add(t);
                 }
+            }
+            
+            entityId = $"{Id}#{Index}";
         }
 
         /// <summary>
@@ -208,18 +220,60 @@ namespace EasyPack.EmeCardSystem
         {
             if (string.IsNullOrEmpty(tag)) return false;
             
-            bool added = _tags.Add(tag);
+            _tags.Add(tag);
             
             // 同步到 CategoryManager
-            if (added && Engine?.CategoryManager != null)
+            if (Engine?.CategoryManager != null)
             {
-                string entityId = $"{Id}#{Index}";
-                Engine.CategoryManager.AddTag(entityId, tag);
+                OperationResult op = Engine.CategoryManager.AddTag(entityId, tag);
+                if (!op.IsSuccess)
+                {
+                    // 回滚
+                    _tags.Remove(tag);
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
             }
-            
-            return added;
+
+            return false;
         }
 
+        public bool AddTags(string[] tags)
+        {
+            if(tags == null || tags.Length == 0) return false;
+            
+            foreach (string tag in tags)
+            {
+                _tags.Add(tag);
+            }
+            // 同步到 CategoryManager
+            if (Engine?.CategoryManager == null)
+            {
+                return false;
+            }
+
+            {
+                OperationResult op = Engine.CategoryManager.AddTags(entityId, tags);
+                if (!op.IsSuccess)
+                {
+                    // 回滚s
+                    foreach (string tag in tags)
+                    {
+                        _tags.Remove(tag);
+                    }
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+        }
+        
+        
         /// <summary>
         ///     从卡牌移除标签。
         ///     <para>同时更新 CategoryManager（如果引擎已设置）和内部标签集。</para>
@@ -235,7 +289,6 @@ namespace EasyPack.EmeCardSystem
             // 同步到 CategoryManager
             if (removed && Engine?.CategoryManager != null)
             {
-                string entityId = $"{Id}#{Index}";
                 Engine.CategoryManager.RemoveTag(entityId, tag);
             }
             

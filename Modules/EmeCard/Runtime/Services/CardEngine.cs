@@ -899,8 +899,7 @@ namespace EasyPack.EmeCardSystem
         private void RegisterToCategoryManager(Card card)
         {
             if (card == null) return;
-
-            // 提取分类：从 CardData.Category 枚举转换为字符串路径
+            
             string category = ExtractCategoryPath(card);
 
             // 注册实体
