@@ -11,13 +11,14 @@ namespace EasyPack.Category
     /// <summary>
     ///     分类服务
     ///     作为 EasyPack 服务，持有并管理多个 CategoryManager 实例
-    ///     支持自动的序列化器注册和生命周期管理
+    ///     支持双泛型 CategoryManager&lt;T, TKey&gt;
     /// </summary>
     public class CategoryService : BaseService, ICategoryService
     {
-        private readonly Dictionary<Type, ICategoryManager> _managers = new();
+        // 使用复合键 (EntityType, KeyType) 来索引 Manager
+        private readonly Dictionary<(Type EntityType, Type KeyType), ICategoryManager> _managers = new();
         private ISerializationService _serializationService;
-        private readonly Dictionary<Type, object> _serializers = new();
+        private readonly Dictionary<(Type EntityType, Type KeyType), object> _serializers = new();
 
         #region 生命周期管理
 
@@ -62,63 +63,72 @@ namespace EasyPack.Category
         #region Manager 管理
 
         /// <summary>
-        ///     创建或获取指定实体类型的 CategoryManager
-        ///     自动注册 CategoryManager&lt;T&gt; 的序列化器到 SerializationService
+        ///     创建或获取指定实体类型和键类型的 CategoryManager
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="idExtractor">实体 ID 提取函数</param>
+        /// <typeparam name="TKey">键类型</typeparam>
+        /// <param name="keyExtractor">实体键提取函数</param>
         /// <returns>CategoryManager 实例</returns>
-        public CategoryManager<T> GetOrCreateManager<T>(
-            Func<T, string> idExtractor)
+        public ICategoryManager<T, TKey> GetOrCreateManager<T, TKey>(Func<T, TKey> keyExtractor)
+            where TKey : IEquatable<TKey>
         {
-            Type entityType = typeof(T);
+            var key = (typeof(T), typeof(TKey));
 
             // 如果已存在，直接返回
-            if (_managers.TryGetValue(entityType, out ICategoryManager existingManager))
-                return existingManager as CategoryManager<T>;
+            if (_managers.TryGetValue(key, out ICategoryManager existingManager))
+                return existingManager as ICategoryManager<T, TKey>;
 
             // 创建新的 Manager
-            var manager = new CategoryManager<T>(idExtractor);
-            _managers[entityType] = manager;
+            var manager = new CategoryManager<T, TKey>(keyExtractor);
+            _managers[key] = manager;
 
             // 自动注册该实体类型的 CategoryManager 序列化器
-            RegisterManagerSerializer(idExtractor);
+            RegisterManagerSerializer<T, TKey>(keyExtractor);
+
+            Debug.Log($"[CategoryService] 创建 CategoryManager<{typeof(T).Name}, {typeof(TKey).Name}>");
 
             return manager;
         }
 
         /// <summary>
-        ///     获取指定实体类型的 CategoryManager
+        ///     获取指定实体类型和键类型的 CategoryManager
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
+        /// <typeparam name="TKey">键类型</typeparam>
         /// <returns>CategoryManager 实例，如果不存在则返回 null</returns>
-        public CategoryManager<T> GetManager<T>()
+        public ICategoryManager<T, TKey> GetManager<T, TKey>()
+            where TKey : IEquatable<TKey>
         {
-            Type entityType = typeof(T);
-            if (_managers.TryGetValue(entityType, out ICategoryManager manager)) return manager as CategoryManager<T>;
+            var key = (typeof(T), typeof(TKey));
+            if (_managers.TryGetValue(key, out ICategoryManager manager))
+                return manager as ICategoryManager<T, TKey>;
             return null;
         }
 
         /// <summary>
-        ///     移除指定实体类型的 CategoryManager
+        ///     移除指定实体类型和键类型的 CategoryManager
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
+        /// <typeparam name="TKey">键类型</typeparam>
         /// <returns>是否成功移除</returns>
-        public bool RemoveManager<T>()
+        public bool RemoveManager<T, TKey>()
+            where TKey : IEquatable<TKey>
         {
-            Type entityType = typeof(T);
-            if (!_managers.TryGetValue(entityType, out ICategoryManager manager)) return false;
+            var key = (typeof(T), typeof(TKey));
+            if (!_managers.TryGetValue(key, out ICategoryManager manager)) return false;
 
             if (manager is IDisposable disposable) disposable.Dispose();
-            _managers.Remove(entityType);
+            _managers.Remove(key);
+            _serializers.Remove(key);
             return true;
         }
 
         /// <summary>
         ///     获取所有已注册的实体类型
         /// </summary>
-        /// <returns>实体类型列表</returns>
-        public IReadOnlyList<Type> GetRegisteredEntityTypes() => new List<Type>(_managers.Keys);
+        /// <returns>实体类型和键类型的列表</returns>
+        public IReadOnlyList<(Type EntityType, Type KeyType)> GetRegisteredManagerTypes() =>
+            new List<(Type, Type)>(_managers.Keys);
 
         /// <summary>
         ///     删除所有 CategoryManager 实例
@@ -134,11 +144,12 @@ namespace EasyPack.Category
                 }
 
                 _managers.Clear();
+                _serializers.Clear();
                 return true;
             }
             catch (SystemException e)
             {
-                Debug.LogError($"移除所有 CategoryManager 时候发射了错误: {e}");
+                Debug.LogError($"[CategoryService] 移除所有 CategoryManager 时发生错误: {e}");
                 return false;
             }
         }
@@ -148,32 +159,34 @@ namespace EasyPack.Category
         #region 序列化支持
 
         /// <summary>
-        ///     注册 CategoryManager&lt;T&gt; 的序列化器
+        ///     注册 CategoryManager&lt;T, TKey&gt; 的序列化器
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="idExtractor">实体 ID 提取函数</param>
-        private void RegisterManagerSerializer<T>(Func<T, string> idExtractor)
+        /// <typeparam name="TKey">键类型</typeparam>
+        /// <param name="keyExtractor">实体键提取函数</param>
+        private void RegisterManagerSerializer<T, TKey>(Func<T, TKey> keyExtractor)
+            where TKey : IEquatable<TKey>
         {
             if (_serializationService == null) return;
 
-            Type entityType = typeof(T);
-            Type categoryManagerType = typeof(CategoryManager<T>);
+            var typeKey = (typeof(T), typeof(TKey));
 
             // 避免重复注册
-            if (_serializers.ContainsKey(categoryManagerType)) return;
+            if (_serializers.ContainsKey(typeKey)) return;
 
             try
             {
-                var serializer = new CategoryManagerJsonSerializer<T>(idExtractor);
-                _serializationService.RegisterSerializer<CategoryManager<T>, SerializableCategoryManagerState<T>>(
-                    serializer);
-                _serializers[categoryManagerType] = serializer;
+                var serializer = new CategoryManagerJsonSerializer<T, TKey>(keyExtractor);
+                _serializationService.RegisterSerializer<
+                    CategoryManager<T, TKey>,
+                    SerializableCategoryManagerState<T, TKey>>(serializer);
+                _serializers[typeKey] = serializer;
 
-                Debug.Log($"[CategoryService] 已注册 CategoryManager<{entityType.Name}> 序列化器到 SerializationService");
+                Debug.Log($"[CategoryService] 已注册 CategoryManager<{typeof(T).Name}, {typeof(TKey).Name}> 序列化器");
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[CategoryService] 注册 CategoryManager<{entityType.Name}> 序列化器失败: {ex.Message}");
+                Debug.LogWarning($"[CategoryService] 注册序列化器失败: {ex.Message}");
             }
         }
 
@@ -181,43 +194,51 @@ namespace EasyPack.Category
         ///     序列化指定类型的 Manager
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
+        /// <typeparam name="TKey">键类型</typeparam>
         /// <returns>JSON 字符串，如果 Manager 不存在则返回 null</returns>
-        public string SerializeManager<T>()
+        public string SerializeManager<T, TKey>()
+            where TKey : IEquatable<TKey>
         {
-            var manager = GetManager<T>();
+            var manager = GetManager<T, TKey>();
             if (manager == null)
             {
-                Debug.LogWarning($"[CategoryService] CategoryManager<{typeof(T).Name}> 不存在");
+                Debug.LogWarning($"[CategoryService] CategoryManager<{typeof(T).Name}, {typeof(TKey).Name}> 不存在");
                 return null;
             }
 
-            return manager.SerializeToJson();
+            if (manager is CategoryManager<T, TKey> concreteManager)
+                return concreteManager.SerializeToJson();
+
+            Debug.LogWarning($"[CategoryService] Manager 类型不支持序列化");
+            return null;
         }
 
         /// <summary>
         ///     从 JSON 加载 Manager 数据
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
+        /// <typeparam name="TKey">键类型</typeparam>
         /// <param name="json">JSON 字符串</param>
-        /// <param name="idExtractor">实体 ID 提取函数</param>
+        /// <param name="keyExtractor">实体键提取函数</param>
         /// <returns>操作结果</returns>
-        public OperationResult LoadManager<T>(string json, Func<T, string> idExtractor)
+        public OperationResult LoadManager<T, TKey>(string json, Func<T, TKey> keyExtractor)
+            where TKey : IEquatable<TKey>
         {
             try
             {
                 // 创建新的 Manager 并加载数据
-                var manager = CategoryManager<T>.CreateFromJson(json, idExtractor);
+                var manager = CategoryManager<T, TKey>.CreateFromJson(json, keyExtractor);
 
                 // 替换现有 Manager
-                Type entityType = typeof(T);
-                if (_managers.TryGetValue(entityType, out ICategoryManager oldManager) &&
+                var key = (typeof(T), typeof(TKey));
+                if (_managers.TryGetValue(key, out ICategoryManager oldManager) &&
                     oldManager is IDisposable disposable)
                     disposable.Dispose();
 
-                _managers[entityType] = manager;
+                _managers[key] = manager;
 
                 // 注册序列化器
-                RegisterManagerSerializer(idExtractor);
+                RegisterManagerSerializer<T, TKey>(keyExtractor);
 
                 return OperationResult.Success();
             }

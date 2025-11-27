@@ -65,7 +65,6 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     为现有卡牌分配 UID（由 Create 方法或 CardEngine 内部使用）。<br />
-        ///     TODO: UID仅在运行时有效，重启后可能会重新分配
         /// </summary>
         /// <param name="card">要分配 UID 的卡牌。</param>
         /// <exception cref="ArgumentNullException">当 card 为 null 时抛出。</exception>

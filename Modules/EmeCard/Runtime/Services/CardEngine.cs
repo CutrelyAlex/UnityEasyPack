@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using EasyPack.Architecture;
 using EasyPack.Category;
 using UnityEngine;
 
@@ -18,8 +20,8 @@ namespace EasyPack.EmeCardSystem
             CardFactory = factory;
             factory.Owner = this;
 
-            // 以 UID 作为键
-            CategoryManager = new CategoryManager<Card, int>(card => card.UID);
+            // TODO: 创建本地 CategoryManager（稍后可通过 InitializeCategoryServiceAsync 切换到服务托管）
+            _categoryManager = new CategoryManager<Card, int>(card => card.UID);
 
             PreCacheAllCardTemplates();
             InitializeTargetSelectorCache();
@@ -29,6 +31,40 @@ namespace EasyPack.EmeCardSystem
             _rules[CardEventTypes.ADDED_TO_OWNER] = new();
             _rules[CardEventTypes.REMOVED_FROM_OWNER] = new();
             _rules[CardEventTypes.USE] = new();
+        }
+
+        /// <summary>
+        ///     异步初始化 CategoryService
+        /// </summary>
+        /// <returns>是否成功初始化</returns>
+        public async Task<bool> InitializeCategoryServiceAsync()
+        {
+            try
+            {
+                ICategoryService categoryService = await EasyPackArchitecture.GetCategoryServiceAsync();
+                if (categoryService == null)
+                {
+                    Debug.LogWarning("[CardEngine] 无法获取 CategoryService，继续使用本地 CategoryManager");
+                    return false;
+                }
+
+                var serviceManager = categoryService.GetOrCreateManager<Card, int>(card => card.UID);
+                if (serviceManager != null)
+                {
+                    // 如果本地 CategoryManager 中有数据，需要迁移
+                    // 这里假设初始化时本地 Manager 是空的
+                    _categoryManager = serviceManager;
+                    Debug.Log("[CardEngine] 已切换到 CategoryService 托管的 CategoryManager");
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[CardEngine] 初始化 CategoryService 失败: {ex.Message}");
+                return false;
+            }
         }
 
         public void Init()
@@ -85,8 +121,10 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     分类管理系统，用于统一管理卡牌的分类和标签。
         ///     提供基于标签的 O(1) 查询和基于层级分类的 O(log n) 查询。
+        ///     可以通过 InitializeCategoryServiceAsync 切换到 CategoryService 托管模式。
         /// </summary>
-        public ICategoryManager<Card, int> CategoryManager { get; }
+        public ICategoryManager<Card, int> CategoryManager => _categoryManager;
+        private ICategoryManager<Card, int> _categoryManager;
 
         /// <summary>
         ///     引擎全局策略
