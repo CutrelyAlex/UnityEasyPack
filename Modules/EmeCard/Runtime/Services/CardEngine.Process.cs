@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -12,6 +13,100 @@ namespace EasyPack.EmeCardSystem
     /// </summary>
     public sealed partial class CardEngine
     {
+        #region 对象池与缓存比较器
+
+        [ThreadStatic] private static List<CardRule> t_rulesToProcess;
+        [ThreadStatic] private static List<(CardRule, List<Card>, CardRuleContext, int)> t_evals;
+        [ThreadStatic] private static HashSet<Card> t_distinctSet;
+
+        // 缓存排序比较器
+        private static readonly Comparison<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> 
+            s_priorityComparison = (a, b) =>
+            {
+                int cmp = a.rule.Priority.CompareTo(b.rule.Priority);
+                return cmp != 0 ? cmp : a.orderIndex.CompareTo(b.orderIndex);
+            };
+
+        private static readonly Comparison<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> 
+            s_orderComparison = (a, b) => a.orderIndex.CompareTo(b.orderIndex);
+
+        /// <summary>
+        ///     从线程局部池获取或创建 List&lt;CardRule&gt;
+        /// </summary>
+        private static List<CardRule> RentRulesList(int capacity = 16)
+        {
+            var list = t_rulesToProcess;
+            if (list == null)
+            {
+                t_rulesToProcess = new List<CardRule>(capacity);
+                return t_rulesToProcess;
+            }
+            list.Clear();
+            if (list.Capacity < capacity)
+                list.Capacity = capacity;
+            return list;
+        }
+
+        /// <summary>
+        ///     从线程局部池获取或创建 evals 列表
+        /// </summary>
+        private static List<(CardRule, List<Card>, CardRuleContext, int)> RentEvalsList(int capacity = 8)
+        {
+            var list = t_evals;
+            if (list == null)
+            {
+                t_evals = new List<(CardRule, List<Card>, CardRuleContext, int)>(capacity);
+                return t_evals;
+            }
+            list.Clear();
+            if (list.Capacity < capacity)
+                list.Capacity = capacity;
+            return list;
+        }
+
+        /// <summary>
+        ///     从线程局部池获取或创建 HashSet&lt;Card&gt; 用于去重
+        /// </summary>
+        private static HashSet<Card> RentDistinctSet()
+        {
+            var set = t_distinctSet;
+            if (set == null)
+            {
+                t_distinctSet = new HashSet<Card>();
+                return t_distinctSet;
+            }
+            set.Clear();
+            return set;
+        }
+
+        /// <summary>
+        ///     使用 HashSet 去重
+        /// </summary>
+        private static List<Card> DistinctInPlace(List<Card> list)
+        {
+            if (list == null || list.Count <= 1) return list;
+
+            var set = RentDistinctSet();
+            int writeIndex = 0;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (set.Add(list[i]))
+                {
+                    list[writeIndex++] = list[i];
+                }
+            }
+
+            // 移除重复的尾部元素
+            if (writeIndex < list.Count)
+            {
+                list.RemoveRange(writeIndex, list.Count - writeIndex);
+            }
+
+            return list;
+        }
+
+        #endregion
         #region 规则注册
 
         /// <summary>
@@ -292,23 +387,41 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void ProcessCore(Card source, ICardEvent evt)
         {
-            var rulesToProcess = new List<CardRule>();
+            // 预计算规则数量以优化容量分配
+            int typeRulesCount = 0;
+            int idRulesCount = 0;
+            List<CardRule> typeRules = null;
+            List<CardRule> idRules = null;
 
-            // 获取匹配事件类型的规则
-            if (_rules.TryGetValue(evt.EventType, out var typeRules) && typeRules.Count > 0)
-                rulesToProcess.AddRange(typeRules);
+            if (_rules.TryGetValue(evt.EventType, out typeRules))
+                typeRulesCount = typeRules.Count;
 
-            // 对于自定义事件，也检查 EventId 匹配
             if (!string.IsNullOrEmpty(evt.EventId) && evt.EventId != evt.EventType)
-                if (_customRulesById.TryGetValue(evt.EventId, out var idRules))
-                    rulesToProcess.AddRange(idRules);
+                if (_customRulesById.TryGetValue(evt.EventId, out idRules))
+                    idRulesCount = idRules.Count;
 
-            if (rulesToProcess.Count == 0) return;
+            int totalCount = typeRulesCount + idRulesCount;
+            if (totalCount == 0) return;
+
+            // 使用对象池复用 List，预分配正确容量
+            var rulesToProcess = RentRulesList(totalCount);
+
+            // 直接使用 for 循环添加，避免 AddRange 的额外开销
+            if (typeRules != null)
+            {
+                for (int i = 0; i < typeRulesCount; i++)
+                    rulesToProcess.Add(typeRules[i]);
+            }
+            if (idRules != null)
+            {
+                for (int i = 0; i < idRulesCount; i++)
+                    rulesToProcess.Add(idRules[i]);
+            }
 
             // 根据配置选择串行或并行评估
             List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals;
             
-            if (Policy.EnableParallelMatching && rulesToProcess.Count >= Policy.ParallelThreshold)
+            if (Policy.EnableParallelMatching && totalCount >= Policy.ParallelThreshold)
             {
                 evals = EvaluateRulesParallel(rulesToProcess, source, evt);
             }
@@ -319,15 +432,11 @@ namespace EasyPack.EmeCardSystem
 
             if (evals.Count == 0) return;
 
-            // 排序规则
+            // 使用缓存的比较器排序，避免每次创建闭包
             if (Policy.RuleSelection == RuleSelectionMode.Priority)
-                evals.Sort((a, b) =>
-                {
-                    int cmp = a.rule.Priority.CompareTo(b.rule.Priority);
-                    return cmp != 0 ? cmp : a.orderIndex.CompareTo(b.orderIndex);
-                });
+                evals.Sort(s_priorityComparison);
             else
-                evals.Sort((a, b) => a.orderIndex.CompareTo(b.orderIndex));
+                evals.Sort(s_orderComparison);
 
             // 执行规则效果
             ExecuteRules(evals);
@@ -343,7 +452,8 @@ namespace EasyPack.EmeCardSystem
         private List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> 
             EvaluateRulesSerial(List<CardRule> rules, Card source, ICardEvent evt)
         {
-            var evals = new List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>(rules.Count);
+            // 使用对象池复用 evals 列表
+            var evals = RentEvalsList(rules.Count);
             
             for (int i = 0; i < rules.Count; i++)
             {
@@ -355,7 +465,7 @@ namespace EasyPack.EmeCardSystem
                 if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
                 {
                     if ((rule.Policy?.DistinctMatched ?? true) && matched is { Count: > 1 })
-                        matched = matched.Distinct().ToList();
+                        DistinctInPlace(matched);
 
                     evals.Add((rule, matched, ctx, i));
                 }
@@ -389,8 +499,9 @@ namespace EasyPack.EmeCardSystem
 
                 if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
                 {
+                    // 并行模式下使用线程局部 HashSet 去重
                     if ((rule.Policy?.DistinctMatched ?? true) && matched is { Count: > 1 })
-                        matched = matched.Distinct().ToList();
+                        DistinctInPlace(matched);
 
                     results.Add((rule, matched, ctx, i));
                 }
@@ -405,16 +516,24 @@ namespace EasyPack.EmeCardSystem
         private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements,
                                           out List<Card> matchedAll, int ruleId = -1)
         {
-            matchedAll = new();
+            // 使用对象池复用 matchedAll 列表
+            // 注意：这里必须创建新列表，因为结果会被保存到 evals 中
+            matchedAll = new List<Card>(8);
             if (requirements == null) return true;
 
-            foreach (IRuleRequirement req in requirements)
+            for (int i = 0; i < requirements.Count; i++)
             {
+                IRuleRequirement req = requirements[i];
                 if (req == null) return false;
 
                 if (!req.TryMatch(ctx, out var picks)) return false;
 
-                if (picks?.Count > 0) matchedAll.AddRange(picks);
+                if (picks != null && picks.Count > 0)
+                {
+                    // 使用 for 循环代替 AddRange
+                    for (int j = 0; j < picks.Count; j++)
+                        matchedAll.Add(picks[j]);
+                }
             }
 
             return true;

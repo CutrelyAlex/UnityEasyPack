@@ -417,15 +417,31 @@ namespace EasyPack.EmeCardSystem
                 }
 
                 // 从TargetSelector缓存中移除卡牌的标签（在注销前获取标签）
-                var tagsToRemove = c.Tags.ToList();
+                // 复制标签到数组
+                var tags = c.Tags;
+                int tagCount = tags.Count;
+                string[] tagArray = null;
+                
+                if (tagCount > 0)
+                {
+                    tagArray = new string[tagCount];
+                    int idx = 0;
+                    foreach (string tag in tags)
+                    {
+                        tagArray[idx++] = tag;
+                    }
+                }
                 
                 // 从 CategoryManager 注销（使用 UID）
                 UnregisterFromCategoryManager(c);
                 
                 // 移除标签缓存
-                foreach (string tag in tagsToRemove)
+                if (tagArray != null)
                 {
-                    TargetSelector.OnCardTagRemoved(c, tag);
+                    for (int i = 0; i < tagArray.Length; i++)
+                    {
+                        TargetSelector.OnCardTagRemoved(c, tagArray[i]);
+                    }
                 }
             }
 

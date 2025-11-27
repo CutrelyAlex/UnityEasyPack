@@ -226,9 +226,8 @@ namespace EasyPack.EmeCardSystem
                 {
                     int depth = maxDepth;
                     if (depth <= 0) depth = int.MaxValue;
-                    candidates = TraversalUtil.EnumerateDescendants(root, depth).ToList();
+                    return ApplyFilter(TraversalUtil.EnumerateDescendantsAsList(root, depth), filter, filterValue, categoryManager);
                 }
-                    break;
 
                 default:
                     return Array.Empty<Card>();
@@ -270,7 +269,15 @@ namespace EasyPack.EmeCardSystem
 
             // 应用 Take 限制
             if (selection.Take is > 0 && targets.Count > selection.Take.Value)
-                return targets.Take(selection.Take.Value).ToList();
+            {
+                int takeCount = selection.Take.Value;
+                var limited = new List<Card>(takeCount);
+                for (int i = 0; i < takeCount; i++)
+                {
+                    limited.Add(targets[i]);
+                }
+                return limited;
+            }
 
             return targets;
         }
@@ -327,9 +334,10 @@ namespace EasyPack.EmeCardSystem
             // 优先使用 CategoryManager
             if (categoryManager != null)
             {
-                var results = new List<Card>(cards.Count / 2);
-                foreach (var card in cards)
+                var results = new List<Card>(cards.Count);
+                for (int i = 0, count = cards.Count; i < count; i++)
                 {
+                    var card = cards[i];
                     if (categoryManager.HasTag(card, tag))
                         results.Add(card);
                 }
@@ -341,11 +349,12 @@ namespace EasyPack.EmeCardSystem
             if (cachedCardSet is { Count: > 0 })
             {
                 // 使用缓存：取缓存中与候选集的交集
-                var tagResults = new List<Card>(Math.Min(cards.Count, cachedCardSet.Count));
+                var tagResults = new List<Card>(cards.Count);
                 lock (cachedCardSet)
                 {
-                    foreach (var card in cards)
+                    for (int i = 0, count = cards.Count; i < count; i++)
                     {
+                        var card = cards[i];
                         if (cachedCardSet.Contains(card))
                             tagResults.Add(card);
                     }
@@ -354,9 +363,10 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 回退：缓存未初始化，使用 Card.HasTag
-            var fallbackResults = new List<Card>(cards.Count / 2);
-            foreach (var card in cards)
+            var fallbackResults = new List<Card>(cards.Count);
+            for (int i = 0, count = cards.Count; i < count; i++)
             {
+                var card = cards[i];
 #pragma warning disable CS0618
                 if (card.HasTag(tag))
                     fallbackResults.Add(card);
@@ -373,9 +383,10 @@ namespace EasyPack.EmeCardSystem
             if (string.IsNullOrEmpty(id))
                 return Array.Empty<Card>();
 
-            var results = new List<Card>(cards.Count / 4);
-            foreach (var card in cards)
+            var results = new List<Card>(cards.Count);
+            for (int i = 0, count = cards.Count; i < count; i++)
             {
+                var card = cards[i];
                 if (string.Equals(card.Id, id, StringComparison.Ordinal))
                     results.Add(card);
             }
@@ -396,9 +407,10 @@ namespace EasyPack.EmeCardSystem
             // 使用 CategoryManager 检查分类
             if (categoryManager != null)
             {
-                var results = new List<Card>(cards.Count / 2);
-                foreach (var card in cards)
+                var results = new List<Card>(cards.Count);
+                for (int i = 0, count = cards.Count; i < count; i++)
                 {
+                    var card = cards[i];
                     // 使用 IsInCategory 检查
                     if (categoryManager.IsInCategory(card, categoryStr, includeChildren: true))
                     {
@@ -409,9 +421,10 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 回退：通过 DefaultCategory 匹配
-            var catResults = new List<Card>(cards.Count / 2);
-            foreach (var card in cards)
+            var catResults = new List<Card>(cards.Count);
+            for (int i = 0, count = cards.Count; i < count; i++)
             {
+                var card = cards[i];
                 if (string.Equals(card.Data?.Category, categoryStr, StringComparison.OrdinalIgnoreCase))
                     catResults.Add(card);
             }
