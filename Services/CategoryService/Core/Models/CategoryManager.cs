@@ -25,58 +25,87 @@ namespace EasyPack.Category
 
         // 基础字段
         private readonly Func<T, string> _idExtractor;
+        private readonly Func<T, int> _idExtractorInt;
+        private readonly bool _useIntId;
 
         // 实体存储 (字符串ID)
-        private readonly Dictionary<string, T> _entities; // 实体ID->实体对象
+        private Dictionary<string, T> _entities; // 实体ID->实体对象
 
         // 实体存储 (整数ID) - 
-        private readonly Dictionary<int, T> _entitiesInt; // 整数实体ID->实体对象
+        private Dictionary<int, T> _entitiesInt; // 整数实体ID->实体对象
 
         // 分类树
-        private readonly Dictionary<int, CategoryNode> _categoryNodes;
-        private readonly Dictionary<string, int> _categoryNameToId; // 分类名称 → 整数ID
-        private readonly Dictionary<int, string> _categoryIdToName; // 整数ID → 分类名称
+        private Dictionary<int, CategoryNode> _categoryNodes;
+        private Dictionary<string, int> _categoryNameToId; // 分类名称 → 整数ID
+        private Dictionary<int, string> _categoryIdToName; // 整数ID → 分类名称
 
         // 标签系统 (字符串ID)
-        private readonly Dictionary<int, HashSet<string>> _tagToEntityIds; // tagId → entityIds (string)
-        private readonly Dictionary<string, HashSet<int>> _entityToTagIds; // entityId (string) → tagIds
-        private readonly Dictionary<int, ReaderWriterLockSlim> _tagLocks;
-        private readonly Dictionary<int, List<T>> _tagCache; // 整数键缓存
+        private Dictionary<int, HashSet<string>> _tagToEntityIds; // tagId → entityIds (string)
+        private Dictionary<string, HashSet<int>> _entityToTagIds; // entityId (string) → tagIds
+        private Dictionary<int, ReaderWriterLockSlim> _tagLocks;
+        private Dictionary<int, List<T>> _tagCache; // 整数键缓存
 
         // 标签系统 (整数ID) - 
-        private readonly Dictionary<int, HashSet<int>> _tagToEntityIdsInt; // tagId → entityIds (int)
-        private readonly Dictionary<int, HashSet<int>> _entityToTagIdsInt; // entityId (int) → tagIds
+        private Dictionary<int, HashSet<int>> _tagToEntityIdsInt; // tagId → entityIds (int)
+        private Dictionary<int, HashSet<int>> _entityToTagIdsInt; // entityId (int) → tagIds
 
         // 反向索引缓存 (字符串ID)
-        private readonly Dictionary<string, CategoryNode> _entityIdToNode; // entityId (string) → 所属分类节点
+        private Dictionary<string, CategoryNode> _entityIdToNode; // entityId (string) → 所属分类节点
 
         // 反向索引缓存 (整数ID) - 
-        private readonly Dictionary<int, CategoryNode> _entityIdToNodeInt; // entityId (int) → 所属分类节点
+        private Dictionary<int, CategoryNode> _entityIdToNodeInt; // entityId (int) → 所属分类节点
 
         // 映射层
-        private readonly IntegerMapper _tagMapper;
-        private readonly IntegerMapper _categoryTermMapper;
+        private IntegerMapper _tagMapper;
+        private IntegerMapper _categoryTermMapper;
 
         // 元数据存储 (字符串ID)
-        private readonly Dictionary<string, CustomDataCollection> _metadataStore;
+        private Dictionary<string, CustomDataCollection> _metadataStore;
 
         // 元数据存储 (整数ID) - 
-        private readonly Dictionary<int, CustomDataCollection> _metadataStoreInt;
+        private Dictionary<int, CustomDataCollection> _metadataStoreInt;
 
         // 锁
-        private readonly ReaderWriterLockSlim _treeLock;
-        private readonly ReaderWriterLockSlim _entitiesLock; // 保护 _entities 和 _entitiesInt 字典
-        private readonly ReaderWriterLockSlim _metadataLock; // 保护 _metadataStore 和 _metadataStoreInt 字典
+        private ReaderWriterLockSlim _treeLock;
+        private ReaderWriterLockSlim _entitiesLock; // 保护 _entities 和 _entitiesInt 字典
+        private ReaderWriterLockSlim _metadataLock; // 保护 _metadataStore 和 _metadataStoreInt 字典
 
         #endregion
 
         #region 构造
 
-        public CategoryManager(
-            Func<T, string> idExtractor)
+        /// <summary>
+        ///     使用字符串 ID 提取器初始化 CategoryManager。
+        /// </summary>
+        /// <param name="idExtractor">从实体提取字符串 ID 的函数。</param>
+        public CategoryManager(Func<T, string> idExtractor)
         {
             _idExtractor = idExtractor ?? throw new ArgumentNullException(nameof(idExtractor));
+            _idExtractorInt = null;
+            _useIntId = false;
 
+            InitializeCollections();
+        }
+
+        /// <summary>
+        ///     使用整数 ID 提取器初始化 CategoryManager。
+        ///     这是更高效的方式，避免了字符串转换开销。
+        /// </summary>
+        /// <param name="idExtractorInt">从实体提取整数 ID 的函数。</param>
+        public CategoryManager(Func<T, int> idExtractorInt)
+        {
+            _idExtractorInt = idExtractorInt ?? throw new ArgumentNullException(nameof(idExtractorInt));
+            _idExtractor = null;
+            _useIntId = true;
+
+            InitializeCollections();
+        }
+
+        /// <summary>
+        ///     初始化所有内部集合。
+        /// </summary>
+        private void InitializeCollections()
+        {
             // 字符串ID存储
             _entities = new();
 
@@ -117,6 +146,11 @@ namespace EasyPack.Category
             _metadataLock = new(LockRecursionPolicy.NoRecursion);
         }
 
+        /// <summary>
+        ///     获取是否使用整数 ID 模式。
+        /// </summary>
+        public bool UseIntId => _useIntId;
+
         #endregion
 
         #region 实体注册
@@ -132,14 +166,25 @@ namespace EasyPack.Category
 
         /// <summary>
         ///     开始注册实体，支持链式调用添加标签和元数据。
+        ///     如果使用整数 ID 模式构造，将自动使用整数 ID 注册。
         /// </summary>
         /// <param name="entity">要注册的实体。</param>
         /// <param name="category">目标分类名称。</param>
         /// <returns>链式注册对象。</returns>
         public IEntityRegistration RegisterEntity(T entity, string category)
         {
-            string id = _idExtractor(entity);
-            return RegisterEntityInternal(entity, id, category);
+            if (_useIntId)
+            {
+                // 使用整数 ID 模式
+                int intId = _idExtractorInt(entity);
+                return new EntityRegistrationInt(this, intId, entity, category, OperationResult.Success());
+            }
+            else
+            {
+                // 使用字符串 ID 模式
+                string id = _idExtractor(entity);
+                return RegisterEntityInternal(entity, id, category);
+            }
         }
 
         /// <summary>
@@ -150,14 +195,24 @@ namespace EasyPack.Category
         /// <returns>链式注册对象；若分类名称无效，返回失败结果。</returns>
         public IEntityRegistration RegisterEntitySafe(T entity, string category)
         {
-            string id = _idExtractor(entity);
-
             category = CategoryNameNormalizer.Normalize(category);
             if (!CategoryNameNormalizer.IsValid(category, out string errorMessage))
-                return new EntityRegistration(this, id, entity, category,
-                    OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage));
+            {
+                if (_useIntId)
+                {
+                    int intId = _idExtractorInt(entity);
+                    return new EntityRegistrationInt(this, intId, entity, category,
+                        OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage));
+                }
+                else
+                {
+                    string id = _idExtractor(entity);
+                    return new EntityRegistration(this, id, entity, category,
+                        OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage));
+                }
+            }
 
-            return RegisterEntityInternal(entity, id, category);
+            return RegisterEntity(entity, category);
         }
 
         /// <summary>
@@ -2648,6 +2703,129 @@ namespace EasyPack.Category
                         try
                         {
                             _manager._metadataStore[_entityId] = _metadata;
+                        }
+                        finally
+                        {
+                            _manager._metadataLock.ExitWriteLock();
+                        }
+                    }
+
+                    // 清除统计缓存（数据已改变）
+#if UNITY_EDITOR
+                    _manager._cachedStatistics = null;
+#endif
+
+                    return OperationResult.Success();
+                }
+                catch (Exception ex)
+                {
+                    return OperationResult.Failure(ErrorCode.ConcurrencyConflict, ex.Message);
+                }
+            }
+        }
+
+        /// <summary>
+        ///     内部类：整数 ID 实体注册链式构建器
+        ///     支持: WithTags() - 添加标签, WithMetadata() - 添加元数据, Complete() - 完成注册
+        /// </summary>
+        private class EntityRegistrationInt : IEntityRegistration
+        {
+            private readonly CategoryManager<T> _manager;
+            private readonly int _entityId;
+            private readonly T _entity;
+            private readonly string _category;
+            private readonly List<string> _tags;
+            private CustomDataCollection _metadata;
+            private readonly OperationResult _validationResult;
+
+            public EntityRegistrationInt(
+                CategoryManager<T> manager,
+                int entityId,
+                T entity,
+                string category,
+                OperationResult validationResult)
+            {
+                _manager = manager;
+                _entityId = entityId;
+                _entity = entity;
+                _category = category;
+                _tags = new();
+                _validationResult = validationResult;
+            }
+
+            public IEntityRegistration WithTags(params string[] tags)
+            {
+                if (tags != null) _tags.AddRange(tags);
+                return this;
+            }
+
+            public IEntityRegistration WithMetadata(CustomDataCollection metadata)
+            {
+                _metadata = metadata;
+                return this;
+            }
+
+            public OperationResult Complete()
+            {
+                if (!_validationResult.IsSuccess) return _validationResult;
+
+                string normalizedCategory = CategoryNameNormalizer.Normalize(_category);
+                if (!CategoryNameNormalizer.IsValid(normalizedCategory, out string errorMessage))
+                    return OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage);
+
+                // 检查 ID 是否已存在
+                _manager._entitiesLock.EnterReadLock();
+                try
+                {
+                    if (_manager._entitiesInt.ContainsKey(_entityId))
+                        return OperationResult.Failure(ErrorCode.DuplicateId, $"整数实体 ID '{_entityId}' 已存在");
+                }
+                finally
+                {
+                    _manager._entitiesLock.ExitReadLock();
+                }
+
+                try
+                {
+                    // 存储实体
+                    _manager._entitiesLock.EnterWriteLock();
+                    try
+                    {
+                        _manager._entitiesInt[_entityId] = _entity;
+                    }
+                    finally
+                    {
+                        _manager._entitiesLock.ExitWriteLock();
+                    }
+
+                    // 创建分类节点并关联
+                    _manager._treeLock.EnterWriteLock();
+                    try
+                    {
+                        CategoryNode node = _manager.GetOrCreateNode(normalizedCategory);
+                        _manager._entityIdToNodeInt[_entityId] = node;
+                    }
+                    finally
+                    {
+                        _manager._treeLock.ExitWriteLock();
+                    }
+
+                    // 添加标签
+                    foreach (string tag in _tags)
+                    {
+                        if (!string.IsNullOrWhiteSpace(tag))
+                        {
+                            _manager.AddTagInt(_entityId, tag);
+                        }
+                    }
+
+                    // 存储元数据
+                    if (_metadata != null)
+                    {
+                        _manager._metadataLock.EnterWriteLock();
+                        try
+                        {
+                            _manager._metadataStoreInt[_entityId] = _metadata;
                         }
                         finally
                         {
