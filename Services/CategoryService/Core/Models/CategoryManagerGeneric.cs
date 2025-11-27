@@ -1068,7 +1068,7 @@ namespace EasyPack.Category
         /// </summary>
         public string SerializeToJson()
         {
-            return CategoryManagerSerializer.Serialize(this);
+            return "{}"; //TODO: 待实现
         }
 
         #endregion
@@ -1140,8 +1140,7 @@ namespace EasyPack.Category
                 TotalEntities = _entities.Count,
                 TotalCategories = _categoryNodes.Count,
                 TotalTags = _tagMapper.Count,
-                CacheSize = _tagCache.Count,
-                CacheHitRate = _totalCacheQueries > 0 ? (double)_cacheHits / _totalCacheQueries : 0,
+                CacheHitRate = (float)(_totalCacheQueries > 0 ? (double)_cacheHits / _totalCacheQueries : 0),
             };
             _lastStatisticsUpdate = now;
 

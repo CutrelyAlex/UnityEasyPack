@@ -10,6 +10,7 @@ namespace EasyPack.Category
     /// <summary>
     ///     通用分类管理系统，支持层级分类、标签、元数据 查询。
     /// </summary>
+    [Obsolete("请使用 CategoryManager<T, TKey> 替代，它支持任意键类型。CategoryManager<T> 将在未来版本中移除。", false)]
     public class CategoryManager<T> : ICategoryManager<T>
     {
         #region 属性实例基本属性

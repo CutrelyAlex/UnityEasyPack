@@ -130,10 +130,9 @@ namespace EasyPack.EmeCardSystem
         {
             get
             {
-                if (Engine?.CategoryManager != null)
+                if (Engine?.CategoryManager != null && UID >= 0)
                 {
-                    string entityId = $"{Id}#{Index}";
-                    return Engine.CategoryManager.GetReadableCategoryPath(entityId);
+                    return Engine.CategoryManager.GetReadableCategoryPath(UID);
                 }
 
                 return Data?.Category ?? CardData.DEFAULT_CATEGORY;
@@ -183,7 +182,7 @@ namespace EasyPack.EmeCardSystem
         public bool HasTag(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return false;
-            if (Engine?.CategoryManager == null || Index < 0) return false;
+            if (Engine?.CategoryManager == null || UID < 0) return false;
             
             return Engine.CategoryManager.HasTag(this, tag);
         }
@@ -196,12 +195,12 @@ namespace EasyPack.EmeCardSystem
         public bool AddTag(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return false;
-            if (Engine?.CategoryManager == null || Index < 0) return false;
+            if (Engine?.CategoryManager == null || UID < 0) return false;
             
             // 检查是否已存在
             if (Engine.CategoryManager.HasTag(this, tag)) return false;
             
-            OperationResult op = Engine.CategoryManager.AddTag(EntityId, tag);
+            OperationResult op = Engine.CategoryManager.AddTag(UID, tag);
             return op.IsSuccess;
         }
 
@@ -213,7 +212,7 @@ namespace EasyPack.EmeCardSystem
         public bool AddTags(string[] tags)
         {
             if (tags == null || tags.Length == 0) return false;
-            if (Engine?.CategoryManager == null || Index < 0) return false;
+            if (Engine?.CategoryManager == null || UID < 0) return false;
             
             // 过滤出未存在的标签
             var newTags = new List<string>();
@@ -227,7 +226,7 @@ namespace EasyPack.EmeCardSystem
             
             if (newTags.Count == 0) return false;
             
-            OperationResult op = Engine.CategoryManager.AddTags(EntityId, newTags.ToArray());
+            OperationResult op = Engine.CategoryManager.AddTags(UID, newTags.ToArray());
             return op.IsSuccess;
         }
         
@@ -239,12 +238,12 @@ namespace EasyPack.EmeCardSystem
         public bool RemoveTag(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return false;
-            if (Engine?.CategoryManager == null || Index < 0) return false;
+            if (Engine?.CategoryManager == null || UID < 0) return false;
             
             // 检查是否存在
             if (!Engine.CategoryManager.HasTag(this, tag)) return false;
             
-            OperationResult op = Engine.CategoryManager.RemoveTag(EntityId, tag);
+            OperationResult op = Engine.CategoryManager.RemoveTag(UID, tag);
             return op.IsSuccess;
         }
 

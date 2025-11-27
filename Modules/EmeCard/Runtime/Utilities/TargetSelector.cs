@@ -22,12 +22,12 @@ namespace EasyPack.EmeCardSystem
         private static volatile bool _isCacheInitialized = false;
 
         // CategoryManager 引用
-        private static ICategoryManager<Card> _categoryManager;
+        private static ICategoryManager<Card, int> _categoryManager;
 
         /// <summary>
         ///     设置 CategoryManager 引用。
         /// </summary>
-        public static void SetCategoryManager(ICategoryManager<Card> categoryManager)
+        public static void SetCategoryManager(ICategoryManager<Card, int> categoryManager)
         {
             _categoryManager = categoryManager;
         }
@@ -38,7 +38,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="allCards">系统中所有已注册的卡牌</param>
         /// <param name="categoryManager">可选的 CategoryManager 引用</param>
-        public static void InitializeTagCache(IEnumerable<Card> allCards, ICategoryManager<Card> categoryManager = null)
+        public static void InitializeTagCache(IEnumerable<Card> allCards, ICategoryManager<Card, int> categoryManager = null)
         {
             if (categoryManager != null)
                 _categoryManager = categoryManager;
@@ -204,7 +204,7 @@ namespace EasyPack.EmeCardSystem
             Card root,
             string filterValue = null,
             int maxDepth = int.MaxValue,
-            ICategoryManager<Card> categoryManager = null)
+            ICategoryManager<Card, int> categoryManager = null)
         {
             if (root == null)
                 return Array.Empty<Card>();
@@ -289,7 +289,7 @@ namespace EasyPack.EmeCardSystem
             IReadOnlyList<Card> cards,
             CardFilterMode filter,
             string filterValue,
-            ICategoryManager<Card> categoryManager = null)
+            ICategoryManager<Card, int> categoryManager = null)
         {
             if (cards == null || cards.Count == 0)
                 return Array.Empty<Card>();
@@ -319,7 +319,7 @@ namespace EasyPack.EmeCardSystem
         private static IReadOnlyList<Card> FilterByTag(
             IReadOnlyList<Card> cards,
             string tag,
-            ICategoryManager<Card> categoryManager)
+            ICategoryManager<Card, int> categoryManager)
         {
             if (string.IsNullOrEmpty(tag))
                 return Array.Empty<Card>();
@@ -388,7 +388,7 @@ namespace EasyPack.EmeCardSystem
         private static IReadOnlyList<Card> FilterByCategory(
             IReadOnlyList<Card> cards,
             string categoryStr,
-            ICategoryManager<Card> categoryManager)
+            ICategoryManager<Card, int> categoryManager)
         {
             if (string.IsNullOrEmpty(categoryStr))
                 return Array.Empty<Card>();
