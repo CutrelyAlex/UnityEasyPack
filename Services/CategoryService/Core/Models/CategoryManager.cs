@@ -8,149 +8,101 @@ using EasyPack.CustomData;
 namespace EasyPack.Category
 {
     /// <summary>
-    ///     通用分类管理系统，支持层级分类、标签、元数据 查询。
+    ///     双泛型分类管理系统，支持自定义键类型。
+    ///     <para>T: 实体类型</para>
+    ///     <para>TKey: 键类型（如 int, string, Guid 等）</para>
     /// </summary>
-    [Obsolete("请使用 CategoryManager<T, TKey> 替代，它支持任意键类型。CategoryManager<T> 将在未来版本中移除。", false)]
-    public class CategoryManager<T> : ICategoryManager<T>
+    /// <typeparam name="T">实体类型</typeparam>
+    /// <typeparam name="TKey">键类型，必须实现 IEquatable&lt;TKey&gt;</typeparam>
+    public class CategoryManager<T, TKey> : ICategoryManager<T, TKey>
+        where TKey : IEquatable<TKey>
     {
-        #region 属性实例基本属性
+        #region 属性
 
         /// <summary>
         ///     获取实体类型。
         /// </summary>
         public Type EntityType => typeof(T);
 
+        /// <summary>
+        ///     获取键类型。
+        /// </summary>
+        public Type KeyType => typeof(TKey);
+
         #endregion
 
         #region 字段
 
-        // 基础字段
-        private readonly Func<T, string> _idExtractor;
-        private readonly Func<T, int> _idExtractorInt;
-        private readonly bool _useIntId;
+        // 键提取器
+        private readonly Func<T, TKey> _keyExtractor;
 
-        // 实体存储 (字符串ID)
-        private Dictionary<string, T> _entities; // 实体ID->实体对象
-
-        // 实体存储 (整数ID) - 
-        private Dictionary<int, T> _entitiesInt; // 整数实体ID->实体对象
+        // 实体存储
+        private readonly Dictionary<TKey, T> _entities;
 
         // 分类树
-        private Dictionary<int, CategoryNode> _categoryNodes;
-        private Dictionary<string, int> _categoryNameToId; // 分类名称 → 整数ID
-        private Dictionary<int, string> _categoryIdToName; // 整数ID → 分类名称
+        private readonly Dictionary<int, CategoryNode> _categoryNodes;
+        private readonly Dictionary<string, int> _categoryNameToId;
+        private readonly Dictionary<int, string> _categoryIdToName;
 
-        // 标签系统 (字符串ID)
-        private Dictionary<int, HashSet<string>> _tagToEntityIds; // tagId → entityIds (string)
-        private Dictionary<string, HashSet<int>> _entityToTagIds; // entityId (string) → tagIds
-        private Dictionary<int, ReaderWriterLockSlim> _tagLocks;
-        private Dictionary<int, List<T>> _tagCache; // 整数键缓存
+        // 标签系统
+        private readonly Dictionary<int, HashSet<TKey>> _tagToEntityKeys; // tagId → entityKeys
+        private readonly Dictionary<TKey, HashSet<int>> _entityToTagIds;  // entityKey → tagIds
+        private readonly Dictionary<int, ReaderWriterLockSlim> _tagLocks;
+        private readonly Dictionary<int, List<T>> _tagCache;
 
-        // 标签系统 (整数ID) - 
-        private Dictionary<int, HashSet<int>> _tagToEntityIdsInt; // tagId → entityIds (int)
-        private Dictionary<int, HashSet<int>> _entityToTagIdsInt; // entityId (int) → tagIds
-
-        // 反向索引缓存 (字符串ID)
-        private Dictionary<string, CategoryNode> _entityIdToNode; // entityId (string) → 所属分类节点
-
-        // 反向索引缓存 (整数ID) - 
-        private Dictionary<int, CategoryNode> _entityIdToNodeInt; // entityId (int) → 所属分类节点
+        // 反向索引缓存
+        private readonly Dictionary<TKey, CategoryNode> _entityKeyToNode; // entityKey → 所属分类节点
 
         // 映射层
-        private IntegerMapper _tagMapper;
-        private IntegerMapper _categoryTermMapper;
+        private readonly IntegerMapper _tagMapper;
+        private readonly IntegerMapper _categoryTermMapper;
 
-        // 元数据存储 (字符串ID)
-        private Dictionary<string, CustomDataCollection> _metadataStore;
-
-        // 元数据存储 (整数ID) - 
-        private Dictionary<int, CustomDataCollection> _metadataStoreInt;
+        // 元数据存储
+        private readonly Dictionary<TKey, CustomDataCollection> _metadataStore;
 
         // 锁
-        private ReaderWriterLockSlim _treeLock;
-        private ReaderWriterLockSlim _entitiesLock; // 保护 _entities 和 _entitiesInt 字典
-        private ReaderWriterLockSlim _metadataLock; // 保护 _metadataStore 和 _metadataStoreInt 字典
+        private readonly ReaderWriterLockSlim _treeLock;
+        private readonly ReaderWriterLockSlim _entitiesLock;
+        private readonly ReaderWriterLockSlim _metadataLock;
+
+        // 键比较器
+        private readonly IEqualityComparer<TKey> _keyComparer;
 
         #endregion
 
         #region 构造
 
         /// <summary>
-        ///     使用字符串 ID 提取器初始化 CategoryManager。
+        ///     使用键提取器初始化 CategoryManager。
         /// </summary>
-        /// <param name="idExtractor">从实体提取字符串 ID 的函数。</param>
-        public CategoryManager(Func<T, string> idExtractor)
+        /// <param name="keyExtractor">从实体提取键的函数。</param>
+        /// <param name="keyComparer">可选的键比较器，默认使用 EqualityComparer&lt;TKey&gt;.Default。</param>
+        public CategoryManager(Func<T, TKey> keyExtractor, IEqualityComparer<TKey> keyComparer = null)
         {
-            _idExtractor = idExtractor ?? throw new ArgumentNullException(nameof(idExtractor));
-            _idExtractorInt = null;
-            _useIntId = false;
+            _keyExtractor = keyExtractor ?? throw new ArgumentNullException(nameof(keyExtractor));
+            _keyComparer = keyComparer ?? EqualityComparer<TKey>.Default;
 
-            InitializeCollections();
+            // 使用比较器初始化字典
+            _entities = new Dictionary<TKey, T>(_keyComparer);
+            _entityKeyToNode = new Dictionary<TKey, CategoryNode>(_keyComparer);
+            _tagToEntityKeys = new Dictionary<int, HashSet<TKey>>();
+            _entityToTagIds = new Dictionary<TKey, HashSet<int>>(_keyComparer);
+            _metadataStore = new Dictionary<TKey, CustomDataCollection>(_keyComparer);
+
+            _categoryNodes = new Dictionary<int, CategoryNode>();
+            _categoryNameToId = new Dictionary<string, int>(StringComparer.Ordinal);
+            _categoryIdToName = new Dictionary<int, string>();
+
+            _tagLocks = new Dictionary<int, ReaderWriterLockSlim>();
+            _tagCache = new Dictionary<int, List<T>>();
+
+            _tagMapper = new IntegerMapper();
+            _categoryTermMapper = new IntegerMapper();
+
+            _treeLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+            _entitiesLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+            _metadataLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         }
-
-        /// <summary>
-        ///     使用整数 ID 提取器初始化 CategoryManager。
-        ///     这是更高效的方式，避免了字符串转换开销。
-        /// </summary>
-        /// <param name="idExtractorInt">从实体提取整数 ID 的函数。</param>
-        public CategoryManager(Func<T, int> idExtractorInt)
-        {
-            _idExtractorInt = idExtractorInt ?? throw new ArgumentNullException(nameof(idExtractorInt));
-            _idExtractor = null;
-            _useIntId = true;
-
-            InitializeCollections();
-        }
-
-        /// <summary>
-        ///     初始化所有内部集合。
-        /// </summary>
-        private void InitializeCollections()
-        {
-            // 字符串ID存储
-            _entities = new();
-
-            // 整数ID存储
-            _entitiesInt = new();
-
-            _categoryNodes = new();
-            _categoryNameToId = new();
-            _categoryIdToName = new();
-
-            // 字符串ID标签系统
-            _tagToEntityIds = new();
-            _entityToTagIds = new();
-            _tagLocks = new();
-            _tagCache = new();
-
-            // 整数ID标签系统
-            _tagToEntityIdsInt = new();
-            _entityToTagIdsInt = new();
-
-            // 字符串ID反向索引
-            _entityIdToNode = new(StringComparer.Ordinal);
-
-            // 整数ID反向索引
-            _entityIdToNodeInt = new();
-
-            _tagMapper = new();
-            _categoryTermMapper = new();
-
-            // 字符串ID元数据
-            _metadataStore = new();
-
-            // 整数ID元数据
-            _metadataStoreInt = new();
-
-            _treeLock = new(LockRecursionPolicy.NoRecursion);
-            _entitiesLock = new(LockRecursionPolicy.NoRecursion);
-            _metadataLock = new(LockRecursionPolicy.NoRecursion);
-        }
-
-        /// <summary>
-        ///     获取是否使用整数 ID 模式。
-        /// </summary>
-        public bool UseIntId => _useIntId;
 
         #endregion
 
@@ -159,226 +111,37 @@ namespace EasyPack.Category
         /// <summary>
         ///     注册实体到指定分类（同步操作）。
         /// </summary>
-        /// <param name="entity">要注册的实体。</param>
-        /// <param name="category">目标分类名称。</param>
-        /// <returns>操作结果。</returns>
         public OperationResult RegisterEntityComplete(T entity, string category) =>
             RegisterEntity(entity, category).Complete();
 
         /// <summary>
         ///     开始注册实体，支持链式调用添加标签和元数据。
-        ///     如果使用整数 ID 模式构造，将自动使用整数 ID 注册。
         /// </summary>
-        /// <param name="entity">要注册的实体。</param>
-        /// <param name="category">目标分类名称。</param>
-        /// <returns>链式注册对象。</returns>
         public IEntityRegistration RegisterEntity(T entity, string category)
         {
-            if (_useIntId)
-            {
-                // 使用整数 ID 模式
-                int intId = _idExtractorInt(entity);
-                return new EntityRegistrationInt(this, intId, entity, category, OperationResult.Success());
-            }
-            else
-            {
-                // 使用字符串 ID 模式
-                string id = _idExtractor(entity);
-                return RegisterEntityInternal(entity, id, category);
-            }
+            TKey key = _keyExtractor(entity);
+            return new EntityRegistrationGeneric(this, key, entity, category, OperationResult.Success());
         }
 
         /// <summary>
         ///     注册实体，自动验证分类名称格式。
         /// </summary>
-        /// <param name="entity">要注册的实体。</param>
-        /// <param name="category">目标分类名称（将自动规范化）。</param>
-        /// <returns>链式注册对象；若分类名称无效，返回失败结果。</returns>
         public IEntityRegistration RegisterEntitySafe(T entity, string category)
         {
+            TKey key = _keyExtractor(entity);
             category = CategoryNameNormalizer.Normalize(category);
+            
             if (!CategoryNameNormalizer.IsValid(category, out string errorMessage))
-            {
-                if (_useIntId)
-                {
-                    int intId = _idExtractorInt(entity);
-                    return new EntityRegistrationInt(this, intId, entity, category,
-                        OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage));
-                }
-                else
-                {
-                    string id = _idExtractor(entity);
-                    return new EntityRegistration(this, id, entity, category,
-                        OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage));
-                }
-            }
-
-            return RegisterEntity(entity, category);
-        }
-
-        /// <summary>
-        ///     注册实体，指定ID和分类名称，自动验证分类格式。
-        /// </summary>
-        /// <param name="entity">要注册的实体。</param>
-        /// <param name="id">实体ID。</param>
-        /// <param name="category">目标分类名称（将自动规范化）。</param>
-        /// <returns>链式注册对象；若分类名称无效，返回失败结果。</returns>
-        public IEntityRegistration RegisterEntitySafeWithId(T entity, string id, string category)
-        {
-            category = CategoryNameNormalizer.Normalize(category);
-            if (!CategoryNameNormalizer.IsValid(category, out string errorMessage))
-                return new EntityRegistration(this, id, entity, category,
+                return new EntityRegistrationGeneric(this, key, entity, category,
                     OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage));
 
-            return RegisterEntityInternal(entity, id, category);
+            return new EntityRegistrationGeneric(this, key, entity, category, OperationResult.Success());
         }
 
         /// <summary>
-        ///     内部注册逻辑，验证实体ID唯一性。
+        ///     使用显式键注册实体到指定分类。
         /// </summary>
-        /// <param name="entity">要注册的实体。</param>
-        /// <param name="id">实体ID。</param>
-        /// <param name="category">目标分类。</param>
-        /// <returns>链式注册对象；若ID已存在，返回失败结果。</returns>
-        private IEntityRegistration RegisterEntityInternal(T entity, string id, string category)
-        {
-            if (string.IsNullOrEmpty(id))
-                return new EntityRegistration(this, id, entity, category,
-                    OperationResult.Failure(ErrorCode.InvalidCategory, $"实体 ID 不能为空"));
-
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (_entities.ContainsKey(id))
-                    return new EntityRegistration(this, id, entity, category,
-                        OperationResult.Failure(ErrorCode.DuplicateId, $"实体 ID '{id}' 已存在"));
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            return new EntityRegistration(this, id, entity, category, OperationResult.Success());
-        }
-
-        /// <summary>
-        ///     仅注册分类关联
-        ///     适用于Entity无法序列化的场景，此时只保留ID、分类、标签和元数据的关联。
-        /// </summary>
-        /// <param name="id">实体ID。</param>
-        /// <param name="category">分类名称。</param>
-        /// <param name="tags">标签列表（可选）。</param>
-        /// <param name="metadata">元数据（可选）。</param>
-        /// <returns>OperationResult</returns>
-        public OperationResult RegisterCategoryAssociationOnly(
-            string id,
-            string category,
-            List<string> tags = null,
-            CustomDataCollection metadata = null)
-        {
-            if (string.IsNullOrEmpty(id))
-                return OperationResult.Failure(ErrorCode.InvalidCategory, "实体 ID 不能为空");
-
-            category = CategoryNameNormalizer.Normalize(category);
-            if (!CategoryNameNormalizer.IsValid(category, out string errorMessage))
-                return OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage);
-
-            _treeLock.EnterWriteLock();
-            try
-            {
-                // 获取或创建分类节点
-                CategoryNode node = GetOrCreateNode(category);
-                node.AddEntity(id);
-                _entityIdToNode[id] = node; // 缓存 entityId -> node 映射
-
-                // 添加标签
-                if (tags is { Count: > 0 })
-                    foreach (string tag in tags)
-                    {
-                        if (string.IsNullOrWhiteSpace(tag)) continue;
-
-                        int tagId = _tagMapper.GetOrAssignId(tag);
-                        if (!_tagToEntityIds.TryGetValue(tagId, out var entityIds))
-                        {
-                            entityIds = new();
-                            _tagToEntityIds[tagId] = entityIds;
-                        }
-
-                        entityIds.Add(id);
-
-                        if (!_entityToTagIds.TryGetValue(id, out var tagIds))
-                        {
-                            tagIds = new();
-                            _entityToTagIds[id] = tagIds;
-                        }
-
-                        tagIds.Add(tagId);
-                    }
-
-                // 添加元数据
-                if (metadata != null)
-                {
-                    _metadataLock.EnterWriteLock();
-                    try
-                    {
-                        _metadataStore[id] = metadata;
-                    }
-                    finally
-                    {
-                        _metadataLock.ExitWriteLock();
-                    }
-                }
-
-#if UNITY_EDITOR
-                _cachedStatistics = null;
-#endif
-
-                return OperationResult.Success();
-            }
-            finally
-            {
-                _treeLock.ExitWriteLock();
-            }
-        }
-
-        /// <summary>
-        ///     批量注册多个实体到同一分类。
-        /// </summary>
-        /// <param name="entities">实体列表。</param>
-        /// <param name="category">目标分类名称。</param>
-        /// <returns>批量操作结果，含成功数、失败数和详细信息。</returns>
-        public BatchOperationResult RegisterBatch(List<T> entities, string category)
-        {
-            var results = new List<(string EntityId, bool Success, ErrorCode ErrorCode, string ErrorMessage)>();
-            int successCount = 0;
-
-            foreach (T entity in entities)
-            {
-                string id = _idExtractor(entity);
-                IEntityRegistration registration = RegisterEntitySafe(entity, category);
-                OperationResult result = registration.Complete();
-
-                results.Add((id, result.IsSuccess, result.ErrorCode, result.ErrorMessage));
-                if (result.IsSuccess) successCount++;
-            }
-
-            return new()
-            {
-                TotalCount = entities.Count,
-                SuccessCount = successCount,
-                FailureCount = entities.Count - successCount,
-                Details = results,
-            };
-        }
-
-        /// <summary>
-        ///     使用整数ID注册实体到指定分类（整数ID）。
-        /// </summary>
-        /// <param name="entityId">实体整数ID。</param>
-        /// <param name="entity">要注册的实体。</param>
-        /// <param name="category">目标分类名称。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult RegisterEntityInt(int entityId, T entity, string category)
+        public OperationResult RegisterEntity(TKey key, T entity, string category)
         {
             category = CategoryNameNormalizer.Normalize(category);
             if (!CategoryNameNormalizer.IsValid(category, out string errorMessage))
@@ -387,8 +150,8 @@ namespace EasyPack.Category
             _entitiesLock.EnterReadLock();
             try
             {
-                if (_entitiesInt.ContainsKey(entityId))
-                    return OperationResult.Failure(ErrorCode.DuplicateId, $"整数实体 ID '{entityId}' 已存在");
+                if (_entities.ContainsKey(key))
+                    return OperationResult.Failure(ErrorCode.DuplicateId, $"实体键 '{key}' 已存在");
             }
             finally
             {
@@ -398,23 +161,19 @@ namespace EasyPack.Category
             _treeLock.EnterWriteLock();
             try
             {
-                // 获取或创建分类节点
                 CategoryNode node = GetOrCreateNode(category);
 
-                // 注册到整数ID存储
                 _entitiesLock.EnterWriteLock();
                 try
                 {
-                    _entitiesInt[entityId] = entity;
+                    _entities[key] = entity;
                 }
                 finally
                 {
                     _entitiesLock.ExitWriteLock();
                 }
 
-                // 添加到分类节点（使用整数ID的字符串表示用于节点内部）
-                // 但整数ID缓存使用的映射
-                _entityIdToNodeInt[entityId] = node;
+                _entityKeyToNode[key] = node;
 
 #if UNITY_EDITOR
                 _cachedStatistics = null;
@@ -429,16 +188,11 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     使用整数ID注册实体并添加标签（整数ID）。
+        ///     使用显式键注册实体并添加标签。
         /// </summary>
-        /// <param name="entityId">实体整数ID。</param>
-        /// <param name="entity">要注册的实体。</param>
-        /// <param name="category">目标分类名称。</param>
-        /// <param name="tags">标签列表。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult RegisterEntityIntWithTags(int entityId, T entity, string category, params string[] tags)
+        public OperationResult RegisterEntityWithTags(TKey key, T entity, string category, params string[] tags)
         {
-            OperationResult result = RegisterEntityInt(entityId, entity, category);
+            OperationResult result = RegisterEntity(key, entity, category);
             if (!result.IsSuccess) return result;
 
             if (tags != null && tags.Length > 0)
@@ -447,7 +201,7 @@ namespace EasyPack.Category
                 {
                     if (!string.IsNullOrWhiteSpace(tag))
                     {
-                        AddTagInt(entityId, tag);
+                        AddTagInternal(key, tag);
                     }
                 }
             }
@@ -456,16 +210,11 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     使用整数ID注册实体并添加元数据（整数ID）。
+        ///     使用显式键注册实体并添加元数据。
         /// </summary>
-        /// <param name="entityId">实体整数ID。</param>
-        /// <param name="entity">要注册的实体。</param>
-        /// <param name="category">目标分类名称。</param>
-        /// <param name="metadata">元数据。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult RegisterEntityIntWithMetadata(int entityId, T entity, string category, CustomDataCollection metadata)
+        public OperationResult RegisterEntityWithMetadata(TKey key, T entity, string category, CustomDataCollection metadata)
         {
-            OperationResult result = RegisterEntityInt(entityId, entity, category);
+            OperationResult result = RegisterEntity(key, entity, category);
             if (!result.IsSuccess) return result;
 
             if (metadata != null)
@@ -473,7 +222,7 @@ namespace EasyPack.Category
                 _metadataLock.EnterWriteLock();
                 try
                 {
-                    _metadataStoreInt[entityId] = metadata;
+                    _metadataStore[key] = metadata;
                 }
                 finally
                 {
@@ -484,46 +233,59 @@ namespace EasyPack.Category
             return OperationResult.Success();
         }
 
+        /// <summary>
+        ///     批量注册多个实体到同一分类。
+        /// </summary>
+        public BatchOperationResult RegisterBatch(List<T> entities, string category)
+        {
+            var results = new List<(string EntityId, bool Success, ErrorCode ErrorCode, string ErrorMessage)>();
+            int successCount = 0;
+
+            foreach (T entity in entities)
+            {
+                TKey key = _keyExtractor(entity);
+                OperationResult result = RegisterEntity(key, entity, category);
+                results.Add((key?.ToString() ?? "null", result.IsSuccess, result.ErrorCode, result.ErrorMessage));
+                if (result.IsSuccess) successCount++;
+            }
+
+            return new BatchOperationResult
+            {
+                TotalCount = entities.Count,
+                SuccessCount = successCount,
+                FailureCount = entities.Count - successCount,
+                Details = results,
+            };
+        }
+
         #endregion
 
         #region 实体查询
 
         /// <summary>
-        ///     按分类查询实体，支持通配符匹配和子分类包含。
+        ///     按分类查询实体。
         /// </summary>
-        /// <param name="pattern">分类名称或通配符模式（如 "Equipment.*"）。</param>
-        /// <param name="includeChildren">是否包含子分类中的实体。</param>
-        /// <returns>匹配的实体列表。</returns>
         public IReadOnlyList<T> GetByCategory(string pattern, bool includeChildren = false)
         {
             pattern = CategoryNameNormalizer.Normalize(pattern);
 
-            var entityIds = new HashSet<string>();
+            var entityKeys = new HashSet<TKey>(_keyComparer);
 
             _treeLock.EnterReadLock();
             try
             {
                 if (pattern.Contains("*"))
                 {
-                    // 通配符查询编译正则表达式，遍历所有节点
                     Regex regex = ConvertWildcardToRegex(pattern);
-
-                    foreach ((int key, CategoryNode node) in _categoryNodes)
+                    foreach (var kvp in _categoryNameToId)
                     {
-                        if (!_categoryIdToName.TryGetValue(key, out string nodePath)) continue;
-
-                        if (!regex.IsMatch(nodePath)) continue;
-
-                        if (includeChildren)
-                            foreach (string id in node.GetSubtreeEntityIds())
+                        if (regex.IsMatch(kvp.Key))
+                        {
+                            if (_categoryNodes.TryGetValue(kvp.Value, out CategoryNode node))
                             {
-                                entityIds.Add(id);
+                                CollectEntityKeysFromNode(node, entityKeys, includeChildren);
                             }
-                        else
-                            foreach (string id in node.EntityIds)
-                            {
-                                entityIds.Add(id);
-                            }
+                        }
                     }
                 }
                 else
@@ -531,16 +293,7 @@ namespace EasyPack.Category
                     if (_categoryTermMapper.TryGetId(pattern, out int nodeId) &&
                         _categoryNodes.TryGetValue(nodeId, out CategoryNode node))
                     {
-                        if (includeChildren)
-                            foreach (string id in node.GetSubtreeEntityIds())
-                            {
-                                entityIds.Add(id);
-                            }
-                        else
-                            foreach (string id in node.EntityIds)
-                            {
-                                entityIds.Add(id);
-                            }
+                        CollectEntityKeysFromNode(node, entityKeys, includeChildren);
                     }
                 }
             }
@@ -552,8 +305,9 @@ namespace EasyPack.Category
             _entitiesLock.EnterReadLock();
             try
             {
-                var result = entityIds.Select(id => _entities[id]).ToList();
-                return result;
+                return entityKeys.Select(k => _entities.TryGetValue(k, out T e) ? e : default)
+                                 .Where(e => e != null)
+                                 .ToList();
             }
             finally
             {
@@ -561,19 +315,38 @@ namespace EasyPack.Category
             }
         }
 
+        private void CollectEntityKeysFromNode(CategoryNode node, HashSet<TKey> keys, bool includeChildren)
+        {
+            int targetNodeId = node.TermId;
+
+            foreach (var kvp in _entityKeyToNode)
+            {
+                if (kvp.Value.TermId == targetNodeId)
+                {
+                    keys.Add(kvp.Key);
+                }
+            }
+
+            if (includeChildren)
+            {
+                foreach (CategoryNode child in node.Children)
+                {
+                    CollectEntityKeysFromNode(child, keys, true);
+                }
+            }
+        }
+
         /// <summary>
-        ///     按 ID 查询实体。
+        ///     按键查询实体。
         /// </summary>
-        /// <param name="id">实体 ID。</param>
-        /// <returns>包含实体的操作结果；若没有找到，返回失败。</returns>
-        public OperationResult<T> GetById(string id)
+        public OperationResult<T> GetById(TKey key)
         {
             _entitiesLock.EnterReadLock();
             try
             {
-                return _entities.TryGetValue(id, out T entity)
-                    ? OperationResult<T>.Success(entity)
-                    : OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+                if (_entities.TryGetValue(key, out T entity))
+                    return OperationResult<T>.Success(entity);
+                return OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
             }
             finally
             {
@@ -582,18 +355,40 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     按整数 ID 查询实体（使用整数ID）。
+        ///     按正则表达式查询分类中的实体。
         /// </summary>
-        /// <param name="id">实体整数 ID。</param>
-        /// <returns>包含实体的操作结果；若没有找到，返回失败。</returns>
-        public OperationResult<T> GetById(int id)
+        public IReadOnlyList<T> GetByCategoryRegex(string pattern, bool includeChildren = false)
         {
+            if (string.IsNullOrEmpty(pattern)) return new List<T>();
+
+            var entityKeys = new HashSet<TKey>(_keyComparer);
+
+            _treeLock.EnterReadLock();
+            try
+            {
+                Regex regex = RegexCache.GetOrCreate(pattern);
+                foreach (var kvp in _categoryNameToId)
+                {
+                    if (regex.IsMatch(kvp.Key))
+                    {
+                        if (_categoryNodes.TryGetValue(kvp.Value, out CategoryNode node))
+                        {
+                            CollectEntityKeysFromNode(node, entityKeys, includeChildren);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                _treeLock.ExitReadLock();
+            }
+
             _entitiesLock.EnterReadLock();
             try
             {
-                return _entitiesInt.TryGetValue(id, out T entity)
-                    ? OperationResult<T>.Success(entity)
-                    : OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到整数 ID 为 '{id}' 的实体");
+                return entityKeys.Select(k => _entities.TryGetValue(k, out T e) ? e : default)
+                                 .Where(e => e != null)
+                                 .ToList();
             }
             finally
             {
@@ -602,38 +397,17 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     按 ID 查询实体并获取其分类路径。
+        ///     获取实体的分类路径。
         /// </summary>
-        /// <param name="id">实体 ID。</param>
-        /// <returns>
-        ///     包含 (T entity, string categoryPath, bool success)
-        /// </returns>
-        public (T entity, string categoryPath, bool success) GetByIdWithCategory(string id)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entities.TryGetValue(id, out T entity)) return (default, string.Empty, false);
-
-                string categoryPath = GetReadableCategoryPath(id);
-                return (entity, categoryPath, true);
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-        }
-
-        /// <summary>
-        ///     获取所有分类节点（包括中间节点）。
-        /// </summary>
-        /// <returns>分类名称列表。</returns>
-        public IReadOnlyList<string> GetCategoriesNodes()
+        public string GetReadableCategoryPath(TKey key)
         {
             _treeLock.EnterReadLock();
             try
             {
-                return _categoryIdToName.Values.ToList();
+                if (!_entityKeyToNode.TryGetValue(key, out CategoryNode node))
+                    return string.Empty;
+
+                return GetNodeReadablePath(node);
             }
             finally
             {
@@ -642,22 +416,115 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     获取叶子分类（没有子分类的分类）。
+        ///     从路径 ID 数组获取可读路径。
         /// </summary>
-        /// <returns>叶子分类名称列表。</returns>
+        public string GetReadablePathFromIds(int[] pathIds)
+        {
+            if (pathIds == null || pathIds.Length == 0) return string.Empty;
+
+            var parts = new List<string>(pathIds.Length);
+            foreach (int id in pathIds)
+            {
+                if (_categoryIdToName.TryGetValue(id, out string name))
+                {
+                    string[] segments = name.Split('.');
+                    if (segments.Length > 0)
+                        parts.Add(segments[^1]);
+                }
+            }
+
+            return string.Join(".", parts);
+        }
+
+        /// <summary>
+        ///     获取节点的可读路径。
+        /// </summary>
+        public string GetNodeReadablePath(CategoryNode node)
+        {
+            if (node == null) return string.Empty;
+            if (_categoryIdToName.TryGetValue(node.TermId, out string path))
+                return path;
+            return string.Empty;
+        }
+
+        /// <summary>
+        ///     检查实体是否在指定分类中。
+        /// </summary>
+        public bool IsInCategory(TKey key, string category, bool includeChildren = false)
+        {
+            if (string.IsNullOrEmpty(category))
+                return false;
+
+            if (!_categoryTermMapper.TryGetId(category, out int targetCategoryId))
+                return false;
+
+            _treeLock.EnterReadLock();
+            try
+            {
+                if (!_entityKeyToNode.TryGetValue(key, out var entityNode))
+                    return false;
+
+                if (!includeChildren)
+                {
+                    return entityNode.TermId == targetCategoryId;
+                }
+                else
+                {
+                    CategoryNode current = entityNode;
+                    while (current != null)
+                    {
+                        if (current.TermId == targetCategoryId)
+                            return true;
+                        current = current.ParentNode;
+                    }
+                    return false;
+                }
+            }
+            finally
+            {
+                _treeLock.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        ///     检查实体是否在指定分类中（基于实体对象）。
+        /// </summary>
+        public bool IsInCategory(T entity, string category, bool includeChildren = false)
+        {
+            if (entity == null) return false;
+            TKey key = _keyExtractor(entity);
+            return IsInCategory(key, category, includeChildren);
+        }
+
+        /// <summary>
+        ///     获取所有分类节点。
+        /// </summary>
+        public IReadOnlyList<string> GetCategoriesNodes()
+        {
+            _treeLock.EnterReadLock();
+            try
+            {
+                return _categoryNameToId.Keys.ToList();
+            }
+            finally
+            {
+                _treeLock.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        ///     获取叶子分类。
+        /// </summary>
         public IReadOnlyList<string> GetLeafCategories()
         {
             _treeLock.EnterReadLock();
             try
             {
-                var leafCategories = new List<string>();
-                foreach ((int key, CategoryNode node) in _categoryNodes)
-                {
-                    if (node.Children.Count == 0)
-                        leafCategories.Add(_categoryIdToName[key]);
-                }
-
-                return leafCategories;
+                return _categoryNodes.Values
+                    .Where(n => n.Children.Count == 0)
+                    .Select(n => _categoryIdToName.TryGetValue(n.TermId, out string name) ? name : null)
+                    .Where(n => n != null)
+                    .ToList();
             }
             finally
             {
@@ -670,17 +537,15 @@ namespace EasyPack.Category
         #region 实体删除
 
         /// <summary>
-        ///     从所有分类和标签中删除实体。
+        ///     删除实体。
         /// </summary>
-        /// <param name="id">实体ID。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult DeleteEntity(string id)
+        public OperationResult DeleteEntity(TKey key)
         {
             _entitiesLock.EnterReadLock();
             try
             {
-                if (!_entities.ContainsKey(id))
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
+                if (!_entities.ContainsKey(key))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
             }
             finally
             {
@@ -690,146 +555,54 @@ namespace EasyPack.Category
             _treeLock.EnterWriteLock();
             try
             {
-                //var affectedNodePaths = new HashSet<string>();
+                // 从分类节点移除
+                _entityKeyToNode.Remove(key);
 
-                // 从分类中移除
-                foreach (var kvp in _categoryNodes.ToList())
+                // 从标签系统移除
+                if (_entityToTagIds.TryGetValue(key, out var tagIds))
                 {
-                    if (!kvp.Value.EntityIds.Contains(id)) continue;
-
-                    kvp.Value.RemoveEntity(id);
-                    _entityIdToNode.Remove(id); // 移除缓存
-                    //affectedNodePaths.Add(_categoryIdToName[kvp.Key]);
-
-                    CategoryNode parent = kvp.Value.ParentNode;
-                    while (parent != null)
-                        //affectedNodePaths.Add(_categoryIdToName[parent.TermId]);
+                    foreach (int tagId in tagIds)
                     {
-                        parent = parent.ParentNode;
-                    }
-                }
-
-                // 从实体存储移除
-                _entitiesLock.EnterWriteLock();
-                try
-                {
-                    _entities.Remove(id);
-                }
-                finally
-                {
-                    _entitiesLock.ExitWriteLock();
-                }
-
-                // 从标签中移除
-                if (_entityToTagIds.TryGetValue(id, out var tagIds))
-                {
-                    foreach (int tagId in tagIds.ToList())
-                    {
-                        AcquireTagWriteLock(tagId);
-                        try
+                        if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
                         {
-                            if (_tagToEntityIds.TryGetValue(tagId, out var entityIds))
+                            entityKeys.Remove(key);
+                            if (entityKeys.Count == 0)
                             {
-                                entityIds.Remove(id);
-                                if (entityIds.Count == 0) _tagToEntityIds.Remove(tagId);
+                                _tagToEntityKeys.Remove(tagId);
                             }
                         }
-                        finally
-                        {
-                            ReleaseTagLock(tagId);
-                        }
-                    }
 
-                    _entityToTagIds.Remove(id);
+                        // 清除标签缓存
+                        _tagCache.Remove(tagId);
+                    }
+                    _entityToTagIds.Remove(key);
                 }
 
-                // 从元数据移除
+                // 从元数据存储移除
                 _metadataLock.EnterWriteLock();
                 try
                 {
-                    _metadataStore.Remove(id);
+                    _metadataStore.Remove(key);
                 }
                 finally
                 {
                     _metadataLock.ExitWriteLock();
                 }
 
-                return OperationResult.Success();
-            }
-            finally
-            {
-                _treeLock.ExitWriteLock();
-            }
-        }
-
-        /// <summary>
-        ///     从所有分类和标签中删除实体（使用整数ID）。
-        /// </summary>
-        /// <param name="id">实体整数ID。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult DeleteEntity(int id)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entitiesInt.ContainsKey(id))
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到整数 ID 为 '{id}' 的实体");
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            _treeLock.EnterWriteLock();
-            try
-            {
-                // 从分类节点缓存中移除
-                _entityIdToNodeInt.Remove(id);
-
                 // 从实体存储移除
                 _entitiesLock.EnterWriteLock();
                 try
                 {
-                    _entitiesInt.Remove(id);
+                    _entities.Remove(key);
                 }
                 finally
                 {
                     _entitiesLock.ExitWriteLock();
                 }
 
-                // 从标签中移除
-                if (_entityToTagIdsInt.TryGetValue(id, out var tagIds))
-                {
-                    foreach (int tagId in tagIds.ToList())
-                    {
-                        AcquireTagWriteLock(tagId);
-                        try
-                        {
-                            if (_tagToEntityIdsInt.TryGetValue(tagId, out var entityIds))
-                            {
-                                entityIds.Remove(id);
-                                if (entityIds.Count == 0) _tagToEntityIdsInt.Remove(tagId);
-                            }
-                        }
-                        finally
-                        {
-                            ReleaseTagLock(tagId);
-                        }
-                    }
-
-                    _entityToTagIdsInt.Remove(id);
-                }
-
-                // 从元数据移除
-                _metadataLock.EnterWriteLock();
-                try
-                {
-                    _metadataStoreInt.Remove(id);
-                }
-                finally
-                {
-                    _metadataLock.ExitWriteLock();
-                }
+#if UNITY_EDITOR
+                _cachedStatistics = null;
+#endif
 
                 return OperationResult.Success();
             }
@@ -847,7 +620,7 @@ namespace EasyPack.Category
         public OperationResult DeleteCategory(string category)
         {
             category = CategoryNameNormalizer.Normalize(category);
-
+            
             _treeLock.EnterWriteLock();
             try
             {
@@ -855,30 +628,36 @@ namespace EasyPack.Category
                     !_categoryNodes.TryGetValue(nodeId, out CategoryNode node))
                     return OperationResult.Failure(ErrorCode.NotFound, $"未找到分类 '{category}'");
 
-                //var affectedNodePaths = new HashSet<string> { category };
-
-                // 删除该节点的所有实体
-                foreach (string id in node.EntityIds.ToList())
+                // 收集该分类下直接的实体键
+                var entityKeysToRemove = new List<TKey>();
+                foreach (var kvp in _entityKeyToNode)
                 {
-                    _entities.Remove(id);
-                    _metadataStore.Remove(id);
+                    if (ReferenceEquals(kvp.Value, node))
+                    {
+                        entityKeysToRemove.Add(kvp.Key);
+                    }
                 }
 
-                // 从父节点移除此节点
-                node.ParentNode?.RemoveChild(node.TermId);
-
-                // 收集祖先节点
-                CategoryNode parent = node.ParentNode;
-                while (parent != null)
-                    //affectedNodePaths.Add(_categoryIdToName[parent.TermId]);
+                // 从分类节点移除这些实体的关联
+                foreach (TKey key in entityKeysToRemove)
                 {
-                    parent = parent.ParentNode;
+                    _entityKeyToNode.Remove(key);
                 }
 
-                // 从字典移除
-                _categoryNodes.Remove(node.TermId);
+                // 从父节点移除该节点引用
+                if (node.ParentNode != null)
+                {
+                    node.ParentNode.RemoveChild(node.TermId);
+                }
+
+                // 清除分类映射
+                _categoryNodes.Remove(nodeId);
                 _categoryNameToId.Remove(category);
-                _categoryIdToName.Remove(node.TermId);
+                _categoryIdToName.Remove(nodeId);
+
+#if UNITY_EDITOR
+                _cachedStatistics = null;
+#endif
 
                 return OperationResult.Success();
             }
@@ -896,7 +675,7 @@ namespace EasyPack.Category
         public OperationResult DeleteCategoryRecursive(string category)
         {
             category = CategoryNameNormalizer.Normalize(category);
-
+            
             _treeLock.EnterWriteLock();
             try
             {
@@ -904,45 +683,91 @@ namespace EasyPack.Category
                     !_categoryNodes.TryGetValue(nodeId, out CategoryNode node))
                     return OperationResult.Failure(ErrorCode.NotFound, $"未找到分类 '{category}'");
 
-                var affectedNodePaths = new HashSet<string>();
-                var nodesToDelete = new List<(int Id, CategoryNode Node)>();
+                // 收集所有要删除的节点（包括自身及所有后代）
+                var nodesToDelete = new List<(int Id, CategoryNode Node)> { (nodeId, node) };
+                var pathSet = new HashSet<string> { category };
+                CollectDescendants(node, nodesToDelete, pathSet);
 
-                // 收集所有后代节点
-                CollectDescendants(node, nodesToDelete, affectedNodePaths);
-                nodesToDelete.Add((node.TermId, node));
-                affectedNodePaths.Add(category);
-
-                // 删除所有后代节点（从子向上）
-                for (int i = nodesToDelete.Count - 1; i >= 0; i--)
+                // 收集所有相关实体的键
+                var entityKeysToDelete = new List<TKey>();
+                foreach (var kvp in _entityKeyToNode.ToList())
                 {
-                    (int key, CategoryNode n) = nodesToDelete[i];
-                    foreach (string id in n.EntityIds.ToList())
+                    foreach (var (id, n) in nodesToDelete)
                     {
-                        _entities.Remove(id);
-                        _metadataStore.Remove(id);
-                    }
-
-                    _categoryNodes.Remove(key);
-                    _categoryIdToName.TryGetValue(key, out string nodeName);
-
-                    if (nodeName != null)
-                    {
-                        _categoryNameToId.Remove(nodeName);
-                        _categoryIdToName.Remove(key);
+                        if (ReferenceEquals(kvp.Value, n))
+                        {
+                            entityKeysToDelete.Add(kvp.Key);
+                            _entityKeyToNode.Remove(kvp.Key);
+                            break;
+                        }
                     }
                 }
 
-                // 从父节点移除根节点
+                // 删除所有相关实体（从实体存储、标签系统、元数据存储中移除）
+                foreach (TKey key in entityKeysToDelete)
+                {
+                    // 从标签系统移除
+                    if (_entityToTagIds.TryGetValue(key, out var tagIds))
+                    {
+                        foreach (int tagId in tagIds)
+                        {
+                            if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
+                            {
+                                entityKeys.Remove(key);
+                                if (entityKeys.Count == 0)
+                                {
+                                    _tagToEntityKeys.Remove(tagId);
+                                }
+                            }
+                            // 清除标签缓存
+                            _tagCache.Remove(tagId);
+                        }
+                        _entityToTagIds.Remove(key);
+                    }
+
+                    // 从元数据存储移除
+                    _metadataLock.EnterWriteLock();
+                    try
+                    {
+                        _metadataStore.Remove(key);
+                    }
+                    finally
+                    {
+                        _metadataLock.ExitWriteLock();
+                    }
+
+                    // 从实体存储移除
+                    _entitiesLock.EnterWriteLock();
+                    try
+                    {
+                        _entities.Remove(key);
+                    }
+                    finally
+                    {
+                        _entitiesLock.ExitWriteLock();
+                    }
+                }
+
+                // 删除所有收集的节点
+                foreach (var (id, n) in nodesToDelete)
+                {
+                    _categoryNodes.Remove(id);
+                    if (_categoryIdToName.TryGetValue(id, out string path))
+                    {
+                        _categoryNameToId.Remove(path);
+                        _categoryIdToName.Remove(id);
+                    }
+                }
+
+                // 从父节点移除
                 if (node.ParentNode != null)
                 {
                     node.ParentNode.RemoveChild(node.TermId);
-                    CategoryNode parent = node.ParentNode;
-                    while (parent != null)
-                    {
-                        affectedNodePaths.Add(_categoryIdToName[parent.TermId]);
-                        parent = parent.ParentNode;
-                    }
                 }
+
+#if UNITY_EDITOR
+                _cachedStatistics = null;
+#endif
 
                 return OperationResult.Success();
             }
@@ -952,25 +777,37 @@ namespace EasyPack.Category
             }
         }
 
+        /// <summary>
+        ///     递归收集所有后代节点。
+        /// </summary>
+        private void CollectDescendants(CategoryNode node, List<(int Id, CategoryNode Node)> result, HashSet<string> pathSet)
+        {
+            foreach (CategoryNode child in node.Children)
+            {
+                if (_categoryIdToName.TryGetValue(child.TermId, out string path) && !pathSet.Contains(path))
+                {
+                    pathSet.Add(path);
+                    result.Add((child.TermId, child));
+                    CollectDescendants(child, result, pathSet);
+                }
+            }
+        }
+
         #endregion
 
-        #region 层级操作和节点管理
+        #region 层级操作
 
         /// <summary>
-        ///     获取或创建分类节点（自动创建父节点）。
+        ///     获取或创建分类节点。
         /// </summary>
-        /// <param name="fullPath">完整分类路径（如 Equipment.Weapon.Sword）。</param>
-        /// <returns>分类节点。</returns>
         private CategoryNode GetOrCreateNode(string fullPath)
         {
             fullPath = CategoryNameNormalizer.Normalize(fullPath);
 
-            // 检查缓存
             if (_categoryNameToId.TryGetValue(fullPath, out int existingId) &&
                 _categoryNodes.TryGetValue(existingId, out CategoryNode existingNode))
                 return existingNode;
 
-            // 处理父节点关系
             string[] parts = fullPath.Split('.');
             CategoryNode node;
 
@@ -979,21 +816,17 @@ namespace EasyPack.Category
                 string parentPath = string.Join(".", parts.Take(parts.Length - 1));
                 CategoryNode parent = GetOrCreateNode(parentPath);
 
-                // 创建新节点ID
                 int newCategoryId = _categoryTermMapper.GetOrAssignId(fullPath);
-                // 从父节点获取或创建子节点（这样parent引用就会被正确设置）
                 node = parent.GetOrCreateChild(newCategoryId);
 
-                // 更新缓存
                 _categoryNodes[newCategoryId] = node;
                 _categoryNameToId[fullPath] = newCategoryId;
                 _categoryIdToName[newCategoryId] = fullPath;
             }
             else
             {
-                // 根节点
                 int newCategoryId = _categoryTermMapper.GetOrAssignId(fullPath);
-                node = new(newCategoryId);
+                node = new CategoryNode(newCategoryId);
                 _categoryNodes[newCategoryId] = node;
                 _categoryNameToId[fullPath] = newCategoryId;
                 _categoryIdToName[newCategoryId] = fullPath;
@@ -1002,961 +835,10 @@ namespace EasyPack.Category
             return node;
         }
 
-        /// <summary>
-        ///     将通配符模式转换为正则表达式。
-        /// </summary>
-        /// <param name="pattern">包含 * 通配符的模式。</param>
-        /// <returns>编译的正则表达式。</returns>
         private static Regex ConvertWildcardToRegex(string pattern)
         {
             string regexPattern = "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$";
             return RegexCache.GetOrCreate(regexPattern);
-        }
-
-        /// <summary>
-        ///     递归收集所有后代节点（DeleteCategoryRecursive的辅助方法）。
-        /// </summary>
-        /// <param name="node">起始节点。</param>
-        /// <param name="result">结果节点列表。</param>
-        /// <param name="pathSet">已收集的路径集合。</param>
-        private void CollectDescendants(CategoryNode node, List<(int Id, CategoryNode Node)> result,
-                                        HashSet<string> pathSet)
-        {
-            foreach (CategoryNode child in node.Children)
-            {
-                pathSet.Add(_categoryIdToName[child.TermId]);
-                result.Add((child.TermId, child));
-                CollectDescendants(child, result, pathSet);
-            }
-        }
-
-        #endregion
-
-        #region 标签系统
-
-        /// <summary>
-        ///     为实体添加标签。
-        /// </summary>
-        /// <param name="entityId">实体ID。</param>
-        /// <param name="tag">标签名称。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult AddTag(string entityId, string tag)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entities.ContainsKey(entityId))
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            if (string.IsNullOrWhiteSpace(tag)) return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
-
-            // 字符串→整数映射
-            int tagId = _tagMapper.GetOrAssignId(tag);
-
-            AcquireTagWriteLock(tagId);
-            try
-            {
-                // 添加到标签→实体映射
-                if (!_tagToEntityIds.TryGetValue(tagId, out var entityIds))
-                {
-                    entityIds = new();
-                    _tagToEntityIds[tagId] = entityIds;
-                }
-
-                entityIds.Add(entityId);
-
-                // 添加到实体→标签映射
-                if (!_entityToTagIds.TryGetValue(entityId, out var tagIds))
-                {
-                    tagIds = new();
-                    _entityToTagIds[entityId] = tagIds;
-                }
-
-                tagIds.Add(tagId);
-
-                // 失效缓存
-                _tagCache.Remove(tagId);
-
-                return OperationResult.Success();
-            }
-            finally
-            {
-                ReleaseTagLock(tagId);
-            }
-        }
-
-        /// <summary>
-        ///     为实体添加标签（使用整数ID）。
-        /// </summary>
-        /// <param name="entityId">实体整数ID。</param>
-        /// <param name="tag">标签名称。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult AddTag(int entityId, string tag)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entitiesInt.ContainsKey(entityId))
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到整数 ID 为 '{entityId}' 的实体");
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            if (string.IsNullOrWhiteSpace(tag)) return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
-
-            // 字符串→整数映射
-            int tagId = _tagMapper.GetOrAssignId(tag);
-
-            AcquireTagWriteLock(tagId);
-            try
-            {
-                // 添加到标签→实体映射（整数ID版本）
-                if (!_tagToEntityIdsInt.TryGetValue(tagId, out var entityIds))
-                {
-                    entityIds = new();
-                    _tagToEntityIdsInt[tagId] = entityIds;
-                }
-
-                entityIds.Add(entityId);
-
-                // 添加到实体→标签映射（整数ID版本）
-                if (!_entityToTagIdsInt.TryGetValue(entityId, out var tagIds))
-                {
-                    tagIds = new();
-                    _entityToTagIdsInt[entityId] = tagIds;
-                }
-
-                tagIds.Add(tagId);
-
-                // 失效缓存
-                _tagCache.Remove(tagId);
-
-                return OperationResult.Success();
-            }
-            finally
-            {
-                ReleaseTagLock(tagId);
-            }
-        }
-
-        /// <summary>
-        ///     内部方法：为整数ID实体添加标签（跳过实体存在检查，用于注册时）。
-        /// </summary>
-        private void AddTagInt(int entityId, string tag)
-        {
-            if (string.IsNullOrWhiteSpace(tag)) return;
-
-            int tagId = _tagMapper.GetOrAssignId(tag);
-
-            AcquireTagWriteLock(tagId);
-            try
-            {
-                if (!_tagToEntityIdsInt.TryGetValue(tagId, out var entityIds))
-                {
-                    entityIds = new();
-                    _tagToEntityIdsInt[tagId] = entityIds;
-                }
-                entityIds.Add(entityId);
-
-                if (!_entityToTagIdsInt.TryGetValue(entityId, out var tagIds))
-                {
-                    tagIds = new();
-                    _entityToTagIdsInt[entityId] = tagIds;
-                }
-                tagIds.Add(tagId);
-
-                _tagCache.Remove(tagId);
-            }
-            finally
-            {
-                ReleaseTagLock(tagId);
-            }
-        }
-
-        /// <summary>
-        ///     为实体批量添加标签。
-        /// </summary>
-        /// <param name="entityId">实体ID。</param>
-        /// <param name="tags">标签名称数组。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult AddTags(string entityId, params string[] tags)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entities.TryGetValue(entityId, out _))
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            if (tags == null || tags.Length == 0)
-                return OperationResult.Success();
-
-            int successCount = 0;
-            foreach (string tag in tags)
-            {
-                if (!string.IsNullOrWhiteSpace(tag))
-                {
-                    OperationResult result = AddTag(entityId, tag);
-                    if (result.IsSuccess) successCount++;
-                }
-            }
-
-            return successCount > 0 
-                ? OperationResult.Success() 
-                : OperationResult.Failure(ErrorCode.InvalidCategory, "未成功添加任何标签");
-        }
-
-        /// <summary>
-        ///     为整数ID实体批量添加标签（使用独立整数ID缓存体系）。
-        /// </summary>
-        /// <param name="entityId">实体整数ID。</param>
-        /// <param name="tags">标签名称数组。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult AddTags(int entityId, params string[] tags)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entitiesInt.TryGetValue(entityId, out _))
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到整数 ID 为 '{entityId}' 的实体");
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            if (tags == null || tags.Length == 0)
-                return OperationResult.Success();
-
-            int successCount = 0;
-            foreach (string tag in tags)
-            {
-                if (!string.IsNullOrWhiteSpace(tag))
-                {
-                    OperationResult result = AddTag(entityId, tag);
-                    if (result.IsSuccess) successCount++;
-                }
-            }
-
-            return successCount > 0 
-                ? OperationResult.Success() 
-                : OperationResult.Failure(ErrorCode.InvalidCategory, "未成功添加任何标签");
-        }
-
-        /// <summary>
-        ///     从实体移除标签。
-        /// </summary>
-        /// <param name="entityId">实体ID。</param>
-        /// <param name="tag">标签名称。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult RemoveTag(string entityId, string tag)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entities.ContainsKey(entityId))
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            if (string.IsNullOrWhiteSpace(tag)) return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
-
-            if (!_tagMapper.TryGetId(tag, out int tagId))
-                return OperationResult.Failure(ErrorCode.NotFound, $"标签 '{tag}' 不存在");
-
-            AcquireTagWriteLock(tagId);
-            try
-            {
-                if (!_tagToEntityIds.TryGetValue(tagId, out var entityIds) ||
-                    !entityIds.Remove(entityId))
-                    return OperationResult.Failure(ErrorCode.NotFound,
-                        $"实体 '{entityId}' 不具有标签 '{tag}'");
-
-                // 从实体标签集合移除
-                if (_entityToTagIds.TryGetValue(entityId, out var tagIds)) tagIds.Remove(tagId);
-
-                // 如果标签无实体，删除标签
-                if (entityIds.Count == 0) _tagToEntityIds.Remove(tagId);
-
-                // 失效缓存
-                _tagCache.Remove(tagId);
-
-                return OperationResult.Success();
-            }
-            finally
-            {
-                ReleaseTagLock(tagId);
-            }
-        }
-
-        /// <summary>
-        ///     从实体移除标签（使用整数ID）。
-        /// </summary>
-        /// <param name="entityId">实体整数ID。</param>
-        /// <param name="tag">标签名称。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult RemoveTag(int entityId, string tag)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entitiesInt.ContainsKey(entityId))
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到整数 ID 为 '{entityId}' 的实体");
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            if (string.IsNullOrWhiteSpace(tag)) return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
-
-            if (!_tagMapper.TryGetId(tag, out int tagId))
-                return OperationResult.Failure(ErrorCode.NotFound, $"标签 '{tag}' 不存在");
-
-            AcquireTagWriteLock(tagId);
-            try
-            {
-                if (!_tagToEntityIdsInt.TryGetValue(tagId, out var entityIds) ||
-                    !entityIds.Remove(entityId))
-                    return OperationResult.Failure(ErrorCode.NotFound,
-                        $"整数实体 '{entityId}' 不具有标签 '{tag}'");
-
-                // 从实体标签集合移除
-                if (_entityToTagIdsInt.TryGetValue(entityId, out var tagIds)) tagIds.Remove(tagId);
-
-                // 如果标签无实体，删除标签
-                if (entityIds.Count == 0) _tagToEntityIdsInt.Remove(tagId);
-
-                // 失效缓存
-                _tagCache.Remove(tagId);
-
-                return OperationResult.Success();
-            }
-            finally
-            {
-                ReleaseTagLock(tagId);
-            }
-        }
-
-        /// <summary>
-        ///     按标签查询实体。
-        /// </summary>
-        /// <param name="tag">标签名称。</param>
-        /// <returns>匹配的实体列表。</returns>
-        public IReadOnlyList<T> GetByTag(string tag)
-        {
-            if (string.IsNullOrWhiteSpace(tag)) return new List<T>();
-
-            // 查询时不应创建新 ID，使用 TryGetId
-            if (!_tagMapper.TryGetId(tag, out int tagId))
-                return new List<T>();
-
-            // 检查缓存快速路径
-            if (_tagCache.TryGetValue(tagId, out var cachedResult))
-            {
-                RecordCacheQuery(true);
-                return cachedResult;
-            }
-
-            RecordCacheQuery(false);
-
-            // 获取读锁查询
-            AcquireTagReadLock(tagId);
-            try
-            {
-                if (_tagToEntityIds.TryGetValue(tagId, out var entityIds))
-                {
-                    _entitiesLock.EnterReadLock();
-                    try
-                    {
-                        var result = entityIds.Select(id => _entities[id]).ToList();
-                        _tagCache[tagId] = result;
-                        return result;
-                    }
-                    finally
-                    {
-                        _entitiesLock.ExitReadLock();
-                    }
-                }
-
-                return new List<T>();
-            }
-            finally
-            {
-                ReleaseTagLock(tagId);
-            }
-        }
-
-        /// <summary>
-        ///     同时按分类和标签查询实体。
-        /// </summary>
-        /// <param name="category">分类名称</param>
-        /// <param name="tag">标签名称</param>
-        /// <param name="includeChildren">是否要包含子类</param>
-        /// <returns>同时满足两个条件的实体列表。</returns>
-        public IReadOnlyList<T> GetByCategoryAndTag(string category, string tag, bool includeChildren = true)
-        {
-            var categoryEntities = GetByCategory(category, includeChildren);
-            var tagEntities = GetByTag(tag);
-
-            return categoryEntities.Intersect(tagEntities).ToList();
-        }
-
-        /// <summary>
-        ///     <para>根据正则表达式匹配分类名称并获取实体。</para>
-        ///     注意：点分割符(.)需要用\来转义，例如 "Equipment\\.Weapon\\..*" 匹配 Equipment.Weapon 下的所有分类。
-        /// </summary>
-        /// <param name="pattern">正则表达式模式，其中点分割符需转义为\.</param>
-        /// <param name="includeChildren">是否包含子分类中的实体</param>
-        /// <returns>匹配分类中的实体列表</returns>
-        public IReadOnlyList<T> GetByCategoryRegex(string pattern, bool includeChildren = false)
-        {
-            if (string.IsNullOrEmpty(pattern)) return new List<T>();
-
-            var entityIds = new HashSet<string>();
-
-            _treeLock.EnterReadLock();
-            try
-            {
-                Regex regex = RegexCache.GetOrCreate("^" + pattern + "$");
-
-                foreach ((int key, CategoryNode node) in _categoryNodes)
-                {
-                    if (!_categoryIdToName.TryGetValue(key, out string nodePath)) continue;
-
-                    if (!regex.IsMatch(nodePath)) continue;
-
-                    if (includeChildren)
-                        foreach (string id in node.GetSubtreeEntityIds())
-                        {
-                            entityIds.Add(id);
-                        }
-                    else
-                        foreach (string id in node.EntityIds)
-                        {
-                            entityIds.Add(id);
-                        }
-                }
-            }
-            finally
-            {
-                _treeLock.ExitReadLock();
-            }
-
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                var result = entityIds.Select(id => _entities[id]).ToList();
-                return result;
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-        }
-
-        /// <summary>
-        ///     按多个标签查询实体，支持AND/OR逻辑。
-        /// </summary>
-        /// <param name="tags">标签名称数组。</param>
-        /// <param name="matchAll">是true为AND不相交），false为OR（並集）。</param>
-        /// <returns>查询结果。</returns>
-        public IReadOnlyList<T> GetByTags(string[] tags, bool matchAll = true)
-        {
-            if (tags == null || tags.Length == 0) return new List<T>();
-
-            HashSet<string> resultIds = null;
-
-            foreach (string tag in tags)
-            {
-                if (string.IsNullOrWhiteSpace(tag)) continue;
-
-                int tagId = _tagMapper.GetOrAssignId(tag);
-
-                AcquireTagReadLock(tagId);
-                try
-                {
-                    if (_tagToEntityIds.TryGetValue(tagId, out var tagIds))
-                    {
-                        if (resultIds == null)
-                        {
-                            resultIds = new(tagIds);
-                        }
-                        else
-                        {
-                            if (matchAll)
-                                resultIds.IntersectWith(tagIds);
-                            else
-                                resultIds.UnionWith(tagIds);
-                        }
-                    }
-                    else if (matchAll)
-                    {
-                        // AND模式下，任一的标签不存在则结果为空
-                        resultIds = new();
-                        break;
-                    }
-                }
-                finally
-                {
-                    ReleaseTagLock(tagId);
-                }
-            }
-
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                var result = resultIds != null
-                    ? resultIds.Select(id => _entities[id]).ToList()
-                    : new();
-
-                return result;
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-        }
-
-        /// <summary>
-        ///     检查实体是否拥有指定标签。
-        /// </summary>
-        /// <param name="entityId">实体ID。</param>
-        /// <param name="tag">标签名称。</param>
-        /// <returns>如果实体拥有该标签返回 true。</returns>
-        public bool HasTag(string entityId, string tag)
-        {
-            if (string.IsNullOrEmpty(entityId) || string.IsNullOrWhiteSpace(tag))
-                return false;
-
-            if (!_tagMapper.TryGetId(tag, out int tagId))
-                return false;
-
-            if (!_entityToTagIds.TryGetValue(entityId, out var tagIds))
-                return false;
-
-            return tagIds.Contains(tagId);
-        }
-
-        /// <summary>
-        ///     检查实体是否拥有指定标签（使用整数ID）。
-        /// </summary>
-        /// <param name="entityId">实体整数ID。</param>
-        /// <param name="tag">标签名称。</param>
-        /// <returns>如果实体拥有该标签返回 true。</returns>
-        public bool HasTag(int entityId, string tag)
-        {
-            if (string.IsNullOrWhiteSpace(tag))
-                return false;
-
-            if (!_tagMapper.TryGetId(tag, out int tagId))
-                return false;
-
-            if (!_entityToTagIdsInt.TryGetValue(entityId, out var tagIds))
-                return false;
-
-            return tagIds.Contains(tagId);
-        }
-
-        /// <summary>
-        ///     获取实体的所有标签。
-        /// </summary>
-        /// <param name="entityId">实体ID。</param>
-        /// <returns>标签列表；若实体不存在则返回空列表。</returns>
-        public IReadOnlyList<string> GetEntityTags(string entityId)
-        {
-            if (string.IsNullOrEmpty(entityId))
-                return Array.Empty<string>();
-
-            if (!_entityToTagIds.TryGetValue(entityId, out var tagIds))
-                return Array.Empty<string>();
-
-            var tags = new List<string>(tagIds.Count);
-            foreach (int tagId in tagIds)
-            {
-                if (_tagMapper.TryGetString(tagId, out string tagName))
-                {
-                    tags.Add(tagName);
-                }
-            }
-
-            return tags;
-        }
-
-        /// <summary>
-        ///     获取实体的所有标签（使用整数ID）。
-        /// </summary>
-        /// <param name="entityId">实体整数ID。</param>
-        /// <returns>标签列表；若实体不存在则返回空列表。</returns>
-        public IReadOnlyList<string> GetEntityTags(int entityId)
-        {
-            if (!_entityToTagIdsInt.TryGetValue(entityId, out var tagIds))
-                return Array.Empty<string>();
-
-            var tags = new List<string>(tagIds.Count);
-            foreach (int tagId in tagIds)
-            {
-                if (_tagMapper.TryGetString(tagId, out string tagName))
-                {
-                    tags.Add(tagName);
-                }
-            }
-
-            return tags;
-        }
-
-        /// <summary>
-        ///     检查实体是否拥有指定标签（基于实体对象）。
-        /// </summary>
-        /// <param name="entity">实体对象。</param>
-        /// <param name="tag">标签名称。</param>
-        /// <returns>如果实体拥有该标签返回 true。</returns>
-        public bool HasTag(T entity, string tag)
-        {
-            if (entity == null) return false;
-            string entityId = _idExtractor(entity);
-            return HasTag(entityId, tag);
-        }
-
-        /// <summary>
-        ///     获取实体的所有标签（基于实体对象）。
-        /// </summary>
-        /// <param name="entity">实体对象。</param>
-        /// <returns>标签列表；若实体不存在则返回空列表。</returns>
-        public IReadOnlyList<string> GetTags(T entity)
-        {
-            if (entity == null) return Array.Empty<string>();
-            string entityId = _idExtractor(entity);
-            return GetEntityTags(entityId);
-        }
-
-        /// <summary>
-        ///     检查实体是否在指定分类中（基于实体对象）。
-        /// </summary>
-        /// <param name="entity">实体对象。</param>
-        /// <param name="category">分类名称。</param>
-        /// <param name="includeChildren">是否检查子分类。</param>
-        /// <returns>如果实体在该分类中返回 true。</returns>
-        public bool IsInCategory(T entity, string category, bool includeChildren = false)
-        {
-            if (entity == null) return false;
-            string entityId = _idExtractor(entity);
-            return IsInCategory(entityId, category, includeChildren);
-        }
-
-        /// <summary>
-        ///     检查实体是否在指定分类中。
-        /// </summary>
-        /// <param name="entityId">实体ID。</param>
-        /// <param name="category">分类名称。</param>
-        /// <param name="includeChildren">是否检查子分类（即实体是否在该分类或其子分类中）。</param>
-        /// <returns>如果实体在该分类中返回 true。</returns>
-        public bool IsInCategory(string entityId, string category, bool includeChildren = false)
-        {
-            if (string.IsNullOrEmpty(entityId) || string.IsNullOrEmpty(category))
-                return false;
-
-            // 获取目标分类的整数ID
-            if (!_categoryTermMapper.TryGetId(category, out int targetCategoryId))
-                return false;
-
-            _treeLock.EnterReadLock();
-            try
-            {
-                // 获取实体所在的节点
-                if (!_entityIdToNode.TryGetValue(entityId, out var entityNode))
-                    return false;
-
-                if (!includeChildren)
-                {
-                    // 实体节点的ID必须等于目标分类ID
-                    return entityNode.TermId == targetCategoryId;
-                }
-                else
-                {
-                    // 检查实体节点是否是目标分类或其子分类
-                    // 通过向上遍历父节点链来检查
-                    CategoryNode current = entityNode;
-                    while (current != null)
-                    {
-                        if (current.TermId == targetCategoryId)
-                            return true;
-                        current = current.ParentNode;
-                    }
-                    return false;
-                }
-            }
-            finally
-            {
-                _treeLock.ExitReadLock();
-            }
-        }
-
-        /// <summary>
-        ///     检查实体是否在指定分类中（使用整数ID）。
-        /// </summary>
-        /// <param name="entityId">实体整数ID。</param>
-        /// <param name="category">分类名称。</param>
-        /// <param name="includeChildren">是否检查子分类（即实体是否在该分类或其子分类中）。</param>
-        /// <returns>如果实体在该分类中返回 true。</returns>
-        public bool IsInCategory(int entityId, string category, bool includeChildren = false)
-        {
-            if (string.IsNullOrEmpty(category))
-                return false;
-
-            // 获取目标分类的整数ID
-            if (!_categoryTermMapper.TryGetId(category, out int targetCategoryId))
-                return false;
-
-            _treeLock.EnterReadLock();
-            try
-            {
-                // 获取实体所在的节点（使用整数ID缓存）
-                if (!_entityIdToNodeInt.TryGetValue(entityId, out var entityNode))
-                    return false;
-
-                if (!includeChildren)
-                {
-                    // 实体节点的ID必须等于目标分类ID
-                    return entityNode.TermId == targetCategoryId;
-                }
-                else
-                {
-                    // 检查实体节点是否是目标分类或其子分类
-                    CategoryNode current = entityNode;
-                    while (current != null)
-                    {
-                        if (current.TermId == targetCategoryId)
-                            return true;
-                        current = current.ParentNode;
-                    }
-                    return false;
-                }
-            }
-            finally
-            {
-                _treeLock.ExitReadLock();
-            }
-        }
-
-        #endregion
-
-        #region 元数据数据管理
-
-        /// <summary>
-        ///     获取实体的元数据。
-        /// </summary>
-        /// <param name="id">实体ID。</param>
-        /// <returns>元数据集合，不存在则返回空集。</returns>
-        public CustomDataCollection GetMetadata(string id)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entities.ContainsKey(id)) return new();
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            _metadataLock.EnterReadLock();
-            try
-            {
-                return _metadataStore.TryGetValue(id, out CustomDataCollection metadata)
-                    ? metadata
-                    : new();
-            }
-            finally
-            {
-                _metadataLock.ExitReadLock();
-            }
-        }
-
-        /// <summary>
-        ///     获取实体的元数据（使用整数ID）。
-        /// </summary>
-        /// <param name="id">实体整数ID。</param>
-        /// <returns>元数据集合，不存在则返回空集。</returns>
-        public CustomDataCollection GetMetadata(int id)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entitiesInt.ContainsKey(id)) return new();
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            _metadataLock.EnterReadLock();
-            try
-            {
-                return _metadataStoreInt.TryGetValue(id, out CustomDataCollection metadata)
-                    ? metadata
-                    : new();
-            }
-            finally
-            {
-                _metadataLock.ExitReadLock();
-            }
-        }
-
-        /// <summary>
-        ///     获取实体的元数据。
-        /// </summary>
-        /// <param name="id">实体ID。</param>
-        /// <returns>包含元数据的操作结果。</returns>
-        public OperationResult<CustomDataCollection> GetMetadataResult(string id)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entities.ContainsKey(id))
-                    return OperationResult<CustomDataCollection>.Failure(
-                        ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            _metadataLock.EnterReadLock();
-            try
-            {
-                return OperationResult<CustomDataCollection>.Success(
-                    _metadataStore.TryGetValue(id, out CustomDataCollection metadata)
-                        ? metadata
-                        : new());
-            }
-            finally
-            {
-                _metadataLock.ExitReadLock();
-            }
-        }
-
-        /// <summary>
-        ///     更新实体的元数据。
-        /// </summary>
-        /// <param name="id">实体ID。</param>
-        /// <param name="metadata">新的元数据集合。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult UpdateMetadata(string id, CustomDataCollection metadata)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entities.ContainsKey(id))
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{id}' 的实体");
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            _metadataLock.EnterWriteLock();
-            try
-            {
-                _metadataStore[id] = metadata;
-                return OperationResult.Success();
-            }
-            finally
-            {
-                _metadataLock.ExitWriteLock();
-            }
-        }
-
-        /// <summary>
-        ///     更新实体的元数据（使用整数ID）。
-        /// </summary>
-        /// <param name="id">实体整数ID。</param>
-        /// <param name="metadata">新的元数据集合。</param>
-        /// <returns>操作结果。</returns>
-        public OperationResult UpdateMetadata(int id, CustomDataCollection metadata)
-        {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entitiesInt.ContainsKey(id))
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到整数 ID 为 '{id}' 的实体");
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            _metadataLock.EnterWriteLock();
-            try
-            {
-                _metadataStoreInt[id] = metadata;
-                return OperationResult.Success();
-            }
-            finally
-            {
-                _metadataLock.ExitWriteLock();
-            }
-        }
-
-        #endregion
-
-        #region 锁
-
-        /// <summary>
-        ///     为标签获取读锁。
-        /// </summary>
-        /// <param name="tagId">标签整数ID。</param>
-        private void AcquireTagReadLock(int tagId)
-        {
-            if (!_tagLocks.TryGetValue(tagId, out ReaderWriterLockSlim lockObj))
-            {
-                lockObj = new(LockRecursionPolicy.NoRecursion);
-                _tagLocks[tagId] = lockObj;
-            }
-
-            lockObj.EnterReadLock();
-        }
-
-        /// <summary>
-        ///     为标签获取写锁。
-        /// </summary>
-        /// <param name="tagId">标签整数ID。</param>
-        private void AcquireTagWriteLock(int tagId)
-        {
-            if (!_tagLocks.TryGetValue(tagId, out ReaderWriterLockSlim lockObj))
-            {
-                lockObj = new(LockRecursionPolicy.NoRecursion);
-                _tagLocks[tagId] = lockObj;
-            }
-
-            lockObj.EnterWriteLock();
-        }
-
-        /// <summary>
-        ///     释放标签的锁。
-        /// </summary>
-        /// <param name="tagId">标签整数ID。</param>
-        private void ReleaseTagLock(int tagId)
-        {
-            if (!_tagLocks.TryGetValue(tagId, out ReaderWriterLockSlim lockObj)) return;
-
-            if (lockObj.IsReadLockHeld) lockObj.ExitReadLock();
-
-            if (lockObj.IsWriteLockHeld) lockObj.ExitWriteLock();
         }
 
         #endregion
@@ -1966,61 +848,49 @@ namespace EasyPack.Category
         /// <summary>
         ///     将实体移动到新分类，自动验证分类名称。
         /// </summary>
-        /// <param name="entityId">实体ID。</param>
+        /// <param name="key">实体键。</param>
         /// <param name="newCategory">新的分类名称。</param>
         /// <returns>操作结果。</returns>
-        public OperationResult MoveEntityToCategorySafe(string entityId, string newCategory)
+        public OperationResult MoveEntityToCategorySafe(TKey key, string newCategory)
         {
             newCategory = CategoryNameNormalizer.Normalize(newCategory);
             return !CategoryNameNormalizer.IsValid(newCategory, out string errorMessage)
                 ? OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage)
-                : MoveEntityToCategory(entityId, newCategory);
+                : MoveEntityToCategory(key, newCategory);
         }
 
         /// <summary>
         ///     将实体从当前分类移动到新的分类。
         /// </summary>
-        /// <param name="entityId">实体ID。</param>
+        /// <param name="key">实体键。</param>
         /// <param name="newCategory">新的分类名称。</param>
         /// <returns>操作结果。</returns>
-        public OperationResult MoveEntityToCategory(string entityId, string newCategory)
+        public OperationResult MoveEntityToCategory(TKey key, string newCategory)
         {
-            if (!_entities.ContainsKey(entityId))
-                return OperationResult.Failure(ErrorCode.NotFound, $"未找到 ID 为 '{entityId}' 的实体");
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                if (!_entities.ContainsKey(key))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
 
             _treeLock.EnterWriteLock();
             try
             {
-                //var affectedNodePaths = new HashSet<string>();
-
                 // 从旧分类移除
-                foreach (var kvp in _categoryNodes.ToList())
-                {
-                    if (!kvp.Value.RemoveEntity(entityId)) continue;
-
-                    _entityIdToNode.Remove(entityId); // 清除旧缓存
-                    //affectedNodePaths.Add(_categoryIdToName[kvp.Key]);
-
-                    CategoryNode parent = kvp.Value.ParentNode;
-                    while (parent != null)
-                        //affectedNodePaths.Add(_categoryIdToName[parent.TermId]);
-                    {
-                        parent = parent.ParentNode;
-                    }
-                }
+                _entityKeyToNode.Remove(key);
 
                 // 添加到新分类
                 CategoryNode node = GetOrCreateNode(newCategory);
-                node.AddEntity(entityId);
-                _entityIdToNode[entityId] = node; // 缓存新映射
+                _entityKeyToNode[key] = node;
 
-                // affectedNodePaths.Add(newCategory);
-                CategoryNode newParent = node.ParentNode;
-                while (newParent != null)
-                    // affectedNodePaths.Add(_categoryIdToName[newParent.TermId]);
-                {
-                    newParent = newParent.ParentNode;
-                }
+#if UNITY_EDITOR
+                _cachedStatistics = null;
+#endif
 
                 return OperationResult.Success();
             }
@@ -2085,6 +955,10 @@ namespace EasyPack.Category
                     _categoryTermMapper.RemapTerm(oldPath, newPath);
                 }
 
+#if UNITY_EDITOR
+                _cachedStatistics = null;
+#endif
+
                 return OperationResult.Success();
             }
             finally
@@ -2094,12 +968,8 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     递归收集所有需要重命名的节点（RenameCategory 的辅助方法）。
+        ///     递归收集所有需要重命名的节点。
         /// </summary>
-        /// <param name="node">起始节点。</param>
-        /// <param name="oldPrefix">旧前缀。</param>
-        /// <param name="newPrefix">新前缀。</param>
-        /// <param name="result">结果列表。</param>
         private void CollectNodesToRename(
             CategoryNode node,
             string oldPrefix,
@@ -2121,140 +991,436 @@ namespace EasyPack.Category
 
         #endregion
 
-        #region 序列化辅助方法
+        #region 标签系统
 
         /// <summary>
-        ///     获取标签索引（仅供序列化器使用）。
-        ///     映射标签名称到包含的实体ID列表。
+        ///     为实体添加标签。
         /// </summary>
-        /// <returns>标签名称到实体ID集合的字典。</returns>
-        internal Dictionary<string, IEnumerable<string>> GetTagIndex()
+        public OperationResult AddTag(TKey key, string tag)
         {
-            var tagIndex = new Dictionary<string, IEnumerable<string>>();
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                if (!_entities.ContainsKey(key))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
 
-            foreach ((int tagId, var entityIds) in _tagToEntityIds)
-                // 从 _tagMapper 获取标签名称
+            if (string.IsNullOrWhiteSpace(tag))
+                return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
+
+            AddTagInternal(key, tag);
+            return OperationResult.Success();
+        }
+
+        /// <summary>
+        ///     内部方法：添加标签（跳过实体存在检查）。
+        /// </summary>
+        private void AddTagInternal(TKey key, string tag)
+        {
+            if (string.IsNullOrWhiteSpace(tag)) return;
+
+            int tagId = _tagMapper.GetOrAssignId(tag);
+
+            AcquireTagWriteLock(tagId);
+            try
+            {
+                if (!_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
+                {
+                    entityKeys = new HashSet<TKey>(_keyComparer);
+                    _tagToEntityKeys[tagId] = entityKeys;
+                }
+                entityKeys.Add(key);
+
+                if (!_entityToTagIds.TryGetValue(key, out var tagIds))
+                {
+                    tagIds = new HashSet<int>();
+                    _entityToTagIds[key] = tagIds;
+                }
+                tagIds.Add(tagId);
+
+                // 清除标签缓存
+                _tagCache.Remove(tagId);
+            }
+            finally
+            {
+                ReleaseTagWriteLock(tagId);
+            }
+        }
+
+        /// <summary>
+        ///     为实体批量添加标签。
+        /// </summary>
+        public OperationResult AddTags(TKey key, params string[] tags)
+        {
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                if (!_entities.ContainsKey(key))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
+
+            if (tags == null || tags.Length == 0)
+                return OperationResult.Success();
+
+            foreach (string tag in tags)
+            {
+                if (!string.IsNullOrWhiteSpace(tag))
+                {
+                    AddTagInternal(key, tag);
+                }
+            }
+
+            return OperationResult.Success();
+        }
+
+        /// <summary>
+        ///     从实体移除标签。
+        /// </summary>
+        public OperationResult RemoveTag(TKey key, string tag)
+        {
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                if (!_entities.ContainsKey(key))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
+
+            if (string.IsNullOrWhiteSpace(tag))
+                return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
+
+            if (!_tagMapper.TryGetId(tag, out int tagId))
+                return OperationResult.Failure(ErrorCode.NotFound, $"标签 '{tag}' 不存在");
+
+            AcquireTagWriteLock(tagId);
+            try
+            {
+                if (!_tagToEntityKeys.TryGetValue(tagId, out var entityKeys) ||
+                    !entityKeys.Remove(key))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"实体不包含标签 '{tag}'");
+
+                if (_entityToTagIds.TryGetValue(key, out var tagIds))
+                    tagIds.Remove(tagId);
+
+                if (entityKeys.Count == 0)
+                    _tagToEntityKeys.Remove(tagId);
+
+                // 清除标签缓存
+                _tagCache.Remove(tagId);
+
+                return OperationResult.Success();
+            }
+            finally
+            {
+                ReleaseTagWriteLock(tagId);
+            }
+        }
+
+        /// <summary>
+        ///     检查实体是否拥有指定标签。
+        /// </summary>
+        public bool HasTag(TKey key, string tag)
+        {
+            if (string.IsNullOrWhiteSpace(tag))
+                return false;
+
+            if (!_tagMapper.TryGetId(tag, out int tagId))
+                return false;
+
+            if (!_entityToTagIds.TryGetValue(key, out var tagIds))
+                return false;
+
+            return tagIds.Contains(tagId);
+        }
+
+        /// <summary>
+        ///     检查实体是否拥有指定标签（基于实体对象）。
+        /// </summary>
+        public bool HasTag(T entity, string tag)
+        {
+            if (entity == null) return false;
+            TKey key = _keyExtractor(entity);
+            return HasTag(key, tag);
+        }
+
+        /// <summary>
+        ///     获取实体的所有标签。
+        /// </summary>
+        public IReadOnlyList<string> GetEntityTags(TKey key)
+        {
+            if (!_entityToTagIds.TryGetValue(key, out var tagIds))
+                return Array.Empty<string>();
+
+            var tags = new List<string>(tagIds.Count);
+            foreach (int tagId in tagIds)
             {
                 if (_tagMapper.TryGetString(tagId, out string tagName))
-                    tagIndex[tagName] = entityIds.ToList();
-            }
-
-            return tagIndex;
-        }
-
-        /// <summary>
-        ///     根据实体 ID 获取其所在分类的可读路径字符串。
-        ///     示例：如果实体在 "Equipment.Weapon.Sword" 分类中，返回该字符串。
-        /// </summary>
-        /// <param name="entityId">实体 ID</param>
-        /// <returns>可读的分类路径字符串；若实体不存在，返回空字符串</returns>
-        public string GetReadableCategoryPath(string entityId)
-        {
-            if (string.IsNullOrEmpty(entityId)) return string.Empty;
-
-            _treeLock.EnterReadLock();
-            try
-            {
-                if (_entityIdToNode.TryGetValue(entityId, out CategoryNode node)) return GetNodeReadablePath(node);
-
-                // 实体不存在于任何分类
-                return string.Empty;
-            }
-            finally
-            {
-                _treeLock.ExitReadLock();
-            }
-        }
-
-        /// <summary>
-        ///     根据实体整数 ID 获取其所在分类的可读路径字符串（使用整数ID）。
-        /// </summary>
-        /// <param name="entityId">实体整数 ID</param>
-        /// <returns>可读的分类路径字符串；若实体不存在，返回空字符串</returns>
-        public string GetReadableCategoryPath(int entityId)
-        {
-            _treeLock.EnterReadLock();
-            try
-            {
-                if (_entityIdToNodeInt.TryGetValue(entityId, out CategoryNode node)) 
-                    return GetNodeReadablePath(node);
-
-                // 实体不存在于任何分类
-                return string.Empty;
-            }
-            finally
-            {
-                _treeLock.ExitReadLock();
-            }
-        }
-
-        public string GetNodeReadablePath(CategoryNode node)
-        {
-            if (node == null) return string.Empty;
-
-            int[] pathIds = node.GetPathAsIds();
-            return GetReadablePathFromIds(pathIds);
-        }
-
-
-        /// <summary>
-        ///     从路径 ID 数组转换为可读的分类路径字符串
-        /// </summary>
-        /// <param name="pathIds">路径 ID 数组（从 CategoryNode.GetPathAsIds() 获取）</param>
-        /// <returns>可读的分类路径字符串，如 "Equipment.Weapon.Sword"</returns>
-        public string GetReadablePathFromIds(int[] pathIds)
-        {
-            if (pathIds == null || pathIds.Length == 0) return string.Empty;
-
-            var sb = new System.Text.StringBuilder();
-            for (int i = 0; i < pathIds.Length; i++)
-            {
-                if (i > 0) sb.Append(CategoryConstants.CATEGORY_SEPARATOR);
-
-                // 从 _categoryTermMapper 获取可读的分类名称
-                if (_categoryIdToName.TryGetValue(pathIds[i], out string categoryName))
-                    sb.Append(categoryName);
-                else
-                    // 备选方案：如果映射不存在，使用 ID 作为后备
-                    sb.Append(pathIds[i]);
-            }
-
-            return sb.ToString();
-        }
-
-        /// <summary>
-        ///     获取元数据存储（仅供序列化器使用）。
-        ///     映射实体ID到自定义数据集合。
-        /// </summary>
-        /// <returns>实体ID到CustomDataCollection的字典。</returns>
-        internal Dictionary<string, CustomDataCollection> GetMetadataStore() => new(_metadataStore);
-
-        /// <summary>
-        ///     获取序列化索引
-        /// </summary>
-        /// <param name="entityTagIndex">输出参数：EntityId -> TagNames 字典</param>
-        /// <param name="entityMetadataIndex">输出参数：EntityId -> CustomDataCollection 字典</param>
-        internal void GetOptimizedSerializationIndices(
-            out Dictionary<string, List<string>> entityTagIndex,
-            out Dictionary<string, CustomDataCollection> entityMetadataIndex)
-        {
-            entityTagIndex = new(StringComparer.Ordinal);
-            entityMetadataIndex = new(_metadataStore);
-
-            foreach (var kvp in _entityToTagIds)
-            {
-                string entityId = kvp.Key;
-                var tagIds = kvp.Value;
-
-                var tagNames = new List<string>(tagIds.Count);
-                foreach (int tagId in tagIds)
                 {
-                    if (_tagMapper.TryGetString(tagId, out string tagName))
-                        tagNames.Add(tagName);
+                    tags.Add(tagName);
+                }
+            }
+
+            return tags;
+        }
+
+        /// <summary>
+        ///     获取实体的所有标签（基于实体对象）。
+        /// </summary>
+        public IReadOnlyList<string> GetTags(T entity)
+        {
+            if (entity == null) return Array.Empty<string>();
+            TKey key = _keyExtractor(entity);
+            return GetEntityTags(key);
+        }
+
+        /// <summary>
+        ///     按标签查询实体。
+        /// </summary>
+        public IReadOnlyList<T> GetByTag(string tag)
+        {
+            if (string.IsNullOrWhiteSpace(tag)) return new List<T>();
+
+            if (!_tagMapper.TryGetId(tag, out int tagId))
+                return new List<T>();
+
+            // 检查缓存
+            if (_tagCache.TryGetValue(tagId, out var cachedResult))
+            {
+                RecordCacheQuery(true);
+                return cachedResult;
+            }
+
+            RecordCacheQuery(false);
+
+            AcquireTagReadLock(tagId);
+            try
+            {
+                if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
+                {
+                    _entitiesLock.EnterReadLock();
+                    try
+                    {
+                        var result = entityKeys
+                            .Select(k => _entities.TryGetValue(k, out T e) ? e : default)
+                            .Where(e => e != null)
+                            .ToList();
+
+                        _tagCache[tagId] = result;
+                        return result;
+                    }
+                    finally
+                    {
+                        _entitiesLock.ExitReadLock();
+                    }
                 }
 
-                if (tagNames.Count > 0) entityTagIndex[entityId] = tagNames;
+                return new List<T>();
             }
+            finally
+            {
+                ReleaseTagReadLock(tagId);
+            }
+        }
+
+        /// <summary>
+        ///     按多个标签查询实体。
+        /// </summary>
+        public IReadOnlyList<T> GetByTags(string[] tags, bool matchAll = true)
+        {
+            if (tags == null || tags.Length == 0) return new List<T>();
+
+            HashSet<TKey> resultKeys = null;
+
+            foreach (string tag in tags)
+            {
+                if (string.IsNullOrWhiteSpace(tag)) continue;
+
+                if (!_tagMapper.TryGetId(tag, out int tagId)) continue;
+
+                if (!_tagToEntityKeys.TryGetValue(tagId, out var entityKeys)) continue;
+
+                if (resultKeys == null)
+                {
+                    resultKeys = new HashSet<TKey>(entityKeys, _keyComparer);
+                }
+                else if (matchAll)
+                {
+                    resultKeys.IntersectWith(entityKeys);
+                }
+                else
+                {
+                    resultKeys.UnionWith(entityKeys);
+                }
+            }
+
+            if (resultKeys == null || resultKeys.Count == 0)
+                return new List<T>();
+
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                return resultKeys
+                    .Select(k => _entities.TryGetValue(k, out T e) ? e : default)
+                    .Where(e => e != null)
+                    .ToList();
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        ///     根据分类和标签获取实体交集。
+        /// </summary>
+        public IReadOnlyList<T> GetByCategoryAndTag(string category, string tag, bool includeChildren = true)
+        {
+            var categoryEntities = GetByCategory(category, includeChildren);
+            var tagEntities = GetByTag(tag);
+
+            return categoryEntities.Intersect(tagEntities).ToList();
+        }
+
+        #endregion
+
+        #region 元数据
+        
+        /// <summary>
+        ///     获取实体的元数据。
+        /// </summary>
+        public CustomDataCollection GetMetadata(TKey key)
+        {
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                if (!_entities.ContainsKey(key)) return new CustomDataCollection();
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
+
+            _metadataLock.EnterReadLock();
+            try
+            {
+                return _metadataStore.TryGetValue(key, out var metadata)
+                    ? metadata
+                    : new CustomDataCollection();
+            }
+            finally
+            {
+                _metadataLock.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        ///     更新实体的元数据。
+        /// </summary>
+        public OperationResult UpdateMetadata(TKey key, CustomDataCollection metadata)
+        {
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                if (!_entities.ContainsKey(key))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
+
+            _metadataLock.EnterWriteLock();
+            try
+            {
+                _metadataStore[key] = metadata;
+                return OperationResult.Success();
+            }
+            finally
+            {
+                _metadataLock.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
+        ///     获取实体的元数据。
+        /// </summary>
+        /// <param name="key">实体键。</param>
+        /// <returns>包含元数据的操作结果。</returns>
+        public OperationResult<CustomDataCollection> GetMetadataResult(TKey key)
+        {
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                if (!_entities.ContainsKey(key))
+                    return OperationResult<CustomDataCollection>.Failure(
+                        ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
+
+            _metadataLock.EnterReadLock();
+            try
+            {
+                return OperationResult<CustomDataCollection>.Success(
+                    _metadataStore.TryGetValue(key, out CustomDataCollection metadata)
+                        ? metadata
+                        : new CustomDataCollection());
+            }
+            finally
+            {
+                _metadataLock.ExitReadLock();
+            }
+        }
+
+        #endregion
+
+        #region 锁
+
+        private void AcquireTagReadLock(int tagId)
+        {
+            if (!_tagLocks.TryGetValue(tagId, out ReaderWriterLockSlim lockObj))
+            {
+                lockObj = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+                _tagLocks[tagId] = lockObj;
+            }
+
+            lockObj.EnterReadLock();
+        }
+
+        private void ReleaseTagReadLock(int tagId)
+        {
+            if (_tagLocks.TryGetValue(tagId, out ReaderWriterLockSlim lockObj) && lockObj.IsReadLockHeld)
+                lockObj.ExitReadLock();
+        }
+
+        private void AcquireTagWriteLock(int tagId)
+        {
+            if (!_tagLocks.TryGetValue(tagId, out ReaderWriterLockSlim lockObj))
+            {
+                lockObj = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+                _tagLocks[tagId] = lockObj;
+            }
+
+            lockObj.EnterWriteLock();
+        }
+
+        private void ReleaseTagWriteLock(int tagId)
+        {
+            if (_tagLocks.TryGetValue(tagId, out ReaderWriterLockSlim lockObj) && lockObj.IsWriteLockHeld)
+                lockObj.ExitWriteLock();
         }
 
         #endregion
@@ -2262,12 +1428,11 @@ namespace EasyPack.Category
         #region 序列化
 
         /// <summary>
-        ///     将管理器内容序列化为 JSON 字符串。
+        ///     序列化为 JSON 字符串。
         /// </summary>
-        /// <returns>JSON 字符串。</returns>
         public string SerializeToJson()
         {
-            var serializer = new CategoryManagerJsonSerializer<T>(_idExtractor);
+            var serializer = new CategoryManagerJsonSerializer<T, TKey>(_keyExtractor);
             return serializer.SerializeToJson(this);
         }
 
@@ -2280,7 +1445,7 @@ namespace EasyPack.Category
         {
             try
             {
-                var serializer = new CategoryManagerJsonSerializer<T>(_idExtractor);
+                var serializer = new CategoryManagerJsonSerializer<T, TKey>(_keyExtractor);
                 var newManager = serializer.DeserializeFromJson(json);
 
                 _treeLock.EnterWriteLock();
@@ -2309,14 +1474,25 @@ namespace EasyPack.Category
                         _categoryIdToName[kvp.Key] = kvp.Value;
                     }
 
-                    foreach (var kvp in newManager._tagToEntityIds)
+                    // 复制实体到分类的映射，并更新节点引用
+                    foreach (var kvp in newManager._entityKeyToNode)
                     {
-                        _tagToEntityIds[kvp.Key] = new(kvp.Value);
+                        // 获取节点的 TermId，从当前管理器中获取对应的节点
+                        int nodeTermId = kvp.Value.TermId;
+                        if (_categoryNodes.TryGetValue(nodeTermId, out CategoryNode localNode))
+                        {
+                            _entityKeyToNode[kvp.Key] = localNode;
+                        }
+                    }
+
+                    foreach (var kvp in newManager._tagToEntityKeys)
+                    {
+                        _tagToEntityKeys[kvp.Key] = new HashSet<TKey>(kvp.Value, _keyComparer);
                     }
 
                     foreach (var kvp in newManager._entityToTagIds)
                     {
-                        _entityToTagIds[kvp.Key] = new(kvp.Value);
+                        _entityToTagIds[kvp.Key] = new HashSet<int>(kvp.Value);
                     }
 
                     foreach (var kvp in newManager._metadataStore)
@@ -2354,59 +1530,203 @@ namespace EasyPack.Category
         ///     从 JSON 字符串创建新的 CategoryManager 实例。
         /// </summary>
         /// <param name="json">JSON 字符串。</param>
-        /// <param name="idExtractor">ID 提取函数。</param>
+        /// <param name="keyExtractor">键提取函数。</param>
         /// <returns>新的 CategoryManager 实例。</returns>
-        public static CategoryManager<T> CreateFromJson(string json, Func<T, string> idExtractor)
+        public static CategoryManager<T, TKey> CreateFromJson(string json, Func<T, TKey> keyExtractor)
         {
-            var serializer = new CategoryManagerJsonSerializer<T>(idExtractor);
+            var serializer = new CategoryManagerJsonSerializer<T, TKey>(keyExtractor);
             return serializer.DeserializeFromJson(json);
+        }
+
+        /// <summary>
+        ///     获取标签索引（标签名 -> 实体键列表）。
+        /// </summary>
+        public IReadOnlyDictionary<string, IReadOnlyList<TKey>> GetTagIndex()
+        {
+            var result = new Dictionary<string, IReadOnlyList<TKey>>();
+            _treeLock.EnterReadLock();
+            try
+            {
+                foreach (var kvp in _tagToEntityKeys)
+                {
+                    if (_tagMapper.TryGetString(kvp.Key, out string tagName))
+                    {
+                        result[tagName] = kvp.Value.ToList();
+                    }
+                }
+            }
+            finally
+            {
+                _treeLock.ExitReadLock();
+            }
+            return result;
+        }
+
+        /// <summary>
+        ///     获取元数据存储。
+        /// </summary>
+        public IReadOnlyDictionary<TKey, CustomDataCollection> GetMetadataStore()
+        {
+            _metadataLock.EnterReadLock();
+            try
+            {
+                return new Dictionary<TKey, CustomDataCollection>(_metadataStore, _keyComparer);
+            }
+            finally
+            {
+                _metadataLock.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        ///     获取优化的序列化索引。
+        /// </summary>
+        public void GetOptimizedSerializationIndices(
+            out Dictionary<TKey, List<string>> entityTagIndex,
+            out Dictionary<TKey, CustomDataCollection> entityMetadataIndex)
+        {
+            entityTagIndex = new Dictionary<TKey, List<string>>(_keyComparer);
+            entityMetadataIndex = new Dictionary<TKey, CustomDataCollection>(_keyComparer);
+
+            _treeLock.EnterReadLock();
+            try
+            {
+                // 构建实体 -> 标签列表
+                foreach (var kvp in _entityToTagIds)
+                {
+                    var tags = new List<string>();
+                    foreach (int tagId in kvp.Value)
+                    {
+                        if (_tagMapper.TryGetString(tagId, out string tagName))
+                        {
+                            tags.Add(tagName);
+                        }
+                    }
+                    if (tags.Count > 0)
+                    {
+                        entityTagIndex[kvp.Key] = tags;
+                    }
+                }
+            }
+            finally
+            {
+                _treeLock.ExitReadLock();
+            }
+
+            _metadataLock.EnterReadLock();
+            try
+            {
+                foreach (var kvp in _metadataStore)
+                {
+                    entityMetadataIndex[kvp.Key] = kvp.Value;
+                }
+            }
+            finally
+            {
+                _metadataLock.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        ///     仅注册分类关联（不注册实体对象）。
+        /// </summary>
+        public OperationResult RegisterCategoryAssociationOnly(
+            TKey key, string category, List<string> tags, CustomDataCollection metadata)
+        {
+            _treeLock.EnterWriteLock();
+            try
+            {
+                // 确保分类存在
+                EnsureCategoryExists_NoLock(category);
+
+                // 获取或创建分类节点
+                if (!_categoryNameToId.TryGetValue(category, out int categoryId))
+                {
+                    return OperationResult.Failure(ErrorCode.InvalidCategory, $"分类 '{category}' 不存在");
+                }
+
+                var node = _categoryNodes[categoryId];
+                // TODO: node.EntityKeys需要更新
+                _entityKeyToNode[key] = node;
+
+                // 添加标签
+                if (tags != null)
+                {
+                    foreach (string tag in tags)
+                    {
+                        int tagId = _tagMapper.GetOrAssignId(tag);
+
+                        if (!_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
+                        {
+                            entityKeys = new HashSet<TKey>(_keyComparer);
+                            _tagToEntityKeys[tagId] = entityKeys;
+                        }
+                        entityKeys.Add(key);
+
+                        if (!_entityToTagIds.TryGetValue(key, out var tagIds))
+                        {
+                            tagIds = new HashSet<int>();
+                            _entityToTagIds[key] = tagIds;
+                        }
+                        tagIds.Add(tagId);
+                    }
+                }
+
+                // 添加元数据
+                if (metadata != null)
+                {
+                    _metadataStore[key] = metadata;
+                }
+
+                return OperationResult.Success();
+            }
+            finally
+            {
+                _treeLock.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
+        ///     使用指定键注册实体（安全模式）。
+        /// </summary>
+        public IEntityRegistration<T, TKey> RegisterEntitySafeWithKey(T entity, TKey key, string category)
+        {
+            return new EntityRegistration(this, entity, key, category);
         }
 
         #endregion
 
-        #region 清空数据清空与重置
+        #region 缓存
 
         /// <summary>
-        ///     清空所有数据（无锁版本，假设已持有写锁）。
+        ///     失效特定标签的缓存。
         /// </summary>
-        private void Clear_NoLock()
+        /// <param name="tag">标签名称。</param>
+        public void InvalidateTagCache(string tag)
         {
-            // 清空字符串ID存储
-            _entities.Clear();
-            _tagToEntityIds.Clear();
-            _entityToTagIds.Clear();
-            _entityIdToNode.Clear();
-            _metadataStore.Clear();
+            if (string.IsNullOrEmpty(tag)) return;
 
-            // 清空整数ID存储
-            _entitiesInt.Clear();
-            _tagToEntityIdsInt.Clear();
-            _entityToTagIdsInt.Clear();
-            _entityIdToNodeInt.Clear();
-            _metadataStoreInt.Clear();
-
-            // 清空共享数据
-            _categoryNodes.Clear();
-            _categoryNameToId.Clear();
-            _categoryIdToName.Clear();
-            _categoryTermMapper.Clear();
-            _tagCache.Clear();
-
-#if UNITY_EDITOR
-            _cachedStatistics = null;
-            _lastStatisticsUpdate = 0;
-            _totalCacheQueries = 0;
-            _cacheHits = 0;
-            _cacheMisses = 0;
-#endif
-
-            foreach (ReaderWriterLockSlim lockObj in _tagLocks.Values)
-            {
-                lockObj?.Dispose();
-            }
-
-            _tagLocks.Clear();
+            if (_tagMapper.TryGetId(tag, out int tagId))
+                _tagCache.Remove(tagId);
         }
+
+        /// <summary>
+        ///     获取缓存条目数量。
+        /// </summary>
+        /// <returns>缓存项数。</returns>
+        public int GetCacheSize() => _tagCache.Count;
+
+        /// <summary>
+        ///     清除所有缓存。
+        /// </summary>
+        public void ClearCache()
+        {
+            _tagCache.Clear();
+        }
+
+        #endregion
+
+        #region 清空与重置
 
         /// <summary>
         ///     清空所有数据。
@@ -2425,135 +1745,72 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     清除缓存清空所有缓存（不清除实体数据）
+        ///     清空所有数据（无锁版本，假设已持有写锁）。
         /// </summary>
-        public void ClearCache()
+        private void Clear_NoLock()
         {
+            _entities.Clear();
+            _entityKeyToNode.Clear();
+            _categoryNodes.Clear();
+            _categoryNameToId.Clear();
+            _categoryIdToName.Clear();
+            _tagToEntityKeys.Clear();
+            _entityToTagIds.Clear();
             _tagCache.Clear();
-        }
-
-        #endregion
-
-        #region 统计运行时统计信息
+            _metadataStore.Clear();
+            _tagMapper.Clear();
+            _categoryTermMapper.Clear();
 
 #if UNITY_EDITOR
-        private Statistics _cachedStatistics;
-        private long _lastStatisticsUpdate;
-        private const long StatisticsCacheTimeout = 10000000;
-
-        private long _totalCacheQueries;
-        private long _cacheHits;
-        private long _cacheMisses;
-
-        /// <summary>
-        ///     统计获取运行时统计信息
-        /// </summary>
-        public Statistics GetStatistics()
-        {
-            long currentTicks = DateTime.UtcNow.Ticks;
-
-            _treeLock.EnterReadLock();
-            try
-            {
-                // 检查缓存 
-                Statistics cachedStats = Volatile.Read(ref _cachedStatistics);
-                if (cachedStats != null && currentTicks - _lastStatisticsUpdate < StatisticsCacheTimeout)
-                    return cachedStats;
-
-                int maxDepth = 0;
-                foreach (var kvp in _categoryIdToName)
-                {
-                    int depth = kvp.Value.Split('.').Length;
-                    if (depth > maxDepth) maxDepth = depth;
-                }
-
-                long memoryUsage = _entities.Count * 64 + _categoryNodes.Count * 128;
-
-                foreach (var kvp in _tagToEntityIds)
-                {
-                    memoryUsage += kvp.Value.Count * 16;
-                }
-
-                memoryUsage += _metadataStore.Count * 64;
-
-                float cacheHitRate = _totalCacheQueries > 0
-                    ? (float)_cacheHits / _totalCacheQueries
-                    : 0f;
-
-                _cachedStatistics = new()
-                {
-                    TotalEntities = _entities.Count,
-                    TotalCategories = _categoryNodes.Count,
-                    TotalTags = _tagToEntityIds.Count,
-                    CacheHitRate = cacheHitRate,
-                    MemoryUsageBytes = memoryUsage,
-                    MaxCategoryDepth = maxDepth,
-                    TotalCacheQueries = _totalCacheQueries,
-                    CacheHits = _cacheHits,
-                    CacheMisses = _cacheMisses,
-                };
-
-                _lastStatisticsUpdate = currentTicks;
-                return _cachedStatistics;
-            }
-            finally
-            {
-                _treeLock.ExitReadLock();
-            }
-        }
-
-        /// <summary>
-        ///     记录缓存记录缓存查询结果
-        /// </summary>
-        private void RecordCacheQuery(bool isHit)
-        {
-            Interlocked.Increment(ref _totalCacheQueries);
-            if (isHit)
-                Interlocked.Increment(ref _cacheHits);
-            else
-                Interlocked.Increment(ref _cacheMisses);
-
             _cachedStatistics = null;
-        }
-#else
-        /// <summary>
-        /// 预业业场准。
-        /// </summary>
-        public Statistics GetStatistics()
-        {
-            return new Statistics();
-        }
-
-        private void RecordCacheQuery(bool isHit) { }
 #endif
-
-        #endregion
-
-        #region 缓存
-
-        /// <summary>
-        ///     失效特定标签的缓存。
-        /// </summary>
-        /// <param name="tag">标签名称。</param>
-        public void InvalidateTagCache(string tag)
-        {
-            if (string.IsNullOrEmpty(tag)) return;
-
-            if (_tagMapper.TryGetId(tag, out int tagId)) _tagCache.Remove(tagId);
         }
 
         /// <summary>
-        ///     获取缓存条目数量。
+        ///     确保分类存在（无锁版本，假设已持有写锁）。
         /// </summary>
-        /// <returns>缓存项数。</returns>
-        public int GetCacheSize() => _tagCache.Count;
+        private void EnsureCategoryExists_NoLock(string category)
+        {
+            if (_categoryNameToId.ContainsKey(category)) return;
+
+            // 使用 GetOrCreateNode 的逻辑
+            string fullPath = CategoryNameNormalizer.Normalize(category);
+            string[] parts = fullPath.Split('.');
+            CategoryNode node;
+
+            if (parts.Length > 1)
+            {
+                string parentPath = string.Join(".", parts.Take(parts.Length - 1));
+                EnsureCategoryExists_NoLock(parentPath);
+
+                if (!_categoryNameToId.TryGetValue(parentPath, out int parentId) ||
+                    !_categoryNodes.TryGetValue(parentId, out CategoryNode parent))
+                {
+                    return; // 父节点创建失败
+                }
+
+                int newCategoryId = _categoryTermMapper.GetOrAssignId(fullPath);
+                node = parent.GetOrCreateChild(newCategoryId);
+                _categoryNodes[newCategoryId] = node;
+                _categoryNameToId[fullPath] = newCategoryId;
+                _categoryIdToName[newCategoryId] = fullPath;
+            }
+            else
+            {
+                int newCategoryId = _categoryTermMapper.GetOrAssignId(fullPath);
+                node = new CategoryNode(newCategoryId);
+                _categoryNodes[newCategoryId] = node;
+                _categoryNameToId[fullPath] = newCategoryId;
+                _categoryIdToName[newCategoryId] = fullPath;
+            }
+        }
 
         #endregion
 
         #region 重建子树
 
         /// <summary>
-        ///     重建子树重建所有子树索引
+        ///     重建所有子树索引。
         /// </summary>
         public OperationResult RebuildSubtreeIndices()
         {
@@ -2562,12 +1819,10 @@ namespace EasyPack.Category
                 _treeLock.EnterWriteLock();
                 try
                 {
-                    // 获取所有根节点
-                    var roots = _categoryNodes.Values
-                        .Where(n => n.ParentNode == null)
-                        .ToList();
+                    // 获取所有根节点（没有父节点的节点）
+                    var rootNodes = _categoryNodes.Values.Where(n => n.ParentNode == null).ToList();
 
-                    foreach (CategoryNode root in roots)
+                    foreach (CategoryNode root in rootNodes)
                     {
                         RebuildSubtreeIndices_Recursive(root);
                     }
@@ -2587,7 +1842,7 @@ namespace EasyPack.Category
         }
 
         /// <summary>
-        ///     递归重建递归重建节点及子树
+        ///     递归重建节点及子树。
         /// </summary>
         private static void RebuildSubtreeIndices_Recursive(CategoryNode node)
         {
@@ -2599,10 +1854,81 @@ namespace EasyPack.Category
 
         #endregion
 
-        #region 释放资源释放
+        #region 统计
+
+#if UNITY_EDITOR
+        private Statistics _cachedStatistics;
+        private long _lastStatisticsUpdate;
+        private const long StatisticsCacheTimeout = 10000000;
+
+        private long _totalCacheQueries;
+        private long _cacheHits;
+        private long _cacheMisses;
+#endif
 
         /// <summary>
-        ///     释放释放所有资源
+        ///     获取统计信息。
+        /// </summary>
+        public Statistics GetStatistics()
+        {
+#if UNITY_EDITOR
+            long now = DateTime.UtcNow.Ticks;
+            if (_cachedStatistics != null && (now - _lastStatisticsUpdate) < StatisticsCacheTimeout)
+                return _cachedStatistics;
+
+            // 计算最大分类深度
+            int maxDepth = 0;
+            foreach (var kvp in _categoryIdToName)
+            {
+                int depth = kvp.Value.Split('.').Length;
+                if (depth > maxDepth) maxDepth = depth;
+            }
+
+            // 估算内存使用
+            long memoryUsage = _entities.Count * 64 + _categoryNodes.Count * 128;
+            foreach (var kvp in _tagToEntityKeys)
+            {
+                memoryUsage += kvp.Value.Count * 16;
+            }
+            memoryUsage += _metadataStore.Count * 64;
+
+            _cachedStatistics = new Statistics
+            {
+                TotalEntities = _entities.Count,
+                TotalCategories = _categoryNodes.Count,
+                TotalTags = _tagMapper.Count,
+                CacheHitRate = (float)(_totalCacheQueries > 0 ? (double)_cacheHits / _totalCacheQueries : 0),
+                MaxCategoryDepth = maxDepth,
+                MemoryUsageBytes = memoryUsage,
+                TotalCacheQueries = _totalCacheQueries,
+                CacheHits = _cacheHits,
+                CacheMisses = _cacheMisses,
+            };
+            _lastStatisticsUpdate = now;
+
+            return _cachedStatistics;
+#else
+            return new Statistics();
+#endif
+        }
+
+        private void RecordCacheQuery(bool isHit)
+        {
+#if UNITY_EDITOR
+            _totalCacheQueries++;
+            if (isHit)
+                _cacheHits++;
+            else
+                _cacheMisses++;
+#endif
+        }
+
+        #endregion
+
+        #region 释放资源
+
+        /// <summary>
+        ///     释放所有资源。
         /// </summary>
         public void Dispose()
         {
@@ -2618,139 +1944,33 @@ namespace EasyPack.Category
 
         #endregion
 
-        #region 实体注册内部类
+        #region 内部类
 
         /// <summary>
-        ///     内部类实体注册链式构建器
-        ///     支持: WithTags() - 添加标签, WithMetadata() - 添加元数据, Complete() - 完成注册
+        ///     泛型实体注册链式构建器。
         /// </summary>
-        private class EntityRegistration : IEntityRegistration
+        private class EntityRegistrationGeneric : IEntityRegistration
         {
-            private readonly CategoryManager<T> _manager;
-            private readonly string _entityId;
+            private readonly CategoryManager<T, TKey> _manager;
+            private readonly TKey _entityKey;
             private readonly T _entity;
             private readonly string _category;
             private readonly List<string> _tags;
             private CustomDataCollection _metadata;
             private readonly OperationResult _validationResult;
 
-            public EntityRegistration(
-                CategoryManager<T> manager,
-                string entityId,
+            public EntityRegistrationGeneric(
+                CategoryManager<T, TKey> manager,
+                TKey entityKey,
                 T entity,
                 string category,
                 OperationResult validationResult)
             {
                 _manager = manager;
-                _entityId = entityId;
+                _entityKey = entityKey;
                 _entity = entity;
                 _category = category;
-                _tags = new();
-                _validationResult = validationResult;
-            }
-
-            public IEntityRegistration WithTags(params string[] tags)
-            {
-                if (tags != null) _tags.AddRange(tags);
-
-                return this;
-            }
-
-            public IEntityRegistration WithMetadata(CustomDataCollection metadata)
-            {
-                _metadata = metadata;
-                return this;
-            }
-
-            public OperationResult Complete()
-            {
-                if (!_validationResult.IsSuccess) return _validationResult;
-
-                try
-                {
-                    // 存储实体
-                    _manager._entitiesLock.EnterWriteLock();
-                    try
-                    {
-                        _manager._entities[_entityId] = _entity;
-                    }
-                    finally
-                    {
-                        _manager._entitiesLock.ExitWriteLock();
-                    }
-
-                    // 创建分类节点
-                    _manager._treeLock.EnterWriteLock();
-                    try
-                    {
-                        CategoryNode node = _manager.GetOrCreateNode(_category);
-                        node.AddEntity(_entityId);
-                    }
-                    finally
-                    {
-                        _manager._treeLock.ExitWriteLock();
-                    }
-
-                    // 添加标签
-                    foreach (string tag in _tags)
-                    {
-                        _manager.AddTag(_entityId, tag);
-                    }
-
-                    // 存储元数据
-                    if (_metadata != null)
-                    {
-                        _manager._metadataLock.EnterWriteLock();
-                        try
-                        {
-                            _manager._metadataStore[_entityId] = _metadata;
-                        }
-                        finally
-                        {
-                            _manager._metadataLock.ExitWriteLock();
-                        }
-                    }
-
-                    // 清除统计缓存（数据已改变）
-#if UNITY_EDITOR
-                    _manager._cachedStatistics = null;
-#endif
-
-                    return OperationResult.Success();
-                }
-                catch (Exception ex)
-                {
-                    return OperationResult.Failure(ErrorCode.ConcurrencyConflict, ex.Message);
-                }
-            }
-        }
-
-        /// <summary>
-        ///     内部类：整数 ID 实体注册链式构建器
-        ///     支持: WithTags() - 添加标签, WithMetadata() - 添加元数据, Complete() - 完成注册
-        /// </summary>
-        private class EntityRegistrationInt : IEntityRegistration
-        {
-            private readonly CategoryManager<T> _manager;
-            private readonly int _entityId;
-            private readonly T _entity;
-            private readonly string _category;
-            private readonly List<string> _tags;
-            private CustomDataCollection _metadata;
-            private readonly OperationResult _validationResult;
-
-            public EntityRegistrationInt(
-                CategoryManager<T> manager,
-                int entityId,
-                T entity,
-                string category,
-                OperationResult validationResult)
-            {
-                _manager = manager;
-                _entityId = entityId;
-                _entity = entity;
-                _category = category;
-                _tags = new();
+                _tags = new List<string>();
                 _validationResult = validationResult;
             }
 
@@ -2774,12 +1994,12 @@ namespace EasyPack.Category
                 if (!CategoryNameNormalizer.IsValid(normalizedCategory, out string errorMessage))
                     return OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage);
 
-                // 检查 ID 是否已存在
+                // 检查键是否已存在
                 _manager._entitiesLock.EnterReadLock();
                 try
                 {
-                    if (_manager._entitiesInt.ContainsKey(_entityId))
-                        return OperationResult.Failure(ErrorCode.DuplicateId, $"整数实体 ID '{_entityId}' 已存在");
+                    if (_manager._entities.ContainsKey(_entityKey))
+                        return OperationResult.Failure(ErrorCode.DuplicateId, $"实体键 '{_entityKey}' 已存在");
                 }
                 finally
                 {
@@ -2792,7 +2012,7 @@ namespace EasyPack.Category
                     _manager._entitiesLock.EnterWriteLock();
                     try
                     {
-                        _manager._entitiesInt[_entityId] = _entity;
+                        _manager._entities[_entityKey] = _entity;
                     }
                     finally
                     {
@@ -2804,7 +2024,7 @@ namespace EasyPack.Category
                     try
                     {
                         CategoryNode node = _manager.GetOrCreateNode(normalizedCategory);
-                        _manager._entityIdToNodeInt[_entityId] = node;
+                        _manager._entityKeyToNode[_entityKey] = node;
                     }
                     finally
                     {
@@ -2816,7 +2036,7 @@ namespace EasyPack.Category
                     {
                         if (!string.IsNullOrWhiteSpace(tag))
                         {
-                            _manager.AddTagInt(_entityId, tag);
+                            _manager.AddTagInternal(_entityKey, tag);
                         }
                     }
 
@@ -2826,7 +2046,7 @@ namespace EasyPack.Category
                         _manager._metadataLock.EnterWriteLock();
                         try
                         {
-                            _manager._metadataStoreInt[_entityId] = _metadata;
+                            _manager._metadataStore[_entityKey] = _metadata;
                         }
                         finally
                         {
@@ -2834,7 +2054,126 @@ namespace EasyPack.Category
                         }
                     }
 
-                    // 清除统计缓存（数据已改变）
+#if UNITY_EDITOR
+                    _manager._cachedStatistics = null;
+#endif
+
+                    return OperationResult.Success();
+                }
+                catch (Exception ex)
+                {
+                    return OperationResult.Failure(ErrorCode.ConcurrencyConflict, ex.Message);
+                }
+            }
+        }
+
+        /// <summary>
+        ///     泛型实体注册内部类（用于 RegisterEntitySafeWithKey）。
+        /// </summary>
+        private class EntityRegistration : IEntityRegistration<T, TKey>
+        {
+            private readonly CategoryManager<T, TKey> _manager;
+            private readonly T _entity;
+            private readonly TKey _entityKey;
+            private readonly string _category;
+            private readonly List<string> _tags;
+            private CustomDataCollection _metadata;
+
+            public EntityRegistration(
+                CategoryManager<T, TKey> manager,
+                T entity,
+                TKey key,
+                string category)
+            {
+                _manager = manager;
+                _entity = entity;
+                _entityKey = key;
+                _category = category;
+                _tags = new List<string>();
+            }
+
+            public IEntityRegistration<T, TKey> WithTags(params string[] tags)
+            {
+                if (tags != null)
+                    _tags.AddRange(tags);
+                return this;
+            }
+
+            public IEntityRegistration<T, TKey> WithMetadata(CustomDataCollection metadata)
+            {
+                _metadata = metadata;
+                return this;
+            }
+
+            public OperationResult Complete()
+            {
+                if (string.IsNullOrEmpty(_category))
+                    return OperationResult.Failure(ErrorCode.InvalidCategory, "分类不能为空");
+
+                string normalizedCategory = CategoryNameNormalizer.Normalize(_category);
+
+                // 检查实体是否已存在
+                _manager._entitiesLock.EnterReadLock();
+                try
+                {
+                    if (_manager._entities.ContainsKey(_entityKey))
+                        return OperationResult.Failure(ErrorCode.DuplicateId,
+                            $"键为 '{_entityKey}' 的实体已存在");
+                }
+                finally
+                {
+                    _manager._entitiesLock.ExitReadLock();
+                }
+
+                try
+                {
+                    // 存储实体
+                    _manager._entitiesLock.EnterWriteLock();
+                    try
+                    {
+                        _manager._entities[_entityKey] = _entity;
+                    }
+                    finally
+                    {
+                        _manager._entitiesLock.ExitWriteLock();
+                    }
+
+                    // 创建分类节点并关联
+                    _manager._treeLock.EnterWriteLock();
+                    try
+                    {
+                        CategoryNode node = _manager.GetOrCreateNode(normalizedCategory);
+                        // 只使用 _entityKeyToNode 来跟踪实体键到节点的映射
+                        _manager._entityKeyToNode[_entityKey] = node;
+                    }
+                    finally
+                    {
+                        _manager._treeLock.ExitWriteLock();
+                    }
+
+                    // 添加标签
+                    foreach (string tag in _tags)
+                    {
+                        if (!string.IsNullOrWhiteSpace(tag))
+                        {
+                            _manager.AddTagInternal(_entityKey, tag);
+                        }
+                    }
+
+                    // 存储元数据
+                    if (_metadata != null)
+                    {
+                        _manager._metadataLock.EnterWriteLock();
+                        try
+                        {
+                            _manager._metadataStore[_entityKey] = _metadata;
+                        }
+                        finally
+                        {
+                            _manager._metadataLock.ExitWriteLock();
+                        }
+                    }
+
 #if UNITY_EDITOR
                     _manager._cachedStatistics = null;
 #endif
