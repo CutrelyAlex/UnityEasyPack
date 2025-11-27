@@ -11,7 +11,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     事件触发类型（字符串标识符，如 "Tick"、"Use"、"Collision"）。
         ///     <para>
-        ///         使用字符串而非枚举，支持任意自定义事件类型。
+        ///         使用字符串，支持任意自定义事件类型。
         ///         标准事件类型定义在 <see cref="CardEventTypes" /> 中。
         ///     </para>
         /// </summary>
