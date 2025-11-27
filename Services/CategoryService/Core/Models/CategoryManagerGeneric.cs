@@ -614,6 +614,8 @@ namespace EasyPack.Category
 
         #region 层级操作
 
+        // TODO: 双泛型系统暂未实现分类重命名功能（RenameCategory/RenameCategorySafe）
+
         /// <summary>
         ///     获取或创建分类节点。
         /// </summary>
@@ -964,7 +966,7 @@ namespace EasyPack.Category
         #endregion
 
         #region 元数据
-
+        
         /// <summary>
         ///     获取实体的元数据。
         /// </summary>

@@ -67,6 +67,7 @@ namespace EasyPack.Category
         /// <param name="entities">实体列表。</param>
         /// <param name="category">目标分类名称。</param>
         /// <returns>批量操作结果。</returns>
+        // TODO: 双泛型系统暂未完全支持批量操作的错误回滚机制，可能无法保证批量操作的原子性
         BatchOperationResult RegisterBatch(List<T> entities, string category);
 
         /// <summary>
