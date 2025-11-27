@@ -328,14 +328,6 @@ namespace EasyPack.EmeCardSystem
         /// </remarks>
         public Card AddChild(Card child, bool intrinsic = false)
         {
-            if (intrinsic && child.Id == "Signal") { }
-
-            if (child == null) throw new ArgumentNullException(nameof(child));
-            if (child.Owner != null) throw new InvalidOperationException("子卡牌已被其他卡牌持有。");
-
-            if (IsRecursiveParent(child)) throw new InvalidOperationException($"添加卡牌 '{child.Id}' 将形成循环依赖。");
-
-
             _children.Add(child);
             child.Owner = this;
             if (intrinsic) _intrinsics.Add(child);

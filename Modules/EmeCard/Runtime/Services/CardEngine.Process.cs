@@ -107,6 +107,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         #endregion
+        
         #region 规则注册
 
         /// <summary>

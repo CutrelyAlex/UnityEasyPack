@@ -384,6 +384,87 @@ namespace EasyPack.EmeCardSystem
                 TargetSelector.OnCardTagAdded(c, tag);
             }
 
+            // 第七步: 递归注册所有已存在的子卡牌（处理工厂创建时已通过 AddChild 添加的子卡牌）
+            if (c.Children != null && c.Children.Count > 0)
+            {
+                foreach (Card child in c.Children)
+                {
+                    if (child != null && !HasCard(child))
+                    {
+                        AddCard(child);
+                    }
+                }
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        ///     将子卡牌添加到父卡牌，同时确保子卡牌已注册到引擎。
+        ///     此方法会：1) 将子卡牌注册到引擎（分配 UID、注册到 CategoryManager）
+        ///              2) 建立父子关系
+        /// </summary>
+        /// <param name="parent">父卡牌（必须已注册到引擎）。</param>
+        /// <param name="child">子卡牌。</param>
+        /// <param name="intrinsic">是否作为固有子卡（固有子卡无法通过规则消耗或普通移除）。</param>
+        /// <returns>当前引擎实例，支持链式调用。</returns>
+        /// <exception cref="ArgumentNullException">parent 或 child 为 null。</exception>
+        /// <exception cref="InvalidOperationException">parent 未注册到引擎，或 child 已有其他持有者。</exception>
+        public CardEngine AddChildToCard(Card parent, Card child, bool intrinsic = false)
+        {
+            if (parent == null) throw new ArgumentNullException(nameof(parent));
+            if (child == null) throw new ArgumentNullException(nameof(child));
+            
+            // 验证父卡牌已注册到引擎
+            if (!HasCard(parent))
+            {
+                throw new InvalidOperationException($"父卡牌 '{parent.Id}' 未注册到引擎，请先调用 AddCard。");
+            }
+            
+            // 验证子卡牌没有其他持有者
+            if (child.Owner != null)
+            {
+                throw new InvalidOperationException($"子卡牌 '{child.Id}' 已被其他卡牌持有。");
+            }
+            
+            // 检查循环依赖
+            if (parent.IsRecursiveParent(child))
+            {
+                throw new InvalidOperationException($"添加卡牌 '{child.Id}' 将形成循环依赖。");
+            }
+            
+            // 第一步：将子卡牌注册到引擎（如果尚未注册）
+            if (!HasCard(child))
+            {
+                AddCard(child);
+            }
+            
+            // 第二步：建立父子关系
+            parent.AddChild(child, intrinsic);
+            
+            return this;
+        }
+
+        /// <summary>
+        ///     批量将多个子卡牌添加到父卡牌。
+        /// </summary>
+        /// <param name="parent">父卡牌（必须已注册到引擎）。</param>
+        /// <param name="children">子卡牌集合。</param>
+        /// <param name="intrinsic">是否作为固有子卡。</param>
+        /// <returns>当前引擎实例，支持链式调用。</returns>
+        public CardEngine AddChildrenToCard(Card parent, IEnumerable<Card> children, bool intrinsic = false)
+        {
+            if (parent == null) throw new ArgumentNullException(nameof(parent));
+            if (children == null) throw new ArgumentNullException(nameof(children));
+            
+            foreach (Card child in children)
+            {
+                if (child != null)
+                {
+                    AddChildToCard(parent, child, intrinsic);
+                }
+            }
+            
             return this;
         }
 

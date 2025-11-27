@@ -80,10 +80,12 @@ namespace EasyPack.EmeCardSystem
             if (targets == null || targets.Count == 0)
                 return;
 
+            var engine = ctx.Factory?.Owner;
             foreach (Card t in targets.ToArray())
             {
                 if (t?.Owner != null)
                     t.Owner.RemoveChild(t, false);
+                engine?.RemoveCard(t);
             }
         }
     }

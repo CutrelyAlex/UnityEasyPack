@@ -38,9 +38,12 @@ namespace EasyPack.EmeCardSystem
             {
                 for (int i = 0; i < CountPerId; i++)
                 {
-                    Card card = ctx.Factory.Owner.CreateCard(id);
+                    var engine = ctx.Factory.Owner;
+                    Card card = engine.CreateCard(id);
                     if (card != null)
-                        ctx.MatchRoot.AddChild(card);
+                    {
+                        engine.AddChildToCard(ctx.MatchRoot, card);
+                    }
                 }
             }
         }
