@@ -64,6 +64,7 @@ namespace EasyPack.Category
         private readonly ReaderWriterLockSlim _treeLock;
         private readonly ReaderWriterLockSlim _entitiesLock;
         private readonly ReaderWriterLockSlim _metadataLock;
+        private readonly ReaderWriterLockSlim _tagSystemLock; 
 
         // 键比较器
         private readonly IEqualityComparer<TKey> _keyComparer;
@@ -102,6 +103,7 @@ namespace EasyPack.Category
             _treeLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
             _entitiesLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
             _metadataLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+            _tagSystemLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         }
 
         #endregion
@@ -552,6 +554,7 @@ namespace EasyPack.Category
                 _entitiesLock.ExitReadLock();
             }
 
+            // 使用确定的锁顺序：_treeLock -> _tagSystemLock -> _metadataLock -> _entitiesLock
             _treeLock.EnterWriteLock();
             try
             {
@@ -559,23 +562,31 @@ namespace EasyPack.Category
                 _entityKeyToNode.Remove(key);
 
                 // 从标签系统移除
-                if (_entityToTagIds.TryGetValue(key, out var tagIds))
+                _tagSystemLock.EnterWriteLock();
+                try
                 {
-                    foreach (int tagId in tagIds)
+                    if (_entityToTagIds.TryGetValue(key, out var tagIds))
                     {
-                        if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
+                        foreach (int tagId in tagIds)
                         {
-                            entityKeys.Remove(key);
-                            if (entityKeys.Count == 0)
+                            if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
                             {
-                                _tagToEntityKeys.Remove(tagId);
+                                entityKeys.Remove(key);
+                                if (entityKeys.Count == 0)
+                                {
+                                    _tagToEntityKeys.Remove(tagId);
+                                }
                             }
-                        }
 
-                        // 清除标签缓存
-                        _tagCache.Remove(tagId);
+                            // 清除标签缓存
+                            _tagCache.Remove(tagId);
+                        }
+                        _entityToTagIds.Remove(key);
                     }
-                    _entityToTagIds.Remove(key);
+                }
+                finally
+                {
+                    _tagSystemLock.ExitWriteLock();
                 }
 
                 // 从元数据存储移除
@@ -707,22 +718,30 @@ namespace EasyPack.Category
                 foreach (TKey key in entityKeysToDelete)
                 {
                     // 从标签系统移除
-                    if (_entityToTagIds.TryGetValue(key, out var tagIds))
+                    _tagSystemLock.EnterWriteLock();
+                    try
                     {
-                        foreach (int tagId in tagIds)
+                        if (_entityToTagIds.TryGetValue(key, out var tagIds))
                         {
-                            if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
+                            foreach (int tagId in tagIds)
                             {
-                                entityKeys.Remove(key);
-                                if (entityKeys.Count == 0)
+                                if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
                                 {
-                                    _tagToEntityKeys.Remove(tagId);
+                                    entityKeys.Remove(key);
+                                    if (entityKeys.Count == 0)
+                                    {
+                                        _tagToEntityKeys.Remove(tagId);
+                                    }
                                 }
+                                // 清除标签缓存
+                                _tagCache.Remove(tagId);
                             }
-                            // 清除标签缓存
-                            _tagCache.Remove(tagId);
+                            _entityToTagIds.Remove(key);
                         }
-                        _entityToTagIds.Remove(key);
+                    }
+                    finally
+                    {
+                        _tagSystemLock.ExitWriteLock();
                     }
 
                     // 从元数据存储移除
@@ -1018,16 +1037,17 @@ namespace EasyPack.Category
 
         /// <summary>
         ///     内部方法：添加标签（跳过实体存在检查）。
+        ///     使用全局锁确保线程安全。
         /// </summary>
         private void AddTagInternal(TKey key, string tag)
         {
             if (string.IsNullOrWhiteSpace(tag)) return;
 
-            int tagId = _tagMapper.GetOrAssignId(tag);
-
-            AcquireTagWriteLock(tagId);
+            _tagSystemLock.EnterWriteLock();
             try
             {
+                int tagId = _tagMapper.GetOrAssignId(tag);
+
                 if (!_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
                 {
                     entityKeys = new HashSet<TKey>(_keyComparer);
@@ -1047,7 +1067,7 @@ namespace EasyPack.Category
             }
             finally
             {
-                ReleaseTagWriteLock(tagId);
+                _tagSystemLock.ExitWriteLock();
             }
         }
 
@@ -1100,12 +1120,12 @@ namespace EasyPack.Category
             if (string.IsNullOrWhiteSpace(tag))
                 return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
 
-            if (!_tagMapper.TryGetId(tag, out int tagId))
-                return OperationResult.Failure(ErrorCode.NotFound, $"标签 '{tag}' 不存在");
-
-            AcquireTagWriteLock(tagId);
+            _tagSystemLock.EnterWriteLock();
             try
             {
+                if (!_tagMapper.TryGetId(tag, out int tagId))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"标签 '{tag}' 不存在");
+
                 if (!_tagToEntityKeys.TryGetValue(tagId, out var entityKeys) ||
                     !entityKeys.Remove(key))
                     return OperationResult.Failure(ErrorCode.NotFound, $"实体不包含标签 '{tag}'");
@@ -1123,7 +1143,7 @@ namespace EasyPack.Category
             }
             finally
             {
-                ReleaseTagWriteLock(tagId);
+                _tagSystemLock.ExitWriteLock();
             }
         }
 
@@ -1135,13 +1155,21 @@ namespace EasyPack.Category
             if (string.IsNullOrWhiteSpace(tag))
                 return false;
 
-            if (!_tagMapper.TryGetId(tag, out int tagId))
-                return false;
+            _tagSystemLock.EnterReadLock();
+            try
+            {
+                if (!_tagMapper.TryGetId(tag, out int tagId))
+                    return false;
 
-            if (!_entityToTagIds.TryGetValue(key, out var tagIds))
-                return false;
+                if (!_entityToTagIds.TryGetValue(key, out var tagIds))
+                    return false;
 
-            return tagIds.Contains(tagId);
+                return tagIds.Contains(tagId);
+            }
+            finally
+            {
+                _tagSystemLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -1159,19 +1187,27 @@ namespace EasyPack.Category
         /// </summary>
         public IReadOnlyList<string> GetEntityTags(TKey key)
         {
-            if (!_entityToTagIds.TryGetValue(key, out var tagIds))
-                return Array.Empty<string>();
-
-            var tags = new List<string>(tagIds.Count);
-            foreach (int tagId in tagIds)
+            _tagSystemLock.EnterReadLock();
+            try
             {
-                if (_tagMapper.TryGetString(tagId, out string tagName))
-                {
-                    tags.Add(tagName);
-                }
-            }
+                if (!_entityToTagIds.TryGetValue(key, out var tagIds))
+                    return Array.Empty<string>();
 
-            return tags;
+                var tags = new List<string>(tagIds.Count);
+                foreach (int tagId in tagIds)
+                {
+                    if (_tagMapper.TryGetString(tagId, out string tagName))
+                    {
+                        tags.Add(tagName);
+                    }
+                }
+
+                return tags;
+            }
+            finally
+            {
+                _tagSystemLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -1191,21 +1227,41 @@ namespace EasyPack.Category
         {
             if (string.IsNullOrWhiteSpace(tag)) return new List<T>();
 
-            if (!_tagMapper.TryGetId(tag, out int tagId))
-                return new List<T>();
-
-            // 检查缓存
-            if (_tagCache.TryGetValue(tagId, out var cachedResult))
-            {
-                RecordCacheQuery(true);
-                return cachedResult;
-            }
-
-            RecordCacheQuery(false);
-
-            AcquireTagReadLock(tagId);
+            // 先尝试读取缓存
+            _tagSystemLock.EnterReadLock();
             try
             {
+                if (!_tagMapper.TryGetId(tag, out int tagId))
+                    return new List<T>();
+
+                // 检查缓存
+                if (_tagCache.TryGetValue(tagId, out var cachedResult))
+                {
+                    RecordCacheQuery(true);
+                    return cachedResult;
+                }
+            }
+            finally
+            {
+                _tagSystemLock.ExitReadLock();
+            }
+
+            // 缓存未命中，需要写入缓存
+            _tagSystemLock.EnterWriteLock();
+            try
+            {
+                if (!_tagMapper.TryGetId(tag, out int tagId))
+                    return new List<T>();
+
+                // 双重检查缓存（可能在等待写锁时已被其他线程填充）
+                if (_tagCache.TryGetValue(tagId, out var cachedResult))
+                {
+                    RecordCacheQuery(true);
+                    return cachedResult;
+                }
+
+                RecordCacheQuery(false);
+
                 if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
                 {
                     _entitiesLock.EnterReadLock();
@@ -1229,7 +1285,7 @@ namespace EasyPack.Category
             }
             finally
             {
-                ReleaseTagReadLock(tagId);
+                _tagSystemLock.ExitWriteLock();
             }
         }
 
@@ -1242,26 +1298,34 @@ namespace EasyPack.Category
 
             HashSet<TKey> resultKeys = null;
 
-            foreach (string tag in tags)
+            _tagSystemLock.EnterReadLock();
+            try
             {
-                if (string.IsNullOrWhiteSpace(tag)) continue;
-
-                if (!_tagMapper.TryGetId(tag, out int tagId)) continue;
-
-                if (!_tagToEntityKeys.TryGetValue(tagId, out var entityKeys)) continue;
-
-                if (resultKeys == null)
+                foreach (string tag in tags)
                 {
-                    resultKeys = new HashSet<TKey>(entityKeys, _keyComparer);
+                    if (string.IsNullOrWhiteSpace(tag)) continue;
+
+                    if (!_tagMapper.TryGetId(tag, out int tagId)) continue;
+
+                    if (!_tagToEntityKeys.TryGetValue(tagId, out var entityKeys)) continue;
+
+                    if (resultKeys == null)
+                    {
+                        resultKeys = new HashSet<TKey>(entityKeys, _keyComparer);
+                    }
+                    else if (matchAll)
+                    {
+                        resultKeys.IntersectWith(entityKeys);
+                    }
+                    else
+                    {
+                        resultKeys.UnionWith(entityKeys);
+                    }
                 }
-                else if (matchAll)
-                {
-                    resultKeys.IntersectWith(entityKeys);
-                }
-                else
-                {
-                    resultKeys.UnionWith(entityKeys);
-                }
+            }
+            finally
+            {
+                _tagSystemLock.ExitReadLock();
             }
 
             if (resultKeys == null || resultKeys.Count == 0)
