@@ -24,12 +24,6 @@ namespace EasyPack.EmeCardSystem
         internal CardEngine Engine { get; set; }
 
         /// <summary>
-        ///     实体ID，用于CategoryManager中的唯一标识。
-        ///     格式为 "{Id}#{Index}"
-        /// </summary>
-        public string EntityId => Index >= 0 ? $"{Id}#{Index}" : null;
-
-        /// <summary>
         ///     构造函数中临时收集的额外标签，在注册到Engine时同步到CategoryManager后清空。
         /// </summary>
         internal List<string> PendingExtraTags { get; set; }
@@ -317,6 +311,7 @@ namespace EasyPack.EmeCardSystem
         /// <remarks>
         ///     成功加入后，将向子卡派发 AddedToOwner 事件，
         ///     其事件数据为新持有者（<c>this</c>）。
+        ///     子卡的位置会自动设置为虚空位置 (0, 0, -1)。
         /// </remarks>
         /// <exception cref="InvalidOperationException">如果 child 已经是当前卡牌的祖父卡牌（会形成循环引用）。</exception>
         public Card AddChild(Card child, bool intrinsic = false)
@@ -331,6 +326,8 @@ namespace EasyPack.EmeCardSystem
 
             _children.Add(child);
             child.Owner = this;
+            // 子卡牌移动到虚空位置 (0, 0, -1)
+            child.Position = new Vector3(0, 0, -1);
             if (intrinsic) _intrinsics.Add(child);
 
             // 通知子卡
