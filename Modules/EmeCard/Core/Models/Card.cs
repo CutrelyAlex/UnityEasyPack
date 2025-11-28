@@ -130,9 +130,9 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     卡牌在世界中的位置。
-        ///     初始值为 Vector3.zero。
+        ///     初始值为 CardEngine.VOID_POSITION，表示虚空位置。
         /// </summary>
-        public Vector3 Position { get; set; } = Vector3.zero;
+        public Vector3 Position { get; set; } = CardEngine.VOID_POSITION;
 
         /// <summary>
         ///     数值属性。
@@ -311,7 +311,7 @@ namespace EasyPack.EmeCardSystem
         /// <remarks>
         ///     成功加入后，将向子卡派发 AddedToOwner 事件，
         ///     其事件数据为新持有者（<c>this</c>）。
-        ///     子卡的位置会自动设置为虚空位置 (0, 0, -1)。
+        ///     子卡的位置会自动设置为虚空位置 CardEngine.VOID_POSITION
         /// </remarks>
         /// <exception cref="InvalidOperationException">如果 child 已经是当前卡牌的祖父卡牌（会形成循环引用）。</exception>
         public Card AddChild(Card child, bool intrinsic = false)
@@ -326,8 +326,8 @@ namespace EasyPack.EmeCardSystem
 
             _children.Add(child);
             child.Owner = this;
-            // 子卡牌移动到虚空位置 (0, 0, -1)
-            child.Position = new Vector3(0, 0, -1);
+            // 子卡牌移动到虚空位置
+            child.Position = CardEngine.VOID_POSITION;
             if (intrinsic) _intrinsics.Add(child);
 
             // 通知子卡
