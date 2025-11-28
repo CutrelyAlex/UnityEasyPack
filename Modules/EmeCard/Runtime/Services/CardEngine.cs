@@ -13,6 +13,12 @@ namespace EasyPack.EmeCardSystem
     /// </summary>
     public sealed partial class CardEngine
     {
+        /// <summary>
+        ///     虚空位置：子卡牌所在的位置（z=-1）。
+        ///     子卡牌不占据实际地图位置，而是在虚空中。
+        /// </summary>
+        public static readonly Vector3 VOID_POSITION = new(0, 0, -1);
+
         #region 初始化
 
         public CardEngine(ICardFactory factory)
@@ -179,6 +185,12 @@ namespace EasyPack.EmeCardSystem
         // UID->Card缓存，支持 O(1) UID 查询
         private readonly Dictionary<int, Card> _cardsByUID = new();
 
+        // 位置->Card映射（一个位置最多一个卡牌）
+        private readonly Dictionary<Vector3, Card> _cardsByPosition = new();
+
+        // 位置->UID缓存
+        private readonly Dictionary<int, Vector3> _positionByUID = new();
+
         // 全局效果池，跨事件收集效果，确保全局优先级排序
         private readonly EffectPool _globalEffectPool = new();
 
@@ -257,7 +269,7 @@ namespace EasyPack.EmeCardSystem
         public bool HasCard(Card card) => GetCardByKey(card.Id, card.Index) == card;
 
         /// <summary>
-        ///     根据 UID 获取卡牌，O(1) 时间复杂度。
+        ///     根据 UID 获取卡牌。
         /// </summary>
         /// <param name="uid">卡牌的唯一标识符。</param>
         /// <returns>找到的卡牌，或 null 如果未找到。</returns>
@@ -301,6 +313,28 @@ namespace EasyPack.EmeCardSystem
         {
             if (string.IsNullOrEmpty(category) || string.IsNullOrEmpty(tag)) return Array.Empty<Card>();
             return CategoryManager.GetByCategoryAndTag(category, tag, includeChildren);
+        }
+
+        /// <summary>
+        ///     按位置查询卡牌。
+        /// </summary>
+        /// <param name="position">要查询的位置。</param>
+        /// <returns>在该位置的卡牌，如果未找到返回null。</returns>
+        public Card GetCardByPosition(Vector3 position)
+        {
+            _cardsByPosition.TryGetValue(position, out Card card);
+            return card;
+        }
+
+        /// <summary>
+        ///     按UID查询卡牌的位置。
+        /// </summary>
+        /// <param name="uid">卡牌的UID。</param>
+        /// <returns>卡牌所在位置，如果未找到返回 VOID_POSITION。</returns>
+        public Vector3 GetPositionByUID(int uid)
+        {
+            if (uid < 0) return VOID_POSITION;
+            return _positionByUID.GetValueOrDefault(uid, VOID_POSITION);
         }
 
         #endregion
@@ -378,6 +412,12 @@ namespace EasyPack.EmeCardSystem
             // 第五步: 注册到 CategoryManager（使用 UID 作为键，保证绝对唯一）
             RegisterToCategoryManager(c);
 
+            // 第五点五步: 注册位置映射
+            // 子卡牌初始位置为虚空，主卡牌位置为自身 Position
+            Vector3 initialPosition = c.Owner == null ? c.Position : VOID_POSITION;
+            _cardsByPosition[initialPosition] = c;
+            _positionByUID[c.UID] = initialPosition;
+
             // 第六步: 将卡牌的所有标签加入TargetSelector缓存
             foreach (string tag in c.Tags)
             {
@@ -441,6 +481,9 @@ namespace EasyPack.EmeCardSystem
             
             // 第二步：建立父子关系
             parent.AddChild(child, intrinsic);
+
+            // 第三步：子卡牌移动到虚空位置
+            MoveCardToPosition(child, VOID_POSITION);
             
             return this;
         }
@@ -465,6 +508,44 @@ namespace EasyPack.EmeCardSystem
                 }
             }
             
+            return this;
+        }
+
+        /// <summary>
+        ///     转移卡牌到新位置，自动更新位置映射。
+        ///     子卡牌移动将被强制转移到虚空位置。
+        /// </summary>
+        /// <param name="card">要转移的卡牌。</param>
+        /// <param name="newPosition">新位置（子卡牌将被强制转移到虚空）</param>
+        /// <returns>当前引擎实例，支持链式调用。</returns>
+        public CardEngine MoveCardToPosition(Card card, Vector3 newPosition)
+        {
+            if (card == null) return this;
+
+            // 子卡牌不能转移到实际位置，只能在虚空
+            if (card.Owner != null)
+            {
+                newPosition = VOID_POSITION;
+            }
+
+            Vector3 oldPosition = card.Position;
+
+            // 如果位置相同，无需更新
+            if (oldPosition == newPosition) return this;
+
+            // 从旧位置移除
+            if (_cardsByPosition.TryGetValue(oldPosition, out Card cardAtOldPosition) && cardAtOldPosition == card)
+            {
+                _cardsByPosition.Remove(oldPosition);
+            }
+
+            // 更新卡牌位置
+            card.Position = newPosition;
+
+            // 添加到新位置
+            _cardsByPosition[newPosition] = card;
+            _positionByUID[card.UID] = newPosition;
+
             return this;
         }
 
@@ -516,6 +597,13 @@ namespace EasyPack.EmeCardSystem
                 // 从 CategoryManager 注销（使用 UID）
                 UnregisterFromCategoryManager(c);
                 
+                // 从位置映射中移除
+                if (_cardsByPosition.TryGetValue(c.Position, out Card cardAtPosition) && cardAtPosition == c)
+                {
+                    _cardsByPosition.Remove(c.Position);
+                }
+                _positionByUID.Remove(c.UID);
+                
                 // 移除标签缓存
                 if (tagArray != null)
                 {
@@ -541,6 +629,8 @@ namespace EasyPack.EmeCardSystem
             _idIndexes.Clear();
             _cardsById.Clear();
             _cardsByUID.Clear();
+            _cardsByPosition.Clear();
+            _positionByUID.Clear();
         }
 
         #endregion

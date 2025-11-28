@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EasyPack.Category;
 using EasyPack.GamePropertySystem;
+using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
 {
@@ -138,6 +139,12 @@ namespace EasyPack.EmeCardSystem
                 return Data?.Category ?? CardData.DEFAULT_CATEGORY;
             }
         }
+        
+        /// <summary>
+        ///     卡牌在世界中的位置。
+        ///     初始值为 Vector3.zero
+        /// </summary>
+        public Vector3 Position { get; set; } = Vector3.zero;
         
         /// <summary>
         ///     数值属性。

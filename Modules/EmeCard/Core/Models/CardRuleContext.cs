@@ -1,4 +1,5 @@
 using System;
+using EasyPack.Category;
 
 namespace EasyPack.EmeCardSystem
 {
@@ -154,6 +155,9 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>当前执行的规则。</summary>
         public CardRule CurrentRule { get; }
+        
+        /// <summary>分类管理器。</summary>
+        public ICategoryManager<Card, int> CategoryManager => Engine?.CategoryManager;
 
         /// <summary>产卡工厂。</summary>
         public ICardFactory Factory { get; }
