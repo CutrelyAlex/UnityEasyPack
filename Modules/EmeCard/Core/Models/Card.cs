@@ -49,7 +49,7 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 临时收集额外标签，等待注册到Engine时同步
-            if (extraTags != null && extraTags.Length > 0)
+            if (extraTags is { Length: > 0 })
             {
                 PendingExtraTags = new List<string>(extraTags);
             }
@@ -67,7 +67,7 @@ namespace EasyPack.EmeCardSystem
             Properties = properties?.ToList() ?? new List<GameProperty>();
 
             // 临时收集额外标签，等待注册到Engine时同步
-            if (extraTags != null && extraTags.Length > 0)
+            if (extraTags is { Length: > 0 })
             {
                 PendingExtraTags = new List<string>(extraTags);
             }
@@ -120,7 +120,7 @@ namespace EasyPack.EmeCardSystem
         ///     卡牌描述，来自 <see cref="Data" />。
         /// </summary>
         public string Description => Data != null ? Data.Description : string.Empty;
-        
+
         public string Category
         {
             get
@@ -133,13 +133,13 @@ namespace EasyPack.EmeCardSystem
                 return Data?.Category ?? CardData.DEFAULT_CATEGORY;
             }
         }
-        
+
         /// <summary>
         ///     卡牌在世界中的位置。
-        ///     初始值为 Vector3.zero
+        ///     初始值为 Vector3.zero。
         /// </summary>
         public Vector3 Position { get; set; } = Vector3.zero;
-        
+
         /// <summary>
         ///     数值属性。
         /// </summary>
@@ -184,7 +184,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (string.IsNullOrEmpty(tag)) return false;
             if (Engine?.CategoryManager == null || UID < 0) return false;
-            
+
             return Engine.CategoryManager.HasTag(this, tag);
         }
 
@@ -197,10 +197,10 @@ namespace EasyPack.EmeCardSystem
         {
             if (string.IsNullOrEmpty(tag)) return false;
             if (Engine?.CategoryManager == null || UID < 0) return false;
-            
+
             // 检查是否已存在
             if (Engine.CategoryManager.HasTag(this, tag)) return false;
-            
+
             OperationResult op = Engine.CategoryManager.AddTag(UID, tag);
             return op.IsSuccess;
         }
@@ -214,7 +214,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (tags == null || tags.Length == 0) return false;
             if (Engine?.CategoryManager == null || UID < 0) return false;
-            
+
             // 过滤出未存在的标签
             var newTags = new List<string>();
             foreach (string tag in tags)
@@ -224,13 +224,13 @@ namespace EasyPack.EmeCardSystem
                     newTags.Add(tag);
                 }
             }
-            
+
             if (newTags.Count == 0) return false;
-            
+
             OperationResult op = Engine.CategoryManager.AddTags(UID, newTags.ToArray());
             return op.IsSuccess;
         }
-        
+
         /// <summary>
         ///     从卡牌移除标签。
         /// </summary>
@@ -240,10 +240,10 @@ namespace EasyPack.EmeCardSystem
         {
             if (string.IsNullOrEmpty(tag)) return false;
             if (Engine?.CategoryManager == null || UID < 0) return false;
-            
+
             // 检查是否存在
             if (!Engine.CategoryManager.HasTag(this, tag)) return false;
-            
+
             OperationResult op = Engine.CategoryManager.RemoveTag(UID, tag);
             return op.IsSuccess;
         }
@@ -318,8 +318,17 @@ namespace EasyPack.EmeCardSystem
         ///     成功加入后，将向子卡派发 AddedToOwner 事件，
         ///     其事件数据为新持有者（<c>this</c>）。
         /// </remarks>
+        /// <exception cref="InvalidOperationException">如果 child 已经是当前卡牌的祖父卡牌（会形成循环引用）。</exception>
         public Card AddChild(Card child, bool intrinsic = false)
         {
+            if (child == null) return this;
+
+            // 检测循环引用：如果 child 是当前卡牌的祖父卡牌，添加它将形成循环
+            if (IsRecursiveParent(child))
+            {
+                throw new InvalidOperationException($"添加卡牌 '{child.Id}' 将形成循环依赖。");
+            }
+
             _children.Add(child);
             child.Owner = this;
             if (intrinsic) _intrinsics.Add(child);
@@ -385,7 +394,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     触发主动使用事件（Use）。
         /// </summary>
-        /// <param name="target">可选自定义信息；由订阅者按需解释（例如目标信息）。</param>
+        /// <param name="target">目标卡</param>
         public void Use(Card target = null)
         {
             RaiseEvent(CardEventTypes.Use.Create(target));

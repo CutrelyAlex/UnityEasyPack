@@ -445,37 +445,31 @@ namespace EasyPack.EmeCardSystem
         {
             if (parent == null) throw new ArgumentNullException(nameof(parent));
             if (child == null) throw new ArgumentNullException(nameof(child));
-            
+
             // 验证父卡牌已注册到引擎
             if (!HasCard(parent))
             {
                 throw new InvalidOperationException($"父卡牌 '{parent.Id}' 未注册到引擎，请先调用 AddCard。");
             }
-            
+
             // 验证子卡牌没有其他持有者
             if (child.Owner != null)
             {
                 throw new InvalidOperationException($"子卡牌 '{child.Id}' 已被其他卡牌持有。");
             }
-            
-            // 检查循环依赖
-            if (parent.IsRecursiveParent(child))
-            {
-                throw new InvalidOperationException($"添加卡牌 '{child.Id}' 将形成循环依赖。");
-            }
-            
+
             // 第一步：将子卡牌注册到引擎（如果尚未注册）
             if (!HasCard(child))
             {
                 AddCard(child);
             }
-            
+
             // 第二步：建立父子关系
             parent.AddChild(child, intrinsic);
 
             // 第三步：子卡牌移动到虚空位置
             MoveCardToPosition(child, VOID_POSITION);
-            
+
             return this;
         }
 
@@ -490,7 +484,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (parent == null) throw new ArgumentNullException(nameof(parent));
             if (children == null) throw new ArgumentNullException(nameof(children));
-            
+
             foreach (Card child in children)
             {
                 if (child != null)
@@ -498,7 +492,7 @@ namespace EasyPack.EmeCardSystem
                     AddChildToCard(parent, child, intrinsic);
                 }
             }
-            
+
             return this;
         }
 
@@ -574,7 +568,7 @@ namespace EasyPack.EmeCardSystem
                 var tags = c.Tags;
                 int tagCount = tags.Count;
                 string[] tagArray = null;
-                
+
                 if (tagCount > 0)
                 {
                     tagArray = new string[tagCount];
@@ -584,17 +578,17 @@ namespace EasyPack.EmeCardSystem
                         tagArray[idx++] = tag;
                     }
                 }
-                
+
                 // 从 CategoryManager 注销（使用 UID）
                 UnregisterFromCategoryManager(c);
-                
+
                 // 从位置映射中移除
                 if (_cardsByPosition.TryGetValue(c.Position, out Card cardAtPosition) && cardAtPosition == c)
                 {
                     _cardsByPosition.Remove(c.Position);
                 }
                 _positionByUID.Remove(c.UID);
-                
+
                 // 移除标签缓存
                 if (tagArray != null)
                 {
@@ -635,7 +629,7 @@ namespace EasyPack.EmeCardSystem
         private void RegisterToCategoryManager(Card card)
         {
             if (card == null) return;
-            
+
             string category = ExtractCategoryPath(card);
 
             // 使用 UID（int）注册实体，保证绝对唯一
@@ -704,8 +698,8 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 优先使用新的 DefaultCategory，如果为空则回退到 DEFAULT_CATEGORY
-            return string.IsNullOrEmpty(card.Data.Category) 
-                ? CardData.DEFAULT_CATEGORY 
+            return string.IsNullOrEmpty(card.Data.Category)
+                ? CardData.DEFAULT_CATEGORY
                 : card.Data.Category;
         }
 
