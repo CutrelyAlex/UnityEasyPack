@@ -68,6 +68,7 @@ namespace EasyPack.InventorySystem
 
             // 序列化容器条件
             if (container.ContainerCondition is { Count: > 0 })
+            {
                 foreach (IItemCondition cond in container.ContainerCondition)
                 {
                     var concrete = cond as ISerializableCondition;
@@ -77,6 +78,7 @@ namespace EasyPack.InventorySystem
                         dto.ContainerConditions.Add(condDto);
                     }
                 }
+            }
 
             return dto;
         }
@@ -95,6 +97,7 @@ namespace EasyPack.InventorySystem
 
             // 反序列化槽位
             if (dto.Slots != null)
+            {
                 foreach (SerializedSlot slotDto in dto.Slots)
                 {
                     if (slotDto.Index < 0 || slotDto.Index >= container.Capacity)
@@ -104,15 +107,18 @@ namespace EasyPack.InventorySystem
                     var item = _serializationService.DeserializeFromJson<Item>(slotDto.ItemJson);
                     if (item != null) container.AddItems(item, slotDto.ItemCount, slotDto.Index);
                 }
+            }
 
             // 反序列化容器条件
             if (dto.ContainerConditions is { Count: > 0 })
+            {
                 foreach (SerializedCondition condDto in dto.ContainerConditions)
                 {
                     string condJson = JsonUtility.ToJson(condDto);
                     var condition = _serializationService.DeserializeFromJson<IItemCondition>(condJson);
                     if (condition != null) container.ContainerCondition.Add(condition);
                 }
+            }
 
             return container;
         }

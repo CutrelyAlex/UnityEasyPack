@@ -62,22 +62,20 @@ namespace EasyPack.ENekoFramework
 
             try
             {
-                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(TimeSpan.FromSeconds(timeout));
+
+                var task = command.ExecuteAsync(cts.Token);
+                TResult result = await task;
+
+                if (descriptor != null)
                 {
-                    cts.CancelAfter(TimeSpan.FromSeconds(timeout));
-
-                    var task = command.ExecuteAsync(cts.Token);
-                    TResult result = await task;
-
-                    if (descriptor != null)
-                    {
-                        descriptor.CompletedAt = DateTime.UtcNow;
-                        descriptor.Status = CommandStatus.Succeeded;
-                        descriptor.Result = result;
-                    }
-
-                    return result;
+                    descriptor.CompletedAt = DateTime.UtcNow;
+                    descriptor.Status = CommandStatus.Succeeded;
+                    descriptor.Result = result;
                 }
+
+                return result;
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {

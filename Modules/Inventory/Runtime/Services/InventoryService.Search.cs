@@ -58,8 +58,10 @@ namespace EasyPack.InventorySystem
                                 {
                                     ISlot slot = container.Slots[slotIndex];
                                     if (slot.IsOccupied && slot.Item?.ID == itemId)
+                                    {
                                         results.Add(new(container.ID, slotIndex, slot.Item,
                                             slot.ItemCount));
+                                    }
                                 }
                             }
                         }

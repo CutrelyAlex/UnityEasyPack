@@ -118,8 +118,10 @@ namespace EasyPack.ENekoFramework.Editor
             // 状态筛选
             _useStateFilter = EditorGUILayout.ToggleLeft("按状态筛选", _useStateFilter, GUILayout.Width(80));
             if (_useStateFilter)
+            {
                 _selectedStateFilter =
                     (ServiceLifecycleState)EditorGUILayout.EnumPopup(_selectedStateFilter, GUILayout.Width(150));
+            }
 
             EditorGUILayout.EndHorizontal();
 
@@ -136,8 +138,10 @@ namespace EasyPack.ENekoFramework.Editor
             if (_isRefreshing)
                 GUILayout.Label("刷新中...", EditorStyles.toolbarButton, GUILayout.ExpandWidth(true));
             else
+            {
                 _autoRefresh = GUILayout.Toggle(_autoRefresh, "自动刷新", EditorStyles.toolbarButton,
                     GUILayout.ExpandWidth(true));
+            }
 
             EditorGUILayout.EndHorizontal();
 
@@ -166,10 +170,12 @@ namespace EasyPack.ENekoFramework.Editor
             var filteredServices = GetFilteredServices();
 
             if (filteredServices.Count > 0)
+            {
                 foreach (ServiceDescriptor service in filteredServices)
                 {
                     DrawServiceItem(service);
                 }
+            }
             else
                 EditorGUILayout.HelpBox("未发现匹配的服务", MessageType.Info);
 
@@ -316,8 +322,10 @@ namespace EasyPack.ENekoFramework.Editor
                     EditorGUILayout.LabelField("注册时间", _selectedService.RegisteredAt.ToString("yyyy-MM-dd HH:mm:ss"));
 
                 if (_selectedService.LastAccessedAt.HasValue && _selectedService.LastAccessedAt.Value != default)
+                {
                     EditorGUILayout.LabelField("最后访问",
                         _selectedService.LastAccessedAt.Value.ToString("yyyy-MM-dd HH:mm:ss"));
+                }
 
                 EditorGUILayout.Space();
 

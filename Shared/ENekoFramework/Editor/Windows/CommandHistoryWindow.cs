@@ -125,8 +125,10 @@ namespace EasyPack.ENekoFramework.Editor
             // 状态筛选
             _useStatusFilter = EditorGUILayout.ToggleLeft("按状态筛选", _useStatusFilter, GUILayout.Width(80));
             if (_useStatusFilter)
+            {
                 _selectedStatusFilter =
                     (CommandStatus)EditorGUILayout.EnumPopup(_selectedStatusFilter, GUILayout.Width(150));
+            }
 
             EditorGUILayout.EndHorizontal();
 
@@ -198,10 +200,12 @@ namespace EasyPack.ENekoFramework.Editor
 
             if (filteredHistory is { Count: > 0 })
                 // 倒序显示
+            {
                 for (int i = filteredHistory.Count - 1; i >= 0; i--)
                 {
                     DrawCommandItem(filteredHistory[i]);
                 }
+            }
             else
                 EditorGUILayout.HelpBox("暂无匹配的命令记录", MessageType.Info);
 
@@ -401,10 +405,12 @@ namespace EasyPack.ENekoFramework.Editor
 
                 // 超时信息
                 if (_selectedCommand.Status == CommandStatus.TimedOut)
+                {
                     EditorGUILayout.HelpBox(
                         $"命令执行超过 {_selectedCommand.TimeoutSeconds} 秒超时限制",
                         MessageType.Warning
                     );
+                }
 
                 EditorGUILayout.Space();
 
@@ -475,8 +481,10 @@ namespace EasyPack.ENekoFramework.Editor
 
                 if (cmd == _selectedCommand)
                     // 高亮选中的命令
+                {
                     EditorGUI.DrawRect(new(barRect.x - 2, barRect.y - 2, barRect.width + 4, barRect.height + 4),
                         Color.white);
+                }
 
                 EditorGUI.DrawRect(barRect, color);
             }
@@ -559,15 +567,11 @@ namespace EasyPack.ENekoFramework.Editor
                     BindingFlags.NonPublic | BindingFlags.Instance |
                     BindingFlags.Public);
 
-                if (dispatcherProp != null)
-                {
-                    var dispatcher = dispatcherProp.GetValue(arch) as CommandDispatcher;
-                    if (dispatcher != null)
-                    {
-                        var history = dispatcher.GetCommandHistory();
-                        if (history != null) allHistories.AddRange(history);
-                    }
-                }
+                if (dispatcherProp == null) continue;
+                
+                var dispatcher = dispatcherProp.GetValue(arch) as CommandDispatcher;
+                var history = dispatcher?.GetCommandHistory();
+                if (history != null) allHistories.AddRange(history);
             }
 
             return allHistories.OrderBy(c => c.StartedAt).ToList();

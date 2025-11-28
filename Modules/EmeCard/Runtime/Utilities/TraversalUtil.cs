@@ -65,9 +65,8 @@ namespace EasyPack.EmeCardSystem
             try
             {
                 // 从子级开始（正序添加以保持顺序一致性）
-                for (int i = 0; i < root.Children.Count; i++)
+                foreach (Card child in root.Children)
                 {
-                    Card child = root.Children[i];
                     result.Add(child);
                     if (maxDepth > 1)
                     {
@@ -80,9 +79,8 @@ namespace EasyPack.EmeCardSystem
                     (Card node, int depth) = stack.Pop();
                     if (depth >= maxDepth) continue;
 
-                    for (int i = 0; i < node.Children.Count; i++)
+                    foreach (Card child in node.Children)
                     {
-                        Card child = node.Children[i];
                         result.Add(child);
                         stack.Push((child, depth + 1));
                     }

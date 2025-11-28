@@ -51,6 +51,7 @@ namespace EasyPack.InventorySystem
         public IItem GetItemReference(string itemId)
         {
             if (_cacheManager.TryGetItemSlotIndices(itemId, out var indices) && indices.Count > 0)
+            {
                 foreach (int index in indices)
                 {
                     if (index < _slots.Count)
@@ -59,6 +60,7 @@ namespace EasyPack.InventorySystem
                         if (slot.IsOccupied && slot.Item?.ID == itemId) return slot.Item;
                     }
                 }
+            }
 
             return null;
         }
@@ -142,12 +144,14 @@ namespace EasyPack.InventorySystem
 
                 // 如果需要更新缓存
                 if (needsUpdate)
+                {
                     foreach (int idx in indices)
                     {
                         if (idx >= _slots.Count || !_slots[idx].IsOccupied ||
                             _slots[idx].Item == null || _slots[idx].Item.ID != itemId)
                             _cacheManager.UpdateItemSlotIndexCache(itemId, idx, false);
                     }
+                }
 
                 return validIndices;
             }
@@ -248,18 +252,16 @@ namespace EasyPack.InventorySystem
                 Parallel.For(0, slotCount, i =>
                 {
                     ISlot slot = _slots[i];
-                    if (slot.IsOccupied && slot.Item != null)
+                    if (!slot.IsOccupied || slot.Item == null) return;
+                    
+                    CustomDataEntry entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
+                    object value = entry?.GetValue();
+
+                    if (value == null || (attributeValue != null && !value.Equals(attributeValue))) return;
+                        
+                    lock (lockObject)
                     {
-                        CustomDataEntry entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
-                        if (entry != null)
-                        {
-                            object value = entry.GetValue();
-                            if (value != null && (attributeValue == null || value.Equals(attributeValue)))
-                                lock (lockObject)
-                                {
-                                    result.Add((i, slot.Item, slot.ItemCount));
-                                }
-                        }
+                        result.Add((i, slot.Item, slot.ItemCount));
                     }
                 });
             }
@@ -269,15 +271,14 @@ namespace EasyPack.InventorySystem
                 for (int i = 0; i < slotCount; i++)
                 {
                     ISlot slot = _slots[i];
-                    if (slot.IsOccupied && slot.Item != null)
+                    if (!slot.IsOccupied || slot.Item == null) continue;
+                    
+                    CustomDataEntry entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
+                    object value = entry?.GetValue();
+                        
+                    if (value != null && (attributeValue == null || value.Equals(attributeValue)))
                     {
-                        CustomDataEntry entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
-                        if (entry != null)
-                        {
-                            object value = entry.GetValue();
-                            if (value != null && (attributeValue == null || value.Equals(attributeValue)))
-                                result.Add((i, slot.Item, slot.ItemCount));
-                        }
+                        result.Add((i, slot.Item, slot.ItemCount));
                     }
                 }
             }
@@ -315,10 +316,12 @@ namespace EasyPack.InventorySystem
                 {
                     ISlot slot = _slots[i];
                     if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
+                    {
                         lock (lockObject)
                         {
                             result.Add((i, slot.Item, slot.ItemCount));
                         }
+                    }
                 });
             }
             else
@@ -352,11 +355,13 @@ namespace EasyPack.InventorySystem
                 foreach (ISlot slot in _slots)
                 {
                     if (slot.IsOccupied && slot.Item != null)
+                    {
                         if (!result.ContainsKey(slot.Item.ID))
                         {
                             cacheComplete = false;
                             break;
                         }
+                    }
                 }
 
                 if (cacheComplete)

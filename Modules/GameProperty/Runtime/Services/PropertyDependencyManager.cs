@@ -282,10 +282,12 @@ namespace EasyPack.GamePropertySystem
             }
 
             if (oldDepth != DependencyDepth)
+            {
                 foreach (GameProperty dependent in _dependents)
                 {
                     dependent.DependencyManager.UpdateDependencyDepth();
                 }
+            }
         }
 
         /// <summary>

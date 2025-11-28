@@ -375,11 +375,13 @@ namespace EasyPack.EmeCardSystem
         public CardRuleBuilder Do(params IRuleEffect[] effects)
         {
             if (effects != null)
+            {
                 foreach (IRuleEffect effect in effects)
                 {
                     if (effect != null)
                         _rule.Effects.Add(effect);
                 }
+            }
 
             return this;
         }
@@ -388,11 +390,13 @@ namespace EasyPack.EmeCardSystem
         public CardRuleBuilder Do(IEnumerable<IRuleEffect> effects)
         {
             if (effects != null)
+            {
                 foreach (IRuleEffect effect in effects)
                 {
                     if (effect != null)
                         _rule.Effects.Add(effect);
                 }
+            }
 
             return this;
         }

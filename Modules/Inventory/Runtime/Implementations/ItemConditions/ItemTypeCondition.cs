@@ -31,7 +31,7 @@ namespace EasyPack.InventorySystem
 
         public ISerializableCondition FromDto(SerializedCondition dto)
         {
-            if (dto == null || dto.Params == null) return this;
+            if (dto?.Params == null) return this;
             string t = null;
             foreach (CustomDataEntry p in dto.Params)
             {

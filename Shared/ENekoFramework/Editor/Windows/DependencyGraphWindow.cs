@@ -264,11 +264,13 @@ namespace EasyPack.ENekoFramework.Editor
 
                 if (nextLayer.Count == 0)
                     // 剩余的节点可能涉及循环依赖，全部放入下一层
+                {
                     foreach (ServiceNode node in serviceNodes)
                     {
                         if (!processed.Contains(node))
                             nextLayer.Add(node);
                     }
+                }
 
                 if (nextLayer.Count <= 0)
                 {

@@ -38,7 +38,7 @@ namespace EasyPack.EmeCardSystem
             {
                 for (int i = 0; i < CountPerId; i++)
                 {
-                    var engine = ctx.Factory.Owner;
+                    CardEngine engine = ctx.Factory.Owner;
                     Card card = engine.CreateCard(id);
                     if (card != null)
                     {

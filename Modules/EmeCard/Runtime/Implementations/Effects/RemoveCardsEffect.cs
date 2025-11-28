@@ -80,7 +80,7 @@ namespace EasyPack.EmeCardSystem
             if (targets == null || targets.Count == 0)
                 return;
 
-            var engine = ctx.Factory?.Owner;
+            CardEngine engine = ctx.Factory?.Owner;
             foreach (Card t in targets.ToArray())
             {
                 if (t?.Owner != null)

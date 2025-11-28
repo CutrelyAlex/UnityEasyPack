@@ -85,18 +85,12 @@ namespace EasyPack.EmeCardSystem
 
         #region 基本数据
 
-        private CardData _data;
-
         /// <summary>
         ///     该卡牌的静态数据（ID/名称/描述/默认标签等）。
         ///     注意：更改 Data 不会自动更新 CategoryManager 中的标签，
         ///     标签管理统一由 Engine 在注册时处理。
         /// </summary>
-        public CardData Data
-        {
-            get => _data;
-            set => _data = value;
-        }
+        public CardData Data { get; set; }
 
         /// <summary>
         ///     唯一标识符：由 CardFactory 分配，全局唯一，线程安全。
@@ -279,25 +273,16 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="child">要检查的子卡。</param>
         /// <returns>如果是固有子卡返回 true</returns>
-        public bool IsIntrinsic(Card child)
-        {
-            if (child == null) return false;
-            return _intrinsics.Contains(child);
-        }
+        public bool IsIntrinsic(Card child) => child != null && _intrinsics.Contains(child);
 
         /// <summary>
         ///     判断某子卡是否为子卡。
         /// </summary>
         /// <param name="child">要检查的子卡。</param>
         /// <returns>如果是固有子卡返回 true</returns>
-        public bool IsChild(Card child)
-        {
-            if (child == null) return false;
-            return _children.Contains(child);
-        }
+        public bool IsChild(Card child) => child != null && _children.Contains(child);
 
-        
-        
+
         /// <summary>
         ///     检测传入卡牌是否是当前卡牌的祖父卡牌
         /// </summary>

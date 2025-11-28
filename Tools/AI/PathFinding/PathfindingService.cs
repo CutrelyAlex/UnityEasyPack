@@ -50,11 +50,13 @@ namespace EasyPack.Tools.PathFinding
             if (fromGrids is { Count: > 0 }) CollectFromGridsIfAny(fromGrids, globalTilemaps);
 
             if (fromTilemaps != null)
+            {
                 foreach (Tilemap tm in fromTilemaps)
                 {
                     if (tm != null && !globalTilemaps.Contains(tm))
                         globalTilemaps.Add(tm);
                 }
+            }
 
             if (globalTilemaps.Count > 0) BuildUnifiedMapInternal(globalTilemaps);
         }

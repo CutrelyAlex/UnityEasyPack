@@ -69,14 +69,7 @@ namespace EasyPack.ENekoFramework
 
             foreach (WeakReference weakRef in handlers)
             {
-                if (!weakRef.IsAlive)
-                {
-                    deadReferences.Add(weakRef);
-                    continue;
-                }
-
-                var handler = weakRef.Target as Action<TEvent>;
-                if (handler == null)
+                if (!weakRef.IsAlive || weakRef.Target is not Action<TEvent> handler)
                 {
                     deadReferences.Add(weakRef);
                     continue;

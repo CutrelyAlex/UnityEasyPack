@@ -27,6 +27,7 @@ namespace EasyPack.ENekoFramework
             get
             {
                 if (_instance == null)
+                {
                     lock (_lock)
                     {
                         if (_instance == null)
@@ -35,6 +36,7 @@ namespace EasyPack.ENekoFramework
                             _instance.Init();
                         }
                     }
+                }
 
                 lock (_lock)
                 {

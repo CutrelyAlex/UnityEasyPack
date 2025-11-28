@@ -43,6 +43,7 @@ namespace EasyPack.GamePropertySystem
 
                 PropertyMetadata metadata = obj.GetMetadata(propertyId);
                 if (metadata != null)
+                {
                     metadataList.Add(new()
                     {
                         PropertyID = propertyId,
@@ -52,6 +53,7 @@ namespace EasyPack.GamePropertySystem
                         Tags = metadata.Tags,
                         CustomDataJson = SerializeCustomData(metadata.CustomData),
                     });
+                }
             }
 
             return new() { Properties = propertiesList.ToArray(), Metadata = metadataList.ToArray() };
@@ -60,13 +62,16 @@ namespace EasyPack.GamePropertySystem
         public GamePropertyService FromSerializable(PropertyManagerDTO dto)
         {
             if (dto == null)
+            {
                 throw new SerializationException("DTO 为 null", typeof(GamePropertyService),
                     SerializationErrorCode.DeserializationFailed);
+            }
 
             var manager = new GamePropertyService();
             Task.Run(async () => await manager.InitializeAsync()).Wait();
 
             if (dto.Properties != null)
+            {
                 foreach (PropertyEntry entry in dto.Properties)
                 {
                     GameProperty property = _propertySerializer.DeserializeFromJson(entry.SerializedProperty);
@@ -77,6 +82,7 @@ namespace EasyPack.GamePropertySystem
                     {
                         MetadataEntry metadataEntry = dto.Metadata.FirstOrDefault(m => m.PropertyID == entry.ID);
                         if (!string.IsNullOrEmpty(metadataEntry.PropertyID))
+                        {
                             metadata = new()
                             {
                                 DisplayName = metadataEntry.DisplayName,
@@ -85,10 +91,12 @@ namespace EasyPack.GamePropertySystem
                                 Tags = metadataEntry.Tags,
                                 CustomData = DeserializeCustomData(metadataEntry.CustomDataJson),
                             };
+                        }
                     }
 
                     manager.Register(property, entry.Category ?? "Default", metadata);
                 }
+            }
 
             return manager;
         }
@@ -103,11 +111,14 @@ namespace EasyPack.GamePropertySystem
             {
                 var dto = JsonUtility.FromJson<PropertyManagerDTO>(json);
                 if (dto == null)
+                {
                     throw new SerializationException("JSON 解析失败", typeof(GamePropertyService),
                         SerializationErrorCode.DeserializationFailed);
+                }
+
                 return dto;
             }
-            catch (Exception ex) when (!(ex is SerializationException))
+            catch (Exception ex) when (ex is not SerializationException)
             {
                 throw new SerializationException($"JSON 解析失败: {ex.Message}",
                     typeof(GamePropertyService), SerializationErrorCode.DeserializationFailed, ex);

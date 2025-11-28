@@ -21,10 +21,12 @@ namespace EasyPack.EmeCardSystem
                 if (child == null) return false;
                 if (!child.TryMatch(ctx, out var picks)) return false;
                 if (picks is { Count: > 0 })
+                {
                     foreach (Card c in picks)
                     {
                         set.Add(c);
                     }
+                }
             }
 
             if (set.Count > 0) matched.AddRange(set);

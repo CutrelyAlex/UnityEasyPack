@@ -151,6 +151,7 @@ namespace EasyPack.GamePropertySystem
 
                 // 更新标签索引（线程安全）
                 if (metadata.Tags != null)
+                {
                     foreach (string tag in metadata.Tags)
                     {
                         lock (_tagLock)
@@ -161,6 +162,7 @@ namespace EasyPack.GamePropertySystem
                             _tagIndex[tag].Add(property.ID);
                         }
                     }
+                }
             }
 
             // 更新分类索引（线程安全）
@@ -218,10 +220,12 @@ namespace EasyPack.GamePropertySystem
             {
                 // 精确匹配（线程安全）
                 if (_categories.TryGetValue(category, out var ids))
+                {
                     lock (_categoryLock)
                     {
                         return ids.ToList().Select(id => _properties[id]).Where(p => p != null).ToList();
                     }
+                }
 
                 return Enumerable.Empty<GameProperty>();
             }
@@ -229,7 +233,7 @@ namespace EasyPack.GamePropertySystem
             // 支持通配符："Category.*" 匹配所有子分类（线程安全）
             var results = new List<GameProperty>();
             string prefix = category.EndsWith(".*")
-                ? category.Substring(0, category.Length - 2) + "."
+                ? category[..^2] + "."
                 : category + ".";
 
             lock (_categoryLock)
@@ -253,10 +257,12 @@ namespace EasyPack.GamePropertySystem
                 return Enumerable.Empty<GameProperty>();
 
             if (_tagIndex.TryGetValue(tag, out var ids))
+            {
                 lock (_tagLock)
                 {
                     return ids.ToList().Select(id => _properties[id]).Where(p => p != null).ToList();
                 }
+            }
 
             return Enumerable.Empty<GameProperty>();
         }
@@ -316,6 +322,7 @@ namespace EasyPack.GamePropertySystem
 
             // 从分类索引移除（线程安全）
             if (_propertyToCategory.TryRemove(id, out string category))
+            {
                 lock (_categoryLock)
                 {
                     if (_categories.TryGetValue(category, out var categorySet))
@@ -325,6 +332,7 @@ namespace EasyPack.GamePropertySystem
                             _categories.TryRemove(category, out _);
                     }
                 }
+            }
 
             // 从标签索引移除（线程安全）
             lock (_tagLock)
@@ -347,10 +355,12 @@ namespace EasyPack.GamePropertySystem
                 return;
 
             if (_categories.TryRemove(category, out var ids))
+            {
                 foreach (string id in ids.ToList())
                 {
                     Unregister(id);
                 }
+            }
         }
 
         #endregion

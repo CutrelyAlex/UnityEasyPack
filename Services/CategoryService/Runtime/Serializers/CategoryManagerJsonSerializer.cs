@@ -99,9 +99,7 @@ namespace EasyPack.Category
                 return key.ToString();
             if (typeof(TKey) == typeof(string))
                 return (string)(object)key;
-            if (typeof(TKey) == typeof(long))
-                return key.ToString();
-            if (typeof(TKey) == typeof(Guid))
+            if (typeof(TKey) == typeof(long) || typeof(TKey) == typeof(Guid))
                 return key.ToString();
 
             // 其他类型使用 JSON 序列化
@@ -316,8 +314,7 @@ namespace EasyPack.Category
                         TKey key = _keyExtractor(entity);
                         string keyJson = SerializeKey(key);
 
-                        if (serializedEntityKeys.Contains(keyJson)) continue;
-                        serializedEntityKeys.Add(keyJson);
+                        if (!serializedEntityKeys.Add(keyJson)) continue;
 
                         // 尝试序列化实体，如果失败则保留空EntityJson
                         string entityJson;
@@ -465,10 +462,7 @@ namespace EasyPack.Category
                             : new();
 
                         CustomDataCollection metadata =
-                            entityMetadataIndex.TryGetValue(serializedEntity.KeyJson,
-                                out CustomDataCollection entityMetadata)
-                                ? entityMetadata
-                                : null;
+                            entityMetadataIndex.GetValueOrDefault(serializedEntity.KeyJson);
 
                         entityRegistrations.Add((key, entity, serializedEntity.Category, tags, metadata));
                     }

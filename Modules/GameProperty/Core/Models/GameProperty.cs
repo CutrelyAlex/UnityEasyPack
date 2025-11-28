@@ -63,7 +63,7 @@ namespace EasyPack.GamePropertySystem
             // 3. 自身脏了（包含依赖项传播过来的脏标记）
             bool needsRecalculation = _hasNonClampRangeModifier
                                       || DependencyManager.HasRandomDependency
-                                      || _isDirty;
+                                      || IsDirty;
 
             if (!needsRecalculation)
                 return _cacheValue;
@@ -80,7 +80,7 @@ namespace EasyPack.GamePropertySystem
 
             // 如果没有随机性依赖项则清理脏标记
             if (!(_hasNonClampRangeModifier || DependencyManager.HasRandomDependency))
-                _isDirty = false;
+                IsDirty = false;
 
             if (Math.Abs(oldValue - _cacheValue) > EPSILON)
             {
@@ -183,22 +183,21 @@ namespace EasyPack.GamePropertySystem
 
         #region 脏标记系统
 
-        private bool _isDirty;
         private Action _onDirty;
         private readonly HashSet<Action> _onDirtyHandlers = new();
 
         /// <summary>
         ///     检查属性是否处于脏状态
         /// </summary>
-        public bool IsDirty => _isDirty;
+        public bool IsDirty { get; private set; }
 
         /// <summary>
         ///     将属性标记为脏状态，表示需要重新计算值
         /// </summary>
         public void MakeDirty()
         {
-            bool wasAlreadyDirty = _isDirty;
-            _isDirty = true;
+            bool wasAlreadyDirty = IsDirty;
+            IsDirty = true;
 
             DependencyManager.InvalidateDirtyCache();
 

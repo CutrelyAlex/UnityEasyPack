@@ -150,10 +150,12 @@ namespace EasyPack.GamePropertySystem.Editor
             {
                 PropertyMetadata metadata = _manager.GetMetadata(propId);
                 if (metadata?.Tags != null)
+                {
                     foreach (string tag in metadata.Tags)
                     {
                         allTags.Add(tag);
                     }
+                }
             }
 
             tags.AddRange(allTags.OrderBy(t => t));
@@ -264,6 +266,7 @@ namespace EasyPack.GamePropertySystem.Editor
             }
 
             if (!string.IsNullOrEmpty(_searchText))
+            {
                 properties = properties.Where(p =>
                 {
                     if (p.ID.IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) >= 0)
@@ -283,6 +286,7 @@ namespace EasyPack.GamePropertySystem.Editor
 
                     return false;
                 });
+            }
 
             return properties.OrderBy(p => p.ID).ToList();
         }

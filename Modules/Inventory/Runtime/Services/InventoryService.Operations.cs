@@ -405,6 +405,7 @@ namespace EasyPack.InventorySystem
                 lock (_lock)
                 {
                     if (targetContainerIds != null)
+                    {
                         foreach (string containerId in targetContainerIds)
                         {
                             Container container = GetContainer(containerId);
@@ -414,6 +415,7 @@ namespace EasyPack.InventorySystem
                                 sortedContainers.Add((containerId, container, priority));
                             }
                         }
+                    }
                 }
 
                 // 按优先级降序排序

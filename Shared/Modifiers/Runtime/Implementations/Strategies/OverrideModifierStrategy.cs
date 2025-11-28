@@ -29,9 +29,11 @@ namespace EasyPack.Modifiers
             }
 
             if (floatOverrideMod != null && rangeOverrideMod != null)
+            {
                 value = floatOverrideMod.Priority >= rangeOverrideMod.Priority
                     ? floatOverrideMod.Value
                     : Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);
+            }
             else if (floatOverrideMod != null)
                 value = floatOverrideMod.Value;
             else if (rangeOverrideMod != null) value = Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);

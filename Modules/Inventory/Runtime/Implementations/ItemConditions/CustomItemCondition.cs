@@ -19,11 +19,6 @@ namespace EasyPack.InventorySystem
             Condition = condition;
         }
 
-        public bool CheckCondition(IItem item)
-        {
-            if (Condition == null) return false;
-
-            return Condition(item);
-        }
+        public bool CheckCondition(IItem item) => Condition != null && Condition(item);
     }
 }

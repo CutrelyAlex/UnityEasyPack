@@ -13,7 +13,6 @@ namespace EasyPack.ENekoFramework
     {
         private static BindingBatchUpdater _instance;
         private readonly HashSet<IBindable> _dirtyBindings = new();
-        private bool _isUpdateScheduled;
 
         /// <summary>
         ///     获取单例实例
@@ -36,7 +35,7 @@ namespace EasyPack.ENekoFramework
         /// <summary>
         ///     是否有待处理的更新
         /// </summary>
-        public bool IsUpdateScheduled => _isUpdateScheduled;
+        public bool IsUpdateScheduled { get; private set; }
 
         /// <summary>
         ///     脏绑定数量
@@ -72,7 +71,7 @@ namespace EasyPack.ENekoFramework
             }
 
             _dirtyBindings.Add(bindable);
-            _isUpdateScheduled = true;
+            IsUpdateScheduled = true;
         }
 
         /// <summary>
@@ -80,7 +79,7 @@ namespace EasyPack.ENekoFramework
         /// </summary>
         private void LateUpdate()
         {
-            if (!_isUpdateScheduled) return;
+            if (!IsUpdateScheduled) return;
 
             FlushAllUpdates();
         }
@@ -92,7 +91,7 @@ namespace EasyPack.ENekoFramework
         {
             if (_dirtyBindings.Count == 0)
             {
-                _isUpdateScheduled = false;
+                IsUpdateScheduled = false;
                 return;
             }
 
@@ -115,13 +114,15 @@ namespace EasyPack.ENekoFramework
             }
 
             _dirtyBindings.Clear();
-            _isUpdateScheduled = false;
+            IsUpdateScheduled = false;
 
 #if UNITY_EDITOR
             startTime.Stop();
             if (startTime.ElapsedMilliseconds > 16)
+            {
                 Debug.LogWarning($"[BindingBatchUpdater] Batch update took {startTime.ElapsedMilliseconds}ms " +
                                  "(target: <16ms). Consider optimizing bindings.");
+            }
 #endif
         }
     }

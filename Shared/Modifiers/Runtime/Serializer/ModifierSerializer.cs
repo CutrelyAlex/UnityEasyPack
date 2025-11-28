@@ -53,11 +53,14 @@ namespace EasyPack.Modifiers
             if (serializable == null) return null;
 
             if (serializable.IsRangeModifier)
+            {
                 return new RangeModifier(
                     serializable.Type,
                     serializable.Priority,
                     serializable.RangeValue
                 );
+            }
+
             return new FloatModifier(
                 serializable.Type,
                 serializable.Priority,
@@ -178,17 +181,21 @@ namespace EasyPack.Modifiers
                 IModifier modifier;
 
                 if (serializable.IsRangeModifier)
+                {
                     modifier = new RangeModifier(
                         serializable.Type,
                         serializable.Priority,
                         serializable.RangeValue
                     );
+                }
                 else
+                {
                     modifier = new FloatModifier(
                         serializable.Type,
                         serializable.Priority,
                         serializable.FloatValue
                     );
+                }
 
                 result.Add(modifier);
             }

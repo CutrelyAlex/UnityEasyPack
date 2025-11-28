@@ -571,11 +571,13 @@ namespace EasyPack.InventorySystem
 
                     // 如果全局条件已启用，添加到所有容器
                     if (_enableGlobalConditions)
+                    {
                         foreach (Container container in _containers.Values)
                         {
                             if (!container.ContainerCondition.Contains(condition))
                                 container.ContainerCondition.Add(condition);
                         }
+                    }
                 }
 
                 OnGlobalConditionAdded?.Invoke(condition);
@@ -601,10 +603,12 @@ namespace EasyPack.InventorySystem
                 removed = _globalItemConditions.Remove(condition);
                 if (removed)
                     // 从所有容器中移除此条件
+                {
                     foreach (Container container in _containers.Values)
                     {
                         container.ContainerCondition.Remove(condition);
                     }
+                }
             }
 
             if (removed) OnGlobalConditionRemoved?.Invoke(condition);
@@ -627,15 +631,19 @@ namespace EasyPack.InventorySystem
                 _enableGlobalConditions = enable;
 
                 if (enable)
+                {
                     foreach (Container container in _containers.Values)
                     {
                         ApplyGlobalConditionsToContainer(container);
                     }
+                }
                 else
+                {
                     foreach (Container container in _containers.Values)
                     {
                         RemoveGlobalConditionsFromContainer(container);
                     }
+                }
             }
         }
 

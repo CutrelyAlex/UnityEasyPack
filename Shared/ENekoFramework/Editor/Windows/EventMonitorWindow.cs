@@ -169,11 +169,13 @@ namespace EasyPack.ENekoFramework.Editor
             foreach (EventLogEntry entry in _eventLog)
             {
                 if (entry.EventType != null && _subscriberCountCache.TryGetValue(entry.EventType, out int cachedCount))
+                {
                     if (entry.SubscriberCount != cachedCount)
                     {
                         entry.SubscriberCount = cachedCount;
                         needsRepaint = true;
                     }
+                }
             }
 
             if (needsRepaint) Repaint();
@@ -412,9 +414,11 @@ namespace EasyPack.ENekoFramework.Editor
 
             // 事件类型筛选
             if (_useEventTypeFilter && !string.IsNullOrEmpty(_selectedEventTypeFilter))
+            {
                 filtered = filtered.Where(e =>
                     e.EventType.Name.IndexOf(_selectedEventTypeFilter, StringComparison.OrdinalIgnoreCase) >= 0
                 ).ToList();
+            }
 
             _cachedFilteredLogs = filtered;
 
@@ -480,7 +484,7 @@ namespace EasyPack.ENekoFramework.Editor
             {
                 // 尝试序列化为 JSON
                 string json = JsonUtility.ToJson(eventData);
-                if (!string.IsNullOrEmpty(json)) return json.Length > 200 ? json.Substring(0, 200) + "..." : json;
+                if (!string.IsNullOrEmpty(json)) return json.Length > 200 ? json[..200] + "..." : json;
             }
             catch
             {
@@ -488,7 +492,7 @@ namespace EasyPack.ENekoFramework.Editor
             }
 
             string str = eventData.ToString();
-            return str.Length > 200 ? str.Substring(0, 200) + "..." : str;
+            return str.Length > 200 ? str[..200] + "..." : str;
         }
 
         private Color GetEventTypeColor(Type eventType)
@@ -527,7 +531,7 @@ namespace EasyPack.ENekoFramework.Editor
                 {
                     Timestamp = entry.Timestamp,
                     EventTypeName = entry.EventType?.FullName ?? "Unknown",
-                    EventTypeAssembly = entry.EventType?.Assembly?.FullName ?? "",
+                    EventTypeAssembly = entry.EventType?.Assembly.FullName ?? "",
                     SubscriberCount = entry.SubscriberCount,
                     DataSummary = entry.DataSummary ?? "",
                     IsExpanded = entry.IsExpanded,

@@ -205,10 +205,7 @@ namespace EasyPack.InventorySystem
                 return (AddItemResult.ItemIsNull, 0);
 
             int slotIndex = CoordToIndex(x, y);
-            if (slotIndex < 0)
-                return (AddItemResult.SlotNotFound, 0);
-
-            return AddItems(item, count, slotIndex);
+            return slotIndex < 0 ? (AddItemResult.SlotNotFound, 0) : AddItems(item, count, slotIndex);
         }
 
         /// <summary>
@@ -458,7 +455,7 @@ namespace EasyPack.InventorySystem
                 slot = Slots[mainSlotIndex];
             }
 
-            if (slot.Item is not GridItem gridItem || !gridItem.CanRotate)
+            if (slot.Item is not GridItem { CanRotate: true } gridItem)
                 return false;
 
             // 计算当前的起始位置（锚点）

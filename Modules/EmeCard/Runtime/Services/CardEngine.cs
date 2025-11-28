@@ -26,7 +26,7 @@ namespace EasyPack.EmeCardSystem
             factory.Owner = this;
 
             // TODO: 创建本地 CategoryManager（稍后可通过 InitializeCategoryServiceAsync 切换到服务托管）
-            _categoryManager = new CategoryManager<Card, int>(card => card.UID);
+            CategoryManager = new CategoryManager<Card, int>(card => card.UID);
 
             PreCacheAllCardTemplates();
             InitializeTargetSelectorCache();
@@ -58,7 +58,7 @@ namespace EasyPack.EmeCardSystem
                 {
                     // 如果本地 CategoryManager 中有数据，需要迁移
                     // 这里假设初始化时本地 Manager 是空的
-                    _categoryManager = serviceManager;
+                    CategoryManager = serviceManager;
                     Debug.Log("[CardEngine] 已切换到 CategoryService 托管的 CategoryManager");
                     return true;
                 }
@@ -103,10 +103,8 @@ namespace EasyPack.EmeCardSystem
         {
             _registeredCardsTemplates.Clear();
 
-            if (CardFactory == null) return;
-
             // 获取工厂中所有注册的卡牌ID
-            var cardIds = CardFactory.GetAllCardIds();
+            var cardIds = CardFactory?.GetAllCardIds();
             if (cardIds == null || cardIds.Count == 0) return;
 
             foreach (string id in cardIds)
@@ -128,8 +126,7 @@ namespace EasyPack.EmeCardSystem
         ///     提供基于标签的 O(1) 查询和基于层级分类的 O(log n) 查询。
         ///     可以通过 InitializeCategoryServiceAsync 切换到 CategoryService 托管模式。
         /// </summary>
-        public ICategoryManager<Card, int> CategoryManager => _categoryManager;
-        private ICategoryManager<Card, int> _categoryManager;
+        public ICategoryManager<Card, int> CategoryManager { get; private set; }
 
         /// <summary>
         ///     引擎全局策略
@@ -244,10 +241,12 @@ namespace EasyPack.EmeCardSystem
         {
             if (string.IsNullOrEmpty(id)) yield break;
             if (_cardsById.TryGetValue(id, out var cards))
+            {
                 foreach (Card card in cards)
                 {
                     yield return card;
                 }
+            }
         }
 
         /// <summary>
@@ -283,11 +282,8 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="tag">要查询的标签。</param>
         /// <returns>包含该标签的所有卡牌列表。</returns>
-        public IReadOnlyList<Card> GetCardsByTag(string tag)
-        {
-            if (string.IsNullOrEmpty(tag)) return Array.Empty<Card>();
-            return CategoryManager.GetByTag(tag);
-        }
+        public IReadOnlyList<Card> GetCardsByTag(string tag) =>
+            string.IsNullOrEmpty(tag) ? Array.Empty<Card>() : CategoryManager.GetByTag(tag);
 
         /// <summary>
         ///     按分类查询卡牌，支持通配符匹配和子分类包含。
@@ -295,11 +291,10 @@ namespace EasyPack.EmeCardSystem
         /// <param name="pattern">分类名称或通配符模式（如 "Object"、"Creature.*"）。</param>
         /// <param name="includeChildren">是否包含子分类中的卡牌。</param>
         /// <returns>匹配分类的所有卡牌列表。</returns>
-        public IReadOnlyList<Card> GetCardsByCategory(string pattern, bool includeChildren = false)
-        {
-            if (string.IsNullOrEmpty(pattern)) return Array.Empty<Card>();
-            return CategoryManager.GetByCategory(pattern, includeChildren);
-        }
+        public IReadOnlyList<Card> GetCardsByCategory(string pattern, bool includeChildren = false) =>
+            string.IsNullOrEmpty(pattern)
+                ? Array.Empty<Card>()
+                : CategoryManager.GetByCategory(pattern, includeChildren);
 
         /// <summary>
         ///     按分类和标签的交集查询卡牌。
@@ -330,11 +325,8 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="uid">卡牌的UID。</param>
         /// <returns>卡牌所在位置，如果未找到返回 VOID_POSITION。</returns>
-        public Vector3 GetPositionByUID(int uid)
-        {
-            if (uid < 0) return VOID_POSITION;
-            return _positionByUID.GetValueOrDefault(uid, VOID_POSITION);
-        }
+        public Vector3 GetPositionByUID(int uid) =>
+            uid < 0 ? VOID_POSITION : _positionByUID.GetValueOrDefault(uid, VOID_POSITION);
 
         #endregion
 
@@ -619,7 +611,7 @@ namespace EasyPack.EmeCardSystem
         public void ClearAllCards()
         {
             // 从 CategoryManager 批量注销所有卡牌
-            foreach (var card in _cardMap.Values)
+            foreach (Card card in _cardMap.Values)
             {
                 UnregisterFromCategoryManager(card);
             }
@@ -647,7 +639,7 @@ namespace EasyPack.EmeCardSystem
             string category = ExtractCategoryPath(card);
 
             // 使用 UID（int）注册实体，保证绝对唯一
-            var registration = CategoryManager.RegisterEntity(card, category);
+            IEntityRegistration registration = CategoryManager.RegisterEntity(card, category);
 
             // 应用运行时的DefaultTags（来自CardData）
             if (card.Data?.DefaultTags != null)
@@ -676,7 +668,7 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 完成注册
-            var result = registration.Complete();
+            OperationResult result = registration.Complete();
             if (!result.IsSuccess)
             {
                 Debug.LogWarning($"[CardEngine] CategoryManager 注册失败: Card UID={card.UID}, Id={card.Id}#{card.Index}, Error={result.ErrorMessage}");
@@ -692,7 +684,7 @@ namespace EasyPack.EmeCardSystem
             if (card == null) return;
 
             // 使用 UID（int）删除实体
-            var result = CategoryManager.DeleteEntity(card.UID);
+            OperationResult result = CategoryManager.DeleteEntity(card.UID);
             if (!result.IsSuccess && result.ErrorCode != ErrorCode.NotFound)
             {
                 Debug.LogWarning($"[CardEngine] CategoryManager 注销失败: Card UID={card.UID}, Error={result.ErrorMessage}");

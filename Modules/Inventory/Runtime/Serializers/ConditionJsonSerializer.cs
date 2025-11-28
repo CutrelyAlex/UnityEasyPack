@@ -80,8 +80,7 @@ namespace EasyPack.InventorySystem
             // 创建条件实例并反序列化
             try
             {
-                var instance = Activator.CreateInstance(conditionType) as ISerializableCondition;
-                if (instance == null)
+                if (Activator.CreateInstance(conditionType) is not ISerializableCondition instance)
                 {
                     Debug.LogError($"[ConditionJsonSerializer] 无法创建条件实例: {conditionType.Name}");
                     return null;

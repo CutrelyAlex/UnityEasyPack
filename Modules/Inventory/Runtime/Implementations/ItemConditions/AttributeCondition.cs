@@ -55,7 +55,7 @@ namespace EasyPack.InventorySystem
 
         public bool CheckCondition(IItem item)
         {
-            if (item == null || item.CustomData == null)
+            if (item?.CustomData == null)
                 return false;
 
             CustomDataEntry entry = item.CustomData.FirstOrDefault(e => e.Key == AttributeName);
@@ -90,6 +90,7 @@ namespace EasyPack.InventorySystem
                 return 0;
 
             if (value1 is IComparable comparable1 && value2 is IComparable comparable2)
+            {
                 try
                 {
                     if (value1.GetType() == value2.GetType())
@@ -107,6 +108,7 @@ namespace EasyPack.InventorySystem
                 {
                     return 0;
                 }
+            }
 
             return 0;
         }
@@ -120,11 +122,13 @@ namespace EasyPack.InventorySystem
                 return containerStr.Contains(valueStr);
 
             if (container is IEnumerable enumerable and not string)
+            {
                 foreach (object item in enumerable)
                 {
                     if (item != null && item.Equals(value))
                         return true;
                 }
+            }
 
             return false;
         }
@@ -154,7 +158,7 @@ namespace EasyPack.InventorySystem
 
         public ISerializableCondition FromDto(SerializedCondition dto)
         {
-            if (dto == null || dto.Params == null) return this;
+            if (dto?.Params == null) return this;
 
             string name = null;
             object value = null;

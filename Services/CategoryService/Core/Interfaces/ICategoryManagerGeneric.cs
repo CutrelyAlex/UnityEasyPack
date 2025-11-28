@@ -11,7 +11,7 @@ namespace EasyPack.Category
     /// </summary>
     /// <typeparam name="T">实体类型</typeparam>
     /// <typeparam name="TKey">键类型，用于唯一标识实体</typeparam>
-    public interface ICategoryManager<T, TKey> : ICategoryManager
+    public interface ICategoryManager<T, in TKey> : ICategoryManager
         where TKey : IEquatable<TKey>
     {
         #region 实体注册

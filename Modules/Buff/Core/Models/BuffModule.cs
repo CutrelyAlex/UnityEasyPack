@@ -71,12 +71,12 @@ namespace EasyPack.BuffSystem
         public virtual bool ShouldExecute(BuffCallBackType callbackType, string customCallbackName = "")
         {
             if (callbackType == BuffCallBackType.Custom)
+            {
                 return !string.IsNullOrEmpty(customCallbackName) &&
                        _customCallbackHandlers.ContainsKey(customCallbackName);
+            }
 
-            if (TriggerCondition != null) return TriggerCondition(ParentBuff);
-
-            return _callbackHandlers.ContainsKey(callbackType);
+            return TriggerCondition?.Invoke(ParentBuff) ?? _callbackHandlers.ContainsKey(callbackType);
         }
 
         /// <summary>

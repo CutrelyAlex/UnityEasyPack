@@ -45,11 +45,13 @@ namespace EasyPack.InventorySystem
         public AllCondition AddRange(IEnumerable<IItemCondition> conditions)
         {
             if (conditions != null)
+            {
                 foreach (IItemCondition c in conditions)
                 {
                     if (c != null)
                         Children.Add(c);
                 }
+            }
 
             return this;
         }

@@ -129,6 +129,7 @@ namespace EasyPack.InventorySystem
         public IItem GetItemReference(string itemId, IReadOnlyList<ISlot> slots)
         {
             if (_itemSlotIndexCache.TryGetValue(itemId, out var indices) && indices.Count > 0)
+            {
                 foreach (int index in indices)
                 {
                     if (index < slots.Count)
@@ -137,6 +138,7 @@ namespace EasyPack.InventorySystem
                         if (slot.IsOccupied && slot.Item?.ID == itemId) return slot.Item;
                     }
                 }
+            }
 
             return null;
         }

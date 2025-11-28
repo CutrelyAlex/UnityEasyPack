@@ -99,10 +99,12 @@ namespace EasyPack.EmeCardSystem
                 if (takeCount == count && picks != null)
                     matched.AddRange(picks);
                 else if (picks != null)
+                {
                     for (int i = 0; i < takeCount; i++)
                     {
                         matched.Add(picks[i]);
                     }
+                }
             }
 
             return isMatch;

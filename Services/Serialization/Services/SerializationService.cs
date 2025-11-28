@@ -172,11 +172,13 @@ namespace EasyPack.Serialization
             ITypeSerializer serializer = GetSerializer(type);
 
             if (serializer.SupportedStrategy != SerializationStrategy.Json)
+            {
                 throw new SerializationException(
                     $"类型 {type.Name} 的序列化器不支持 JSON 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
+            }
 
             try
             {
@@ -211,11 +213,13 @@ namespace EasyPack.Serialization
             ITypeSerializer serializer = GetSerializer(type);
 
             if (serializer.SupportedStrategy != SerializationStrategy.Json)
+            {
                 throw new SerializationException(
                     $"类型 {type.Name} 的序列化器不支持 JSON 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
+            }
 
             try
             {
@@ -250,11 +254,13 @@ namespace EasyPack.Serialization
             ITypeSerializer serializer = GetSerializer(type);
 
             if (serializer.SupportedStrategy != SerializationStrategy.CustomDataEntry)
+            {
                 throw new SerializationException(
                     $"类型 {type.Name} 的序列化器不支持 CustomDataEntry 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
+            }
 
             try
             {
@@ -290,11 +296,13 @@ namespace EasyPack.Serialization
             ITypeSerializer serializer = GetSerializer(type);
 
             if (serializer.SupportedStrategy != SerializationStrategy.CustomDataEntry)
+            {
                 throw new SerializationException(
                     $"类型 {type.Name} 的序列化器不支持 CustomDataEntry 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
+            }
 
             try
             {
@@ -330,11 +338,13 @@ namespace EasyPack.Serialization
             ITypeSerializer serializer = GetSerializer(type);
 
             if (serializer.SupportedStrategy != SerializationStrategy.Binary)
+            {
                 throw new SerializationException(
                     $"类型 {type.Name} 的序列化器不支持 Binary 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
+            }
 
             try
             {
@@ -370,11 +380,13 @@ namespace EasyPack.Serialization
             ITypeSerializer serializer = GetSerializer(type);
 
             if (serializer.SupportedStrategy != SerializationStrategy.Binary)
+            {
                 throw new SerializationException(
                     $"类型 {type.Name} 的序列化器不支持 Binary 策略",
                     type,
                     SerializationErrorCode.UnsupportedStrategy
                 );
+            }
 
             try
             {

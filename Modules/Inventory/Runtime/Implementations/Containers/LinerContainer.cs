@@ -37,10 +37,13 @@ namespace EasyPack.InventorySystem
             if (!ValidateSourceSlot(sourceSlotIndex, out ISlot sourceSlot, out IItem sourceItem, out int sourceCount))
                 return false;
 
-            if (!ValidateTargetContainer(targetContainer, sourceItem))
-                return false;
-
-            return ExecuteItemMove(sourceSlot, sourceSlotIndex, sourceItem, sourceCount, targetContainer);
+            return ValidateTargetContainer(targetContainer,
+                       sourceItem) &&
+                   ExecuteItemMove(sourceSlot,
+                       sourceSlotIndex,
+                       sourceItem,
+                       sourceCount,
+                       targetContainer);
         }
 
         /// <summary>

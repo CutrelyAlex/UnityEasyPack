@@ -293,8 +293,10 @@ namespace EasyPack.Category
                     foreach (var kvp in _categoryNameToId)
                     {
                         if (regex.IsMatch(kvp.Key))
+                        {
                             if (_categoryNodes.TryGetValue(kvp.Value, out CategoryNode node))
                                 CollectEntityKeysFromNode(node, entityKeys, includeChildren);
+                        }
                     }
                 }
                 else
@@ -312,7 +314,7 @@ namespace EasyPack.Category
             _entitiesLock.EnterReadLock();
             try
             {
-                return entityKeys.Select(k => _entities.TryGetValue(k, out T e) ? e : default)
+                return entityKeys.Select(k => _entities.GetValueOrDefault(k))
                     .Where(e => e != null)
                     .ToList();
             }
@@ -351,9 +353,9 @@ namespace EasyPack.Category
             _entitiesLock.EnterReadLock();
             try
             {
-                if (_entities.TryGetValue(key, out T entity))
-                    return OperationResult<T>.Success(entity);
-                return OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+                return _entities.TryGetValue(key, out T entity)
+                    ? OperationResult<T>.Success(entity)
+                    : OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
             }
             finally
             {
@@ -377,8 +379,10 @@ namespace EasyPack.Category
                 foreach (var kvp in _categoryNameToId)
                 {
                     if (regex.IsMatch(kvp.Key))
+                    {
                         if (_categoryNodes.TryGetValue(kvp.Value, out CategoryNode node))
                             CollectEntityKeysFromNode(node, entityKeys, includeChildren);
+                    }
                 }
             }
             finally
@@ -389,7 +393,7 @@ namespace EasyPack.Category
             _entitiesLock.EnterReadLock();
             try
             {
-                return entityKeys.Select(k => _entities.TryGetValue(k, out T e) ? e : default)
+                return entityKeys.Select(k => _entities.GetValueOrDefault(k))
                     .Where(e => e != null)
                     .ToList();
             }
@@ -407,10 +411,9 @@ namespace EasyPack.Category
             _treeLock.EnterReadLock();
             try
             {
-                if (!_entityKeyToNode.TryGetValue(key, out CategoryNode node))
-                    return string.Empty;
-
-                return GetNodeReadablePath(node);
+                return !_entityKeyToNode.TryGetValue(key, out CategoryNode node)
+                    ? string.Empty
+                    : GetNodeReadablePath(node);
             }
             finally
             {
@@ -445,9 +448,7 @@ namespace EasyPack.Category
         public string GetNodeReadablePath(CategoryNode node)
         {
             if (node == null) return string.Empty;
-            if (_categoryIdToName.TryGetValue(node.TermId, out string path))
-                return path;
-            return string.Empty;
+            return _categoryIdToName.TryGetValue(node.TermId, out string path) ? path : string.Empty;
         }
 
         /// <summary>
@@ -524,7 +525,7 @@ namespace EasyPack.Category
             {
                 return _categoryNodes.Values
                     .Where(n => n.Children.Count == 0)
-                    .Select(n => _categoryIdToName.TryGetValue(n.TermId, out string name) ? name : null)
+                    .Select(n => _categoryIdToName.GetValueOrDefault(n.TermId))
                     .Where(n => n != null)
                     .ToList();
             }
@@ -661,7 +662,7 @@ namespace EasyPack.Category
                 _nodeToEntityKeys.Remove(nodeId);
 
                 // 从父节点移除该节点引用
-                if (node.ParentNode != null) node.ParentNode.RemoveChild(node.TermId);
+                node.ParentNode?.RemoveChild(node.TermId);
 
                 // 清除分类映射
                 _categoryNodes.Remove(nodeId);
@@ -782,7 +783,7 @@ namespace EasyPack.Category
                 }
 
                 // 从父节点移除
-                if (node.ParentNode != null) node.ParentNode.RemoveChild(node.TermId);
+                node.ParentNode?.RemoveChild(node.TermId);
 
 #if UNITY_EDITOR
                 _cachedStatistics = null;
@@ -804,9 +805,8 @@ namespace EasyPack.Category
         {
             foreach (CategoryNode child in node.Children)
             {
-                if (_categoryIdToName.TryGetValue(child.TermId, out string path) && !pathSet.Contains(path))
+                if (_categoryIdToName.TryGetValue(child.TermId, out string path) && pathSet.Add(path))
                 {
-                    pathSet.Add(path);
                     result.Add((child.TermId, child));
                     CollectDescendants(child, result, pathSet);
                 }
@@ -1211,10 +1211,7 @@ namespace EasyPack.Category
                 if (!_tagMapper.TryGetId(tag, out int tagId))
                     return false;
 
-                if (!_entityToTagIds.TryGetValue(key, out var tagIds))
-                    return false;
-
-                return tagIds.Contains(tagId);
+                return _entityToTagIds.TryGetValue(key, out var tagIds) && tagIds.Contains(tagId);
             }
             finally
             {
@@ -1315,7 +1312,7 @@ namespace EasyPack.Category
                     try
                     {
                         var result = entityKeys
-                            .Select(k => _entities.TryGetValue(k, out T e) ? e : default)
+                            .Select(k => _entities.GetValueOrDefault(k))
                             .Where(e => e != null)
                             .ToList();
 
@@ -1376,7 +1373,7 @@ namespace EasyPack.Category
             try
             {
                 return resultKeys
-                    .Select(k => _entities.TryGetValue(k, out T e) ? e : default)
+                    .Select(k => _entities.GetValueOrDefault(k))
                     .Where(e => e != null)
                     .ToList();
             }

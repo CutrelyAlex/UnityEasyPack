@@ -30,11 +30,13 @@ namespace EasyPack.EmeCardSystem
             }
 
             if (obj.Data == null)
+            {
                 throw new SerializationException(
                     "无法序列化没有 CardData 的 Card",
                     typeof(Card),
                     SerializationErrorCode.SerializationFailed
                 );
+            }
 
             var visited = new HashSet<Card>(ReferenceEqualityComparer<Card>.Default);
             return SerializeCardRecursive(obj, visited, new());
@@ -48,11 +50,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     将 DTO 序列化为 JSON 字符串
         /// </summary>
-        public string ToJson(SerializableCard dto)
-        {
-            if (dto == null) return null;
-            return JsonUtility.ToJson(dto);
-        }
+        public string ToJson(SerializableCard dto) => dto == null ? null : JsonUtility.ToJson(dto);
 
         /// <summary>
         ///     从 JSON 字符串反序列化为 DTO
@@ -77,11 +75,13 @@ namespace EasyPack.EmeCardSystem
             }
 
             if (data == null)
+            {
                 throw new SerializationException(
                     "JSON 解析结果为空",
                     typeof(Card),
                     SerializationErrorCode.DeserializationFailed
                 );
+            }
 
             return data;
         }
@@ -139,6 +139,7 @@ namespace EasyPack.EmeCardSystem
 
                 // 序列化 GameProperty 列表
                 if (card.Properties != null)
+                {
                     foreach (GameProperty prop in card.Properties)
                     {
                         try
@@ -157,6 +158,7 @@ namespace EasyPack.EmeCardSystem
                                 $"[CardJsonSerializer] 跳过序列化失败的 GameProperty [ID={prop?.ID}]: {ex.Message}");
                         }
                     }
+                }
 
                 // 递归序列化子卡
                 if (card.Children is { Count: > 0 })
@@ -194,8 +196,10 @@ namespace EasyPack.EmeCardSystem
                 return null;
 
             if (string.IsNullOrEmpty(data.ID))
+            {
                 throw new SerializationException("CardData.ID 是必需字段", typeof(Card),
                     SerializationErrorCode.DeserializationFailed);
+            }
 
             // 反序列化时创建的CardData不应包含DefaultTags
             // DefaultTags仅在新建卡牌时使用，反序列化的卡牌标签完全由序列化数据决定
@@ -211,6 +215,7 @@ namespace EasyPack.EmeCardSystem
 
             // 恢复属性
             if (data.Properties != null)
+            {
                 foreach (SerializableGameProperty sProp in data.Properties)
                 {
                     try
@@ -224,6 +229,7 @@ namespace EasyPack.EmeCardSystem
                         Debug.LogWarning($"[CardJsonSerializer] 跳过反序列化失败的 GameProperty: {ex.Message}");
                     }
                 }
+            }
 
             // 恢复标签 - 直接保存序列化时的所有标签
             // 注意：反序列化时不应用DefaultTags，这些标签完全由序列化数据决定
@@ -246,21 +252,25 @@ namespace EasyPack.EmeCardSystem
 
             // 恢复子卡
             if (!string.IsNullOrEmpty(data.ChildrenJson))
+            {
                 try
                 {
                     var childrenArray = JsonUtility.FromJson<SerializableCardArray>(data.ChildrenJson);
                     if (childrenArray is { Cards: not null })
+                    {
                         foreach (SerializableCard childData in childrenArray.Cards)
                         {
                             Card child = DeserializeCardRecursive(childData);
                             bool intrinsic = childData is { IsIntrinsic: true };
                             card.AddChild(child, intrinsic);
                         }
+                    }
                 }
                 catch (Exception ex)
                 {
                     Debug.LogWarning($"[CardJsonSerializer] 跳过反序列化失败的 Children: {ex.Message}");
                 }
+            }
 
             return card;
         }

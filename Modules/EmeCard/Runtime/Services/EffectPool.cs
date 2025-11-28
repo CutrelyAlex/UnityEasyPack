@@ -53,10 +53,7 @@ namespace EasyPack.EmeCardSystem
 
             // 注册顺序越小越优先
             cmp = OrderIndex.CompareTo(other.OrderIndex);
-            if (cmp != 0) return cmp;
-
-            // 效果索引越小越优先
-            return EffectIndex.CompareTo(other.EffectIndex);
+            return cmp != 0 ? cmp : EffectIndex.CompareTo(other.EffectIndex); // 效果索引越小越优先
         }
     }
 
@@ -91,7 +88,7 @@ namespace EasyPack.EmeCardSystem
             int priority = rule.Priority;
             for (int i = 0; i < rule.Effects.Count; i++)
             {
-                var effect = rule.Effects[i];
+                IRuleEffect effect = rule.Effects[i];
                 if (effect != null)
                 {
                     _entries.Add(new EffectPoolEntry(effect, context, matched, priority, orderIndex, i));
@@ -129,7 +126,7 @@ namespace EasyPack.EmeCardSystem
 
             // 执行
             int count = _entries.Count;
-            foreach (var entry in _entries)
+            foreach (EffectPoolEntry entry in _entries)
             {
                 entry.Effect.Execute(entry.Context, entry.Matched);
             }
@@ -155,7 +152,7 @@ namespace EasyPack.EmeCardSystem
 
             // 执行
             int count = 0;
-            foreach (var entry in _entries)
+            foreach (EffectPoolEntry entry in _entries)
             {
                 entry.Effect.Execute(entry.Context, entry.Matched);
                 count++;

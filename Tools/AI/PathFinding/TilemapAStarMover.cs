@@ -302,6 +302,7 @@ namespace EasyPack.Tools.PathFinding
             }
 
             if (options == null)
+            {
                 options = new()
                 {
                     allowDiagonal = allowDiagonalMovement,
@@ -309,6 +310,7 @@ namespace EasyPack.Tools.PathFinding
                     maxIterations = maxIterations,
                     useJps = useJumpPointSearch,
                 };
+            }
 
             DateTime startTime = DateTime.Now;
             _lastStats.Reset();
@@ -827,6 +829,7 @@ namespace EasyPack.Tools.PathFinding
             }
 
             if (best == -1)
+            {
                 for (int i = 0; i < path.Count; i++)
                 {
                     float d = Vector3.Distance(currentPosition, GetWorldPosition(path[i]));
@@ -836,6 +839,7 @@ namespace EasyPack.Tools.PathFinding
                         best = i;
                     }
                 }
+            }
 
             return best;
         }
@@ -1199,18 +1203,15 @@ namespace EasyPack.Tools.PathFinding
                 }
             }
 
-            private int Compare(PathNode a, PathNode b)
+            private static int Compare(PathNode a, PathNode b)
             {
                 int fc = a.fCost.CompareTo(b.fCost);
-                if (fc != 0) return fc;
-                return a.hCost.CompareTo(b.hCost);
+                return fc != 0 ? fc : a.hCost.CompareTo(b.hCost);
             }
 
             private void Swap(int i, int j)
             {
-                PathNode tmp = _list[i];
-                _list[i] = _list[j];
-                _list[j] = tmp;
+                (_list[i], _list[j]) = (_list[j], _list[i]);
                 _list[i].heapIndex = i;
                 _list[j].heapIndex = j;
             }

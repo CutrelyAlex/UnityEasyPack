@@ -54,7 +54,7 @@ namespace EasyPack.InventorySystem
 
         public ISerializableCondition FromDto(SerializedCondition dto)
         {
-            if (dto == null || dto.Params == null)
+            if (dto?.Params == null)
                 return this;
 
             // 清空现有内部条件
@@ -64,20 +64,21 @@ namespace EasyPack.InventorySystem
             foreach (CustomDataEntry p in dto.Params)
             {
                 if (p?.Key == "Inner" && !string.IsNullOrEmpty(p.StringValue))
+                {
                     try
                     {
                         var innerDto = JsonUtility.FromJson<SerializedCondition>(p.StringValue);
-                        if (innerDto != null && !string.IsNullOrEmpty(innerDto.Kind))
-                        {
-                            var serializer = new ConditionJsonSerializer();
-                            string innerJson = JsonUtility.ToJson(innerDto);
-                            Inner = serializer.DeserializeFromJson(innerJson);
-                        }
+                        if (innerDto == null || string.IsNullOrEmpty(innerDto.Kind)) continue;
+                        
+                        var serializer = new ConditionJsonSerializer();
+                        string innerJson = JsonUtility.ToJson(innerDto);
+                        Inner = serializer.DeserializeFromJson(innerJson);
                     }
                     catch (Exception ex)
                     {
                         Debug.LogError($"[NotCondition] 反序列化内部条件失败: {ex.Message}");
                     }
+                }
             }
 
             return this;

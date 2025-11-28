@@ -37,6 +37,7 @@ namespace EasyPack.InventorySystem
 
             // 序列化容器条件
             if (obj.ContainerCondition != null)
+            {
                 foreach (IItemCondition cond in obj.ContainerCondition)
                 {
                     if (cond != null)
@@ -50,11 +51,12 @@ namespace EasyPack.InventorySystem
                         }
                     }
                 }
+            }
 
             // 序列化槽位
             foreach (ISlot slot in obj.Slots)
             {
-                if (slot == null || !slot.IsOccupied || slot.Item == null) continue;
+                if (slot is not { IsOccupied: true } || slot.Item == null) continue;
 
                 string itemJson = null;
                 if (slot.Item is Item concrete)
@@ -98,6 +100,7 @@ namespace EasyPack.InventorySystem
             // 还原容器条件
             var conds = new List<IItemCondition>();
             if (dto.ContainerConditions != null)
+            {
                 foreach (SerializedCondition c in dto.ContainerConditions)
                 {
                     if (c == null || string.IsNullOrEmpty(c.Kind)) continue;
@@ -106,11 +109,13 @@ namespace EasyPack.InventorySystem
                     var cond = _serializationService.DeserializeFromJson<IItemCondition>(condJson);
                     if (cond != null) conds.Add(cond);
                 }
+            }
 
             container.ContainerCondition = conds;
 
             // 还原物品到指定槽位
             if (dto.Slots != null)
+            {
                 foreach (SerializedSlot s in dto.Slots)
                 {
                     if (string.IsNullOrEmpty(s.ItemJson)) continue;
@@ -120,9 +125,12 @@ namespace EasyPack.InventorySystem
 
                     (AddItemResult res, int added) = container.AddItems(item, s.ItemCount, s.Index >= 0 ? s.Index : -1);
                     if (res != AddItemResult.Success || added <= 0)
+                    {
                         Debug.LogWarning(
-                            $"反序列化槽位失败: idx={s.Index}, item={item?.ID ?? "null"}, count={s.ItemCount}, res={res}, added={added}");
+                            $"反序列化槽位失败: idx={s.Index}, item={item.ID ?? "null"}, count={s.ItemCount}, res={res}, added={added}");
+                    }
                 }
+            }
 
             return container;
         }

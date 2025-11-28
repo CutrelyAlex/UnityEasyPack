@@ -83,10 +83,10 @@ namespace EasyPack.EmeCardSystem
             if (targets == null) return;
 
             // 添加标签
-            for (int i = 0; i < targets.Count; i++)
+            foreach (Card t in targets)
             {
                 if (!string.IsNullOrEmpty(Tag))
-                    targets[i].AddTag(Tag);
+                    t.AddTag(Tag);
             }
         }
     }

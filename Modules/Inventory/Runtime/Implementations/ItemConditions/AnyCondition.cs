@@ -50,11 +50,13 @@ namespace EasyPack.InventorySystem
         public AnyCondition AddRange(IEnumerable<IItemCondition> conditions)
         {
             if (conditions != null)
+            {
                 foreach (IItemCondition c in conditions)
                 {
                     if (c != null)
                         Children.Add(c);
                 }
+            }
 
             return this;
         }
@@ -93,7 +95,7 @@ namespace EasyPack.InventorySystem
 
         public ISerializableCondition FromDto(SerializedCondition dto)
         {
-            if (dto == null || dto.Params == null)
+            if (dto?.Params == null)
                 return this;
 
             // 清空现有子条件

@@ -58,9 +58,7 @@ namespace EasyPack.EmeCardSystem
         private static int AllocateUID()
         {
             int uid = Interlocked.Increment(ref _nextUID);
-            if (uid > MAX_UID) throw new InvalidOperationException($"无法分配 UID：已达到上限 {MAX_UID}。");
-
-            return uid;
+            return uid > MAX_UID ? throw new InvalidOperationException($"无法分配 UID：已达到上限 {MAX_UID}。") : uid;
         }
 
         /// <summary>

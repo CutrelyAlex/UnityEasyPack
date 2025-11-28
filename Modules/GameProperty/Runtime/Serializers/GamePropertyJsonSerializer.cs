@@ -77,12 +77,14 @@ namespace EasyPack.GamePropertySystem
 
             // 使用 ModifierSerializer 还原所有修饰器
             if (data.Modifiers != null)
+            {
                 foreach (SerializableModifier serMod in data.Modifiers)
                 {
                     string modifierJson = JsonUtility.ToJson(serMod);
                     IModifier modifier = _modifierSerializer.DeserializeFromJson(modifierJson);
                     if (modifier != null) property.AddModifier(modifier);
                 }
+            }
 
             return property;
         }

@@ -9,7 +9,6 @@ namespace EasyPack.ObjectPool
     public class ObjectPool<T> where T : class
     {
         private readonly UnityEngine.Pool.ObjectPool<T> _pool;
-        private readonly int _maxCapacity;
 
         /// <summary>
         ///     获取当前池中的对象数量。
@@ -19,7 +18,7 @@ namespace EasyPack.ObjectPool
         /// <summary>
         ///     获取池的最大容量。
         /// </summary>
-        public int MaxCapacity => _maxCapacity;
+        public int MaxCapacity { get; }
 
         /// <summary>
         ///     该池的标记。用于区分同类型不同配置的池。
@@ -41,7 +40,7 @@ namespace EasyPack.ObjectPool
             if (factory == null)
                 throw new ArgumentNullException(nameof(factory));
 
-            _maxCapacity = maxCapacity;
+            MaxCapacity = maxCapacity;
 
             // 使用 Unity 官方 ObjectPool，传入清理方法
             _pool = new(

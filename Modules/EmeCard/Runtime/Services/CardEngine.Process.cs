@@ -83,7 +83,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private static List<Card> DistinctInPlace(List<Card> list)
         {
-            if (list == null || list.Count <= 1) return list;
+            if (list is not { Count: > 1 }) return list;
 
             var set = RentDistinctSet();
             int writeIndex = 0;
@@ -155,11 +155,13 @@ namespace EasyPack.EmeCardSystem
 
             // 如果有 CustomId，也从 CustomId 索引移除
             if (removed && !string.IsNullOrEmpty(rule.CustomId))
+            {
                 if (_customRulesById.TryGetValue(rule.CustomId, out var customRuleList))
                 {
                     customRuleList.Remove(rule);
                     if (customRuleList.Count == 0) _customRulesById.Remove(rule.CustomId);
                 }
+            }
 
             return removed;
         }
@@ -397,8 +399,10 @@ namespace EasyPack.EmeCardSystem
                 typeRulesCount = typeRules.Count;
 
             if (!string.IsNullOrEmpty(evt.EventId) && evt.EventId != evt.EventType)
+            {
                 if (_customRulesById.TryGetValue(evt.EventId, out idRules))
                     idRulesCount = idRules.Count;
+            }
 
             int totalCount = typeRulesCount + idRulesCount;
             if (totalCount == 0) return;
@@ -521,19 +525,16 @@ namespace EasyPack.EmeCardSystem
             matchedAll = new List<Card>(8);
             if (requirements == null) return true;
 
-            for (int i = 0; i < requirements.Count; i++)
+            foreach (IRuleRequirement req in requirements)
             {
-                IRuleRequirement req = requirements[i];
                 if (req == null) return false;
 
                 if (!req.TryMatch(ctx, out var picks)) return false;
 
-                if (picks != null && picks.Count > 0)
-                {
-                    // 使用 for 循环代替 AddRange
-                    for (int j = 0; j < picks.Count; j++)
-                        matchedAll.Add(picks[j]);
-                }
+                if (picks == null || picks.Count <= 0) continue;
+                
+                foreach (Card t in picks)
+                    matchedAll.Add(t);
             }
 
             return true;
