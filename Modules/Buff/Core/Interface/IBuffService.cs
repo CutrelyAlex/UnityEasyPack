@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using UnityEngine;
 using EasyPack.ENekoFramework;
+using UnityEngine;
 
 namespace EasyPack.BuffSystem
 {

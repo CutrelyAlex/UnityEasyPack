@@ -1,9 +1,9 @@
-using EasyPack.Architecture;
-using EasyPack.ENekoFramework;
-using EasyPack.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using EasyPack.Architecture;
+using EasyPack.ENekoFramework;
+using EasyPack.Serialization;
 using UnityEngine;
 
 namespace EasyPack.Category
@@ -72,7 +72,7 @@ namespace EasyPack.Category
         public ICategoryManager<T, TKey> GetOrCreateManager<T, TKey>(Func<T, TKey> keyExtractor)
             where TKey : IEquatable<TKey>
         {
-            var key = (typeof(T), typeof(TKey));
+            (Type, Type) key = (typeof(T), typeof(TKey));
 
             // 如果已存在，直接返回
             if (_managers.TryGetValue(key, out ICategoryManager existingManager))
@@ -83,7 +83,7 @@ namespace EasyPack.Category
             _managers[key] = manager;
 
             // 自动注册该实体类型的 CategoryManager 序列化器
-            RegisterManagerSerializer<T, TKey>(keyExtractor);
+            RegisterManagerSerializer(keyExtractor);
 
             Debug.Log($"[CategoryService] 创建 CategoryManager<{typeof(T).Name}, {typeof(TKey).Name}>");
 
@@ -99,7 +99,7 @@ namespace EasyPack.Category
         public ICategoryManager<T, TKey> GetManager<T, TKey>()
             where TKey : IEquatable<TKey>
         {
-            var key = (typeof(T), typeof(TKey));
+            (Type, Type) key = (typeof(T), typeof(TKey));
             if (_managers.TryGetValue(key, out ICategoryManager manager))
                 return manager as ICategoryManager<T, TKey>;
             return null;
@@ -114,7 +114,7 @@ namespace EasyPack.Category
         public bool RemoveManager<T, TKey>()
             where TKey : IEquatable<TKey>
         {
-            var key = (typeof(T), typeof(TKey));
+            (Type, Type) key = (typeof(T), typeof(TKey));
             if (!_managers.TryGetValue(key, out ICategoryManager manager)) return false;
 
             if (manager is IDisposable disposable) disposable.Dispose();
@@ -170,7 +170,7 @@ namespace EasyPack.Category
         {
             if (_serializationService == null) return;
 
-            var typeKey = (typeof(T), typeof(TKey));
+            (Type, Type) typeKey = (typeof(T), typeof(TKey));
 
             // 避免重复注册
             if (_serializers.ContainsKey(typeKey)) return;
@@ -210,7 +210,7 @@ namespace EasyPack.Category
             if (manager is CategoryManager<T, TKey> concreteManager)
                 return concreteManager.SerializeToJson();
 
-            Debug.LogWarning($"[CategoryService] Manager 类型不支持序列化");
+            Debug.LogWarning("[CategoryService] Manager 类型不支持序列化");
             return null;
         }
 
@@ -231,7 +231,7 @@ namespace EasyPack.Category
                 var manager = CategoryManager<T, TKey>.CreateFromJson(json, keyExtractor);
 
                 // 替换现有 Manager
-                var key = (typeof(T), typeof(TKey));
+                (Type, Type) key = (typeof(T), typeof(TKey));
                 if (_managers.TryGetValue(key, out ICategoryManager oldManager) &&
                     oldManager is IDisposable disposable)
                     disposable.Dispose();
@@ -239,7 +239,7 @@ namespace EasyPack.Category
                 _managers[key] = manager;
 
                 // 注册序列化器
-                RegisterManagerSerializer<T, TKey>(keyExtractor);
+                RegisterManagerSerializer(keyExtractor);
 
                 return OperationResult.Success();
             }

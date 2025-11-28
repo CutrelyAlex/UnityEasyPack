@@ -1,5 +1,5 @@
-using EasyPack.ENekoFramework;
 using System;
+using EasyPack.ENekoFramework;
 
 namespace EasyPack.Category
 {

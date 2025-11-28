@@ -1,6 +1,7 @@
-using EasyPack.ENekoFramework;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
+using EasyPack.ENekoFramework;
 using UnityEngine;
 
 namespace EasyPack.Architecture
@@ -55,7 +56,7 @@ namespace EasyPack.Architecture
         /// </summary>
         /// <typeparam name="T">事件类型</typeparam>
         /// <param name="onEvent">事件回调</param>
-        protected void SubscribeEvent<T>(System.Action<T> onEvent) where T : IEvent
+        protected void SubscribeEvent<T>(Action<T> onEvent) where T : IEvent
         {
             GetArchitecture().SubscribeEvent(onEvent);
         }
@@ -65,7 +66,7 @@ namespace EasyPack.Architecture
         /// </summary>
         /// <typeparam name="T">事件类型</typeparam>
         /// <param name="onEvent">事件回调</param>
-        protected void UnsubscribeEvent<T>(System.Action<T> onEvent) where T : IEvent
+        protected void UnsubscribeEvent<T>(Action<T> onEvent) where T : IEvent
         {
             GetArchitecture().UnsubscribeEvent(onEvent);
         }

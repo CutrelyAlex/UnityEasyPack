@@ -1,5 +1,6 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace EasyPack.GamePropertySystem.Example.EatGame
 {
@@ -56,7 +57,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         private void SetupDependencies()
         {
             // 每日生命值变化依赖于饱食度和SAN值状态
-            HealthChangePerDay.AddDependency(Satiety, (dep, newVal) =>
+            HealthChangePerDay.AddDependency(Satiety, (_, newVal) =>
             {
                 float baseChange = HealthChangePerDay.GetBaseValue();
                 if (newVal < 20) baseChange -= 5; // 饱食度过低惩罚
@@ -64,7 +65,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
                 return baseChange;
             });
 
-            HealthChangePerDay.AddDependency(Sanity, (dep, newVal) =>
+            HealthChangePerDay.AddDependency(Sanity, (_, newVal) =>
             {
                 float baseChange = HealthChangePerDay.GetValue();
                 if (newVal < 20) baseChange -= 2; // SAN值过低惩罚
@@ -73,14 +74,14 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             });
 
             // 每日SAN变化依赖于饱食度和SAN值状态
-            SanityChangePerDay.AddDependency(Satiety, (dep, newVal) =>
+            SanityChangePerDay.AddDependency(Satiety, (_, newVal) =>
             {
                 float baseChange = SanityChangePerDay.GetBaseValue();
                 if (newVal > 80) baseChange -= 3; // 饱食度过高惩罚
                 return baseChange;
             });
 
-            SanityChangePerDay.AddDependency(Sanity, (dep, newVal) =>
+            SanityChangePerDay.AddDependency(Sanity, (_, newVal) =>
             {
                 float baseChange = SanityChangePerDay.GetValue();
                 if (newVal < 20) baseChange -= 2; // SAN值过低恶性循环
@@ -99,7 +100,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             // StrangeScore 依赖于多个属性，当任何依赖属性变化时都会重新计算
             // 我们添加依赖到所有相关属性，并在回调中执行完整的评分计算
 
-            System.Func<GameProperty, float, float> calculateStrangeScore = (dep, newVal) =>
+            Func<GameProperty, float, float> calculateStrangeScore = (_, _) =>
             {
                 float satietyRatio = Satiety.GetValue() / Mathf.Max(SatietyCapacity.GetValue(), 1f);
                 float healthRatio = Health.GetValue() / Mathf.Max(HealthCapacity.GetValue(), 1f);

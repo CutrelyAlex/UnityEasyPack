@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using EasyPack.Architecture;
 using EasyPack.Category;
@@ -138,15 +137,15 @@ namespace EasyPack.EmeCardSystem
         public EnginePolicy Policy { get; } = new();
 
         // Pump 状态标志
-        private bool _isPumping = false;
-        private bool _isFlushingEffectPool = false; // 防止效果池嵌套刷新
+        private bool _isPumping;
+        private bool _isFlushingEffectPool; // 防止效果池嵌套刷新
 
         // 分帧处理相关
         private float _frameStartTime; // 当前帧开始处理的时间（毫秒）
         private int _frameProcessedCount; // 当前帧已处理事件数
 
         // 时间限制分帧机制
-        private bool _isBatchProcessing = false;
+        private bool _isBatchProcessing;
         private float _batchStartTime;
         private float _batchTimeLimit;
 
@@ -195,7 +194,7 @@ namespace EasyPack.EmeCardSystem
         private readonly EffectPool _globalEffectPool = new();
 
         // 全局效果池的规则顺序计数器
-        private int _globalOrderIndex = 0;
+        private int _globalOrderIndex;
 
         #endregion
 

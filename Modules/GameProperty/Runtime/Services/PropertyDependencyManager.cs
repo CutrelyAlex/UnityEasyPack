@@ -17,22 +17,19 @@ namespace EasyPack.GamePropertySystem
         private readonly HashSet<GameProperty> _dependents = new();
         private readonly Dictionary<GameProperty, Func<GameProperty, float, float>> _dependencyCalculators = new();
 
-        private int _dependencyDepth = 0;
-        private bool _hasRandomDependency = false;
-
         // HasDirtyDependencies缓存
-        private bool _hasDirtyDepsCache = false;
-        private bool _hasDirtyDepsCacheValid = false;
+        private bool _hasDirtyDepsCache;
+        private bool _hasDirtyDepsCacheValid;
 
         /// <summary>
         ///     依赖深度
         /// </summary>
-        public int DependencyDepth => _dependencyDepth;
+        public int DependencyDepth { get; private set; }
 
         /// <summary>
         ///     是否有随机依赖
         /// </summary>
-        public bool HasRandomDependency => _hasRandomDependency;
+        public bool HasRandomDependency { get; private set; }
 
         /// <summary>
         ///     依赖数量
@@ -223,7 +220,7 @@ namespace EasyPack.GamePropertySystem
                 }
             }
 
-            _hasRandomDependency = hasRandom;
+            HasRandomDependency = hasRandom;
         }
 
         /// <summary>
@@ -235,7 +232,7 @@ namespace EasyPack.GamePropertySystem
             if (dependency == _owner) return true;
 
             // 深度限制检查
-            if (dependency.DependencyManager._dependencyDepth >= MAX_DEPENDENCY_DEPTH)
+            if (dependency.DependencyManager.DependencyDepth >= MAX_DEPENDENCY_DEPTH)
             {
                 Debug.LogWarning($"依赖深度超过限制 {MAX_DEPENDENCY_DEPTH}");
                 return true;
@@ -266,25 +263,25 @@ namespace EasyPack.GamePropertySystem
         /// </summary>
         private void UpdateDependencyDepth()
         {
-            int oldDepth = _dependencyDepth;
+            int oldDepth = DependencyDepth;
 
             if (_dependencies.Count == 0)
             {
-                _dependencyDepth = 0;
+                DependencyDepth = 0;
             }
             else
             {
                 int maxDepth = 0;
                 foreach (GameProperty dep in _dependencies)
                 {
-                    if (dep.DependencyManager._dependencyDepth > maxDepth)
-                        maxDepth = dep.DependencyManager._dependencyDepth;
+                    if (dep.DependencyManager.DependencyDepth > maxDepth)
+                        maxDepth = dep.DependencyManager.DependencyDepth;
                 }
 
-                _dependencyDepth = maxDepth + 1;
+                DependencyDepth = maxDepth + 1;
             }
 
-            if (oldDepth != _dependencyDepth)
+            if (oldDepth != DependencyDepth)
                 foreach (GameProperty dependent in _dependents)
                 {
                     dependent.DependencyManager.UpdateDependencyDepth();
@@ -313,8 +310,8 @@ namespace EasyPack.GamePropertySystem
             _dependents.Clear();
 
             _dependencyCalculators.Clear();
-            _dependencyDepth = 0;
-            _hasRandomDependency = false;
+            DependencyDepth = 0;
+            HasRandomDependency = false;
         }
     }
 }

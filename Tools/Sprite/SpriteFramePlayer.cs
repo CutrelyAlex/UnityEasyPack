@@ -27,12 +27,12 @@ namespace EasyPack.Tools.SpriteFramesPlayer
         /// <summary>
         ///     当前帧索引。
         /// </summary>
-        private int currentFrame = 0;
+        private int currentFrame;
 
         /// <summary>
         ///     是否正在播放。
         /// </summary>
-        private bool isPlaying = false;
+        private bool isPlaying;
 
         /// <summary>
         ///     播放协程的引用。

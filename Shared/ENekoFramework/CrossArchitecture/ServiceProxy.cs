@@ -12,8 +12,8 @@ namespace EasyPack.ENekoFramework
     {
         private readonly ServiceContainer _sourceContainer;
         private TService _cachedService;
-        private bool _isResolved = false;
-        private bool _disposed = false;
+        private bool _isResolved;
+        private bool _disposed;
         private readonly object _lock = new();
 
         /// <summary>

@@ -1,7 +1,7 @@
-using EasyPack.Modifiers;
-using EasyPack.Serialization;
 using System;
 using System.Collections.Generic;
+using EasyPack.Modifiers;
+using EasyPack.Serialization;
 using UnityEngine;
 
 namespace EasyPack.GamePropertySystem

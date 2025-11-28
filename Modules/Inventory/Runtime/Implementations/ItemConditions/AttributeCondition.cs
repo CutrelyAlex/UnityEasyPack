@@ -1,6 +1,7 @@
-using EasyPack.CustomData;
 using System;
+using System.Collections;
 using System.Linq;
+using EasyPack.CustomData;
 
 namespace EasyPack.InventorySystem
 {
@@ -118,7 +119,7 @@ namespace EasyPack.InventorySystem
             if (container is string containerStr && value is string valueStr)
                 return containerStr.Contains(valueStr);
 
-            if (container is System.Collections.IEnumerable enumerable and not string)
+            if (container is IEnumerable enumerable and not string)
                 foreach (object item in enumerable)
                 {
                     if (item != null && item.Equals(value))

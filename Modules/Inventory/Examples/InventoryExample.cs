@@ -1,9 +1,9 @@
-using EasyPack.Architecture;
-using EasyPack.Serialization;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using EasyPack.Architecture;
+using EasyPack.ENekoFramework;
+using EasyPack.Serialization;
 using UnityEngine;
-
 
 namespace EasyPack.InventorySystem.Example
 {
@@ -79,7 +79,7 @@ namespace EasyPack.InventorySystem.Example
             Debug.Log($"成功获取 InventoryService，当前状态: {inventoryService.State}");
 
             // 如果未初始化，则进行初始化
-            if (inventoryService.State == ENekoFramework.ServiceLifecycleState.Uninitialized)
+            if (inventoryService.State == ServiceLifecycleState.Uninitialized)
             {
                 await inventoryService.InitializeAsync();
                 Debug.Log("InventoryService 初始化完成");
@@ -120,7 +120,7 @@ namespace EasyPack.InventorySystem.Example
             Debug.Log($"创建了装备栏: {equipmentBag.Name} (仅接受类型为'Equipment'的物品)");
 
             // 创建无限大小的储物箱 - 用于玩家住宅存储物品
-            var storageChest = new LinerContainer("house_storage", "储物箱", "Storage", -1);
+            var storageChest = new LinerContainer("house_storage", "储物箱", "Storage");
             Debug.Log($"创建了储物箱: {storageChest.Name} (无限容量)");
 
             Debug.Log("容器创建完成，可用于存储不同类型的物品\n");
@@ -246,7 +246,7 @@ namespace EasyPack.InventorySystem.Example
 
             // 使用物品(模拟)
             Debug.Log("玩家使用了1瓶生命药水...");
-            RemoveItemResult useHealthPotion = playerBackpack.RemoveItem("health_potion", 1);
+            RemoveItemResult useHealthPotion = playerBackpack.RemoveItem("health_potion");
             Debug.Log($"使用结果: {(useHealthPotion == RemoveItemResult.Success ? "成功" : "失败")}");
 
             // 使用多个物品
@@ -313,7 +313,7 @@ namespace EasyPack.InventorySystem.Example
             gem.SetCustomData("Power", 12.5f);
 
             bag.AddItems(potion, 15);
-            bag.AddItems(sword, 1);
+            bag.AddItems(sword);
             bag.AddItems(gem, 7, 3);
 
             Debug.Log("原始背包内容：");
@@ -405,7 +405,7 @@ namespace EasyPack.InventorySystem.Example
             var nameLike = bag.GetItemsByName("药水");
             Debug.Log($"名称包含 '药水' 的条目数={nameLike.Count}");
 
-            var highDamage = bag.GetItemsWhere(i => i.Type == "Weapon" && i.GetCustomData<int>("Damage", 0) >= 15);
+            var highDamage = bag.GetItemsWhere(i => i.Type == "Weapon" && i.GetCustomData<int>("Damage") >= 15);
             Debug.Log($"高伤害武器条目数(>=15)={highDamage.Count}");
         }
 
@@ -575,7 +575,7 @@ namespace EasyPack.InventorySystem.Example
             // 验证条件功能仍有效
             Item lowGem = CreateGameItem("low_gem", "低阶宝石", true, 30, "Gem");
             lowGem.SetCustomData("Level", 2);
-            (AddItemResult rAdd, _) = restored.AddItems(lowGem, 1);
+            (AddItemResult rAdd, _) = restored.AddItems(lowGem);
             Debug.Log($"向反序列化容器添加低阶宝石结果={rAdd} (应 ItemConditionNotMet)");
 
             // 验证属性保持
@@ -584,7 +584,7 @@ namespace EasyPack.InventorySystem.Example
             {
                 ISlot slot = restored.Slots[idx];
                 Debug.Log(
-                    $"宝石属性: Level={slot.Item.GetCustomData<int>("Level", 0)}, Quality={slot.Item.GetCustomData<string>("Quality", "")}");
+                    $"宝石属性: Level={slot.Item.GetCustomData<int>("Level")}, Quality={slot.Item.GetCustomData("Quality", "")}");
             }
         }
 

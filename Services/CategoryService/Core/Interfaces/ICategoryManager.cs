@@ -1,6 +1,6 @@
-using EasyPack.CustomData;
 using System;
 using System.Collections.Generic;
+using EasyPack.CustomData;
 
 namespace EasyPack.Category
 {
@@ -68,7 +68,8 @@ namespace EasyPack.Category
         /// <summary>
         ///     使用整数ID注册实体并添加元数据（独立整数ID缓存体系）
         /// </summary>
-        OperationResult RegisterEntityIntWithMetadata(int entityId, T entity, string category, CustomDataCollection metadata);
+        OperationResult RegisterEntityIntWithMetadata(int entityId, T entity, string category,
+                                                      CustomDataCollection metadata);
 
         /// <summary>
         ///     批量注册实体

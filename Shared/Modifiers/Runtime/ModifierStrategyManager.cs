@@ -7,8 +7,7 @@ namespace EasyPack.Modifiers
     {
         private static readonly Dictionary<ModifierType, IModifierStrategy> _strategies = new();
 
-        public static readonly ModifierType[] MODIFIER_TYPE_ORDER = new ModifierType[]
-        {
+        public static readonly ModifierType[] MODIFIER_TYPE_ORDER = {
             ModifierType.Add, ModifierType.PriorityAdd, ModifierType.Mul, ModifierType.PriorityMul,
             ModifierType.AfterAdd, ModifierType.Override, ModifierType.Clamp,
         };

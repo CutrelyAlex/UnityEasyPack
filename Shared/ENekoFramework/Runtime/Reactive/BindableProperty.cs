@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace EasyPack.ENekoFramework
 {
@@ -131,7 +132,7 @@ namespace EasyPack.ENekoFramework
         {
             if (_batchDepth <= 0)
             {
-                UnityEngine.Debug.LogWarning("EndBatch 调用次数多于 BeginBatch");
+                Debug.LogWarning("EndBatch 调用次数多于 BeginBatch");
                 return;
             }
 
@@ -178,7 +179,7 @@ namespace EasyPack.ENekoFramework
                     }
                     catch (Exception ex)
                     {
-                        UnityEngine.Debug.LogError($"BindableProperty 监听器错误：{ex.Message}");
+                        Debug.LogError($"BindableProperty 监听器错误：{ex.Message}");
                     }
                 }
 

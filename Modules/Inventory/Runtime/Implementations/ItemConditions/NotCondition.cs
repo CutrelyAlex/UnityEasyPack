@@ -1,5 +1,5 @@
-using EasyPack.CustomData;
 using System;
+using EasyPack.CustomData;
 using UnityEngine;
 
 namespace EasyPack.InventorySystem

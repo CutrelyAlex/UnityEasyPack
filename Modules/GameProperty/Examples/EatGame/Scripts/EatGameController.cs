@@ -33,7 +33,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         private List<Food> currentFoods;
         private int currentDay = 1;
         private Food selectedFood;
-        private bool isWaitingForNextDay = false;
+        private bool isWaitingForNextDay;
 
         private void Start()
         {
@@ -81,7 +81,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             currentFoods = foodGenerator.GenerateDailyFoods();
 
             Debug.Log($"\n=== 第 {currentDay} 天开始 ===");
-            Debug.Log($"今日可选食物:");
+            Debug.Log("今日可选食物:");
             for (int i = 0; i < currentFoods.Count; i++)
             {
                 Debug.Log($"[{i + 1}] {foodGenerator.GetFoodEffectDescription(currentFoods[i])}");

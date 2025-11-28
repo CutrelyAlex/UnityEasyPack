@@ -8,7 +8,7 @@ namespace EasyPack.EmeCardSystem
     ///     该类型不包含运行时状态
     ///     运行时应由 <see cref="Card" /> 持有一份 <see cref="CardData" />，并在实例化时基于此进行初始化。
     /// </summary>
-    public partial class CardData
+    public class CardData
     {
         /// <summary>
         ///     通用默认分类路径，用于 CategoryManager 注册。

@@ -113,7 +113,7 @@ namespace EasyPack.Tools.PathFinding
                     TileBase tile = tilemap.GetTile(pos);
                     if (tile != null)
                     {
-                        _unifiedMap.AddWalkableTile(pos, tilemap, 1f);
+                        _unifiedMap.AddWalkableTile(pos, tilemap);
                         added++;
                     }
                 }

@@ -1,7 +1,7 @@
-using EasyPack.CustomData;
 using System;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using EasyPack.CustomData;
 using UnityEngine;
 
 namespace EasyPack.Serialization

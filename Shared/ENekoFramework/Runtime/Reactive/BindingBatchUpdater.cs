@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace EasyPack.ENekoFramework
 {
@@ -10,7 +13,7 @@ namespace EasyPack.ENekoFramework
     {
         private static BindingBatchUpdater _instance;
         private readonly HashSet<IBindable> _dirtyBindings = new();
-        private bool _isUpdateScheduled = false;
+        private bool _isUpdateScheduled;
 
         /// <summary>
         ///     获取单例实例
@@ -95,7 +98,7 @@ namespace EasyPack.ENekoFramework
 
             // 性能监控（仅在开发模式）
 #if UNITY_EDITOR
-            var startTime = System.Diagnostics.Stopwatch.StartNew();
+            var startTime = Stopwatch.StartNew();
 #endif
 
             // 批处理刷新所有脏绑定
@@ -105,7 +108,7 @@ namespace EasyPack.ENekoFramework
                 {
                     bindable?.FlushUpdates();
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Debug.LogWarning($"[BindingBatchUpdater] Exception during FlushUpdates: {ex}");
                 }
@@ -118,7 +121,7 @@ namespace EasyPack.ENekoFramework
             startTime.Stop();
             if (startTime.ElapsedMilliseconds > 16)
                 Debug.LogWarning($"[BindingBatchUpdater] Batch update took {startTime.ElapsedMilliseconds}ms " +
-                                 $"(target: <16ms). Consider optimizing bindings.");
+                                 "(target: <16ms). Consider optimizing bindings.");
 #endif
         }
     }

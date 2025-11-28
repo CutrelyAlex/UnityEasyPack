@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace EasyPack.Category
 {
@@ -222,7 +223,7 @@ namespace EasyPack.Category
             int[] pathIds = GetPathAsIds();
 
             // 使用 StringBuilder 高效构造字符串
-            var sb = new System.Text.StringBuilder();
+            var sb = new StringBuilder();
             for (int i = 0; i < pathIds.Length; i++)
             {
                 if (i > 0) sb.Append(CategoryConstants.CATEGORY_SEPARATOR);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EasyPack.ENekoFramework.Editor;
 
 namespace EasyPack.ENekoFramework
 {
@@ -106,7 +107,7 @@ namespace EasyPack.ENekoFramework
         private static bool ShouldInvokeEventMonitoring()
         {
 #if UNITY_EDITOR
-            return Editor.EditorMonitoringConfig.EnableEventMonitoring;
+            return EditorMonitoringConfig.EnableEventMonitoring;
 #else
             return false;
 #endif

@@ -1,11 +1,10 @@
 #if UNITY_EDITOR
 using System;
-using UnityEditor;
-using UnityEngine;
 using System.Linq;
 using System.Reflection;
 using EasyPack.Architecture;
-
+using UnityEditor;
+using UnityEngine;
 
 namespace EasyPack.ENekoFramework.Editor
 {
@@ -162,7 +161,7 @@ namespace EasyPack.ENekoFramework.Editor
                 object instance = instanceField.GetValue(null);
                 if (instance != null)
                 {
-                    Debug.Log($"[Debug] EasyPackArchitecture 已存在实例");
+                    Debug.Log("[Debug] EasyPackArchitecture 已存在实例");
                     PropertyInfo isInitProp = instance.GetType().GetProperty("IsInitialized");
                     if (isInitProp != null)
                     {
@@ -172,12 +171,12 @@ namespace EasyPack.ENekoFramework.Editor
                 }
                 else
                 {
-                    Debug.Log($"[Debug] EasyPackArchitecture 尚未创建实例");
+                    Debug.Log("[Debug] EasyPackArchitecture 尚未创建实例");
                 }
             }
             else
             {
-                Debug.LogWarning($"[Debug] 无法访问 _instance 字段");
+                Debug.LogWarning("[Debug] 无法访问 _instance 字段");
             }
         }
 

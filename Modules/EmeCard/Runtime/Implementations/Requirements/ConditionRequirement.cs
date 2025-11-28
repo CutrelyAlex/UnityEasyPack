@@ -38,11 +38,9 @@ namespace EasyPack.EmeCardSystem
                 matched = cards ?? new List<Card>();
                 return isMatched;
             }
-            else
-            {
-                matched = new();
-                return _boolPredicate(ctx);
-            }
+
+            matched = new();
+            return _boolPredicate(ctx);
         }
     }
 }

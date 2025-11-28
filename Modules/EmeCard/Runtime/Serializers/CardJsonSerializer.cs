@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
-using UnityEngine;
 using EasyPack.GamePropertySystem;
 using EasyPack.Serialization;
+using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
 {
@@ -203,8 +204,7 @@ namespace EasyPack.EmeCardSystem
                 data.Name ?? "Default",
                 data.Description ?? string.Empty,
                 data.DefaultCategory,
-                Array.Empty<string>(),  // 反序列化时不应用DefaultTags
-                null
+                Array.Empty<string>()
             );
 
             var card = new Card(cardData) { Index = data.Index };
@@ -287,7 +287,7 @@ namespace EasyPack.EmeCardSystem
 
         public bool Equals(T x, T y) => ReferenceEquals(x, y);
 
-        public int GetHashCode(T obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+        public int GetHashCode(T obj) => RuntimeHelpers.GetHashCode(obj);
     }
 
     #endregion

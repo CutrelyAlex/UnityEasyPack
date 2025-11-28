@@ -30,7 +30,7 @@ namespace EasyPack.InventorySystem
         /// <summary>
         ///     是否可以旋转
         /// </summary>
-        public bool CanRotate { get; set; } = false;
+        public bool CanRotate { get; set; }
 
         /// <summary>
         ///     当前旋转角度

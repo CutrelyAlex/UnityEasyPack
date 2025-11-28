@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using EasyPack.ObjectPool;
 
 namespace EasyPack.Category
 {
@@ -16,7 +17,7 @@ namespace EasyPack.Category
         /// </summary>
         /// <typeparam name="T">列表元素类型</typeparam>
         /// <returns>清洁的 List&lt;T&gt; 实例</returns>
-        public static List<T> GetList<T>() => ObjectPool.ListPool<T>.Rent();
+        public static List<T> GetList<T>() => ListPool<T>.Rent();
 
         /// <summary>
         ///     将 List&lt;T&gt; 实例归还到 ListPool
@@ -26,7 +27,7 @@ namespace EasyPack.Category
         public static void ReturnList<T>(List<T> list)
         {
             if (list == null) return;
-            ObjectPool.ListPool<T>.Return(list);
+            ListPool<T>.Return(list);
         }
 
         #endregion
@@ -38,7 +39,7 @@ namespace EasyPack.Category
         /// </summary>
         /// <typeparam name="T">集合元素类型</typeparam>
         /// <returns>清洁的 HashSet&lt;T&gt; 实例</returns>
-        public static HashSet<T> GetHashSet<T>() => ObjectPool.HashSetPool<T>.Rent();
+        public static HashSet<T> GetHashSet<T>() => HashSetPool<T>.Rent();
 
         /// <summary>
         ///     将 HashSet&lt;T&gt; 实例归还到 HashSetPool
@@ -48,14 +49,14 @@ namespace EasyPack.Category
         public static void ReturnHashSet<T>(HashSet<T> hashSet)
         {
             if (hashSet == null) return;
-            ObjectPool.HashSetPool<T>.Return(hashSet);
+            HashSetPool<T>.Return(hashSet);
         }
 
         /// <summary>
         ///     从 HashSetPool 中获取 HashSet&lt;string&gt; 实例
         /// </summary>
         /// <returns>清洁的 HashSet&lt;string&gt; 实例</returns>
-        public static HashSet<string> GetHashSet() => ObjectPool.HashSetPool<string>.Rent();
+        public static HashSet<string> GetHashSet() => HashSetPool<string>.Rent();
 
         /// <summary>
         ///     将 HashSet&lt;string&gt; 实例归还到 HashSetPool
@@ -64,7 +65,7 @@ namespace EasyPack.Category
         public static void ReturnHashSet(HashSet<string> hashSet)
         {
             if (hashSet == null) return;
-            ObjectPool.HashSetPool<string>.Return(hashSet);
+            HashSetPool<string>.Return(hashSet);
         }
 
         #endregion

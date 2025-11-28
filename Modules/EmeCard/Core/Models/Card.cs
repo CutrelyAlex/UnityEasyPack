@@ -400,7 +400,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     触发主动使用事件（Use）。
         /// </summary>
-        /// <param name="data">可选自定义信息；由订阅者按需解释（例如目标信息）。</param>
+        /// <param name="target">可选自定义信息；由订阅者按需解释（例如目标信息）。</param>
         public void Use(Card target = null)
         {
             RaiseEvent(CardEventTypes.Use.Create(target));

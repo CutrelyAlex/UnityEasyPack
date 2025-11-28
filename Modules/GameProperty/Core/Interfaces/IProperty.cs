@@ -1,6 +1,6 @@
-using EasyPack.Modifiers;
 using System;
 using System.Collections.Generic;
+using EasyPack.Modifiers;
 
 namespace EasyPack.GamePropertySystem
 {

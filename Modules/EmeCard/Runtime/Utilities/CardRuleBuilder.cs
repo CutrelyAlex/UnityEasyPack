@@ -8,7 +8,7 @@ namespace EasyPack.EmeCardSystem
     ///     规则流式构建器
     ///     提供核心方法和便捷语法糖
     /// </summary>
-    public sealed partial class CardRuleBuilder
+    public sealed class CardRuleBuilder
     {
         private readonly CardRule _rule = new()
         {
@@ -77,7 +77,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="hops">跳数值（0=Self, 1=Owner, -1=Root, N&gt;1=向上N层）</param>
         /// <returns>构建器自身，用于链式调用</returns>
-        [System.Obsolete("使用 MatchRootHops() 和 EffectRootHops() 分别设置匹配和效果范围。")]
+        [Obsolete("使用 MatchRootHops() 和 EffectRootHops() 分别设置匹配和效果范围。")]
         public CardRuleBuilder OwnerHops(int hops)
         {
             _rule.OwnerHops = hops;
@@ -106,21 +106,21 @@ namespace EasyPack.EmeCardSystem
         ///     [已弃用] 以自身为容器（OwnerHops=0）。
         ///     <para>请使用 <see cref="MatchAtSelf"/> 或 <see cref="EffectAtSelf"/>。</para>
         /// </summary>
-        [System.Obsolete("使用 MatchAtSelf() 或 EffectAtSelf()")]
+        [Obsolete("使用 MatchAtSelf() 或 EffectAtSelf()")]
         public CardRuleBuilder AtSelf() => OwnerHops(0);
 
         /// <summary>
         ///     [已弃用] 以直接父级为容器（OwnerHops=1）。
         ///     <para>请使用 <see cref="MatchAtParent"/> 或 <see cref="EffectAtParent"/>。</para>
         /// </summary>
-        [System.Obsolete("使用 MatchAtParent() 或 EffectAtParent()")]
+        [Obsolete("使用 MatchAtParent() 或 EffectAtParent()")]
         public CardRuleBuilder AtParent() => OwnerHops(1);
 
         /// <summary>
         ///     [已弃用] 以根容器为容器（OwnerHops=-1）。
         ///     <para>请使用 <see cref="MatchAtRoot"/> 或 <see cref="EffectAtRoot"/>。</para>
         /// </summary>
-        [System.Obsolete("使用 MatchAtRoot() 或 EffectAtRoot()")]
+        [Obsolete("使用 MatchAtRoot() 或 EffectAtRoot()")]
         public CardRuleBuilder AtRoot() => OwnerHops(-1);
 
         #endregion
@@ -505,7 +505,7 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>给匹配结果添加标签</summary>
         public CardRuleBuilder DoAddTagToMatched(string tag) =>
-            DoAddTag(tag, SelectionRoot.Container, TargetScope.Matched);
+            DoAddTag(tag);
 
         /// <summary>给源卡牌自身添加标签</summary>
         public CardRuleBuilder DoAddTagToSource(string tag)
@@ -555,7 +555,7 @@ namespace EasyPack.EmeCardSystem
             string propertyName,
             float value,
             ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase) =>
-            DoModify(propertyName, value, mode, SelectionRoot.Container, TargetScope.Matched);
+            DoModify(propertyName, value, mode);
 
         /// <summary>批量触发匹配卡牌的自定义事件</summary>
         public CardRuleBuilder DoBatchCustom(string eventId, Func<CardRuleContext, object> data = null,
@@ -584,7 +584,7 @@ namespace EasyPack.EmeCardSystem
             return DoInvoke((context, list) =>
             {
                 Debug.Log(
-                    $"[Rule Debug] 规则触发上下文：\n" +
+                    "[Rule Debug] 规则触发上下文：\n" +
                     $"- 规则名称：{context.EventId}\n" +
                     $"- 事件类型：{context.Event.EventType})\n" +
                     $"- 事件数据：{context.Event.DataObject}\n" +

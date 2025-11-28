@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -45,7 +46,7 @@ namespace EasyPack.Tools.PathFinding
     /// <summary>
     ///     瓦片信息
     /// </summary>
-    [System.Serializable]
+    [Serializable]
     public class TileInfo
     {
         public Tilemap tilemap;

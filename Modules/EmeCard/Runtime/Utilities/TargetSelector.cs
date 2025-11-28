@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using EasyPack.Category;
 
@@ -19,7 +18,7 @@ namespace EasyPack.EmeCardSystem
         private static readonly ReaderWriterLockSlim _cacheLock = new(LockRecursionPolicy.SupportsRecursion);
 
         // 标记缓存是否已初始化
-        private static volatile bool _isCacheInitialized = false;
+        private static volatile bool _isCacheInitialized;
 
         // CategoryManager 引用
         private static ICategoryManager<Card, int> _categoryManager;

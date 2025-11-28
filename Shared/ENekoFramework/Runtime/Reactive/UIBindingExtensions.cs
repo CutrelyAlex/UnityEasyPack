@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace EasyPack.ENekoFramework
@@ -139,7 +140,7 @@ namespace EasyPack.ENekoFramework
             property.OnValueChanged += propertyHandler;
 
             // UI -> 属性
-            UnityEngine.Events.UnityAction<float> sliderHandler = value => property.Value = (int)value;
+            UnityAction<float> sliderHandler = value => property.Value = (int)value;
             slider.onValueChanged.AddListener(sliderHandler);
 
             DataBindingEngine.Instance.RegisterBinding(slider.gameObject, () =>
@@ -232,7 +233,7 @@ namespace EasyPack.ENekoFramework
             property.OnValueChanged += propertyHandler;
 
             // UI -> 属性
-            UnityEngine.Events.UnityAction<bool> toggleHandler = value => property.Value = value;
+            UnityAction<bool> toggleHandler = value => property.Value = value;
             toggle.onValueChanged.AddListener(toggleHandler);
 
             DataBindingEngine.Instance.RegisterBinding(toggle.gameObject, () =>
@@ -263,7 +264,7 @@ namespace EasyPack.ENekoFramework
             property.OnValueChanged += propertyHandler;
 
             // UI -> 属性
-            UnityEngine.Events.UnityAction<string> inputHandler = value => property.Value = value;
+            UnityAction<string> inputHandler = value => property.Value = value;
             inputField.onValueChanged.AddListener(inputHandler);
 
             DataBindingEngine.Instance.RegisterBinding(inputField.gameObject, () =>

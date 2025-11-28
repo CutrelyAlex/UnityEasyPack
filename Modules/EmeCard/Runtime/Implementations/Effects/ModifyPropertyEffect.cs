@@ -41,12 +41,12 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     仅作用前 N 个目标（null 表示不限制）。
         /// </summary>
-        public int? Take { get; set; } = null;
+        public int? Take { get; set; }
 
         /// <summary>
         ///     递归深度限制（仅对 Scope=Descendants 生效，null 表示不限制）。
         /// </summary>
-        public int? MaxDepth { get; set; } = null;
+        public int? MaxDepth { get; set; }
 
         /// <summary>
         ///     要修改的属性名（留空代表全部属性）。

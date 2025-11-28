@@ -46,7 +46,7 @@ namespace EasyPack.Category
 
         // 标签系统
         private readonly Dictionary<int, HashSet<TKey>> _tagToEntityKeys; // tagId → entityKeys
-        private readonly Dictionary<TKey, HashSet<int>> _entityToTagIds;  // entityKey → tagIds
+        private readonly Dictionary<TKey, HashSet<int>> _entityToTagIds; // entityKey → tagIds
         private readonly Dictionary<int, ReaderWriterLockSlim> _tagLocks;
         private readonly Dictionary<int, List<T>> _tagCache;
 
@@ -65,7 +65,7 @@ namespace EasyPack.Category
         private readonly ReaderWriterLockSlim _treeLock;
         private readonly ReaderWriterLockSlim _entitiesLock;
         private readonly ReaderWriterLockSlim _metadataLock;
-        private readonly ReaderWriterLockSlim _tagSystemLock; 
+        private readonly ReaderWriterLockSlim _tagSystemLock;
 
         // 键比较器
         private readonly IEqualityComparer<TKey> _keyComparer;
@@ -85,27 +85,27 @@ namespace EasyPack.Category
             _keyComparer = keyComparer ?? EqualityComparer<TKey>.Default;
 
             // 使用比较器初始化字典
-            _entities = new Dictionary<TKey, T>(_keyComparer);
-            _entityKeyToNode = new Dictionary<TKey, CategoryNode>(_keyComparer);
-            _nodeToEntityKeys = new Dictionary<int, HashSet<TKey>>();
-            _tagToEntityKeys = new Dictionary<int, HashSet<TKey>>();
-            _entityToTagIds = new Dictionary<TKey, HashSet<int>>(_keyComparer);
-            _metadataStore = new Dictionary<TKey, CustomDataCollection>(_keyComparer);
+            _entities = new(_keyComparer);
+            _entityKeyToNode = new(_keyComparer);
+            _nodeToEntityKeys = new();
+            _tagToEntityKeys = new();
+            _entityToTagIds = new(_keyComparer);
+            _metadataStore = new(_keyComparer);
 
-            _categoryNodes = new Dictionary<int, CategoryNode>();
-            _categoryNameToId = new Dictionary<string, int>(StringComparer.Ordinal);
-            _categoryIdToName = new Dictionary<int, string>();
+            _categoryNodes = new();
+            _categoryNameToId = new(StringComparer.Ordinal);
+            _categoryIdToName = new();
 
-            _tagLocks = new Dictionary<int, ReaderWriterLockSlim>();
-            _tagCache = new Dictionary<int, List<T>>();
+            _tagLocks = new();
+            _tagCache = new();
 
-            _tagMapper = new IntegerMapper();
-            _categoryTermMapper = new IntegerMapper();
+            _tagMapper = new();
+            _categoryTermMapper = new();
 
-            _treeLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-            _entitiesLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-            _metadataLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-            _tagSystemLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+            _treeLock = new(LockRecursionPolicy.NoRecursion);
+            _entitiesLock = new(LockRecursionPolicy.NoRecursion);
+            _metadataLock = new(LockRecursionPolicy.NoRecursion);
+            _tagSystemLock = new(LockRecursionPolicy.NoRecursion);
         }
 
         #endregion
@@ -134,10 +134,12 @@ namespace EasyPack.Category
         {
             TKey key = _keyExtractor(entity);
             category = CategoryNameNormalizer.Normalize(category);
-            
+
             if (!CategoryNameNormalizer.IsValid(category, out string errorMessage))
+            {
                 return new EntityRegistrationGeneric(this, key, entity, category,
                     OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage));
+            }
 
             return new EntityRegistrationGeneric(this, key, entity, category, OperationResult.Success());
         }
@@ -178,13 +180,14 @@ namespace EasyPack.Category
                 }
 
                 _entityKeyToNode[key] = node;
-                
+
                 // 维护反向索引
                 if (!_nodeToEntityKeys.TryGetValue(node.TermId, out var nodeEntityKeys))
                 {
-                    nodeEntityKeys = new HashSet<TKey>(_keyComparer);
+                    nodeEntityKeys = new(_keyComparer);
                     _nodeToEntityKeys[node.TermId] = nodeEntityKeys;
                 }
+
                 nodeEntityKeys.Add(key);
 
 #if UNITY_EDITOR
@@ -211,10 +214,7 @@ namespace EasyPack.Category
             {
                 foreach (string tag in tags)
                 {
-                    if (!string.IsNullOrWhiteSpace(tag))
-                    {
-                        AddTagInternal(key, tag);
-                    }
+                    if (!string.IsNullOrWhiteSpace(tag)) AddTagInternal(key, tag);
                 }
             }
 
@@ -224,7 +224,8 @@ namespace EasyPack.Category
         /// <summary>
         ///     使用显式键注册实体并添加元数据。
         /// </summary>
-        public OperationResult RegisterEntityWithMetadata(TKey key, T entity, string category, CustomDataCollection metadata)
+        public OperationResult RegisterEntityWithMetadata(TKey key, T entity, string category,
+                                                          CustomDataCollection metadata)
         {
             OperationResult result = RegisterEntity(key, entity, category);
             if (!result.IsSuccess) return result;
@@ -261,7 +262,7 @@ namespace EasyPack.Category
                 if (result.IsSuccess) successCount++;
             }
 
-            return new BatchOperationResult
+            return new()
             {
                 TotalCount = entities.Count,
                 SuccessCount = successCount,
@@ -292,21 +293,15 @@ namespace EasyPack.Category
                     foreach (var kvp in _categoryNameToId)
                     {
                         if (regex.IsMatch(kvp.Key))
-                        {
                             if (_categoryNodes.TryGetValue(kvp.Value, out CategoryNode node))
-                            {
                                 CollectEntityKeysFromNode(node, entityKeys, includeChildren);
-                            }
-                        }
                     }
                 }
                 else
                 {
                     if (_categoryTermMapper.TryGetId(pattern, out int nodeId) &&
                         _categoryNodes.TryGetValue(nodeId, out CategoryNode node))
-                    {
                         CollectEntityKeysFromNode(node, entityKeys, includeChildren);
-                    }
                 }
             }
             finally
@@ -318,8 +313,8 @@ namespace EasyPack.Category
             try
             {
                 return entityKeys.Select(k => _entities.TryGetValue(k, out T e) ? e : default)
-                                 .Where(e => e != null)
-                                 .ToList();
+                    .Where(e => e != null)
+                    .ToList();
             }
             finally
             {
@@ -333,7 +328,7 @@ namespace EasyPack.Category
 
             if (_nodeToEntityKeys.TryGetValue(targetNodeId, out var nodeEntityKeys))
             {
-                foreach (var key in nodeEntityKeys)
+                foreach (TKey key in nodeEntityKeys)
                 {
                     keys.Add(key);
                 }
@@ -382,12 +377,8 @@ namespace EasyPack.Category
                 foreach (var kvp in _categoryNameToId)
                 {
                     if (regex.IsMatch(kvp.Key))
-                    {
                         if (_categoryNodes.TryGetValue(kvp.Value, out CategoryNode node))
-                        {
                             CollectEntityKeysFromNode(node, entityKeys, includeChildren);
-                        }
-                    }
                 }
             }
             finally
@@ -399,8 +390,8 @@ namespace EasyPack.Category
             try
             {
                 return entityKeys.Select(k => _entities.TryGetValue(k, out T e) ? e : default)
-                                 .Where(e => e != null)
-                                 .ToList();
+                    .Where(e => e != null)
+                    .ToList();
             }
             finally
             {
@@ -473,13 +464,11 @@ namespace EasyPack.Category
             _treeLock.EnterReadLock();
             try
             {
-                if (!_entityKeyToNode.TryGetValue(key, out var entityNode))
+                if (!_entityKeyToNode.TryGetValue(key, out CategoryNode entityNode))
                     return false;
 
                 if (!includeChildren)
-                {
                     return entityNode.TermId == targetCategoryId;
-                }
                 else
                 {
                     CategoryNode current = entityNode;
@@ -489,6 +478,7 @@ namespace EasyPack.Category
                             return true;
                         current = current.ParentNode;
                     }
+
                     return false;
                 }
             }
@@ -569,18 +559,15 @@ namespace EasyPack.Category
             try
             {
                 // 从反向索引移除
-                if (_entityKeyToNode.TryGetValue(key, out var node))
+                if (_entityKeyToNode.TryGetValue(key, out CategoryNode node))
                 {
                     if (_nodeToEntityKeys.TryGetValue(node.TermId, out var nodeEntityKeys))
                     {
                         nodeEntityKeys.Remove(key);
-                        if (nodeEntityKeys.Count == 0)
-                        {
-                            _nodeToEntityKeys.Remove(node.TermId);
-                        }
+                        if (nodeEntityKeys.Count == 0) _nodeToEntityKeys.Remove(node.TermId);
                     }
                 }
-                
+
                 // 从分类节点移除
                 _entityKeyToNode.Remove(key);
 
@@ -595,15 +582,13 @@ namespace EasyPack.Category
                             if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
                             {
                                 entityKeys.Remove(key);
-                                if (entityKeys.Count == 0)
-                                {
-                                    _tagToEntityKeys.Remove(tagId);
-                                }
+                                if (entityKeys.Count == 0) _tagToEntityKeys.Remove(tagId);
                             }
 
                             // 清除标签缓存
                             _tagCache.Remove(tagId);
                         }
+
                         _entityToTagIds.Remove(key);
                     }
                 }
@@ -654,7 +639,7 @@ namespace EasyPack.Category
         public OperationResult DeleteCategory(string category)
         {
             category = CategoryNameNormalizer.Normalize(category);
-            
+
             _treeLock.EnterWriteLock();
             try
             {
@@ -665,22 +650,18 @@ namespace EasyPack.Category
                 // 使用反向索引获取该分类下直接的实体键 (O(1))
                 var entityKeysToRemove = new List<TKey>();
                 if (_nodeToEntityKeys.TryGetValue(nodeId, out var nodeEntityKeys))
-                {
                     entityKeysToRemove.AddRange(nodeEntityKeys);
-                }
 
                 // 从分类节点和反向索引移除这些实体的关联
                 foreach (TKey key in entityKeysToRemove)
                 {
                     _entityKeyToNode.Remove(key);
                 }
+
                 _nodeToEntityKeys.Remove(nodeId);
 
                 // 从父节点移除该节点引用
-                if (node.ParentNode != null)
-                {
-                    node.ParentNode.RemoveChild(node.TermId);
-                }
+                if (node.ParentNode != null) node.ParentNode.RemoveChild(node.TermId);
 
                 // 清除分类映射
                 _categoryNodes.Remove(nodeId);
@@ -707,7 +688,7 @@ namespace EasyPack.Category
         public OperationResult DeleteCategoryRecursive(string category)
         {
             category = CategoryNameNormalizer.Normalize(category);
-            
+
             _treeLock.EnterWriteLock();
             try
             {
@@ -722,7 +703,7 @@ namespace EasyPack.Category
 
                 // 收集所有相关实体的键
                 var entityKeysToDelete = new List<TKey>();
-                foreach (var (id, n) in nodesToDelete)
+                foreach ((int id, CategoryNode _) in nodesToDelete)
                 {
                     if (_nodeToEntityKeys.TryGetValue(id, out var nodeEntityKeys))
                     {
@@ -730,9 +711,9 @@ namespace EasyPack.Category
                         _nodeToEntityKeys.Remove(id);
                     }
                 }
-                
+
                 // 从 _entityKeyToNode 移除
-                foreach (var key in entityKeysToDelete)
+                foreach (TKey key in entityKeysToDelete)
                 {
                     _entityKeyToNode.Remove(key);
                 }
@@ -751,14 +732,13 @@ namespace EasyPack.Category
                                 if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
                                 {
                                     entityKeys.Remove(key);
-                                    if (entityKeys.Count == 0)
-                                    {
-                                        _tagToEntityKeys.Remove(tagId);
-                                    }
+                                    if (entityKeys.Count == 0) _tagToEntityKeys.Remove(tagId);
                                 }
+
                                 // 清除标签缓存
                                 _tagCache.Remove(tagId);
                             }
+
                             _entityToTagIds.Remove(key);
                         }
                     }
@@ -791,7 +771,7 @@ namespace EasyPack.Category
                 }
 
                 // 删除所有收集的节点
-                foreach (var (id, n) in nodesToDelete)
+                foreach ((int id, CategoryNode _) in nodesToDelete)
                 {
                     _categoryNodes.Remove(id);
                     if (_categoryIdToName.TryGetValue(id, out string path))
@@ -802,10 +782,7 @@ namespace EasyPack.Category
                 }
 
                 // 从父节点移除
-                if (node.ParentNode != null)
-                {
-                    node.ParentNode.RemoveChild(node.TermId);
-                }
+                if (node.ParentNode != null) node.ParentNode.RemoveChild(node.TermId);
 
 #if UNITY_EDITOR
                 _cachedStatistics = null;
@@ -822,7 +799,8 @@ namespace EasyPack.Category
         /// <summary>
         ///     递归收集所有后代节点。
         /// </summary>
-        private void CollectDescendants(CategoryNode node, List<(int Id, CategoryNode Node)> result, HashSet<string> pathSet)
+        private void CollectDescendants(CategoryNode node, List<(int Id, CategoryNode Node)> result,
+                                        HashSet<string> pathSet)
         {
             foreach (CategoryNode child in node.Children)
             {
@@ -868,7 +846,7 @@ namespace EasyPack.Category
             else
             {
                 int newCategoryId = _categoryTermMapper.GetOrAssignId(fullPath);
-                node = new CategoryNode(newCategoryId);
+                node = new(newCategoryId);
                 _categoryNodes[newCategoryId] = node;
                 _categoryNameToId[fullPath] = newCategoryId;
                 _categoryIdToName[newCategoryId] = fullPath;
@@ -924,31 +902,29 @@ namespace EasyPack.Category
             try
             {
                 // 从旧分类的反向索引移除
-                if (_entityKeyToNode.TryGetValue(key, out var oldNode))
+                if (_entityKeyToNode.TryGetValue(key, out CategoryNode oldNode))
                 {
                     if (_nodeToEntityKeys.TryGetValue(oldNode.TermId, out var oldNodeEntityKeys))
                     {
                         oldNodeEntityKeys.Remove(key);
-                        if (oldNodeEntityKeys.Count == 0)
-                        {
-                            _nodeToEntityKeys.Remove(oldNode.TermId);
-                        }
+                        if (oldNodeEntityKeys.Count == 0) _nodeToEntityKeys.Remove(oldNode.TermId);
                     }
                 }
-                
+
                 // 从旧分类移除
                 _entityKeyToNode.Remove(key);
 
                 // 添加到新分类
                 CategoryNode node = GetOrCreateNode(newCategory);
                 _entityKeyToNode[key] = node;
-                
+
                 // 维护新分类的反向索引
                 if (!_nodeToEntityKeys.TryGetValue(node.TermId, out var nodeEntityKeys))
                 {
-                    nodeEntityKeys = new HashSet<TKey>(_keyComparer);
+                    nodeEntityKeys = new(_keyComparer);
                     _nodeToEntityKeys[node.TermId] = nodeEntityKeys;
                 }
+
                 nodeEntityKeys.Add(key);
 
 #if UNITY_EDITOR
@@ -1110,16 +1086,18 @@ namespace EasyPack.Category
 
             if (!_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
             {
-                entityKeys = new HashSet<TKey>(_keyComparer);
+                entityKeys = new(_keyComparer);
                 _tagToEntityKeys[tagId] = entityKeys;
             }
+
             entityKeys.Add(key);
 
             if (!_entityToTagIds.TryGetValue(key, out var tagIds))
             {
-                tagIds = new HashSet<int>();
+                tagIds = new();
                 _entityToTagIds[key] = tagIds;
             }
+
             tagIds.Add(tagId);
 
             // 清除标签缓存
@@ -1268,10 +1246,7 @@ namespace EasyPack.Category
                 var tags = new List<string>(tagIds.Count);
                 foreach (int tagId in tagIds)
                 {
-                    if (_tagMapper.TryGetString(tagId, out string tagName))
-                    {
-                        tags.Add(tagName);
-                    }
+                    if (_tagMapper.TryGetString(tagId, out string tagName)) tags.Add(tagName);
                 }
 
                 return tags;
@@ -1382,17 +1357,11 @@ namespace EasyPack.Category
                     if (!_tagToEntityKeys.TryGetValue(tagId, out var entityKeys)) continue;
 
                     if (resultKeys == null)
-                    {
-                        resultKeys = new HashSet<TKey>(entityKeys, _keyComparer);
-                    }
+                        resultKeys = new(entityKeys, _keyComparer);
                     else if (matchAll)
-                    {
                         resultKeys.IntersectWith(entityKeys);
-                    }
                     else
-                    {
                         resultKeys.UnionWith(entityKeys);
-                    }
                 }
             }
             finally
@@ -1431,7 +1400,7 @@ namespace EasyPack.Category
         #endregion
 
         #region 元数据
-        
+
         /// <summary>
         ///     获取实体的元数据。
         /// </summary>
@@ -1440,7 +1409,7 @@ namespace EasyPack.Category
             _entitiesLock.EnterReadLock();
             try
             {
-                if (!_entities.ContainsKey(key)) return new CustomDataCollection();
+                if (!_entities.ContainsKey(key)) return new();
             }
             finally
             {
@@ -1450,9 +1419,9 @@ namespace EasyPack.Category
             _metadataLock.EnterReadLock();
             try
             {
-                return _metadataStore.TryGetValue(key, out var metadata)
+                return _metadataStore.TryGetValue(key, out CustomDataCollection metadata)
                     ? metadata
-                    : new CustomDataCollection();
+                    : new();
             }
             finally
             {
@@ -1499,8 +1468,10 @@ namespace EasyPack.Category
             try
             {
                 if (!_entities.ContainsKey(key))
+                {
                     return OperationResult<CustomDataCollection>.Failure(
                         ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+                }
             }
             finally
             {
@@ -1513,7 +1484,7 @@ namespace EasyPack.Category
                 return OperationResult<CustomDataCollection>.Success(
                     _metadataStore.TryGetValue(key, out CustomDataCollection metadata)
                         ? metadata
-                        : new CustomDataCollection());
+                        : new());
             }
             finally
             {
@@ -1522,45 +1493,7 @@ namespace EasyPack.Category
         }
 
         #endregion
-
-        #region 锁
-
-        private void AcquireTagReadLock(int tagId)
-        {
-            if (!_tagLocks.TryGetValue(tagId, out ReaderWriterLockSlim lockObj))
-            {
-                lockObj = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-                _tagLocks[tagId] = lockObj;
-            }
-
-            lockObj.EnterReadLock();
-        }
-
-        private void ReleaseTagReadLock(int tagId)
-        {
-            if (_tagLocks.TryGetValue(tagId, out ReaderWriterLockSlim lockObj) && lockObj.IsReadLockHeld)
-                lockObj.ExitReadLock();
-        }
-
-        private void AcquireTagWriteLock(int tagId)
-        {
-            if (!_tagLocks.TryGetValue(tagId, out ReaderWriterLockSlim lockObj))
-            {
-                lockObj = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-                _tagLocks[tagId] = lockObj;
-            }
-
-            lockObj.EnterWriteLock();
-        }
-
-        private void ReleaseTagWriteLock(int tagId)
-        {
-            if (_tagLocks.TryGetValue(tagId, out ReaderWriterLockSlim lockObj) && lockObj.IsWriteLockHeld)
-                lockObj.ExitWriteLock();
-        }
-
-        #endregion
-
+        
         #region 序列化
 
         /// <summary>
@@ -1616,19 +1549,17 @@ namespace EasyPack.Category
                         // 获取节点的 TermId，从当前管理器中获取对应的节点
                         int nodeTermId = kvp.Value.TermId;
                         if (_categoryNodes.TryGetValue(nodeTermId, out CategoryNode localNode))
-                        {
                             _entityKeyToNode[kvp.Key] = localNode;
-                        }
                     }
 
                     foreach (var kvp in newManager._tagToEntityKeys)
                     {
-                        _tagToEntityKeys[kvp.Key] = new HashSet<TKey>(kvp.Value, _keyComparer);
+                        _tagToEntityKeys[kvp.Key] = new(kvp.Value, _keyComparer);
                     }
 
                     foreach (var kvp in newManager._entityToTagIds)
                     {
-                        _entityToTagIds[kvp.Key] = new HashSet<int>(kvp.Value);
+                        _entityToTagIds[kvp.Key] = new(kvp.Value);
                     }
 
                     foreach (var kvp in newManager._metadataStore)
@@ -1685,16 +1616,14 @@ namespace EasyPack.Category
             {
                 foreach (var kvp in _tagToEntityKeys)
                 {
-                    if (_tagMapper.TryGetString(kvp.Key, out string tagName))
-                    {
-                        result[tagName] = kvp.Value.ToList();
-                    }
+                    if (_tagMapper.TryGetString(kvp.Key, out string tagName)) result[tagName] = kvp.Value.ToList();
                 }
             }
             finally
             {
                 _treeLock.ExitReadLock();
             }
+
             return result;
         }
 
@@ -1721,8 +1650,8 @@ namespace EasyPack.Category
             out Dictionary<TKey, List<string>> entityTagIndex,
             out Dictionary<TKey, CustomDataCollection> entityMetadataIndex)
         {
-            entityTagIndex = new Dictionary<TKey, List<string>>(_keyComparer);
-            entityMetadataIndex = new Dictionary<TKey, CustomDataCollection>(_keyComparer);
+            entityTagIndex = new(_keyComparer);
+            entityMetadataIndex = new(_keyComparer);
 
             _treeLock.EnterReadLock();
             try
@@ -1733,15 +1662,10 @@ namespace EasyPack.Category
                     var tags = new List<string>();
                     foreach (int tagId in kvp.Value)
                     {
-                        if (_tagMapper.TryGetString(tagId, out string tagName))
-                        {
-                            tags.Add(tagName);
-                        }
+                        if (_tagMapper.TryGetString(tagId, out string tagName)) tags.Add(tagName);
                     }
-                    if (tags.Count > 0)
-                    {
-                        entityTagIndex[kvp.Key] = tags;
-                    }
+
+                    if (tags.Count > 0) entityTagIndex[kvp.Key] = tags;
                 }
             }
             finally
@@ -1777,11 +1701,9 @@ namespace EasyPack.Category
 
                 // 获取或创建分类节点
                 if (!_categoryNameToId.TryGetValue(category, out int categoryId))
-                {
                     return OperationResult.Failure(ErrorCode.InvalidCategory, $"分类 '{category}' 不存在");
-                }
 
-                var node = _categoryNodes[categoryId];
+                CategoryNode node = _categoryNodes[categoryId];
                 // TODO: node.EntityKeys需要更新
                 _entityKeyToNode[key] = node;
 
@@ -1794,25 +1716,24 @@ namespace EasyPack.Category
 
                         if (!_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
                         {
-                            entityKeys = new HashSet<TKey>(_keyComparer);
+                            entityKeys = new(_keyComparer);
                             _tagToEntityKeys[tagId] = entityKeys;
                         }
+
                         entityKeys.Add(key);
 
                         if (!_entityToTagIds.TryGetValue(key, out var tagIds))
                         {
-                            tagIds = new HashSet<int>();
+                            tagIds = new();
                             _entityToTagIds[key] = tagIds;
                         }
+
                         tagIds.Add(tagId);
                     }
                 }
 
                 // 添加元数据
-                if (metadata != null)
-                {
-                    _metadataStore[key] = metadata;
-                }
+                if (metadata != null) _metadataStore[key] = metadata;
 
                 return OperationResult.Success();
             }
@@ -1825,10 +1746,8 @@ namespace EasyPack.Category
         /// <summary>
         ///     使用指定键注册实体（安全模式）。
         /// </summary>
-        public IEntityRegistration<T, TKey> RegisterEntitySafeWithKey(T entity, TKey key, string category)
-        {
-            return new EntityRegistration(this, entity, key, category);
-        }
+        public IEntityRegistration<T, TKey> RegisterEntitySafeWithKey(T entity, TKey key, string category) =>
+            new EntityRegistration(this, entity, key, category);
 
         #endregion
 
@@ -1921,9 +1840,7 @@ namespace EasyPack.Category
 
                 if (!_categoryNameToId.TryGetValue(parentPath, out int parentId) ||
                     !_categoryNodes.TryGetValue(parentId, out CategoryNode parent))
-                {
                     return; // 父节点创建失败
-                }
 
                 int newCategoryId = _categoryTermMapper.GetOrAssignId(fullPath);
                 node = parent.GetOrCreateChild(newCategoryId);
@@ -1934,7 +1851,7 @@ namespace EasyPack.Category
             else
             {
                 int newCategoryId = _categoryTermMapper.GetOrAssignId(fullPath);
-                node = new CategoryNode(newCategoryId);
+                node = new(newCategoryId);
                 _categoryNodes[newCategoryId] = node;
                 _categoryNameToId[fullPath] = newCategoryId;
                 _categoryIdToName[newCategoryId] = fullPath;
@@ -2009,7 +1926,7 @@ namespace EasyPack.Category
         {
 #if UNITY_EDITOR
             long now = DateTime.UtcNow.Ticks;
-            if (_cachedStatistics != null && (now - _lastStatisticsUpdate) < StatisticsCacheTimeout)
+            if (_cachedStatistics != null && now - _lastStatisticsUpdate < StatisticsCacheTimeout)
                 return _cachedStatistics;
 
             // 计算最大分类深度
@@ -2026,9 +1943,10 @@ namespace EasyPack.Category
             {
                 memoryUsage += kvp.Value.Count * 16;
             }
+
             memoryUsage += _metadataStore.Count * 64;
 
-            _cachedStatistics = new Statistics
+            _cachedStatistics = new()
             {
                 TotalEntities = _entities.Count,
                 TotalCategories = _categoryNodes.Count,
@@ -2106,7 +2024,7 @@ namespace EasyPack.Category
                 _entityKey = entityKey;
                 _entity = entity;
                 _category = category;
-                _tags = new List<string>();
+                _tags = new();
                 _validationResult = validationResult;
             }
 
@@ -2161,13 +2079,14 @@ namespace EasyPack.Category
                     {
                         CategoryNode node = _manager.GetOrCreateNode(normalizedCategory);
                         _manager._entityKeyToNode[_entityKey] = node;
-                        
+
                         // 维护反向索引
                         if (!_manager._nodeToEntityKeys.TryGetValue(node.TermId, out var nodeEntityKeys))
                         {
-                            nodeEntityKeys = new HashSet<TKey>(_manager._keyComparer);
+                            nodeEntityKeys = new(_manager._keyComparer);
                             _manager._nodeToEntityKeys[node.TermId] = nodeEntityKeys;
                         }
+
                         nodeEntityKeys.Add(_entityKey);
                     }
                     finally
@@ -2238,7 +2157,7 @@ namespace EasyPack.Category
                 _entity = entity;
                 _entityKey = key;
                 _category = category;
-                _tags = new List<string>();
+                _tags = new();
             }
 
             public IEntityRegistration<T, TKey> WithTags(params string[] tags)
@@ -2266,8 +2185,10 @@ namespace EasyPack.Category
                 try
                 {
                     if (_manager._entities.ContainsKey(_entityKey))
+                    {
                         return OperationResult.Failure(ErrorCode.DuplicateId,
                             $"键为 '{_entityKey}' 的实体已存在");
+                    }
                 }
                 finally
                 {
@@ -2303,10 +2224,7 @@ namespace EasyPack.Category
                     // 添加标签
                     foreach (string tag in _tags)
                     {
-                        if (!string.IsNullOrWhiteSpace(tag))
-                        {
-                            _manager.AddTagInternal(_entityKey, tag);
-                        }
+                        if (!string.IsNullOrWhiteSpace(tag)) _manager.AddTagInternal(_entityKey, tag);
                     }
 
                     // 存储元数据

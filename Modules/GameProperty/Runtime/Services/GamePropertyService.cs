@@ -1,13 +1,13 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using UnityEngine;
-using EasyPack.ENekoFramework;
 using EasyPack.Architecture;
+using EasyPack.ENekoFramework;
 using EasyPack.Modifiers;
 using EasyPack.Serialization;
+using UnityEngine;
 
 namespace EasyPack.GamePropertySystem
 {
@@ -186,7 +186,7 @@ namespace EasyPack.GamePropertySystem
 
             foreach (GameProperty property in properties)
             {
-                Register(property, category, null);
+                Register(property, category);
             }
         }
 
@@ -225,25 +225,23 @@ namespace EasyPack.GamePropertySystem
 
                 return Enumerable.Empty<GameProperty>();
             }
-            else
+
+            // 支持通配符："Category.*" 匹配所有子分类（线程安全）
+            var results = new List<GameProperty>();
+            string prefix = category.EndsWith(".*")
+                ? category.Substring(0, category.Length - 2) + "."
+                : category + ".";
+
+            lock (_categoryLock)
             {
-                // 支持通配符："Category.*" 匹配所有子分类（线程安全）
-                var results = new List<GameProperty>();
-                string prefix = category.EndsWith(".*")
-                    ? category.Substring(0, category.Length - 2) + "."
-                    : category + ".";
-
-                lock (_categoryLock)
+                foreach (var kvp in _categories)
                 {
-                    foreach (var kvp in _categories)
-                    {
-                        if (kvp.Key == category || kvp.Key.StartsWith(prefix))
-                            results.AddRange(kvp.Value.ToList().Select(id => _properties[id]).Where(p => p != null));
-                    }
+                    if (kvp.Key == category || kvp.Key.StartsWith(prefix))
+                        results.AddRange(kvp.Value.ToList().Select(id => _properties[id]).Where(p => p != null));
                 }
-
-                return results;
             }
+
+            return results;
         }
 
         /// <summary>

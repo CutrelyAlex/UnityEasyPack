@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using UnityEngine;
-using EasyPack.ENekoFramework;
 using EasyPack.Architecture;
+using EasyPack.ENekoFramework;
 using EasyPack.Serialization;
+using UnityEngine;
 
 namespace EasyPack.InventorySystem
 {
@@ -65,7 +66,7 @@ namespace EasyPack.InventorySystem
 
                 Debug.Log("[InventoryService] 序列化器注册成功");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogWarning($"[InventoryService] 序列化器注册失败: {ex.Message}");
             }
@@ -192,7 +193,7 @@ namespace EasyPack.InventorySystem
         /// <summary>
         ///     是否启用全局物品条件检查
         /// </summary>
-        private bool _enableGlobalConditions = false;
+        private bool _enableGlobalConditions;
 
         #endregion
 
@@ -290,7 +291,7 @@ namespace EasyPack.InventorySystem
                 OnContainerUnregistered?.Invoke(container);
                 return true;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"[InventoryService] 注销容器失败：{ex.Message}\n{ex.StackTrace}");
                 return false;
@@ -541,7 +542,7 @@ namespace EasyPack.InventorySystem
 
                     return true;
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Debug.LogError($"[InventoryService] 全局条件检查失败：{ex.Message}");
                     return false;
@@ -579,7 +580,7 @@ namespace EasyPack.InventorySystem
 
                 OnGlobalConditionAdded?.Invoke(condition);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"[InventoryService] 操作失败：{ex.Message}"); // 静默处理异常
             }
@@ -686,42 +687,42 @@ namespace EasyPack.InventorySystem
         /// <summary>
         ///     容器注册事件
         /// </summary>
-        public event System.Action<Container> OnContainerRegistered;
+        public event Action<Container> OnContainerRegistered;
 
         /// <summary>
         ///     容器注销事件
         /// </summary>
-        public event System.Action<Container> OnContainerUnregistered;
+        public event Action<Container> OnContainerUnregistered;
 
         /// <summary>
         ///     容器优先级变更事件
         /// </summary>
-        public event System.Action<string, int> OnContainerPriorityChanged;
+        public event Action<string, int> OnContainerPriorityChanged;
 
         /// <summary>
         ///     容器分类变更事件
         /// </summary>
-        public event System.Action<string, string, string> OnContainerCategoryChanged;
+        public event Action<string, string, string> OnContainerCategoryChanged;
 
         /// <summary>
         ///     全局条件添加事件
         /// </summary>
-        public event System.Action<IItemCondition> OnGlobalConditionAdded;
+        public event Action<IItemCondition> OnGlobalConditionAdded;
 
         /// <summary>
         ///     全局条件移除事件
         /// </summary>
-        public event System.Action<IItemCondition> OnGlobalConditionRemoved;
+        public event Action<IItemCondition> OnGlobalConditionRemoved;
 
         /// <summary>
         ///     全局缓存刷新事件
         /// </summary>
-        public event System.Action OnGlobalCacheRefreshed;
+        public event Action OnGlobalCacheRefreshed;
 
         /// <summary>
         ///     全局缓存验证事件
         /// </summary>
-        public event System.Action OnGlobalCacheValidated;
+        public event Action OnGlobalCacheValidated;
 
         #endregion
 

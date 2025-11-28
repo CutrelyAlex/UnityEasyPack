@@ -1,5 +1,5 @@
-using EasyPack.Serialization;
 using System;
+using EasyPack.Serialization;
 
 namespace EasyPack.InventorySystem
 {

@@ -1,5 +1,5 @@
-using EasyPack.CustomData;
 using System.Collections.Generic;
+using EasyPack.CustomData;
 using UnityEngine;
 
 namespace EasyPack.BuffSystem

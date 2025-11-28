@@ -1,9 +1,10 @@
 #if UNITY_EDITOR
-using UnityEditor;
-using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using UnityEditor;
+using UnityEngine;
 
 namespace EasyPack.ENekoFramework.Editor
 {
@@ -18,7 +19,7 @@ namespace EasyPack.ENekoFramework.Editor
         private ServiceDescriptor _selectedService;
         private bool _autoRefresh = true;
         private double _lastRefreshTime;
-        private bool _isRefreshing = false;
+        private bool _isRefreshing;
         private double _refreshStartTime;
         private const double RefreshInterval = 1.0;
 
@@ -26,18 +27,18 @@ namespace EasyPack.ENekoFramework.Editor
         private List<ServiceDescriptor> _cachedFilteredServices;
         private List<string> _lastSelectedArchitectures = new();
         private ServiceLifecycleState _lastSelectedStateFilter = ServiceLifecycleState.Ready;
-        private bool _lastUseStateFilter = false;
-        private bool _filterCacheValid = false;
+        private bool _lastUseStateFilter;
+        private bool _filterCacheValid;
 
         // 架构缓存
         private Dictionary<string, string> _cachedArchToNamespace;
-        private bool _archCacheValid = false;
+        private bool _archCacheValid;
 
         // 筛选器
         private List<string> _architectureNames = new();
         private List<bool> _architectureFilters = new();
         private ServiceLifecycleState _selectedStateFilter = ServiceLifecycleState.Ready;
-        private bool _useStateFilter = false;
+        private bool _useStateFilter;
         private Vector2 _filterScrollPosition;
 
         // 状态颜色
@@ -386,7 +387,7 @@ namespace EasyPack.ENekoFramework.Editor
             _refreshStartTime = EditorApplication.timeSinceStartup;
             _lastRefreshTime = EditorApplication.timeSinceStartup;
 
-            System.Threading.Tasks.Task.Run(() =>
+            Task.Run(() =>
             {
                 try
                 {

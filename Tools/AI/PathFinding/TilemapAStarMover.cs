@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -47,7 +48,7 @@ namespace EasyPack.Tools.PathFinding
 
         [Tooltip("移动速度曲线，可以控制移动过程中的加速度变化")] public AnimationCurve moveSpeedCurve = AnimationCurve.Linear(0, 1, 1, 1);
 
-        [Tooltip("是否自动转向移动方向，启用后角色会朝向移动方向旋转")] public bool autoRotateToDirection = false;
+        [Tooltip("是否自动转向移动方向，启用后角色会朝向移动方向旋转")] public bool autoRotateToDirection;
 
         [Tooltip("转向速度，值越大转向越快")] public float rotationSpeed = 5f;
 
@@ -58,7 +59,7 @@ namespace EasyPack.Tools.PathFinding
 
         [Tooltip("寻路算法的最大迭代次数，防止无限循环")] public int maxIterations = 10000;
 
-        [Tooltip("是否使用跳点搜索优化算法，可以提高大地图的寻路性能")] public bool useJumpPointSearch = false;
+        [Tooltip("是否使用跳点搜索优化算法，可以提高大地图的寻路性能")] public bool useJumpPointSearch;
 
         [Tooltip("路径平滑算法类型，可以让路径更自然")] public PathSmoothingType pathSmoothing = PathSmoothingType.None;
 
@@ -80,10 +81,10 @@ namespace EasyPack.Tools.PathFinding
         [Tooltip("瓦片类型与移动代价的映射表，不同瓦片可以有不同的通过代价")]
         public Dictionary<TileBase, float> TileCostMap = new();
 
-        [Tooltip("是否启用地形代价系统，考虑不同瓦片的移动成本")] public bool useTerrainCosts = false;
+        [Tooltip("是否启用地形代价系统，考虑不同瓦片的移动成本")] public bool useTerrainCosts;
 
         [Header("动态障碍物")] [Tooltip("是否考虑动态障碍物，如移动的敌人或物体")]
-        public bool considerDynamicObstacles = false;
+        public bool considerDynamicObstacles;
 
         [Tooltip("动态障碍物的检测半径，在此范围内的位置将被视为不可通行")]
         public float obstacleCheckRadius = 0.3f;
@@ -92,7 +93,7 @@ namespace EasyPack.Tools.PathFinding
         public List<Transform> dynamicObstacles = new();
 
         [Header("抖动设置")] [Tooltip("是否启用移动抖动效果，让移动看起来更自然(或许)")]
-        public bool enableMovementJitter = false;
+        public bool enableMovementJitter;
 
         [Tooltip("抖动强度，范围0-1，值越大抖动越明显")] public float jitterStrength = 0.1f;
 
@@ -102,7 +103,7 @@ namespace EasyPack.Tools.PathFinding
         public bool preventJitterIntoNull = true;
 
         [Header("自动刷新设置")] [Tooltip("是否启用自动刷新功能，在Update中定期重新计算寻路")]
-        public bool enableAutoRefresh = false;
+        public bool enableAutoRefresh;
 
         [Tooltip("自动刷新的频率，每秒刷新的次数")] [Range(0.1f, 10f)]
         public float refreshFrequency = 1f;
@@ -138,13 +139,13 @@ namespace EasyPack.Tools.PathFinding
         [Header("调试设置")] [Tooltip("是否在Scene视图中显示寻路路径")]
         public bool showDebugPath = true;
 
-        [Tooltip("是否显示所有可行走区域的轮廓")] public bool showWalkableArea = false;
+        [Tooltip("是否显示所有可行走区域的轮廓")] public bool showWalkableArea;
 
-        [Tooltip("是否显示抖动调试信息")] public bool showJitterDebug = false;
+        [Tooltip("是否显示抖动调试信息")] public bool showJitterDebug;
 
-        [Tooltip("是否显示搜索区域范围")] public bool showSearchArea = false;
+        [Tooltip("是否显示搜索区域范围")] public bool showSearchArea;
 
-        [Tooltip("是否显示各瓦片的代价值")] public bool showCostValues = false;
+        [Tooltip("是否显示各瓦片的代价值")] public bool showCostValues;
 
         [Tooltip("路径线条的颜色")] public Color pathColor = Color.red;
 
@@ -165,16 +166,15 @@ namespace EasyPack.Tools.PathFinding
         #region 私有字段
 
         private UnifiedMap _unifiedMap; // 可能来自共享服务
-        private bool _usingSharedMap = false; // 标记是否使用共享地图
-        public bool localBuilt = false; // 若未能获取服务则本地构建
+        private bool _usingSharedMap; // 标记是否使用共享地图
+        public bool localBuilt; // 若未能获取服务则本地构建
 
         private List<Vector3Int> _currentPath = new();
         private Coroutine _moveCoroutine;
-        private int _currentPathIndex = 0;
+        private int _currentPathIndex;
         private Vector3 _currentTarget = Vector3.zero;
-        public bool isMovingToTarget = false;
         private Vector3 _currentJitterOffset = Vector3.zero;
-        private float _jitterTimer = 0f;
+        private float _jitterTimer;
         private List<Vector3> _jitterHistory = new();
         private PathfindingStats _lastStats = new();
 
@@ -191,9 +191,9 @@ namespace EasyPack.Tools.PathFinding
 
         private Tilemap _conversionTilemap;
 
-        private float _refreshTimer = 0f;
+        private float _refreshTimer;
         private Vector3 _lastTargetPosition;
-        private bool _hasInitializedTargetPosition = false;
+        private bool _hasInitializedTargetPosition;
 
         #endregion
 
@@ -385,7 +385,6 @@ namespace EasyPack.Tools.PathFinding
             _currentJitterOffset = Vector3.zero;
             _jitterTimer = 0f;
             _jitterHistory.Clear();
-            isMovingToTarget = false;
             _moveCoroutine = StartCoroutine(MoveCoroutine());
             onMovementStart?.Invoke(pathfindingObject.transform.position);
         }
@@ -404,7 +403,6 @@ namespace EasyPack.Tools.PathFinding
             _currentPathIndex = 0;
             _currentJitterOffset = Vector3.zero;
             _jitterHistory.Clear();
-            isMovingToTarget = false;
         }
 
         public void AddDynamicObstacle(Transform obstacle)
@@ -646,11 +644,10 @@ namespace EasyPack.Tools.PathFinding
         private float GetMoveCost(Vector3Int direction, Vector3Int from, Vector3Int to)
         {
             float baseCost = direction.x != 0 && direction.y != 0 ? diagonalMoveCost : straightMoveCost;
-            if (useTerrainCosts)
-            {
-                TileInfo info = _unifiedMap.GetTileInfo(to);
-                if (info != null) baseCost *= info.cost;
-            }
+            if (!useTerrainCosts) return baseCost;
+            
+            TileInfo info = _unifiedMap.GetTileInfo(to);
+            if (info != null) baseCost *= info.cost;
 
             return baseCost;
         }
@@ -864,14 +861,13 @@ namespace EasyPack.Tools.PathFinding
 
         #region 移动相关
 
-        private System.Collections.IEnumerator MoveCoroutine()
+        private IEnumerator MoveCoroutine()
         {
             while (_currentPathIndex < _currentPath.Count)
             {
                 Vector3Int targetCell = _currentPath[_currentPathIndex];
                 Vector3 targetWorld = GetWorldPosition(targetCell);
                 _currentTarget = targetWorld;
-                isMovingToTarget = true;
 
                 while (Vector3.Distance(pathfindingObject.transform.position, targetWorld + _currentJitterOffset) >
                        0.05f)
@@ -928,7 +924,6 @@ namespace EasyPack.Tools.PathFinding
                     yield return null;
                 }
 
-                isMovingToTarget = false;
                 _currentPathIndex++;
                 if (_currentPathIndex < _currentPath.Count)
                     _currentJitterOffset = GenerateJitterOffset(pathfindingObject.transform.position);
@@ -945,7 +940,6 @@ namespace EasyPack.Tools.PathFinding
 
             pathfindingObject.transform.position = finalTarget;
             _currentJitterOffset = Vector3.zero;
-            isMovingToTarget = false;
             onMovementComplete?.Invoke(finalTarget);
             _moveCoroutine = null;
         }
@@ -1238,18 +1232,18 @@ namespace EasyPack.Tools.PathFinding
         public bool allowDiagonal = true;
         public float maxDistance = 100f;
         public int maxIterations = 10000;
-        [FormerlySerializedAs("useJPS")] public bool useJps = false;
-        public bool considerTerrain = false;
+        [FormerlySerializedAs("useJPS")] public bool useJps;
+        public bool considerTerrain;
     }
 
     [Serializable]
     public class PathfindingStats
     {
-        public bool success = false;
-        public float searchTime = 0f;
-        public int iterations = 0;
-        public int nodesExplored = 0;
-        public int pathLength = 0;
+        public bool success;
+        public float searchTime;
+        public int iterations;
+        public int nodesExplored;
+        public int pathLength;
 
         public void Reset()
         {

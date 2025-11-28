@@ -42,12 +42,12 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     数量限制：最多移除多少张卡牌。
         /// </summary>
-        public int? Take { get; set; } = null;
+        public int? Take { get; set; }
 
         /// <summary>
         ///     递归深度限制：仅对 <see cref="Scope" /> 为 <see cref="TargetScope.Descendants" /> 时生效。
         /// </summary>
-        public int? MaxDepth { get; set; } = null;
+        public int? MaxDepth { get; set; }
 
         /// <summary>
         ///     执行移除卡牌效果。
@@ -84,7 +84,7 @@ namespace EasyPack.EmeCardSystem
             foreach (Card t in targets.ToArray())
             {
                 if (t?.Owner != null)
-                    t.Owner.RemoveChild(t, false);
+                    t.Owner.RemoveChild(t);
                 engine?.RemoveCard(t);
             }
         }

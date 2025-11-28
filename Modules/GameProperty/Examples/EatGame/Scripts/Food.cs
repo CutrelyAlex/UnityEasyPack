@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using EasyPack.Modifiers;
 using UnityEngine;
@@ -7,7 +8,7 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
     /// <summary>
     ///     食物数据类
     /// </summary>
-    [System.Serializable]
+    [Serializable]
     public class Food
     {
         /// <summary>

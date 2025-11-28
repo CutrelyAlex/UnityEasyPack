@@ -1,8 +1,7 @@
-using EasyPack.Modifiers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using EasyPack.Modifiers;
 
 namespace EasyPack.GamePropertySystem
 {
@@ -184,7 +183,7 @@ namespace EasyPack.GamePropertySystem
 
         #region 脏标记系统
 
-        private bool _isDirty = false;
+        private bool _isDirty;
         private Action _onDirty;
         private readonly HashSet<Action> _onDirtyHandlers = new();
 
@@ -239,8 +238,8 @@ namespace EasyPack.GamePropertySystem
 
         private readonly Dictionary<ModifierType, List<IModifier>> _groupedModifiers = new();
         private readonly Dictionary<IModifier, int> _modifierIndexMap = new(); // 用于快速查找和删除
-        private bool _hasNonClampRangeModifier = false;
-        private int _nonClampRangeModifierCount = 0;
+        private bool _hasNonClampRangeModifier;
+        private int _nonClampRangeModifierCount;
 
         /// <summary>
         ///     向属性添加一个修饰符，修饰符会影响最终值

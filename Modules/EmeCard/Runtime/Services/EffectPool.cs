@@ -72,7 +72,7 @@ namespace EasyPack.EmeCardSystem
     public sealed class EffectPool
     {
         private readonly List<EffectPoolEntry> _entries = new();
-        private bool _isSorted = false;
+        private bool _isSorted;
 
         /// <summary>当前池中的效果数量</summary>
         public int Count => _entries.Count;

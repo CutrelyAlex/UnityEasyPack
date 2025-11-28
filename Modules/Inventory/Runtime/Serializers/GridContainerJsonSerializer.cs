@@ -1,5 +1,6 @@
-using EasyPack.Serialization;
 using System;
+using System.Collections.Generic;
+using EasyPack.Serialization;
 using UnityEngine;
 
 namespace EasyPack.InventorySystem
@@ -45,7 +46,7 @@ namespace EasyPack.InventorySystem
             };
 
             // 序列化槽位，跳过占位符
-            var slotsList = new System.Collections.Generic.List<SerializedSlot>();
+            var slotsList = new List<SerializedSlot>();
             for (int i = 0; i < container.Slots.Count; i++)
             {
                 ISlot slot = container.Slots[i];

@@ -156,15 +156,12 @@ namespace EasyPack.InventorySystem
             // 清空所有缓存
             ClearAllCaches();
 
-            var processedItems = new HashSet<string>();
             // 重建所有缓存
             for (int i = 0; i < slots.Count; i++)
             {
                 ISlot slot = slots[i];
                 if (slot.IsOccupied && slot.Item != null)
                 {
-                    string itemId = slot.Item.ID;
-
                     // 更新物品槽位索引缓存
                     UpdateItemSlotIndexCache(slot.Item.ID, i, true);
 

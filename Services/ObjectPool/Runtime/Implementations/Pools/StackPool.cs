@@ -1,5 +1,8 @@
-using EasyPack.Architecture;
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using EasyPack.Architecture;
+using UnityEngine;
 
 namespace EasyPack.ObjectPool
 {
@@ -10,7 +13,7 @@ namespace EasyPack.ObjectPool
     public static class StackPool<T>
     {
         private static ObjectPool<Stack<T>> _pool;
-        private static bool _isInitialized = false;
+        private static bool _isInitialized;
         private static readonly object _lockObj = new();
 
         /// <summary>
@@ -22,7 +25,7 @@ namespace EasyPack.ObjectPool
         {
             if (_isInitialized)
             {
-                UnityEngine.Debug.LogWarning("[StackPool] 已初始化，跳过重复初始化");
+                Debug.LogWarning("[StackPool] 已初始化，跳过重复初始化");
                 return;
             }
 
@@ -43,7 +46,7 @@ namespace EasyPack.ObjectPool
         ///     异步初始化栈池。在 EasyPackArchitecture 启动时集中调用。
         /// </summary>
         /// <param name="maxCapacity">池的最大容量，默认为32。</param>
-        public static async System.Threading.Tasks.Task InitializeAsync(int maxCapacity = 32)
+        public static async Task InitializeAsync(int maxCapacity = 32)
         {
             if (_isInitialized) return;
 
@@ -58,7 +61,7 @@ namespace EasyPack.ObjectPool
         {
             if (_isInitialized) return;
 
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 $"StackPool<{typeof(T).Name}> 尚未初始化。请在 EasyPackArchitecture.OnInit() 或启动阶段调用 StackPool<T>.InitializeAsync()");
         }
 

@@ -1,6 +1,6 @@
-using EasyPack.Serialization;
 using System;
 using System.Collections.Generic;
+using EasyPack.Serialization;
 using UnityEngine;
 
 namespace EasyPack.InventorySystem
@@ -87,7 +87,7 @@ namespace EasyPack.InventorySystem
                     return null;
                 }
 
-                return instance.FromDto(dto) as IItemCondition;
+                return instance.FromDto(dto);
             }
             catch (Exception ex)
             {

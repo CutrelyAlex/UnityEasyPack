@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 
 namespace EasyPack.ENekoFramework.Editor
 {
@@ -41,7 +42,7 @@ namespace EasyPack.ENekoFramework.Editor
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogWarning($"ServiceInspector: 无法获取架构实例 - {ex.Message}");
+                Debug.LogWarning($"ServiceInspector: 无法获取架构实例 - {ex.Message}");
             }
 
             return instances;
@@ -70,7 +71,7 @@ namespace EasyPack.ENekoFramework.Editor
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogWarning($"ServiceInspector: 无法获取EventBus - {ex.Message}");
+                Debug.LogWarning($"ServiceInspector: 无法获取EventBus - {ex.Message}");
             }
 
             return null;
@@ -90,7 +91,7 @@ namespace EasyPack.ENekoFramework.Editor
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogWarning($"ServiceInspector: 无法获取容器 - {ex.Message}");
+                Debug.LogWarning($"ServiceInspector: 无法获取容器 - {ex.Message}");
             }
 
             return null;
@@ -153,7 +154,7 @@ namespace EasyPack.ENekoFramework.Editor
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogWarning($"ServiceInspector: 无法分析依赖 - {ex.Message}");
+                Debug.LogWarning($"ServiceInspector: 无法分析依赖 - {ex.Message}");
             }
 
             return dependencies.Distinct().ToList();

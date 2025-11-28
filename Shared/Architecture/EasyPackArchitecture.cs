@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using EasyPack.BuffSystem;
 using EasyPack.Category;
 using EasyPack.ENekoFramework;
@@ -5,7 +6,6 @@ using EasyPack.GamePropertySystem;
 using EasyPack.InventorySystem;
 using EasyPack.ObjectPool;
 using EasyPack.Serialization;
-using System.Threading.Tasks;
 
 namespace EasyPack.Architecture
 {

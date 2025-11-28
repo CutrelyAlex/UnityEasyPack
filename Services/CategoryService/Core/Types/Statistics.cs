@@ -101,7 +101,7 @@ namespace EasyPack.Category
         ///     返回统计信息的格式化字符串
         /// </summary>
         public override string ToString() =>
-            $"Statistics:\n" +
+            "Statistics:\n" +
             $"  Entities: {TotalEntities}\n" +
             $"  Categories: {TotalCategories}\n" +
             $"  Tags: {TotalTags}\n" +

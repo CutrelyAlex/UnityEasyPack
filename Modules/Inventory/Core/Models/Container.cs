@@ -157,7 +157,7 @@ namespace EasyPack.InventorySystem
 
         private readonly HashSet<string> _pendingTotalCountUpdates = new();
         private readonly Dictionary<string, IItem> _itemRefCache = new();
-        private int _batchDepth = 0;
+        private int _batchDepth;
 
         /// <summary>
         ///     开始批量操作模式
@@ -200,7 +200,7 @@ namespace EasyPack.InventorySystem
 
         #region 状态检查
 
-        private int _notFullStackSlotsCount = 0;
+        private int _notFullStackSlotsCount;
 
 
         /// <summary>
@@ -282,10 +282,8 @@ namespace EasyPack.InventorySystem
 
                     return AddItemResult.StackLimitReached;
                 }
-                else
-                {
-                    return AddItemResult.ContainerIsFull;
-                }
+
+                return AddItemResult.ContainerIsFull;
             }
 
             return AddItemResult.Success;
@@ -570,19 +568,6 @@ namespace EasyPack.InventorySystem
 
         #endregion
 
-        #region 添加物品
-
-        /// <summary>
-        /// 添加指定数量的物品到容器
-        /// </summary>
-        /// <param name="item">要添加的物品</param>
-        /// <param name="count">要添加的数量</param>
-        /// <param name="slotIndex">指定的槽位索引，-1表示自动寻找合适的槽位</param>
-        /// <param name="exceededCount">超出堆叠上限的数量</param>
-        /// <returns>添加结果和成功添加的数量</returns>
-
-        #endregion
-
         #region AddItems辅助方法
 
         /// <summary>
@@ -718,6 +703,7 @@ namespace EasyPack.InventorySystem
 
         /// <summary>
         ///     添加指定数量的物品到容器（内部实现，带超出数量返回）
+        /// 
         /// </summary>
         private (AddItemResult result, int actualCount)
             AddItemsWithCount(IItem item, out int exceededCount, int count = 1, int slotIndex = -1)

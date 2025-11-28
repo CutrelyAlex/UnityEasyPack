@@ -1,11 +1,12 @@
 #if UNITY_EDITOR
 using System;
-using UnityEngine;
-using UnityEditor;
-using System.Linq;
 using System.Collections.Generic;
-using EasyPack.Modifiers;
+using System.Linq;
 using EasyPack.Architecture;
+using EasyPack.ENekoFramework;
+using EasyPack.Modifiers;
+using UnityEditor;
+using UnityEngine;
 
 namespace EasyPack.GamePropertySystem.Editor
 {
@@ -20,9 +21,9 @@ namespace EasyPack.GamePropertySystem.Editor
         private string _selectedCategory = "All";
         private string _selectedTag = "All";
         private bool _showMetadata = true;
-        private bool _showModifiers = false;
+        private bool _showModifiers;
         private Vector2 _scrollPosition;
-        private bool _initialized = false;
+        private bool _initialized;
 
         private void OnEnable()
         {
@@ -60,7 +61,7 @@ namespace EasyPack.GamePropertySystem.Editor
                 var service = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyService>();
 
                 // 检查服务状态
-                if (service.State != ENekoFramework.ServiceLifecycleState.Ready)
+                if (service.State != ServiceLifecycleState.Ready)
                 {
                     _initialized = false;
                     return;

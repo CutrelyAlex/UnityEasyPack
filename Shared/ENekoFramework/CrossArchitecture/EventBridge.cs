@@ -12,7 +12,7 @@ namespace EasyPack.ENekoFramework
     {
         private readonly Dictionary<string, List<Delegate>> _listeners = new();
         private readonly object _lock = new();
-        private bool _disposed = false;
+        private bool _disposed;
 
         /// <summary>
         ///     注册事件监听器

@@ -1,6 +1,6 @@
-using EasyPack.Serialization;
 using System;
 using System.Collections.Generic;
+using EasyPack.Serialization;
 using UnityEngine;
 
 namespace EasyPack.Modifiers
@@ -58,12 +58,11 @@ namespace EasyPack.Modifiers
                     serializable.Priority,
                     serializable.RangeValue
                 );
-            else
-                return new FloatModifier(
-                    serializable.Type,
-                    serializable.Priority,
-                    serializable.FloatValue
-                );
+            return new FloatModifier(
+                serializable.Type,
+                serializable.Priority,
+                serializable.FloatValue
+            );
         }
     }
 

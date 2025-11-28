@@ -1,5 +1,5 @@
-using EasyPack.CustomData;
 using System.Collections.Generic;
+using EasyPack.CustomData;
 
 namespace EasyPack.InventorySystem
 {
@@ -73,7 +73,7 @@ namespace EasyPack.InventorySystem
 
         public bool IsStackable { get; set; } = true;
 
-        public int MaxStackCount { get; set; } = -1; // -1代表无限堆叠
+        public int MaxStackCount { get; set; } = -1; // -1 代表无限堆叠
 
         /// <summary>
         ///     自定义数据列表
@@ -81,7 +81,7 @@ namespace EasyPack.InventorySystem
         public CustomDataCollection CustomData { get; set; } = new();
 
 
-        public bool IsContainerItem = false;
+        public bool IsContainerItem;
         public List<string> ContainerIds { get; set; } // 容器类型的物品对应的ID区域
 
         #endregion

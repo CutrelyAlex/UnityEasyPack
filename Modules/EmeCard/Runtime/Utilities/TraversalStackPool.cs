@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using EasyPack.Architecture;
 using EasyPack.ObjectPool;
+using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
 {
@@ -10,7 +12,7 @@ namespace EasyPack.EmeCardSystem
     public static class TraversalStackPool
     {
         private static ObjectPool<Stack<(Card node, int depth)>> _pool;
-        private static bool _isInitialized = false;
+        private static bool _isInitialized;
 
         /// <summary>
         ///     初始化遍历栈池。
@@ -21,7 +23,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (_isInitialized)
             {
-                UnityEngine.Debug.LogWarning("[TraversalStackPool] 已初始化，跳过重复初始化");
+                Debug.LogWarning("[TraversalStackPool] 已初始化，跳过重复初始化");
                 return;
             }
 
@@ -47,9 +49,9 @@ namespace EasyPack.EmeCardSystem
                     EasyPackArchitecture.GetObjectPoolServiceAsync().GetAwaiter().GetResult();
                 Initialize(poolService);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                throw new System.InvalidOperationException(
+                throw new InvalidOperationException(
                     "TraversalStackPool 自动初始化失败。请确保 EasyPackArchitecture 已正确初始化，或手动调用 TraversalStackPool.Initialize()",
                     ex);
             }

@@ -1,5 +1,6 @@
-using EasyPack.ENekoFramework;
+using System;
 using System.Collections.Generic;
+using EasyPack.ENekoFramework;
 
 namespace EasyPack.InventorySystem
 {
@@ -44,10 +45,10 @@ namespace EasyPack.InventorySystem
                                              int toSlot = -1);
 
         (InventoryService.MoveResult result, int transferredCount) TransferItems(string itemId, int count,
-            string fromContainerId, string toContainerId);
+                                                                string fromContainerId, string toContainerId);
 
         (InventoryService.MoveResult result, int transferredCount) AutoMoveItem(string itemId, string fromContainerId,
-            string toContainerId);
+                                                               string toContainerId);
 
         List<(InventoryService.MoveRequest request, InventoryService.MoveResult result, int movedCount)> BatchMoveItems(
             List<InventoryService.MoveRequest> requests);
@@ -58,26 +59,26 @@ namespace EasyPack.InventorySystem
         List<InventoryService.GlobalItemResult> FindItemGlobally(string itemId);
         int GetGlobalItemCount(string itemId);
         Dictionary<string, int> FindContainersWithItem(string itemId);
-        List<InventoryService.GlobalItemResult> SearchItemsByCondition(System.Func<IItem, bool> condition);
+        List<InventoryService.GlobalItemResult> SearchItemsByCondition(Func<IItem, bool> condition);
         List<InventoryService.GlobalItemResult> SearchItemsByType(string itemType);
         List<InventoryService.GlobalItemResult> SearchItemsByName(string namePattern);
         List<InventoryService.GlobalItemResult> SearchItemsByAttribute(string attributeName, object attributeValue);
 
         // 事件
-        event System.Action<Container> OnContainerRegistered;
-        event System.Action<Container> OnContainerUnregistered;
-        event System.Action<string, int> OnContainerPriorityChanged;
-        event System.Action<string, string, string> OnContainerCategoryChanged;
-        event System.Action<IItemCondition> OnGlobalConditionAdded;
-        event System.Action<IItemCondition> OnGlobalConditionRemoved;
-        event System.Action OnGlobalCacheRefreshed;
-        event System.Action OnGlobalCacheValidated;
-        event System.Action<string, int, string, IItem, int> OnItemMoved;
-        event System.Action<string, string, string, int> OnItemsTransferred;
+        event Action<Container> OnContainerRegistered;
+        event Action<Container> OnContainerUnregistered;
+        event Action<string, int> OnContainerPriorityChanged;
+        event Action<string, string, string> OnContainerCategoryChanged;
+        event Action<IItemCondition> OnGlobalConditionAdded;
+        event Action<IItemCondition> OnGlobalConditionRemoved;
+        event Action OnGlobalCacheRefreshed;
+        event Action OnGlobalCacheValidated;
+        event Action<string, int, string, IItem, int> OnItemMoved;
+        event Action<string, string, string, int> OnItemsTransferred;
 
-        event System.Action<List<(InventoryService.MoveRequest request, InventoryService.MoveResult result, int
+        event Action<List<(InventoryService.MoveRequest request, InventoryService.MoveResult result, int
             movedCount)>> OnBatchMoveCompleted;
 
-        event System.Action<IItem, int, Dictionary<string, int>, int> OnItemsDistributed;
+        event Action<IItem, int, Dictionary<string, int>, int> OnItemsDistributed;
     }
 }

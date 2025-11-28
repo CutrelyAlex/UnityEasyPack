@@ -1,7 +1,8 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using UnityEngine;
 using EasyPack.Architecture;
+using UnityEngine;
 
 namespace EasyPack.GamePropertySystem.Example
 {
@@ -28,7 +29,7 @@ namespace EasyPack.GamePropertySystem.Example
                 await DemoCombinedQueries();
                 await DemoWildcardQueries();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"[CategoryQueryExample] 示例执行失败: {ex.Message}\n{ex.StackTrace}");
             }
@@ -36,8 +37,7 @@ namespace EasyPack.GamePropertySystem.Example
 
         private void CleanupExampleData()
         {
-            string[] exampleIds = new[]
-            {
+            string[] exampleIds = {
                 "hp", "hpRegen", "mp", "mpRegen", "strength", "intelligence", "hp_tag", "mp_tag", "level_tag",
                 "tempBuff", "hp_comb", "mp_comb", "attack_comb", "defense_comb", "crit_wild", "critDamage_wild",
                 "armor_wild", "magicResist_wild",

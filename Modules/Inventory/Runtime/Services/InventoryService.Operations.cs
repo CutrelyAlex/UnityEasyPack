@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -164,7 +165,7 @@ namespace EasyPack.InventorySystem
                     _ => MoveResult.Failed,
                 };
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"[InventoryService] 物品移动失败：{ex.Message}");
                 return MoveResult.Failed;
@@ -237,7 +238,7 @@ namespace EasyPack.InventorySystem
                     _ => (MoveResult.Failed, 0),
                 };
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"[InventoryService] 物品转移失败：{ex.Message}");
                 return (MoveResult.Failed, 0);
@@ -441,7 +442,7 @@ namespace EasyPack.InventorySystem
 
                 OnItemsDistributed?.Invoke(item, totalCount, results, remainingCount);
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Debug.LogWarning($"分配物品失败! {e}");
             }
@@ -456,22 +457,22 @@ namespace EasyPack.InventorySystem
         /// <summary>
         ///     物品移动事件
         /// </summary>
-        public event System.Action<string, int, string, IItem, int> OnItemMoved;
+        public event Action<string, int, string, IItem, int> OnItemMoved;
 
         /// <summary>
         ///     物品转移事件
         /// </summary>
-        public event System.Action<string, string, string, int> OnItemsTransferred;
+        public event Action<string, string, string, int> OnItemsTransferred;
 
         /// <summary>
         ///     批量移动完成事件
         /// </summary>
-        public event System.Action<List<(MoveRequest request, MoveResult result, int movedCount)>> OnBatchMoveCompleted;
+        public event Action<List<(MoveRequest request, MoveResult result, int movedCount)>> OnBatchMoveCompleted;
 
         /// <summary>
         ///     物品分配事件
         /// </summary>
-        public event System.Action<IItem, int, Dictionary<string, int>, int> OnItemsDistributed;
+        public event Action<IItem, int, Dictionary<string, int>, int> OnItemsDistributed;
 
         #endregion
     }

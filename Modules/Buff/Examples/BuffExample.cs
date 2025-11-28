@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
-using EasyPack.GamePropertySystem;
 using EasyPack.Architecture;
+using EasyPack.GamePropertySystem;
 using EasyPack.Modifiers;
+using UnityEngine;
 
 namespace EasyPack.BuffSystem.Example
 {
@@ -291,7 +291,7 @@ namespace EasyPack.BuffSystem.Example
             strengthBuff.BuffModules.Add(strengthModule);
 
             // 5.4 应用Buff并观察效果
-            Buff buff = _buffManager.CreateBuff(strengthBuff, _dummyCreator, _dummyTarget);
+            _buffManager.CreateBuff(strengthBuff, _dummyCreator, _dummyTarget);
             Debug.Log($"应用力量Buff后力量: {strength.GetValue()}");
 
             // 5.5 堆叠效果
@@ -338,7 +338,7 @@ namespace EasyPack.BuffSystem.Example
             };
 
             Debug.Log("创建中毒Buff（每2秒造成5点伤害）");
-            Buff poisonBuffInstance = _buffManager.CreateBuff(poisonBuff, _dummyCreator, _dummyTarget);
+            _buffManager.CreateBuff(poisonBuff, _dummyCreator, _dummyTarget);
 
             // 6.2 模拟时间流逝观察触发效果
             Debug.Log("开始模拟时间流逝...");
@@ -455,12 +455,12 @@ namespace EasyPack.BuffSystem.Example
             Buff buff = _buffManager.CreateBuff(eventBuff, _dummyCreator, _dummyTarget);
 
             // 设置所有生命周期事件监听
-            buff.OnCreate += (b) => Debug.Log($"[事件] {b.BuffData.Name} 被创建");
-            buff.OnTrigger += (b) => Debug.Log($"[事件] {b.BuffData.Name} 触发效果");
-            buff.OnUpdate += (b) => Debug.Log($"[事件] {b.BuffData.Name} 更新 (剩余: {b.DurationTimer:F1}s)");
-            buff.OnAddStack += (b) => Debug.Log($"[事件] {b.BuffData.Name} 增加堆叠 (当前: {b.CurrentStacks})");
-            buff.OnReduceStack += (b) => Debug.Log($"[事件] {b.BuffData.Name} 减少堆叠 (当前: {b.CurrentStacks})");
-            buff.OnRemove += (b) => Debug.Log($"[事件] {b.BuffData.Name} 被移除");
+            buff.OnCreate += b => Debug.Log($"[事件] {b.BuffData.Name} 被创建");
+            buff.OnTrigger += b => Debug.Log($"[事件] {b.BuffData.Name} 触发效果");
+            buff.OnUpdate += b => Debug.Log($"[事件] {b.BuffData.Name} 更新 (剩余: {b.DurationTimer:F1}s)");
+            buff.OnAddStack += b => Debug.Log($"[事件] {b.BuffData.Name} 增加堆叠 (当前: {b.CurrentStacks})");
+            buff.OnReduceStack += b => Debug.Log($"[事件] {b.BuffData.Name} 减少堆叠 (当前: {b.CurrentStacks})");
+            buff.OnRemove += b => Debug.Log($"[事件] {b.BuffData.Name} 被移除");
 
             // 8.3 触发各种事件
             Debug.Log("--- 堆叠事件测试 ---");
@@ -559,9 +559,9 @@ namespace EasyPack.BuffSystem.Example
 
             // 9.5 应用复杂Buff组合
             Debug.Log("\n=== 应用Buff组合 ===");
-            Buff rageBuff1 = _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget);
-            Buff rageBuff2 = _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget); // 堆叠
-            Buff rageBuff3 = _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget); // 再次堆叠
+            _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget);
+            _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget);
+            _buffManager.CreateBuff(rageBuff, _dummyCreator, _dummyTarget);
 
             Debug.Log($"狂暴3层后 - 力量: {strength.GetValue()}, 敏捷: {agility.GetValue()}");
 
@@ -635,15 +635,6 @@ namespace EasyPack.BuffSystem.Example
 
             // 10.2 合理的更新频率
             Debug.Log("--- 更新频率优化 ---");
-            var frequentBuff = new BuffData
-            {
-                ID = "FrequentBuff", Name = "高频Buff", Duration = 5f, TriggerInterval = 0.1f, // 避免过于频繁的触发
-            };
-
-            var moderateBuff = new BuffData
-            {
-                ID = "ModerateBuff", Name = "适中Buff", Duration = 5f, TriggerInterval = 1f, // 更合理的触发频率
-            };
 
             Debug.Log("避免过于频繁的触发间隔，建议 >= 0.5秒");
 
@@ -654,7 +645,7 @@ namespace EasyPack.BuffSystem.Example
             Buff resourceBuffInstance = _buffManager.CreateBuff(resourceBuff, _dummyCreator, _dummyTarget);
 
             // 设置事件监听（记得在适当时候清理）
-            Action<Buff> onRemoveHandler = (buff) =>
+            Action<Buff> onRemoveHandler = _ =>
             {
                 Debug.Log("资源Buff被移除，进行清理工作");
                 // 在这里进行必要的清理工作
@@ -707,7 +698,7 @@ namespace EasyPack.BuffSystem.Example
             Buff debugBuffInstance = _buffManager.CreateBuff(debugBuff, _dummyCreator, _dummyTarget);
 
             // 详细的状态检查
-            Debug.Log($"Buff详细信息:");
+            Debug.Log("Buff详细信息:");
             Debug.Log($"  ID: {debugBuffInstance.BuffData.ID}");
             Debug.Log($"  持续时间: {debugBuffInstance.DurationTimer}");
             Debug.Log($"  触发计时器: {debugBuffInstance.TriggerTimer}");

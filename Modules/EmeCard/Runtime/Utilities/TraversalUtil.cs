@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace EasyPack.EmeCardSystem
@@ -54,11 +55,11 @@ namespace EasyPack.EmeCardSystem
         public static IReadOnlyList<Card> EnumerateDescendantsAsList(Card root, int maxDepth)
         {
             if (root == null || maxDepth <= 0) 
-                return System.Array.Empty<Card>();
+                return Array.Empty<Card>();
 
             // 估算初始容量：直接子级数量 * 2（假设平均每个子级有1个后代）
-            int estimatedCapacity = System.Math.Min(root.Children.Count * 2, 64);
-            var result = new List<Card>(System.Math.Max(estimatedCapacity, 4));
+            int estimatedCapacity = Math.Min(root.Children.Count * 2, 64);
+            var result = new List<Card>(Math.Max(estimatedCapacity, 4));
             
             var stack = TraversalStackPool.Rent();
             try

@@ -1,10 +1,11 @@
+using System;
+using System.Collections.Generic;
 using EasyPack.CustomData;
 using EasyPack.Serialization;
-using System.Collections.Generic;
 
 namespace EasyPack.InventorySystem
 {
-    [System.Serializable]
+    [Serializable]
     public class SerializedItem : ISerializable
     {
         public string ID;

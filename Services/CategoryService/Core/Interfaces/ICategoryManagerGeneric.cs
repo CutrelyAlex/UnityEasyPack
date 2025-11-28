@@ -1,6 +1,6 @@
-using EasyPack.CustomData;
 using System;
 using System.Collections.Generic;
+using EasyPack.CustomData;
 
 namespace EasyPack.Category
 {

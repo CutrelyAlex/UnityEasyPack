@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using UnityEngine;
 using EasyPack.ENekoFramework;
+using UnityEngine;
 
 namespace EasyPack.BuffSystem
 {
@@ -157,57 +157,55 @@ namespace EasyPack.BuffSystem
 
                 return existingBuff;
             }
+
+            // 创建全新的Buff实例
+            Buff buff = new()
+            {
+                BuffData = buffData,
+                Creator = creator,
+                Target = target,
+                DurationTimer = buffData.Duration > 0 ? buffData.Duration : -1f,
+                TriggerTimer = buffData.TriggerInterval,
+                CurrentStacks = 1,
+            };
+
+            // 设置 BuffModules 的父级引用
+            foreach (BuffModule module in buffData.BuffModules)
+            {
+                module.SetParentBuff(buff);
+            }
+
+            // 添加到各种管理列表和索引
+            buffs.Add(buff);
+            _buffPositions[buff] = _allBuffs.Count;
+            _allBuffs.Add(buff);
+
+            // 根据持续时间分类存储
+            if (buff.DurationTimer > 0)
+            {
+                _timedBuffPositions[buff] = _timedBuffs.Count;
+                _timedBuffs.Add(buff);
+            }
             else
             {
-                // 创建全新的Buff实例
-                Buff buff = new()
-                {
-                    BuffData = buffData,
-                    Creator = creator,
-                    Target = target,
-                    DurationTimer = buffData.Duration > 0 ? buffData.Duration : -1f,
-                    TriggerTimer = buffData.TriggerInterval,
-                    CurrentStacks = 1,
-                };
-
-                // 设置 BuffModules 的父级引用
-                foreach (BuffModule module in buffData.BuffModules)
-                {
-                    module.SetParentBuff(buff);
-                }
-
-                // 添加到各种管理列表和索引
-                buffs.Add(buff);
-                _buffPositions[buff] = _allBuffs.Count;
-                _allBuffs.Add(buff);
-
-                // 根据持续时间分类存储
-                if (buff.DurationTimer > 0)
-                {
-                    _timedBuffPositions[buff] = _timedBuffs.Count;
-                    _timedBuffs.Add(buff);
-                }
-                else
-                {
-                    _permanentBuffPositions[buff] = _permanentBuffs.Count;
-                    _permanentBuffs.Add(buff);
-                }
-
-                RegisterBuffInIndexes(buff);
-
-                // 执行创建回调
-                buff.OnCreate?.Invoke(buff);
-                InvokeBuffModules(buff, BuffCallBackType.OnCreate);
-
-                // 处理创建时立即触发
-                if (buffData.TriggerOnCreate)
-                {
-                    buff.OnTrigger?.Invoke(buff);
-                    InvokeBuffModules(buff, BuffCallBackType.OnTick);
-                }
-
-                return buff;
+                _permanentBuffPositions[buff] = _permanentBuffs.Count;
+                _permanentBuffs.Add(buff);
             }
+
+            RegisterBuffInIndexes(buff);
+
+            // 执行创建回调
+            buff.OnCreate?.Invoke(buff);
+            InvokeBuffModules(buff, BuffCallBackType.OnCreate);
+
+            // 处理创建时立即触发
+            if (buffData.TriggerOnCreate)
+            {
+                buff.OnTrigger?.Invoke(buff);
+                InvokeBuffModules(buff, BuffCallBackType.OnTick);
+            }
+
+            return buff;
         }
 
         /// <summary>

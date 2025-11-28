@@ -1,10 +1,12 @@
 #if UNITY_EDITOR
-using UnityEditor;
-using UnityEngine;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
+using UnityEditor;
+using UnityEngine;
 
 namespace EasyPack.ENekoFramework.Editor
 {
@@ -19,7 +21,7 @@ namespace EasyPack.ENekoFramework.Editor
         private ArchitectureInfo _selectedArchitecture;
         private bool _autoRefresh = true;
         private double _lastRefreshTime;
-        private bool _isRefreshing = false;
+        private bool _isRefreshing;
         private double _refreshStartTime;
         private const double RefreshInterval = 1.0;
 
@@ -307,7 +309,7 @@ namespace EasyPack.ENekoFramework.Editor
             _lastRefreshTime = EditorApplication.timeSinceStartup;
 
             // 异步执行刷新操作
-            System.Threading.Tasks.Task.Run(() =>
+            Task.Run(() =>
             {
                 try
                 {
@@ -386,7 +388,7 @@ namespace EasyPack.ENekoFramework.Editor
                         if (subscribersField != null)
                         {
                             object subscribers = subscribersField.GetValue(eventBus);
-                            if (subscribers is System.Collections.IDictionary dict)
+                            if (subscribers is IDictionary dict)
                                 info.RegisteredEventCount = dict.Count;
                         }
                     }

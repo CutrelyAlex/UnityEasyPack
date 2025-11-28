@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 using EasyPack.GamePropertySystem;
+using UnityEngine;
 
 namespace EasyPack.EmeCardSystem.Example
 {
@@ -252,8 +252,8 @@ namespace EasyPack.EmeCardSystem.Example
             _engine.RegisterRule(b => b
                 .On("检查夜晚")
                 .MatchAtRoot()
-                .NeedTagRecursive("夜晚", 1)
-                .DoInvoke((ctx, matched) => { Debug.Log($"[递归选择] 在整个世界树中发现了 {matched.Count} 个夜晚标记"); })
+                .NeedTagRecursive("夜晚")
+                .DoInvoke((_, matched) => { Debug.Log($"[递归选择] 在整个世界树中发现了 {matched.Count} 个夜晚标记"); })
             );
 
             // 添加夜晚标签到其中一个区域
@@ -279,7 +279,7 @@ namespace EasyPack.EmeCardSystem.Example
                 .MatchAtSelf()
                 .NeedTag("火把")
                 .DoModifyTag("火把", "Ticks", 1f)
-                .DoInvoke((ctx, matched) =>
+                .DoInvoke((ctx, _) =>
                 {
                     var torches = ctx.MatchRoot.Children.Where(c => c.HasTag("火把")).ToList();
                     var ticks = torches.Select(t => t.Properties?.FirstOrDefault()?.GetBaseValue() ?? 0f);
@@ -305,7 +305,7 @@ namespace EasyPack.EmeCardSystem.Example
                     Debug.Log($"[燃尽] {matched.Count} 个火把燃尽");
                     foreach (Card torch in matched)
                     {
-                        torch.Owner?.RemoveChild(torch, false);
+                        torch.Owner?.RemoveChild(torch);
                         Card ash = _factory.Create("灰烬");
                         ctx.MatchRoot.AddChild(ash);
                     }

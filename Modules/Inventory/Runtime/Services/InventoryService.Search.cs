@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using EasyPack.CustomData;
+using UnityEngine;
 
 namespace EasyPack.InventorySystem
 {
@@ -130,9 +132,9 @@ namespace EasyPack.InventorySystem
                     }
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                UnityEngine.Debug.LogError($"[InventoryService] 操作失败：{ex.Message}");
+                Debug.LogError($"[InventoryService] 操作失败：{ex.Message}");
             }
 
             return results;
@@ -143,7 +145,7 @@ namespace EasyPack.InventorySystem
         /// </summary>
         /// <param name="condition">搜索条件</param>
         /// <returns>符合条件的物品列表</returns>
-        public List<GlobalItemResult> SearchItemsByCondition(System.Func<IItem, bool> condition)
+        public List<GlobalItemResult> SearchItemsByCondition(Func<IItem, bool> condition)
         {
             var results = new List<GlobalItemResult>();
 
@@ -164,9 +166,9 @@ namespace EasyPack.InventorySystem
                     }
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                UnityEngine.Debug.LogError($"[InventoryService] 操作失败：{ex.Message}");
+                Debug.LogError($"[InventoryService] 操作失败：{ex.Message}");
             }
 
             return results;

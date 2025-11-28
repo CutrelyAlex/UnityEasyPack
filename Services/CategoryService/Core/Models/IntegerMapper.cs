@@ -76,8 +76,10 @@ namespace EasyPack.Category
 
                 // 检查 ID 溢出
                 if (_nextId >= CategoryConstants.ID_OVERFLOW_THRESHOLD)
+                {
                     throw new OverflowException(
                         $"Term ID assignment overflow. Current: {_nextId}, Threshold: {CategoryConstants.ID_OVERFLOW_THRESHOLD}");
+                }
 
                 // 分配新 ID
                 int newId = _nextId++;

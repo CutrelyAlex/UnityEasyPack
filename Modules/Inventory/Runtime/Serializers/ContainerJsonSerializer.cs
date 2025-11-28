@@ -1,6 +1,6 @@
-using EasyPack.Serialization;
 using System;
 using System.Collections.Generic;
+using EasyPack.Serialization;
 using UnityEngine;
 
 namespace EasyPack.InventorySystem

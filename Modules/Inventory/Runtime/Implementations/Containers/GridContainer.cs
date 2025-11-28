@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 
 namespace EasyPack.InventorySystem
@@ -307,7 +308,7 @@ namespace EasyPack.InventorySystem
                 if (isFirst)
                 {
                     // 第一个单元格放置实际物品
-                    currentSlot.SetItem(gridItem, 1);
+                    currentSlot.SetItem(gridItem);
 
                     // 更新主槽位缓存
                     _cacheService.UpdateEmptySlotCache(currentIndex, false);
@@ -321,7 +322,7 @@ namespace EasyPack.InventorySystem
                 {
                     // 其他单元格放置占位符，指向主槽位
                     var marker = new GridOccupiedMarker { MainSlotIndex = mainSlotIndex };
-                    currentSlot.SetItem(marker, 1);
+                    currentSlot.SetItem(marker);
 
                     // 更新空槽位缓存（占位符槽位也被占用）
                     _cacheService.UpdateEmptySlotCache(currentIndex, false);
@@ -402,7 +403,7 @@ namespace EasyPack.InventorySystem
             OnSlotQuantityChanged(mainSlotIndex, gridItem, 1, 0);
 
             // 触发总数变更事件
-            TriggerItemTotalCountChanged(itemId, null);
+            TriggerItemTotalCountChanged(itemId);
 
             return (RemoveItemResult.Success, 1);
         }
@@ -478,7 +479,7 @@ namespace EasyPack.InventorySystem
             gridItem.Rotate();
 
             // 检查旋转后是否还能放置
-            bool canPlace = CanPlaceGridItem(gridItem, startIndex, -1);
+            bool canPlace = CanPlaceGridItem(gridItem, startIndex);
 
             if (canPlace)
             {
@@ -486,13 +487,11 @@ namespace EasyPack.InventorySystem
                 PlaceGridItem(gridItem, startIndex);
                 return true;
             }
-            else
-            {
-                // 不能放置，还原旋转并放回原位
-                gridItem.Rotation = originalRotation;
-                PlaceGridItem(gridItem, startIndex);
-                return false;
-            }
+
+            // 不能放置，还原旋转并放回原位
+            gridItem.Rotation = originalRotation;
+            PlaceGridItem(gridItem, startIndex);
+            return false;
         }
 
         #endregion
@@ -505,7 +504,7 @@ namespace EasyPack.InventorySystem
         /// <returns>网格状态字符串</returns>
         public string GetGridVisualization()
         {
-            var lines = new System.Text.StringBuilder();
+            var lines = new StringBuilder();
             lines.AppendLine($"GridContainer [{GridWidth}x{GridHeight}]:");
 
             for (int y = 0; y < GridHeight; y++)

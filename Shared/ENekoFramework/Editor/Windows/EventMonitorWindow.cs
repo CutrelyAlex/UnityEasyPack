@@ -1,10 +1,10 @@
 #if UNITY_EDITOR
-using UnityEditor;
-using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using UnityEditor;
+using UnityEngine;
 
 namespace EasyPack.ENekoFramework.Editor
 {
@@ -23,18 +23,18 @@ namespace EasyPack.ENekoFramework.Editor
         private List<EventLogEntry> _cachedFilteredLogs;
         private List<string> _lastSelectedArchitectures = new();
         private string _lastSelectedEventTypeFilter = "";
-        private bool _lastUseEventTypeFilter = false;
-        private bool _filterCacheValid = false;
+        private bool _lastUseEventTypeFilter;
+        private bool _filterCacheValid;
 
         // 架构缓存
         private Dictionary<string, string> _cachedArchToNamespace;
-        private bool _archCacheValid = false;
+        private bool _archCacheValid;
 
         // 筛选器
         private List<string> _architectureNames = new();
         private List<bool> _architectureFilters = new();
         private string _selectedEventTypeFilter = "";
-        private bool _useEventTypeFilter = false;
+        private bool _useEventTypeFilter;
         private Vector2 _filterScrollPosition;
 
         // 数据持久化

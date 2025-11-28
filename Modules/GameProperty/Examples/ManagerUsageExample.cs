@@ -1,8 +1,9 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using UnityEngine;
 using EasyPack.Architecture;
 using EasyPack.Modifiers;
+using UnityEngine;
 
 namespace EasyPack.GamePropertySystem.Example
 {
@@ -29,7 +30,7 @@ namespace EasyPack.GamePropertySystem.Example
                 await DemoBatchOperations();
                 await DemoAdvancedQueries();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"[ManagerUsageExample] 示例执行失败: {ex.Message}\n{ex.StackTrace}");
             }
@@ -40,8 +41,7 @@ namespace EasyPack.GamePropertySystem.Example
         /// </summary>
         private void CleanupExampleData()
         {
-            string[] exampleIds = new[]
-            {
+            string[] exampleIds = {
                 "hp", "mp", "strength", "hp_meta", "hp_batch", "mp_batch", "stamina_batch", "hp_adv", "mp_adv",
                 "crit_adv",
             };

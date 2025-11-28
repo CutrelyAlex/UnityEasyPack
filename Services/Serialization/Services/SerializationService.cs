@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using EasyPack.CustomData;
+using EasyPack.EmeCardSystem;
 using EasyPack.ENekoFramework;
 using UnityEngine;
 
@@ -25,7 +26,7 @@ namespace EasyPack.Serialization
         {
             await base.OnInitializeAsync();
 
-            EmeCardSystem.CardSerializationInitializer.RegisterSerializers(this);
+            CardSerializationInitializer.RegisterSerializers(this);
 
             Debug.Log("[SerializationService] 序列化服务初始化完成");
         }
