@@ -535,6 +535,27 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
+        ///     当卡牌位置通过 Card.AddChild 改变时，通知引擎更新位置映射。
+        /// </summary>
+        /// <param name="card">发生位置变化的卡牌。</param>
+        /// <param name="oldPosition">旧位置。</param>
+        /// <param name="newPosition">新位置。</param>
+        internal void NotifyCardPositionChanged(Card card, Vector3 oldPosition, Vector3 newPosition)
+        {
+            if (card == null) return;
+
+            // 从旧位置移除
+            if (_cardsByPosition.TryGetValue(oldPosition, out Card cardAtOldPosition) && cardAtOldPosition == card)
+            {
+                _cardsByPosition.Remove(oldPosition);
+            }
+
+            // 添加到新位置
+            _cardsByPosition[newPosition] = card;
+            _positionByUID[card.UID] = newPosition;
+        }
+
+        /// <summary>
         ///     移除卡牌，移除事件订阅、UID 映射与索引。
         /// </summary>
         public CardEngine RemoveCard(Card c)
