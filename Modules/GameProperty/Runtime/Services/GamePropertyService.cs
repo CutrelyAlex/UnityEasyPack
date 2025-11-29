@@ -80,8 +80,7 @@ namespace EasyPack.GamePropertySystem
                 serializationService.RegisterSerializer(new RangeModifierSerializer());
                 serializationService.RegisterSerializer(new ModifierListSerializer());
 
-                serializationService.RegisterSerializer<GameProperty, SerializableGameProperty>(
-                    new GamePropertyJsonSerializer());
+                serializationService.RegisterSerializer(new GamePropertyJsonSerializer());
                 serializationService.RegisterSerializer(new PropertyManagerSerializer());
 
                 Debug.Log("[GamePropertyService] 序列化器注册完成");
