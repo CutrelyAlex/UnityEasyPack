@@ -8,7 +8,7 @@ namespace EasyPack.InventorySystem
     /// <summary>
     ///     Container类型的JSON序列化器
     /// </summary>
-    public class ContainerJsonSerializer : JsonSerializerBase<Container>
+    public class ContainerJsonSerializer : ITypeSerializer<Container, SerializedContainer>
     {
         private readonly ISerializationService _serializationService;
 
@@ -20,7 +20,7 @@ namespace EasyPack.InventorySystem
             _serializationService =
                 serializationService ?? throw new ArgumentNullException(nameof(serializationService));
 
-        public override string SerializeToJson(Container obj)
+        public SerializedContainer ToSerializable(Container obj)
         {
             if (obj == null) return null;
 
@@ -69,24 +69,11 @@ namespace EasyPack.InventorySystem
                 });
             }
 
-            return JsonUtility.ToJson(dto);
+            return dto;
         }
 
-        public override Container DeserializeFromJson(string json)
+        public Container FromSerializable(SerializedContainer dto)
         {
-            if (string.IsNullOrEmpty(json)) return null;
-
-            SerializedContainer dto;
-            try
-            {
-                dto = JsonUtility.FromJson<SerializedContainer>(json);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[ContainerJsonSerializer] 反序列化失败: {e.Message}");
-                return null;
-            }
-
             if (dto == null) return null;
 
             // 根据ContainerKind创建容器实例
@@ -133,6 +120,34 @@ namespace EasyPack.InventorySystem
             }
 
             return container;
+        }
+
+        public string ToJson(SerializedContainer dto) => dto == null ? null : JsonUtility.ToJson(dto);
+
+        public SerializedContainer FromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+            try
+            {
+                return JsonUtility.FromJson<SerializedContainer>(json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[ContainerJsonSerializer] 反序列化失败: {e.Message}");
+                return null;
+            }
+        }
+
+        public string SerializeToJson(Container obj)
+        {
+            SerializedContainer dto = ToSerializable(obj);
+            return ToJson(dto);
+        }
+
+        public Container DeserializeFromJson(string json)
+        {
+            SerializedContainer dto = FromJson(json);
+            return FromSerializable(dto);
         }
 
         /// <summary>

@@ -64,7 +64,6 @@ namespace EasyPack.Category
     /// <typeparam name="T">实体类型</typeparam>
     /// <typeparam name="TKey">键类型</typeparam>
     public class CategoryManagerJsonSerializer<T, TKey> :
-        JsonSerializerBase<CategoryManager<T, TKey>>,
         ITypeSerializer<CategoryManager<T, TKey>, SerializableCategoryManagerState<T, TKey>>
         where TKey : IEquatable<TKey>
     {
@@ -275,238 +274,25 @@ namespace EasyPack.Category
                 ? throw new InvalidOperationException("JSON 字符串为空")
                 : JsonUtility.FromJson<SerializableCategoryManagerState<T, TKey>>(json);
 
-        #endregion
-
         /// <summary>
         ///     序列化 CategoryManager 为 JSON 字符串
-        ///     实体序列化由 SerializationService 管理
         /// </summary>
-        /// <param name="manager">要序列化的 CategoryManager 实例</param>
-        /// <returns>JSON 字符串</returns>
-        public override string SerializeToJson(CategoryManager<T, TKey> manager)
+        public string SerializeToJson(CategoryManager<T, TKey> manager)
         {
-            if (manager == null) return null;
-
-            try
-            {
-                EnsureSerializationService();
-
-                var data = new SerializableCategoryManagerState<T, TKey>
-                {
-                    Entities = new(), Categories = new(), Tags = new(), Metadata = new(),
-                };
-
-                manager.GetOptimizedSerializationIndices(out _, out var entityMetadataIndex);
-
-                var serializedEntityKeys = new HashSet<string>(StringComparer.Ordinal);
-
-                var categories = manager.GetCategoriesNodes();
-                var tagIndex = manager.GetTagIndex();
-
-                foreach (string category in categories)
-                {
-                    var entities = manager.GetByCategory(category);
-
-                    data.Categories.Add(new() { Name = category });
-
-                    foreach (T entity in entities)
-                    {
-                        TKey key = _keyExtractor(entity);
-                        string keyJson = SerializeKey(key);
-
-                        if (!serializedEntityKeys.Add(keyJson)) continue;
-
-                        // 尝试序列化实体，如果失败则保留空EntityJson
-                        string entityJson;
-                        try
-                        {
-                            entityJson = _serializationService != null
-                                ? _serializationService.SerializeToJson(entity)
-                                : JsonUtility.ToJson(entity);
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.LogWarning($"序列化实体 '{keyJson}' 失败: {ex.Message}，将保留空EntityJson");
-                            entityJson = string.Empty;
-                        }
-
-                        data.Entities.Add(new() { KeyJson = keyJson, EntityJson = entityJson, Category = category });
-                    }
-                }
-
-                // 序列化 Tag
-                foreach (var kvp in tagIndex)
-                {
-                    data.Tags.Add(
-                        new() { TagName = kvp.Key, EntityKeyJsons = kvp.Value.Select(SerializeKey).ToList() });
-                }
-
-                // 序列化元数据 
-                foreach (var kvp in entityMetadataIndex)
-                {
-                    data.Metadata.Add(new()
-                    {
-                        EntityKeyJson = SerializeKey(kvp.Key),
-                        MetadataJson = JsonUtility.ToJson(new CustomDataCollectionWrapper
-                        {
-                            Entries = kvp.Value.ToList(),
-                        }),
-                    });
-                }
-
-                return JsonUtility.ToJson(data, true);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"CategoryService 序列化失败: {ex.Message}");
-                throw;
-            }
+            SerializableCategoryManagerState<T, TKey> dto = ToSerializable(manager);
+            return ToJson(dto);
         }
 
         /// <summary>
         ///     从 JSON 字符串反序列化为 CategoryManager
-        ///     实体反序列化由 SerializationService 管理
-        ///     注意：此方法创建新的 CategoryManager 实例
         /// </summary>
-        /// <param name="json">JSON 字符串</param>
-        /// <returns>反序列化的 CategoryManager 实例</returns>
-        public override CategoryManager<T, TKey> DeserializeFromJson(string json)
+        public CategoryManager<T, TKey> DeserializeFromJson(string json)
         {
-            if (string.IsNullOrEmpty(json)) throw new InvalidOperationException("JSON 字符串为空");
-
-            try
-            {
-                EnsureSerializationService();
-
-                var data = JsonUtility.FromJson<SerializableCategoryManagerState<T, TKey>>(json);
-
-                // 检查并初始化可能为 null 的集合字段
-                if (data == null) throw new InvalidOperationException("无法反序列化 JSON 数据");
-
-                data.Entities ??= new();
-                data.Categories ??= new();
-                data.Tags ??= new();
-                data.Metadata ??= new();
-
-                // 预构建 EntityKeyJson -> Tags 字典
-                var entityTagIndex = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-                foreach (SerializableCategoryManagerState<T, TKey>.SerializedTag tag in data.Tags)
-                foreach (string keyJson in tag.EntityKeyJsons)
-                {
-                    if (!entityTagIndex.TryGetValue(keyJson, out var tags))
-                    {
-                        tags = new();
-                        entityTagIndex[keyJson] = tags;
-                    }
-
-                    tags.Add(tag.TagName);
-                }
-
-                // 预构建 EntityKeyJson -> Metadata 字典
-                var entityMetadataIndex = new Dictionary<string, CustomDataCollection>(StringComparer.Ordinal);
-                foreach (SerializableCategoryManagerState<T, TKey>.SerializedMetadata metadataEntry in data.Metadata)
-                {
-                    var wrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(metadataEntry.MetadataJson);
-                    if (wrapper?.Entries != null)
-                    {
-                        var metadata = new CustomDataCollection();
-                        foreach (CustomDataEntry entry in wrapper.Entries)
-                        {
-                            metadata.Add(entry);
-                        }
-
-                        entityMetadataIndex[metadataEntry.EntityKeyJson] = metadata;
-                    }
-                }
-
-                // 创建新的 CategoryManager 实例
-                var manager = new CategoryManager<T, TKey>(_keyExtractor);
-
-                // 反序列化实体
-                var entityRegistrations =
-                    new List<(TKey key, T entity, string category, List<string> tags, CustomDataCollection metadata)>();
-
-                foreach (SerializableCategoryManagerState<T, TKey>.SerializedEntity serializedEntity in data.Entities)
-                {
-                    try
-                    {
-                        T entity = default;
-                        TKey key = DeserializeKey(serializedEntity.KeyJson);
-
-                        // 仅当EntityJson非空时才尝试反序列化实体
-                        if (!string.IsNullOrEmpty(serializedEntity.EntityJson))
-                        {
-                            try
-                            {
-                                // 使用 SerializationService 反序列化实体
-                                entity = _serializationService != null
-                                    ? _serializationService.DeserializeFromJson<T>(serializedEntity.EntityJson)
-                                    : JsonUtility.FromJson<T>(serializedEntity.EntityJson);
-
-                                // 检查反序列化是否成功
-                                if (entity == null)
-                                {
-                                    Debug.LogWarning($"反序列化实体 '{serializedEntity.KeyJson}' 失败: 反序列化结果为 null");
-                                    continue;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.LogWarning($"反序列化实体 '{serializedEntity.KeyJson}' 失败: {ex.Message}");
-                                continue;
-                            }
-                        }
-
-                        var tags = entityTagIndex.TryGetValue(serializedEntity.KeyJson, out var entityTags)
-                            ? entityTags
-                            : new();
-
-                        CustomDataCollection metadata =
-                            entityMetadataIndex.GetValueOrDefault(serializedEntity.KeyJson);
-
-                        entityRegistrations.Add((key, entity, serializedEntity.Category, tags, metadata));
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogWarning($"处理实体 '{serializedEntity.KeyJson}' 时发生异常: {ex.Message}");
-                    }
-                }
-
-                // 注册所有实体
-                foreach ((TKey key, T entity, string category, var tags, CustomDataCollection metadata) in
-                         entityRegistrations)
-                {
-                    // 检查entity是否为默认值
-                    bool hasEntity = !EqualityComparer<T>.Default.Equals(entity, default);
-
-                    if (!hasEntity)
-                    {
-                        OperationResult result = manager.RegisterCategoryAssociationOnly(key, category, tags, metadata);
-                        if (result.IsSuccess) continue;
-                        Debug.LogWarning($"注册分类关联失败: {result.ErrorMessage}");
-                    }
-                    else
-                    {
-                        // 正常注册实体
-                        var registration = manager.RegisterEntitySafeWithKey(entity, key, category);
-
-                        if (tags is { Count: > 0 }) registration.WithTags(tags.ToArray());
-
-                        if (metadata != null) registration.WithMetadata(metadata);
-
-                        OperationResult result = registration.Complete();
-
-                        if (!result.IsSuccess) Debug.LogWarning($"注册实体失败: {result.ErrorMessage}");
-                    }
-                }
-
-                return manager;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"JSON 反序列化失败: {ex.Message}", ex);
-            }
+            SerializableCategoryManagerState<T, TKey> dto = FromJson(json);
+            return FromSerializable(dto);
         }
+
+        #endregion
 
         #region 辅助类
 

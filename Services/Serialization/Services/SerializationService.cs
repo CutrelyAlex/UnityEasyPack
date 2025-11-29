@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using EasyPack.CustomData;
 using EasyPack.EmeCardSystem;
 using EasyPack.ENekoFramework;
 using UnityEngine;
@@ -9,18 +8,57 @@ using UnityEngine;
 namespace EasyPack.Serialization
 {
     /// <summary>
-    ///     统一序列化服务实现
+    ///     双泛型序列化器的内部包装器
+    /// </summary>
+    internal class SerializerWrapper<TOriginal, TSerializable> : ISerializerWrapper
+        where TSerializable : ISerializable
+    {
+        private readonly ITypeSerializer<TOriginal, TSerializable> _serializer;
+
+        public SerializerWrapper(ITypeSerializer<TOriginal, TSerializable> serializer) => _serializer = serializer;
+
+        public Type TargetType => typeof(TOriginal);
+
+        public string SerializeToJson(object obj) => _serializer.SerializeToJson((TOriginal)obj);
+
+        public object DeserializeFromJson(string json) => _serializer.DeserializeFromJson(json);
+    }
+
+    /// <summary>
+    ///     Unity JsonUtility 的通用包装器
+    ///     用于自动处理带有 [Serializable] 特性的类型
+    /// </summary>
+    internal class UnityJsonSerializerWrapper : ISerializerWrapper
+    {
+        public UnityJsonSerializerWrapper(Type targetType) => TargetType = targetType;
+
+        public Type TargetType { get; }
+
+        public string SerializeToJson(object obj)
+        {
+            return obj == null ? null : JsonUtility.ToJson(obj);
+        }
+
+        public object DeserializeFromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+            return JsonUtility.FromJson(json, TargetType);
+        }
+    }
+
+    /// <summary>
+    ///     统一序列化服务实现（仅支持双泛型接口）
     /// </summary>
     public class SerializationService : BaseService, ISerializationService
     {
-        private readonly Dictionary<Type, ITypeSerializer> _serializers = new();
+        private readonly Dictionary<Type, ISerializerWrapper> _serializers = new();
         private readonly object _lock = new();
 
         #region 生命周期管理
 
         /// <summary>
         ///     服务初始化时的钩子方法
-        ///     在此处注册所有系统的序列化器
+        ///     在此处注册所有未实现IService的系统的序列化器
         /// </summary>
         protected override async Task OnInitializeAsync()
         {
@@ -59,26 +97,7 @@ namespace EasyPack.Serialization
         {
             lock (_lock)
             {
-                _serializers[typeof(TOriginal)] = new TypeSerializerAdapter<TOriginal, TSerializable>(serializer);
-            }
-        }
-
-        /// <summary>
-        ///     注册单泛型类型序列化器（向后兼容）
-        /// </summary>
-        public void RegisterSerializer<T>(ITypeSerializer<T> serializer)
-        {
-            RegisterSerializer((ITypeSerializer)serializer);
-        }
-
-        /// <summary>
-        ///     注册非泛型类型序列化器
-        /// </summary>
-        public void RegisterSerializer(ITypeSerializer serializer)
-        {
-            lock (_lock)
-            {
-                _serializers[serializer.TargetType] = serializer;
+                _serializers[typeof(TOriginal)] = new SerializerWrapper<TOriginal, TSerializable>(serializer);
             }
         }
 
@@ -93,38 +112,22 @@ namespace EasyPack.Serialization
         public bool HasSerializer<T>() => HasSerializer(typeof(T));
 
         /// <summary>
-        ///     获取所有已注册的序列化器
+        ///     获取所有已注册的序列化器类型（用于调试）
         /// </summary>
-        public IReadOnlyDictionary<Type, ITypeSerializer> GetRegisteredSerializers()
+        public IReadOnlyCollection<Type> GetRegisteredTypes()
         {
             lock (_lock)
             {
-                return new Dictionary<Type, ITypeSerializer>(_serializers);
+                return new List<Type>(_serializers.Keys);
             }
         }
 
-        public SerializationStrategy GetSupportedStrategy(Type type)
-        {
-            lock (_lock)
-            {
-                if (_serializers.TryGetValue(type, out ITypeSerializer serializer)) return serializer.SupportedStrategy;
-            }
-
-            throw new SerializationException(
-                $"未找到类型的序列化器: {type.Name}",
-                type,
-                SerializationErrorCode.NoSerializerFound
-            );
-        }
-
-        public SerializationStrategy GetSupportedStrategy<T>() => GetSupportedStrategy(typeof(T));
-
-        private ITypeSerializer GetSerializer(Type type)
+        private ISerializerWrapper GetSerializer(Type type)
         {
             lock (_lock)
             {
                 // 1. 首先尝试精确匹配
-                if (_serializers.TryGetValue(type, out ITypeSerializer serializer)) return serializer;
+                if (_serializers.TryGetValue(type, out ISerializerWrapper serializer)) return serializer;
 
                 // 2. 如果精确匹配失败，尝试查找基类的序列化器
                 Type currentType = type.BaseType;
@@ -143,17 +146,18 @@ namespace EasyPack.Serialization
                 }
 
                 // 4. 如果没有注册的序列化器，检查是否有 [Serializable] 特性
+                //    自动使用 Unity JsonUtility 进行序列化
                 if (type.GetCustomAttributes(typeof(SerializableAttribute), true).Length > 0)
                 {
-                    // 创建并缓存一个 Unity JsonUtility 序列化器
-                    var unitySerializer = new UnityJsonSerializer(type);
+                    var unitySerializer = new UnityJsonSerializerWrapper(type);
                     _serializers[type] = unitySerializer;
+                    Debug.Log($"[SerializationService] 自动创建 Unity JsonUtility 序列化器: {type.Name}");
                     return unitySerializer;
                 }
             }
 
             throw new SerializationException(
-                $"未注册类型的序列化器: {type.Name}. 请先注册序列化器或为类型添加 [Serializable] 特性。",
+                $"未注册类型的序列化器: {type.Name}. 请先使用 RegisterSerializer<TOriginal, TSerializable> 注册序列化器，或为类型添加 [Serializable] 特性。",
                 type,
                 SerializationErrorCode.NoSerializerFound
             );
@@ -169,16 +173,7 @@ namespace EasyPack.Serialization
         {
             type ??= obj.GetType();
 
-            ITypeSerializer serializer = GetSerializer(type);
-
-            if (serializer.SupportedStrategy != SerializationStrategy.Json)
-            {
-                throw new SerializationException(
-                    $"类型 {type.Name} 的序列化器不支持 JSON 策略",
-                    type,
-                    SerializationErrorCode.UnsupportedStrategy
-                );
-            }
+            ISerializerWrapper serializer = GetSerializer(type);
 
             try
             {
@@ -210,20 +205,11 @@ namespace EasyPack.Serialization
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
 
-            ITypeSerializer serializer = GetSerializer(type);
-
-            if (serializer.SupportedStrategy != SerializationStrategy.Json)
-            {
-                throw new SerializationException(
-                    $"类型 {type.Name} 的序列化器不支持 JSON 策略",
-                    type,
-                    SerializationErrorCode.UnsupportedStrategy
-                );
-            }
+            ISerializerWrapper serializer = GetSerializer(type);
 
             try
             {
-                object result = serializer.DeserializeFromJson(json, type);
+                object result = serializer.DeserializeFromJson(json);
                 return result;
             }
             catch (SerializationException)
@@ -243,189 +229,7 @@ namespace EasyPack.Serialization
 
         #endregion
 
-        #region CustomData 序列化
-
-        public CustomDataCollection SerializeToCustomData<T>(T obj) => SerializeToCustomData(obj, typeof(T));
-
-        public CustomDataCollection SerializeToCustomData(object obj, Type type)
-        {
-            type ??= obj.GetType();
-
-            ITypeSerializer serializer = GetSerializer(type);
-
-            if (serializer.SupportedStrategy != SerializationStrategy.CustomDataEntry)
-            {
-                throw new SerializationException(
-                    $"类型 {type.Name} 的序列化器不支持 CustomDataEntry 策略",
-                    type,
-                    SerializationErrorCode.UnsupportedStrategy
-                );
-            }
-
-            try
-            {
-                CustomDataCollection entries = serializer.SerializeToCustomData(obj);
-                Debug.Log($"[SerializationService] 已将 {type.Name} 序列化为 CustomData（{entries?.Count ?? 0} 条目）");
-                return entries ?? new CustomDataCollection();
-            }
-            catch (SerializationException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new SerializationException(
-                    $"序列化类型 {type.Name} 到 CustomData 失败: {ex.Message}",
-                    type,
-                    SerializationErrorCode.SerializationFailed,
-                    ex
-                );
-            }
-        }
-
-        public T DeserializeFromCustomData<T>(CustomDataCollection entries)
-        {
-            object result = DeserializeFromCustomData(entries, typeof(T));
-            return result != null ? (T)result : default;
-        }
-
-        public object DeserializeFromCustomData(CustomDataCollection entries, Type type)
-        {
-            if (type == null) throw new ArgumentNullException(nameof(type));
-
-            ITypeSerializer serializer = GetSerializer(type);
-
-            if (serializer.SupportedStrategy != SerializationStrategy.CustomDataEntry)
-            {
-                throw new SerializationException(
-                    $"类型 {type.Name} 的序列化器不支持 CustomDataEntry 策略",
-                    type,
-                    SerializationErrorCode.UnsupportedStrategy
-                );
-            }
-
-            try
-            {
-                object result = serializer.DeserializeFromCustomData(entries, type);
-                Debug.Log($"[SerializationService] 已从 CustomData 反序列化 {type.Name}");
-                return result;
-            }
-            catch (SerializationException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new SerializationException(
-                    $"从 CustomData 反序列化类型 {type.Name} 失败: {ex.Message}",
-                    type,
-                    SerializationErrorCode.DeserializationFailed,
-                    ex
-                );
-            }
-        }
-
-        #endregion
-
-        #region Binary 序列化
-
-        public byte[] SerializeToBinary<T>(T obj) => SerializeToBinary(obj, typeof(T));
-
-        public byte[] SerializeToBinary(object obj, Type type)
-        {
-            type ??= obj.GetType();
-
-            ITypeSerializer serializer = GetSerializer(type);
-
-            if (serializer.SupportedStrategy != SerializationStrategy.Binary)
-            {
-                throw new SerializationException(
-                    $"类型 {type.Name} 的序列化器不支持 Binary 策略",
-                    type,
-                    SerializationErrorCode.UnsupportedStrategy
-                );
-            }
-
-            try
-            {
-                byte[] data = serializer.SerializeToBinary(obj);
-                Debug.Log($"[SerializationService] 已将 {type.Name} 序列化为二进制（{data?.Length ?? 0} 字节）");
-                return data;
-            }
-            catch (SerializationException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new SerializationException(
-                    $"序列化类型 {type.Name} 到 Binary 失败: {ex.Message}",
-                    type,
-                    SerializationErrorCode.SerializationFailed,
-                    ex
-                );
-            }
-        }
-
-        public T DeserializeFromBinary<T>(byte[] data)
-        {
-            object result = DeserializeFromBinary(data, typeof(T));
-            return result != null ? (T)result : default;
-        }
-
-        public object DeserializeFromBinary(byte[] data, Type type)
-        {
-            if (type == null) throw new ArgumentNullException(nameof(type));
-
-            ITypeSerializer serializer = GetSerializer(type);
-
-            if (serializer.SupportedStrategy != SerializationStrategy.Binary)
-            {
-                throw new SerializationException(
-                    $"类型 {type.Name} 的序列化器不支持 Binary 策略",
-                    type,
-                    SerializationErrorCode.UnsupportedStrategy
-                );
-            }
-
-            try
-            {
-                object result = serializer.DeserializeFromBinary(data, type);
-                Debug.Log($"[SerializationService] 已从二进制数据反序列化 {type.Name}");
-                return result;
-            }
-            catch (SerializationException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new SerializationException(
-                    $"从 Binary 反序列化类型 {type.Name} 失败: {ex.Message}",
-                    type,
-                    SerializationErrorCode.DeserializationFailed,
-                    ex
-                );
-            }
-        }
-
-        #endregion
-
         #region 调试和工具方法
-
-        public Dictionary<Type, SerializationStrategy> GetAllRegisteredSerializers()
-        {
-            lock (_lock)
-            {
-                var result = new Dictionary<Type, SerializationStrategy>();
-                foreach (var kvp in _serializers)
-                {
-                    result[kvp.Key] = kvp.Value.SupportedStrategy;
-                }
-
-                return result;
-            }
-        }
 
         public void ClearAllSerializers()
         {

@@ -8,7 +8,7 @@ namespace EasyPack.InventorySystem
     /// <summary>
     ///     GridContainer 序列化器
     /// </summary>
-    public class GridContainerJsonSerializer : JsonSerializerBase<GridContainer>
+    public class GridContainerJsonSerializer : ITypeSerializer<GridContainer, SerializedContainer>
     {
         private readonly ISerializationService _serializationService;
 
@@ -20,20 +20,10 @@ namespace EasyPack.InventorySystem
             _serializationService =
                 serializationService ?? throw new ArgumentNullException(nameof(serializationService));
 
-        public override string SerializeToJson(GridContainer container)
+        public SerializedContainer ToSerializable(GridContainer container)
         {
-            SerializedContainer dto = ContainerToDto(container);
-            return JsonUtility.ToJson(dto, true);
-        }
+            if (container == null) return null;
 
-        public override GridContainer DeserializeFromJson(string json)
-        {
-            var dto = JsonUtility.FromJson<SerializedContainer>(json);
-            return DtoToGridContainer(dto);
-        }
-
-        private SerializedContainer ContainerToDto(GridContainer container)
-        {
             var dto = new SerializedContainer
             {
                 ContainerKind = "Grid",
@@ -83,8 +73,10 @@ namespace EasyPack.InventorySystem
             return dto;
         }
 
-        private GridContainer DtoToGridContainer(SerializedContainer dto)
+        public GridContainer FromSerializable(SerializedContainer dto)
         {
+            if (dto == null) return null;
+
             // 从Grid向量中提取宽度和高度
             int gridWidth = (int)dto.Grid.x;
             int gridHeight = (int)dto.Grid.y;
@@ -121,6 +113,26 @@ namespace EasyPack.InventorySystem
             }
 
             return container;
+        }
+
+        public string ToJson(SerializedContainer dto) => dto == null ? null : JsonUtility.ToJson(dto, true);
+
+        public SerializedContainer FromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+            return JsonUtility.FromJson<SerializedContainer>(json);
+        }
+
+        public string SerializeToJson(GridContainer container)
+        {
+            SerializedContainer dto = ToSerializable(container);
+            return ToJson(dto);
+        }
+
+        public GridContainer DeserializeFromJson(string json)
+        {
+            SerializedContainer dto = FromJson(json);
+            return FromSerializable(dto);
         }
     }
 }

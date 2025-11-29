@@ -45,13 +45,13 @@ namespace EasyPack.InventorySystem
     /// <summary>
     ///     GridItem 序列化器
     /// </summary>
-    public class GridItemJsonSerializer : JsonSerializerBase<GridItem>
+    public class GridItemJsonSerializer : ITypeSerializer<GridItem, SerializedGridItem>
     {
-        public override string SerializeToJson(GridItem item)
+        public SerializedGridItem ToSerializable(GridItem item)
         {
             if (item == null) return null;
 
-            var dto = new SerializedGridItem
+            return new SerializedGridItem
             {
                 ID = item.ID,
                 Name = item.Name,
@@ -73,25 +73,10 @@ namespace EasyPack.InventorySystem
                 CanRotate = item.CanRotate,
                 Rotation = (int)item.Rotation,
             };
-
-            return JsonUtility.ToJson(dto, true);
         }
 
-        public override GridItem DeserializeFromJson(string json)
+        public GridItem FromSerializable(SerializedGridItem dto)
         {
-            if (string.IsNullOrEmpty(json)) return null;
-
-            SerializedGridItem dto;
-            try
-            {
-                dto = JsonUtility.FromJson<SerializedGridItem>(json);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[GridItemJsonSerializer] 反序列化失败: {e.Message}");
-                return null;
-            }
-
             if (dto == null) return null;
 
             var item = new GridItem
@@ -125,6 +110,34 @@ namespace EasyPack.InventorySystem
             }
 
             return item;
+        }
+
+        public string ToJson(SerializedGridItem dto) => dto == null ? null : JsonUtility.ToJson(dto, true);
+
+        public SerializedGridItem FromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+            try
+            {
+                return JsonUtility.FromJson<SerializedGridItem>(json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[GridItemJsonSerializer] 反序列化失败: {e.Message}");
+                return null;
+            }
+        }
+
+        public string SerializeToJson(GridItem item)
+        {
+            SerializedGridItem dto = ToSerializable(item);
+            return ToJson(dto);
+        }
+
+        public GridItem DeserializeFromJson(string json)
+        {
+            SerializedGridItem dto = FromJson(json);
+            return FromSerializable(dto);
         }
     }
 }

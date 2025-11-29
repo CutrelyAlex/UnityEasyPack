@@ -30,55 +30,53 @@ namespace EasyPack.GamePropertySystem
 
     /// <summary>
     ///     GameProperty 的 JSON 序列化器
+    ///     实现双泛型接口，将 GameProperty 与 SerializableGameProperty DTO 互转
     ///     序列化属性的 ID、基础值和修饰符列表，不包括依赖关系
     /// </summary>
-    public class GamePropertyJsonSerializer : JsonSerializerBase<GameProperty>
+    public class GamePropertyJsonSerializer : ITypeSerializer<GameProperty, SerializableGameProperty>
     {
         private readonly ModifierSerializer _modifierSerializer = new();
 
         /// <summary>
-        ///     将 GameProperty 对象序列化为 JSON 字符串
+        ///     将 GameProperty 对象转换为可序列化的 DTO
         /// </summary>
-        /// <param name="gameProperty">要序列化的 GameProperty 对象</param>
-        /// <returns>JSON 字符串，如果对象为 null 则返回 null</returns>
-        public override string SerializeToJson(GameProperty gameProperty)
+        /// <param name="obj">GameProperty 对象</param>
+        /// <returns>SerializableGameProperty DTO</returns>
+        public SerializableGameProperty ToSerializable(GameProperty obj)
         {
-            if (gameProperty == null) return null;
+            if (obj == null) return null;
 
             var modifiersList = new List<SerializableModifier>();
 
-            foreach (IModifier modifier in gameProperty.Modifiers)
+            foreach (IModifier modifier in obj.Modifiers)
             {
                 SerializableModifier serMod = _modifierSerializer.ToSerializable(modifier);
                 if (serMod != null) modifiersList.Add(serMod);
             }
 
-            var data = new SerializableGameProperty
+            return new SerializableGameProperty
             {
-                ID = gameProperty.ID, BaseValue = gameProperty.GetBaseValue(), Modifiers = modifiersList.ToArray(),
+                ID = obj.ID, 
+                BaseValue = obj.GetBaseValue(), 
+                Modifiers = modifiersList.ToArray(),
             };
-
-            return JsonUtility.ToJson(data);
         }
 
         /// <summary>
-        ///     从 JSON 字符串反序列化为 GameProperty 对象
+        ///     从可序列化 DTO 转换回 GameProperty 对象
         /// </summary>
-        /// <param name="json">JSON 字符串</param>
-        /// <returns>反序列化的 GameProperty 对象，如果 JSON 无效则返回 null</returns>
-        public override GameProperty DeserializeFromJson(string json)
+        /// <param name="dto">SerializableGameProperty DTO</param>
+        /// <returns>GameProperty 对象</returns>
+        public GameProperty FromSerializable(SerializableGameProperty dto)
         {
-            if (string.IsNullOrEmpty(json)) return null;
+            if (dto == null) return null;
 
-            var data = JsonUtility.FromJson<SerializableGameProperty>(json);
-            if (data == null) return null;
-
-            var property = new GameProperty(data.ID, data.BaseValue);
+            var property = new GameProperty(dto.ID, dto.BaseValue);
 
             // 使用 ModifierSerializer 还原所有修饰器
-            if (data.Modifiers != null)
+            if (dto.Modifiers != null)
             {
-                foreach (SerializableModifier serMod in data.Modifiers)
+                foreach (SerializableModifier serMod in dto.Modifiers)
                 {
                     string modifierJson = JsonUtility.ToJson(serMod);
                     IModifier modifier = _modifierSerializer.DeserializeFromJson(modifierJson);
@@ -87,6 +85,42 @@ namespace EasyPack.GamePropertySystem
             }
 
             return property;
+        }
+
+        /// <summary>
+        ///     将 DTO 序列化为 JSON 字符串
+        /// </summary>
+        public string ToJson(SerializableGameProperty dto) => dto == null ? null : JsonUtility.ToJson(dto);
+
+        /// <summary>
+        ///     从 JSON 字符串反序列化为 DTO
+        /// </summary>
+        public SerializableGameProperty FromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+            return JsonUtility.FromJson<SerializableGameProperty>(json);
+        }
+
+        /// <summary>
+        ///     将 GameProperty 对象序列化为 JSON 字符串
+        /// </summary>
+        /// <param name="gameProperty">要序列化的 GameProperty 对象</param>
+        /// <returns>JSON 字符串，如果对象为 null 则返回 null</returns>
+        public string SerializeToJson(GameProperty gameProperty)
+        {
+            SerializableGameProperty dto = ToSerializable(gameProperty);
+            return ToJson(dto);
+        }
+
+        /// <summary>
+        ///     从 JSON 字符串反序列化为 GameProperty 对象
+        /// </summary>
+        /// <param name="json">JSON 字符串</param>
+        /// <returns>反序列化的 GameProperty 对象，如果 JSON 无效则返回 null</returns>
+        public GameProperty DeserializeFromJson(string json)
+        {
+            SerializableGameProperty dto = FromJson(json);
+            return FromSerializable(dto);
         }
     }
 }
