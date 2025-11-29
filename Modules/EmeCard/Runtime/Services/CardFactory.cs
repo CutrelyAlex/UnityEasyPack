@@ -29,12 +29,12 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     下一个可用的 UID，起始值 1001。
         /// </summary>
-        private static int _nextUID = 1001;
+        private static long _nextUID = 1001;
 
         /// <summary>
         ///     UID 分配上限
         /// </summary>
-        private const int MAX_UID = 999999;
+        private const long MAX_UID = long.MaxValue;
 
         public void Register(string id, Func<Card> ctor)
         {
@@ -66,9 +66,9 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <returns>分配的 UID，从 1001 开始。</returns>
         /// <exception cref="InvalidOperationException">当 UID 达到上限时抛出。</exception>
-        private static int AllocateUID()
+        private static long AllocateUID()
         {
-            int uid = Interlocked.Increment(ref _nextUID);
+            long uid = Interlocked.Increment(ref _nextUID);
             return uid > MAX_UID ? throw new InvalidOperationException($"无法分配 UID：已达到上限 {MAX_UID}。") : uid;
         }
 
@@ -100,7 +100,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     获取当前的 UID 计数器值。
         /// </summary>
-        public static int GetCurrentUID() => _nextUID;
+        public static long GetCurrentUID() => _nextUID;
 
         public Card Create(string id) => Create<Card>(id);
 

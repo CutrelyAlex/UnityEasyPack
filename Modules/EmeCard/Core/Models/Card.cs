@@ -90,7 +90,7 @@ namespace EasyPack.EmeCardSystem
         ///     唯一标识符：由 CardFactory 分配，全局唯一，线程安全。
         ///     未分配时默认为 -1。
         /// </summary>
-        public int UID { get; internal set; } = -1;
+        public long UID { get; internal set; } = -1;
 
         /// <summary>
         ///     实例索引：用于区分同一 ID 的多个实例（由CardEgnine在 AddCard 时分配，从 0 起）。
@@ -328,7 +328,7 @@ namespace EasyPack.EmeCardSystem
             child.Owner = this;
 
             // 子卡牌移动到虚空位置，并更新位置映射
-            Vector3 oldPosition = child.Position;
+            Vector3Int oldPosition = child.Position;
             child.Position = CardEngine.VOID_POSITION;
 
             if (Engine != null && child.UID >= 0)
