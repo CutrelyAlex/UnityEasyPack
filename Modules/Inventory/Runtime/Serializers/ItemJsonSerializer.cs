@@ -10,13 +10,12 @@ namespace EasyPack.InventorySystem
     ///     Item类型的JSON序列化器
     ///     直接使用 CustomDataEntry，无需中间转换
     /// </summary>
-    public class ItemJsonSerializer : JsonSerializerBase<Item>
+    public class ItemJsonSerializer : ITypeSerializer<Item, SerializedItem>
     {
-        public override string SerializeToJson(Item obj)
+        public SerializedItem ToSerializable(Item obj)
         {
             if (obj == null) return null;
-
-            var dto = new SerializedItem
+            return new SerializedItem
             {
                 ID = obj.ID,
                 Name = obj.Name,
@@ -33,27 +32,11 @@ namespace EasyPack.InventorySystem
                     ? new List<string>(obj.ContainerIds)
                     : null,
             };
-
-            return JsonUtility.ToJson(dto);
         }
 
-        public override Item DeserializeFromJson(string json)
+        public Item FromSerializable(SerializedItem dto)
         {
-            if (string.IsNullOrEmpty(json)) return null;
-
-            SerializedItem dto;
-            try
-            {
-                dto = JsonUtility.FromJson<SerializedItem>(json);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[ItemJsonSerializer] 反序列化失败: {e.Message}");
-                return null;
-            }
-
             if (dto == null) return null;
-
             var item = new Item
             {
                 ID = dto.ID,
@@ -65,21 +48,44 @@ namespace EasyPack.InventorySystem
                 MaxStackCount = dto.MaxStackCount,
                 IsContainerItem = dto.isContanierItem,
             };
-
-            // 反序列化 CustomData
             if (dto.CustomData is { Count: > 0 })
                 item.CustomData = new(dto.CustomData);
             else
                 item.CustomData = new();
-
-            // 反序列化容器ID列表
             if (dto.ContainerIds is { Count: > 0 })
             {
                 item.IsContainerItem = true;
                 item.ContainerIds = new(dto.ContainerIds);
             }
-
             return item;
+        }
+
+        public string ToJson(SerializedItem dto) => dto == null ? null : JsonUtility.ToJson(dto);
+
+        public SerializedItem FromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+            try
+            {
+                return JsonUtility.FromJson<SerializedItem>(json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[ItemJsonSerializer] 反序列化失败: {e.Message}");
+                return null;
+            }
+        }
+
+        public string SerializeToJson(Item obj)
+        {
+            SerializedItem dto = ToSerializable(obj);
+            return ToJson(dto);
+        }
+
+        public Item DeserializeFromJson(string json)
+        {
+            SerializedItem dto = FromJson(json);
+            return FromSerializable(dto);
         }
     }
 }

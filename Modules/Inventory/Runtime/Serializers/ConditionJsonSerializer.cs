@@ -8,7 +8,7 @@ namespace EasyPack.InventorySystem
     /// <summary>
     ///     条件的 JSON 序列化器
     /// </summary>
-    public class ConditionJsonSerializer : JsonSerializerBase<IItemCondition>
+    public class ConditionJsonSerializer : ITypeSerializer<IItemCondition, SerializedCondition>
     {
         /// <summary>
         ///     Kind 到条件类型的映射表
@@ -23,11 +23,9 @@ namespace EasyPack.InventorySystem
         };
 
         /// <summary>
-        ///     将条件对象序列化为 JSON 字符串
+        ///     将条件对象转换为可序列化的 DTO
         /// </summary>
-        /// <param name="condition">要序列化的条件对象</param>
-        /// <returns>JSON 字符串，如果条件为 null 或不支持序列化则返回 null</returns>
-        public override string SerializeToJson(IItemCondition condition)
+        public SerializedCondition ToSerializable(IItemCondition condition)
         {
             if (condition == null)
                 return null;
@@ -39,31 +37,14 @@ namespace EasyPack.InventorySystem
                 return null;
             }
 
-            SerializedCondition dto = serializableCondition.ToDto();
-            return JsonUtility.ToJson(dto);
+            return serializableCondition.ToDto();
         }
 
         /// <summary>
-        ///     从 JSON 字符串反序列化为条件对象
+        ///     从 DTO 转换回条件对象
         /// </summary>
-        /// <param name="json">JSON 字符串</param>
-        /// <returns>反序列化的条件对象，如果 JSON 无效或类型未注册则返回 null</returns>
-        public override IItemCondition DeserializeFromJson(string json)
+        public IItemCondition FromSerializable(SerializedCondition dto)
         {
-            if (string.IsNullOrEmpty(json))
-                return null;
-
-            SerializedCondition dto;
-            try
-            {
-                dto = JsonUtility.FromJson<SerializedCondition>(json);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[ConditionJsonSerializer] JSON 解析失败: {ex.Message}");
-                return null;
-            }
-
             if (dto == null || string.IsNullOrEmpty(dto.Kind))
             {
                 Debug.LogWarning("[ConditionJsonSerializer] 无效的条件 DTO");
@@ -93,6 +74,48 @@ namespace EasyPack.InventorySystem
                 Debug.LogError($"[ConditionJsonSerializer] 反序列化条件失败 ({dto.Kind}): {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        ///     将 DTO 序列化为 JSON 字符串
+        /// </summary>
+        public string ToJson(SerializedCondition dto) => dto == null ? null : JsonUtility.ToJson(dto);
+
+        /// <summary>
+        ///     从 JSON 字符串反序列化为 DTO
+        /// </summary>
+        public SerializedCondition FromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json))
+                return null;
+
+            try
+            {
+                return JsonUtility.FromJson<SerializedCondition>(json);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ConditionJsonSerializer] JSON 解析失败: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        ///     将条件对象序列化为 JSON 字符串
+        /// </summary>
+        public string SerializeToJson(IItemCondition condition)
+        {
+            SerializedCondition dto = ToSerializable(condition);
+            return ToJson(dto);
+        }
+
+        /// <summary>
+        ///     从 JSON 字符串反序列化为条件对象
+        /// </summary>
+        public IItemCondition DeserializeFromJson(string json)
+        {
+            SerializedCondition dto = FromJson(json);
+            return FromSerializable(dto);
         }
 
         /// <summary>

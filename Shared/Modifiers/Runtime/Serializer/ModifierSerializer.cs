@@ -8,7 +8,7 @@ namespace EasyPack.Modifiers
     /// <summary>
     ///     IModifier 的 JSON 序列化器
     /// </summary>
-    public class ModifierSerializer : JsonSerializerBase<IModifier>
+    public class ModifierSerializer : ITypeSerializer<IModifier, SerializableModifier>
     {
         /// <summary>
         ///     将 IModifier 转换为可序列化的 DTO 对象
@@ -39,17 +39,8 @@ namespace EasyPack.Modifiers
             return serializable;
         }
 
-        public override string SerializeToJson(IModifier obj)
+        public IModifier FromSerializable(SerializableModifier serializable)
         {
-            SerializableModifier serializable = ToSerializable(obj);
-            return serializable == null ? null : JsonUtility.ToJson(serializable);
-        }
-
-        public override IModifier DeserializeFromJson(string json)
-        {
-            if (string.IsNullOrEmpty(json)) return null;
-
-            var serializable = JsonUtility.FromJson<SerializableModifier>(json);
             if (serializable == null) return null;
 
             if (serializable.IsRangeModifier)
@@ -67,78 +58,124 @@ namespace EasyPack.Modifiers
                 serializable.FloatValue
             );
         }
+
+        public string ToJson(SerializableModifier dto) => dto == null ? null : JsonUtility.ToJson(dto);
+
+        public SerializableModifier FromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+            return JsonUtility.FromJson<SerializableModifier>(json);
+        }
+
+        public string SerializeToJson(IModifier obj)
+        {
+            SerializableModifier serializable = ToSerializable(obj);
+            return ToJson(serializable);
+        }
+
+        public IModifier DeserializeFromJson(string json)
+        {
+            SerializableModifier serializable = FromJson(json);
+            return FromSerializable(serializable);
+        }
     }
 
     /// <summary>
     ///     FloatModifier 的 JSON 序列化器
     /// </summary>
-    public class FloatModifierSerializer : JsonSerializerBase<FloatModifier>
+    public class FloatModifierSerializer : ITypeSerializer<FloatModifier, SerializableModifier>
     {
-        public override string SerializeToJson(FloatModifier obj)
+        public SerializableModifier ToSerializable(FloatModifier obj)
         {
             if (obj == null) return null;
-
-            var serializable = new SerializableModifier
+            return new SerializableModifier
             {
                 Type = obj.Type, Priority = obj.Priority, IsRangeModifier = false, FloatValue = obj.Value,
             };
-
-            return JsonUtility.ToJson(serializable);
         }
 
-        public override FloatModifier DeserializeFromJson(string json)
+        public FloatModifier FromSerializable(SerializableModifier serializable)
         {
-            if (string.IsNullOrEmpty(json)) return null;
-
-            var serializable = JsonUtility.FromJson<SerializableModifier>(json);
             if (serializable == null) return null;
-
             return new(
                 serializable.Type,
                 serializable.Priority,
                 serializable.FloatValue
             );
         }
+
+        public string ToJson(SerializableModifier dto) => dto == null ? null : JsonUtility.ToJson(dto);
+
+        public SerializableModifier FromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+            return JsonUtility.FromJson<SerializableModifier>(json);
+        }
+
+        public string SerializeToJson(FloatModifier obj)
+        {
+            SerializableModifier dto = ToSerializable(obj);
+            return ToJson(dto);
+        }
+
+        public FloatModifier DeserializeFromJson(string json)
+        {
+            SerializableModifier dto = FromJson(json);
+            return FromSerializable(dto);
+        }
     }
 
     /// <summary>
     ///     RangeModifier 的 JSON 序列化器
     /// </summary>
-    public class RangeModifierSerializer : JsonSerializerBase<RangeModifier>
+    public class RangeModifierSerializer : ITypeSerializer<RangeModifier, SerializableModifier>
     {
-        public override string SerializeToJson(RangeModifier obj)
+        public SerializableModifier ToSerializable(RangeModifier obj)
         {
             if (obj == null) return null;
-
-            var serializable = new SerializableModifier
+            return new SerializableModifier
             {
                 Type = obj.Type, Priority = obj.Priority, IsRangeModifier = true, RangeValue = obj.Value,
             };
-
-            return JsonUtility.ToJson(serializable);
         }
 
-        public override RangeModifier DeserializeFromJson(string json)
+        public RangeModifier FromSerializable(SerializableModifier serializable)
         {
-            if (string.IsNullOrEmpty(json)) return null;
-
-            var serializable = JsonUtility.FromJson<SerializableModifier>(json);
             if (serializable == null) return null;
-
             return new(
                 serializable.Type,
                 serializable.Priority,
                 serializable.RangeValue
             );
         }
+
+        public string ToJson(SerializableModifier dto) => dto == null ? null : JsonUtility.ToJson(dto);
+
+        public SerializableModifier FromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+            return JsonUtility.FromJson<SerializableModifier>(json);
+        }
+
+        public string SerializeToJson(RangeModifier obj)
+        {
+            SerializableModifier dto = ToSerializable(obj);
+            return ToJson(dto);
+        }
+
+        public RangeModifier DeserializeFromJson(string json)
+        {
+            SerializableModifier dto = FromJson(json);
+            return FromSerializable(dto);
+        }
     }
 
     /// <summary>
     ///     修饰器列表的 JSON 序列化器
     /// </summary>
-    public class ModifierListSerializer : JsonSerializerBase<List<IModifier>>
+    public class ModifierListSerializer : ITypeSerializer<List<IModifier>, ModifierListWrapper>
     {
-        public override string SerializeToJson(List<IModifier> obj)
+        public ModifierListWrapper ToSerializable(List<IModifier> obj)
         {
             if (obj == null || obj.Count == 0) return null;
 
@@ -164,14 +201,11 @@ namespace EasyPack.Modifiers
                 wrapper.Modifiers.Add(serializable);
             }
 
-            return JsonUtility.ToJson(wrapper);
+            return wrapper;
         }
 
-        public override List<IModifier> DeserializeFromJson(string json)
+        public List<IModifier> FromSerializable(ModifierListWrapper wrapper)
         {
-            if (string.IsNullOrEmpty(json)) return new();
-
-            var wrapper = JsonUtility.FromJson<ModifierListWrapper>(json);
             if (wrapper?.Modifiers == null) return new();
 
             var result = new List<IModifier>();
@@ -203,10 +237,33 @@ namespace EasyPack.Modifiers
             return result;
         }
 
-        [Serializable]
-        private class ModifierListWrapper
+        public string ToJson(ModifierListWrapper dto) => dto == null ? null : JsonUtility.ToJson(dto);
+
+        public ModifierListWrapper FromJson(string json)
         {
-            public List<SerializableModifier> Modifiers;
+            if (string.IsNullOrEmpty(json)) return null;
+            return JsonUtility.FromJson<ModifierListWrapper>(json);
         }
+
+        public string SerializeToJson(List<IModifier> obj)
+        {
+            ModifierListWrapper wrapper = ToSerializable(obj);
+            return ToJson(wrapper);
+        }
+
+        public List<IModifier> DeserializeFromJson(string json)
+        {
+            ModifierListWrapper wrapper = FromJson(json);
+            return FromSerializable(wrapper);
+        }
+    }
+
+    /// <summary>
+    ///     修饰器列表的包装器 DTO
+    /// </summary>
+    [Serializable]
+    public class ModifierListWrapper : ISerializable
+    {
+        public List<SerializableModifier> Modifiers;
     }
 }
