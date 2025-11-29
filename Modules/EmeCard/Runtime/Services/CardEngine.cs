@@ -24,7 +24,7 @@ namespace EasyPack.EmeCardSystem
         {
             _cardFactory = factory;
 
-            CategoryManager = new CategoryManager<Card, int>(card => card.UID);
+            CategoryManager = new CategoryManager<Card, long>(card => card.UID);
 
             PreCacheAllCardTemplates();
             InitializeTargetSelectorCache();
@@ -51,7 +51,7 @@ namespace EasyPack.EmeCardSystem
                     return false;
                 }
 
-                var serviceManager = categoryService.GetOrCreateManager<Card, int>(card => card.UID);
+                var serviceManager = categoryService.GetOrCreateManager<Card, long>(card => card.UID);
                 if (serviceManager != null)
                 {
                     // 如果本地 CategoryManager 中有数据，需要迁移
@@ -132,7 +132,7 @@ namespace EasyPack.EmeCardSystem
         ///     提供基于标签的 O(1) 查询和基于层级分类的 O(log n) 查询。
         ///     可以通过 InitializeCategoryServiceAsync 切换到 CategoryService 托管模式。
         /// </summary>
-        public ICategoryManager<Card, int> CategoryManager { get; private set; }
+        public ICategoryManager<Card, long> CategoryManager { get; private set; }
 
         /// <summary>
         ///     引擎全局策略
@@ -185,13 +185,13 @@ namespace EasyPack.EmeCardSystem
         private readonly Dictionary<string, List<CardRule>> _customRulesById = new();
 
         // UID->Card缓存，支持 O(1) UID 查询
-        private readonly Dictionary<int, Card> _cardsByUID = new();
+        private readonly Dictionary<long, Card> _cardsByUID = new();
 
         // 位置->Card映射（一个位置最多一个卡牌）
         private readonly Dictionary<Vector3Int, Card> _cardsByPosition = new();
 
-        // 位置->UID缓存
-        private readonly Dictionary<int, Vector3Int> _positionByUID = new();
+        // UID->位置缓存
+        private readonly Dictionary<long, Vector3Int> _positionByUID = new();
 
         // 全局效果池，跨事件收集效果，确保全局优先级排序
         private readonly EffectPool _globalEffectPool = new();
@@ -277,7 +277,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="uid">卡牌的唯一标识符。</param>
         /// <returns>找到的卡牌，或 null 如果未找到。</returns>
-        public Card GetCardByUID(int uid)
+        public Card GetCardByUID(long uid)
         {
             _cardsByUID.TryGetValue(uid, out Card card);
             return card;
@@ -331,7 +331,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="uid">卡牌的UID。</param>
         /// <returns>卡牌所在位置，如果未找到返回 VOID_POSITION。</returns>
-        public Vector3Int GetPositionByUID(int uid) =>
+        public Vector3Int GetPositionByUID(long uid) =>
             uid < 0 ? VOID_POSITION : _positionByUID.GetValueOrDefault(uid, VOID_POSITION);
 
         #endregion

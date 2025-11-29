@@ -151,7 +151,7 @@ namespace EasyPack.EmeCardSystem
         public CardRule CurrentRule { get; }
         
         /// <summary>分类管理器。</summary>
-        public ICategoryManager<Card, int> CategoryManager => Engine?.CategoryManager;
+        public ICategoryManager<Card, long> CategoryManager => Engine?.CategoryManager;
 
         /// <summary>
         ///     卡牌工厂注册接口（用于注册新卡牌类型）。
