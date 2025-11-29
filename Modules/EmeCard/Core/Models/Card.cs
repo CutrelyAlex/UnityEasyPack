@@ -383,7 +383,7 @@ namespace EasyPack.EmeCardSystem
         ///     分发一个卡牌事件到 <see cref="OnEvent" />。
         /// </summary>
         /// <param name="evt">事件载体（ICardEvent 接口）。</param>
-        private void RaiseEvent(ICardEvent evt)
+        private void RaiseEventInternal(ICardEvent evt)
         {
             OnEvent?.Invoke(this, evt);
         }
@@ -394,7 +394,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="deltaTime">时间步长（秒）。将作为事件 Data 传递。</param>
         public void Tick(float deltaTime)
         {
-            RaiseEvent(CardEventTypes.Tick.CreateEvent(deltaTime));
+            RaiseEventInternal(CardEventTypes.Tick.CreateEvent(deltaTime));
         }
 
         /// <summary>
@@ -403,7 +403,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="target">目标卡</param>
         public void Use(Card target = null)
         {
-            RaiseEvent(CardEventTypes.Use.CreateEvent(target));
+            RaiseEventInternal(CardEventTypes.Use.CreateEvent(target));
         }
 
         /// <summary>
@@ -412,7 +412,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
         public void RaiseEvent(string eventType)
         {
-            RaiseEvent(new CardEvent<Unit>(eventType, Unit.Default));
+            RaiseEventInternal(new CardEvent<Unit>(eventType, Unit.Default));
         }
 
         /// <summary>
@@ -423,7 +423,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="data">事件数据。</param>
         public void RaiseEvent<T>(string eventType, T data)
         {
-            RaiseEvent(new CardEvent<T>(eventType, data));
+            RaiseEventInternal(new CardEvent<T>(eventType, data));
         }
 
         /// <summary>
@@ -434,7 +434,35 @@ namespace EasyPack.EmeCardSystem
         /// <param name="data">事件数据。</param>
         public void RaiseEvent<T>(CardEventDefinition<T> eventDef, T data)
         {
-            RaiseEvent(eventDef.CreateEvent(data));
+            RaiseEventInternal(eventDef.CreateEvent(data));
+        }
+
+        /// <summary>
+        ///     触发自定义事件（直接传递事件对象）。
+        ///     <para>适用于使用 <see cref="CardEventDefinition{T}.CreateEvent"/> 创建的事件。</para>
+        /// </summary>
+        /// <typeparam name="T">事件数据类型。</typeparam>
+        /// <param name="evt">已创建的事件对象。</param>
+        /// <example>
+        ///     var evt = CardEventTypes.Tick.CreateEvent(0.016f);
+        ///     card.RaiseEvent(evt);
+        /// </example>
+        public void RaiseEvent<T>(CardEvent<T> evt)
+        {
+            RaiseEventInternal(evt);
+        }
+
+        /// <summary>
+        ///     触发自定义事件（直接传递 ICardEvent 接口）。
+        ///     <para>适用于需要动态构造或传递事件的场景。</para>
+        /// </summary>
+        /// <param name="evt">事件接口实例。</param>
+        public void RaiseEvent(ICardEvent evt)
+        {
+            if (evt != null)
+            {
+                RaiseEventInternal(evt);
+            }
         }
 
         #endregion
