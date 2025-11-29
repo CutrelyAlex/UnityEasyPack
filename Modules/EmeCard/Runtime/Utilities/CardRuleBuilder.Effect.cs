@@ -70,7 +70,7 @@ namespace EasyPack.EmeCardSystem
             float value,
             ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase,
             int? take = null) =>
-            DoModify(propertyName, value, mode, SelectionRoot.MatchRoot, TargetScope.Children,
+            DoModify(propertyName, value, mode, SelectionRoot.MatchRoot, TargetScope.Matched,
                 CardFilterMode.ByTag, tag, take);
 
         /// <summary>修改匹配结果的属性</summary>
