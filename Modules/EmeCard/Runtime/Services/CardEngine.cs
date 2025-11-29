@@ -188,10 +188,10 @@ namespace EasyPack.EmeCardSystem
         private readonly Dictionary<int, Card> _cardsByUID = new();
 
         // 位置->Card映射（一个位置最多一个卡牌）
-        private readonly Dictionary<Vector3, Card> _cardsByPosition = new();
+        private readonly Dictionary<Vector3Int, Card> _cardsByPosition = new();
 
         // 位置->UID缓存
-        private readonly Dictionary<int, Vector3> _positionByUID = new();
+        private readonly Dictionary<int, Vector3Int> _positionByUID = new();
 
         // 全局效果池，跨事件收集效果，确保全局优先级排序
         private readonly EffectPool _globalEffectPool = new();
@@ -320,7 +320,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="position">要查询的位置。</param>
         /// <returns>在该位置的卡牌，如果未找到返回null。</returns>
-        public Card GetCardByPosition(Vector3 position)
+        public Card GetCardByPosition(Vector3Int position)
         {
             _cardsByPosition.TryGetValue(position, out Card card);
             return card;
@@ -331,7 +331,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="uid">卡牌的UID。</param>
         /// <returns>卡牌所在位置，如果未找到返回 VOID_POSITION。</returns>
-        public Vector3 GetPositionByUID(int uid) =>
+        public Vector3Int GetPositionByUID(int uid) =>
             uid < 0 ? VOID_POSITION : _positionByUID.GetValueOrDefault(uid, VOID_POSITION);
 
         #endregion
@@ -411,7 +411,7 @@ namespace EasyPack.EmeCardSystem
 
             // 第五点五步: 注册位置映射
             // 子卡牌初始位置为虚空，主卡牌位置为自身 Position
-            Vector3 initialPosition = c.Owner == null ? c.Position : VOID_POSITION;
+            Vector3Int initialPosition = c.Owner == null ? c.Position : VOID_POSITION;
             _cardsByPosition[initialPosition] = c;
             _positionByUID[c.UID] = initialPosition;
 
@@ -519,7 +519,7 @@ namespace EasyPack.EmeCardSystem
                 newPosition = VOID_POSITION;
             }
 
-            Vector3 oldPosition = card.Position;
+            Vector3Int oldPosition = card.Position;
 
             // 如果位置相同，无需更新
             if (oldPosition == newPosition) return this;
@@ -546,7 +546,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="card">发生位置变化的卡牌。</param>
         /// <param name="oldPosition">旧位置。</param>
         /// <param name="newPosition">新位置。</param>
-        internal void NotifyCardPositionChanged(Card card, Vector3 oldPosition, Vector3 newPosition)
+        internal void NotifyCardPositionChanged(Card card, Vector3Int oldPosition, Vector3Int newPosition)
         {
             if (card == null) return;
 

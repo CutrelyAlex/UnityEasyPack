@@ -328,7 +328,7 @@ namespace EasyPack.EmeCardSystem
             child.Owner = this;
 
             // 子卡牌移动到虚空位置，并更新位置映射
-            Vector3 oldPosition = child.Position;
+            Vector3Int oldPosition = child.Position;
             child.Position = CardEngine.VOID_POSITION;
 
             if (Engine != null && child.UID >= 0)
