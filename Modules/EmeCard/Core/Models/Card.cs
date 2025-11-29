@@ -132,7 +132,7 @@ namespace EasyPack.EmeCardSystem
         ///     卡牌在世界中的位置。
         ///     初始值为 CardEngine.VOID_POSITION，表示虚空位置。
         /// </summary>
-        public Vector3 Position { get; set; } = CardEngine.VOID_POSITION;
+        public Vector3Int Position { get; set; } = CardEngine.VOID_POSITION;
 
         /// <summary>
         ///     数值属性。

@@ -48,7 +48,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     目标位置。
         /// </summary>
-        public Vector3 TargetPosition { get; set; } = Vector3.zero;
+        public Vector3Int TargetPosition { get; set; } = Vector3Int.zero;
 
         /// <summary>
         ///     执行位置转移（强制移动一个卡牌到目标位置）。

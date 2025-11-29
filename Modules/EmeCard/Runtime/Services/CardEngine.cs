@@ -16,7 +16,7 @@ namespace EasyPack.EmeCardSystem
         ///     虚空位置：子卡牌所在的位置（z=-1）。
         ///     子卡牌不占据实际地图位置，而是在虚空中。
         /// </summary>
-        public static readonly Vector3 VOID_POSITION = new(0, 0, -1);
+        public static readonly Vector3Int VOID_POSITION = new(0, 0, -1);
 
         #region 初始化
 
@@ -509,7 +509,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="card">要转移的卡牌。</param>
         /// <param name="newPosition">新位置（子卡牌将被强制转移到虚空）</param>
         /// <returns>当前引擎实例，支持链式调用。</returns>
-        public CardEngine MoveCardToPosition(Card card, Vector3 newPosition)
+        public CardEngine MoveCardToPosition(Card card, Vector3Int newPosition)
         {
             if (card == null) return this;
 
