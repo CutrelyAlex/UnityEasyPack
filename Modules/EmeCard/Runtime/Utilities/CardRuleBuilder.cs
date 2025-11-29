@@ -638,29 +638,4 @@ namespace EasyPack.EmeCardSystem
         /// <summary>构建规则</summary>
         public CardRule Build() => _rule;
     }
-
-    /// <summary>
-    ///     规则注册扩展方法
-    /// </summary>
-    public static class RuleRegistrationExtensions
-    {
-        /// <summary>注册规则</summary>
-        public static CardRule RegisterRule(this CardEngine engine, Action<CardRuleBuilder> configure)
-        {
-            var builder = new CardRuleBuilder();
-            configure?.Invoke(builder);
-            CardRule rule = builder.Build();
-            engine.RegisterRule(rule);
-            return rule;
-        }
-
-        /// <summary>注册规则集</summary>
-        public static void RegisterRule(this CardEngine engine, IReadOnlyList<Action<CardRuleBuilder>> configures)
-        {
-            foreach (var configure in configures)
-            {
-                RegisterRule(engine, configure);
-            }
-        }
-    }
 }
