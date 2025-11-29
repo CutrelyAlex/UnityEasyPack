@@ -128,7 +128,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="data">事件数据。</param>
         /// <param name="eventId">事件实例 ID（可选）。</param>
         /// <returns>强类型事件实例。</returns>
-        public CardEvent<TData> Create(TData data, string eventId = null) => new(EventType, data, eventId);
+        public CardEvent<TData> CreateEvent(TData data, string eventId = null) => new(EventType, data, eventId);
 
         /// <summary>
         ///     检查事件是否匹配此类型定义。

@@ -290,6 +290,7 @@ namespace EasyPack.BuffSystem
 
             // 先减少堆叠数
             buff.CurrentStacks -= stack;
+            buff.CurrentStacks = Mathf.Max(buff.CurrentStacks, 0);
 
             // 触发事件（无论是否会被移除）
             buff.OnReduceStack?.Invoke(buff);
@@ -861,7 +862,7 @@ namespace EasyPack.BuffSystem
         public void InvokeBuffModules(Buff buff, BuffCallBackType callBackType, string customCallbackName = "",
                                       params object[] parameters)
         {
-            if (buff.BuffData.BuffModules == null || buff.BuffData.BuffModules.Count == 0)
+            if (buff?.BuffData?.BuffModules?.Count == 0)
                 return;
 
             // 筛选需要执行的模块

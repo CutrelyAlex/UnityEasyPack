@@ -340,7 +340,7 @@ namespace EasyPack.EmeCardSystem
             if (intrinsic) _intrinsics.Add(child);
 
             // 通知子卡
-            child.RaiseEvent(CardEventTypes.AddedToOwner.Create(this));
+            child.RaiseEvent(CardEventTypes.AddedToOwner.CreateEvent(this));
             return this;
         }
 
@@ -362,7 +362,7 @@ namespace EasyPack.EmeCardSystem
             if (removed)
             {
                 _intrinsics.Remove(child);
-                child.RaiseEvent(CardEventTypes.RemovedFromOwner.Create(this));
+                child.RaiseEvent(CardEventTypes.RemovedFromOwner.CreateEvent(this));
                 child.Owner = null;
             }
 
@@ -394,7 +394,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="deltaTime">时间步长（秒）。将作为事件 Data 传递。</param>
         public void Tick(float deltaTime)
         {
-            RaiseEvent(CardEventTypes.Tick.Create(deltaTime));
+            RaiseEvent(CardEventTypes.Tick.CreateEvent(deltaTime));
         }
 
         /// <summary>
@@ -403,7 +403,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="target">目标卡</param>
         public void Use(Card target = null)
         {
-            RaiseEvent(CardEventTypes.Use.Create(target));
+            RaiseEvent(CardEventTypes.Use.CreateEvent(target));
         }
 
         /// <summary>
@@ -434,7 +434,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="data">事件数据。</param>
         public void RaiseEvent<T>(CardEventDefinition<T> eventDef, T data)
         {
-            RaiseEvent(eventDef.Create(data));
+            RaiseEvent(eventDef.CreateEvent(data));
         }
 
         #endregion
