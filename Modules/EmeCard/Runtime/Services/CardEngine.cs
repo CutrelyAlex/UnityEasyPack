@@ -34,6 +34,10 @@ namespace EasyPack.EmeCardSystem
             _rules[CardEventTypes.ADDED_TO_OWNER] = new();
             _rules[CardEventTypes.REMOVED_FROM_OWNER] = new();
             _rules[CardEventTypes.USE] = new();
+            
+            // 预注册 Pump 生命周期事件类型
+            _rules[CardEventTypes.PUMP_START] = new();
+            _rules[CardEventTypes.PUMP_END] = new();
         }
 
         /// <summary>
