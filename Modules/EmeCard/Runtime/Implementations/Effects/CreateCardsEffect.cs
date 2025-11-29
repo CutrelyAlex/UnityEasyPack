@@ -26,11 +26,12 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     执行产卡。
         /// </summary>
-        /// <param name="ctx">规则上下文（需包含 Factory 与 Container）。</param>
+        /// <param name="ctx">规则上下文（需包含 Engine 与 MatchRoot）。</param>
         /// <param name="matched">匹配结果（本效果不使用）。</param>
         public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
-            if (ctx.Factory == null || ctx.MatchRoot == null || CardIds == null || CardIds.Count == 0 ||
+            CardEngine engine = ctx.Engine;
+            if (engine == null || ctx.MatchRoot == null || CardIds == null || CardIds.Count == 0 ||
                 CountPerId <= 0)
                 return;
 
@@ -38,7 +39,6 @@ namespace EasyPack.EmeCardSystem
             {
                 for (int i = 0; i < CountPerId; i++)
                 {
-                    CardEngine engine = ctx.Factory.Owner;
                     Card card = engine.CreateCard(id);
                     if (card != null)
                     {

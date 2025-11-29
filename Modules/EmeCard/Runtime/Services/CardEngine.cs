@@ -20,12 +20,10 @@ namespace EasyPack.EmeCardSystem
 
         #region 初始化
 
-        public CardEngine(ICardFactory factory)
+        public CardEngine(CardFactory factory)
         {
-            CardFactory = factory;
-            factory.Owner = this;
+            _cardFactory = factory;
 
-            // TODO: 创建本地 CategoryManager（稍后可通过 InitializeCategoryServiceAsync 切换到服务托管）
             CategoryManager = new CategoryManager<Card, int>(card => card.UID);
 
             PreCacheAllCardTemplates();
@@ -104,13 +102,13 @@ namespace EasyPack.EmeCardSystem
             _registeredCardsTemplates.Clear();
 
             // 获取工厂中所有注册的卡牌ID
-            var cardIds = CardFactory?.GetAllCardIds();
+            var cardIds = _cardFactory?.GetAllCardIds();
             if (cardIds == null || cardIds.Count == 0) return;
 
             foreach (string id in cardIds)
             {
                 // 为每个ID创建一个副本
-                Card templateCard = CardFactory.Create(id);
+                Card templateCard = _cardFactory.Create(id);
                 if (templateCard != null) _registeredCardsTemplates.Add(templateCard);
             }
         }
@@ -119,7 +117,15 @@ namespace EasyPack.EmeCardSystem
 
         #region 基本属性
 
-        public ICardFactory CardFactory { get; set; }
+        /// <summary>
+        ///     卡牌工厂。
+        /// </summary>
+        private readonly ICardFactory _cardFactory;
+
+        /// <summary>
+        ///     卡牌工厂注册接口
+        /// </summary>
+        public ICardFactoryRegistry CardFactory => _cardFactory as ICardFactoryRegistry;
 
         /// <summary>
         ///     分类管理系统，用于统一管理卡牌的分类和标签。
@@ -205,7 +211,7 @@ namespace EasyPack.EmeCardSystem
             if (id == null) throw new ArgumentNullException(nameof(id));
 
             T card = null;
-            if (CardFactory != null) card = CardFactory.Create<T>(id);
+            if (_cardFactory != null) card = _cardFactory.Create<T>(id);
 
             if (card == null) return null;
 

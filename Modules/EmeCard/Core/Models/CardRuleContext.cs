@@ -23,7 +23,6 @@ namespace EasyPack.EmeCardSystem
         /// <param name="effectRoot">效果作用根节点（可选，默认为 eventEntry.EffectRoot 或 matchRoot）</param>
         /// <param name="engine">卡牌引擎引用</param>
         /// <param name="currentRule">当前执行的规则</param>
-        /// <param name="factory">产卡工厂（可选）</param>
         /// <param name="maxDepth">递归搜索最大深度</param>
         public CardRuleContext(
             IEventEntry eventEntry,
@@ -31,7 +30,6 @@ namespace EasyPack.EmeCardSystem
             Card effectRoot = null,
             CardEngine engine = null,
             CardRule currentRule = null,
-            ICardFactory factory = null,
             int maxDepth = 0)
         {
             EventEntry = eventEntry ?? throw new ArgumentNullException(nameof(eventEntry));
@@ -39,7 +37,6 @@ namespace EasyPack.EmeCardSystem
             EffectRoot = effectRoot ?? eventEntry.EffectRoot ?? matchRoot;
             Engine = engine;
             CurrentRule = currentRule;
-            Factory = factory ?? engine?.CardFactory;
             MaxDepth = maxDepth;
         }
 
@@ -49,10 +46,10 @@ namespace EasyPack.EmeCardSystem
         /// <param name="source">触发该规则的卡牌（事件源）</param>
         /// <param name="matchRoot">用于匹配与执行的容器</param>
         /// <param name="event">事件数据（ICardEvent）</param>
-        /// <param name="factory">产卡工厂</param>
+        /// <param name="engine">卡牌引擎</param>
         /// <param name="maxDepth">递归搜索最大深度</param>
-        public CardRuleContext(Card source, Card matchRoot, ICardEvent @event, ICardFactory factory, int maxDepth)
-            : this(source, matchRoot, matchRoot, @event, factory, maxDepth)
+        public CardRuleContext(Card source, Card matchRoot, ICardEvent @event, CardEngine engine, int maxDepth)
+            : this(source, matchRoot, matchRoot, @event, engine, maxDepth)
         {
         }
 
@@ -63,10 +60,10 @@ namespace EasyPack.EmeCardSystem
         /// <param name="matchRoot">用于匹配的容器根节点（由规则的 MatchRootHops 选择）</param>
         /// <param name="effectRoot">效果作用的根节点（由规则的 EffectRootHops 选择）</param>
         /// <param name="event">事件数据（ICardEvent）</param>
-        /// <param name="factory">产卡工厂</param>
+        /// <param name="engine">卡牌引擎</param>
         /// <param name="maxDepth">递归搜索最大深度</param>
-        public CardRuleContext(Card source, Card matchRoot, Card effectRoot, ICardEvent @event, ICardFactory factory, int maxDepth)
-            : this(source, matchRoot, effectRoot, @event, factory, maxDepth, null, null)
+        public CardRuleContext(Card source, Card matchRoot, Card effectRoot, ICardEvent @event, CardEngine engine, int maxDepth)
+            : this(source, matchRoot, effectRoot, @event, engine, maxDepth, null)
         {
         }
 
@@ -77,25 +74,22 @@ namespace EasyPack.EmeCardSystem
         /// <param name="matchRoot">用于匹配的容器根节点（由规则的 MatchRootHops 选择）</param>
         /// <param name="effectRoot">效果作用的根节点（由规则的 EffectRootHops 选择）</param>
         /// <param name="event">事件数据（ICardEvent）</param>
-        /// <param name="factory">产卡工厂</param>
+        /// <param name="engine">卡牌引擎</param>
         /// <param name="maxDepth">递归搜索最大深度</param>
-        /// <param name="engine">卡牌引擎引用（可选，默认从 source.Engine 获取）</param>
         /// <param name="currentRule">当前执行的规则（可选）</param>
         public CardRuleContext(
             Card source, 
             Card matchRoot, 
             Card effectRoot, 
             ICardEvent @event, 
-            ICardFactory factory, 
+            CardEngine engine, 
             int maxDepth,
-            CardEngine engine,
             CardRule currentRule)
         {
             // 创建 CardEventEntry 作为 IEventEntry
             EventEntry = new CardEventEntry(source, @event, effectRoot);
             MatchRoot = matchRoot;
             EffectRoot = effectRoot ?? matchRoot;
-            Factory = factory;
             MaxDepth = maxDepth;
             Engine = engine ?? source?.Engine;
             CurrentRule = currentRule;
@@ -159,8 +153,10 @@ namespace EasyPack.EmeCardSystem
         /// <summary>分类管理器。</summary>
         public ICategoryManager<Card, int> CategoryManager => Engine?.CategoryManager;
 
-        /// <summary>产卡工厂。</summary>
-        public ICardFactory Factory { get; }
+        /// <summary>
+        ///     卡牌工厂注册接口（用于注册新卡牌类型）。
+        /// </summary>
+        public ICardFactoryRegistry Factory => Engine?.CardFactory;
 
         /// <summary>
         ///     递归搜索最大深度（>0 生效，1 表示仅子级一层）。

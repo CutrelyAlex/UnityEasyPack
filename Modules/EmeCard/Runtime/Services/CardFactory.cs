@@ -4,17 +4,25 @@ using System.Threading;
 
 namespace EasyPack.EmeCardSystem
 {
-    // 按 ID 创建卡牌实例
-    public interface ICardFactory
+    // 按 ID 创建卡牌实例（仅供内部使用）
+    internal interface ICardFactory
     {
         Card Create(string id);
         T Create<T>(string id) where T : Card;
         IReadOnlyCollection<string> GetAllCardIds();
-
-        CardEngine Owner { get; set; }
     }
 
-    public sealed class CardFactory : ICardFactory
+    /// <summary>
+    ///     卡牌工厂公开接口
+    /// </summary>
+    public interface ICardFactoryRegistry
+    {
+        void Register(string id, Func<Card> ctor);
+        void Register(IReadOnlyDictionary<string, Func<Card>> productionList);
+        IReadOnlyCollection<string> GetAllCardIds();
+    }
+
+    public sealed class CardFactory : ICardFactory, ICardFactoryRegistry
     {
         private readonly Dictionary<string, Func<Card>> _constructors = new(StringComparer.Ordinal);
 
@@ -27,8 +35,6 @@ namespace EasyPack.EmeCardSystem
         ///     UID 分配上限
         /// </summary>
         private const int MAX_UID = 999999;
-
-        public CardEngine Owner { get; set; }
 
         public void Register(string id, Func<Card> ctor)
         {
@@ -48,6 +54,11 @@ namespace EasyPack.EmeCardSystem
         ///     获取所有已注册的卡牌ID
         /// </summary>
         public IReadOnlyCollection<string> GetAllCardIds() => _constructors.Keys;
+
+        /// <summary>
+        ///     获取所有已注册的卡牌ID（ICardFactory 接口实现）
+        /// </summary>
+        IReadOnlyCollection<string> ICardFactory.GetAllCardIds() => GetAllCardIds();
 
         /// <summary>
         ///     为新卡牌分配唯一的 UID。
@@ -106,5 +117,10 @@ namespace EasyPack.EmeCardSystem
 
             return null;
         }
+
+        // 显式接口实现 - 仅供 CardEngine 内部通过 ICardFactory 接口调用
+        Card ICardFactory.Create(string id) => Create<Card>(id);
+
+        T ICardFactory.Create<T>(string id) => Create<T>(id);
     }
 }

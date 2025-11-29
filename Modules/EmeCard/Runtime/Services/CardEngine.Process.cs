@@ -556,9 +556,8 @@ namespace EasyPack.EmeCardSystem
                 matchRoot,
                 effectRoot,
                 evt,
-                CardFactory,
-                rule.MaxDepth,
                 this,       // 传递当前引擎实例
+                rule.MaxDepth,
                 rule        // 传递当前规则
             );
         }

@@ -34,8 +34,8 @@ namespace EasyPack.EmeCardSystem
     ///         // 通过引擎触发新事件
     ///         ctx.Engine?.EnqueueEvent(source, new CardEvent&lt;int&gt;("Heal", 10));
     ///         
-    ///         // 使用工厂创建新卡牌
-    ///         var newCard = ctx.Factory?.Create("CardId");
+    ///         // 使用引擎创建新卡牌
+    ///         var newCard = ctx.Engine?.CreateCard("CardId");
     ///         if (newCard != null)
     ///         {
     ///             ctx.EffectRoot.AddChild(newCard);
