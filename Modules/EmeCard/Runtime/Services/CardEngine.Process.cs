@@ -12,6 +12,31 @@ namespace EasyPack.EmeCardSystem
     /// </summary>
     public sealed partial class CardEngine
     {
+        #region RuleUID 分配器
+
+        /// <summary>
+        ///     下一个可用的 RuleUID。
+        /// </summary>
+        private int _nextRuleUID;
+
+        /// <summary>
+        ///     RuleUID -> Rule 的快速查找映射。
+        /// </summary>
+        private readonly Dictionary<int, CardRule> _rulesByUID = new();
+
+        /// <summary>
+        ///     根据 RuleUID 获取规则。
+        /// </summary>
+        /// <param name="ruleUID">规则的唯一标识符。</param>
+        /// <returns>找到的规则，如果未找到返回 null。</returns>
+        public CardRule GetRuleByUID(int ruleUID)
+        {
+            _rulesByUID.TryGetValue(ruleUID, out CardRule rule);
+            return rule;
+        }
+
+        #endregion
+
         #region 对象池与缓存比较器
 
         [ThreadStatic] private static List<CardRule> t_rulesToProcess;
@@ -111,6 +136,7 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     注册一条规则到引擎。
+        ///     <para>自动分配唯一的 RuleUID 并建立索引。</para>
         /// </summary>
         /// <param name="rule">规则实例。</param>
         public void RegisterRule(CardRule rule)
@@ -118,6 +144,15 @@ namespace EasyPack.EmeCardSystem
             if (rule == null) throw new ArgumentNullException(nameof(rule));
             if (string.IsNullOrEmpty(rule.EventType))
                 throw new ArgumentException("Rule must have an EventType", nameof(rule));
+
+            // 分配 RuleUID（如果尚未分配）
+            if (rule.RuleUID < 0)
+            {
+                rule.RuleUID = _nextRuleUID++;
+            }
+
+            // 添加到 RuleUID 索引
+            _rulesByUID[rule.RuleUID] = rule;
 
             // 确保事件类型的规则列表存在
             if (!_rules.TryGetValue(rule.EventType, out var ruleList))
@@ -142,6 +177,39 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
+        ///     使用 CardRuleBuilder 注册规则。
+        /// </summary>
+        /// <param name="configure">规则配置委托。</param>
+        /// <returns>已注册的规则实例。</returns>
+        public CardRule RegisterRule(Action<CardRuleBuilder> configure)
+        {
+            if (configure == null) throw new ArgumentNullException(nameof(configure));
+
+            var builder = new CardRuleBuilder();
+            configure(builder);
+            CardRule rule = builder.Build();
+            RegisterRule(rule);
+            return rule;
+        }
+
+        /// <summary>
+        ///     批量注册规则集。
+        /// </summary>
+        /// <param name="configures">规则配置委托集合。</param>
+        public void RegisterRules(IReadOnlyList<Action<CardRuleBuilder>> configures)
+        {
+            if (configures == null) throw new ArgumentNullException(nameof(configures));
+
+            foreach (Action<CardRuleBuilder> configure in configures)
+            {
+                if (configure != null)
+                {
+                    RegisterRule(configure);
+                }
+            }
+        }
+
+        /// <summary>
         ///     从引擎中注销一条规则。
         /// </summary>
         /// <param name="rule">要注销的规则实例。</param>
@@ -161,6 +229,12 @@ namespace EasyPack.EmeCardSystem
                     customRuleList.Remove(rule);
                     if (customRuleList.Count == 0) _customRulesById.Remove(rule.CustomId);
                 }
+            }
+
+            // 从 RuleUID 索引移除
+            if (removed && rule.RuleUID >= 0)
+            {
+                _rulesByUID.Remove(rule.RuleUID);
             }
 
             return removed;

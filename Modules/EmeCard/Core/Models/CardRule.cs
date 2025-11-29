@@ -9,6 +9,12 @@ namespace EasyPack.EmeCardSystem
     public class CardRule
     {
         /// <summary>
+        ///     规则的唯一标识符（由 CardEngine 在注册时自动分配）。
+        ///     <para>未注册的规则 RuleUID 为 -1。</para>
+        /// </summary>
+        public int RuleUID { get; internal set; } = -1;
+
+        /// <summary>
         ///     事件触发类型（字符串标识符，如 "Tick"、"Use"、"Collision"）。
         ///     <para>
         ///         使用字符串，支持任意自定义事件类型。
