@@ -10,7 +10,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     选择起点（默认 Container）。
         /// </summary>
-        public SelectionRoot Root { get; set; } = SelectionRoot.Container;
+        public SelectionRoot Root { get; set; } = SelectionRoot.MatchRoot;
 
         /// <summary>
         ///     选择范围（默认 Matched）。

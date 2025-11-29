@@ -7,7 +7,7 @@ namespace EasyPack.EmeCardSystem
     public enum SelectionRoot
     {
         /// <summary>以上下文容器（ctx.Container）为根。</summary>
-        Container,
+        MatchRoot,
 
         /// <summary>以触发源（ctx.Source）为根。</summary>
         Source,

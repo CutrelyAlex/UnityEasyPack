@@ -41,7 +41,7 @@ namespace EasyPack.EmeCardSystem
     public sealed class CardsRequirement : IRuleRequirement
     {
         /// <summary>选择起点：Container 使用 ctx.MatchRoot，Source 使用 ctx.Source。</summary>
-        public SelectionRoot Root = SelectionRoot.Container;
+        public SelectionRoot Root = SelectionRoot.MatchRoot;
 
         /// <summary>选择范围（默认 Children）。</summary>
         public TargetScope Scope = TargetScope.Children;
@@ -70,7 +70,7 @@ namespace EasyPack.EmeCardSystem
             matched = new();
             if (ctx == null) return false;
 
-            Card root = Root == SelectionRoot.Container ? ctx.MatchRoot : ctx.Source;
+            Card root = Root == SelectionRoot.MatchRoot ? ctx.MatchRoot : ctx.Source;
             if (root == null) return false;
 
             var picks = TargetSelector.Select(

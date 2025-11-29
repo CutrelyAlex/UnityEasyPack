@@ -22,7 +22,7 @@ namespace EasyPack.EmeCardSystem
         ///     <para>Container = 触发容器（规则所在的容器）</para>
         ///     <para>Source = 触发源卡牌（触发规则的卡牌本身）</para>
         /// </summary>
-        public SelectionRoot Root { get; set; } = SelectionRoot.Container;
+        public SelectionRoot Root { get; set; } = SelectionRoot.MatchRoot;
 
         /// <summary>
         ///     选择范围：决定在哪个层级查找目标卡牌。

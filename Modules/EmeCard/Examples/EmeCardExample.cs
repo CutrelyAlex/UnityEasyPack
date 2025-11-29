@@ -151,8 +151,8 @@ namespace EasyPack.EmeCardSystem.Example
             _engine.RegisterRule(b => b
                 .OnUse()
                 .When(ctx => ctx.Source.HasTag("制作"))
-                .NeedTag("玩家")
-                .NeedId("树木")
+                .NeedMatchRootTag("玩家")
+                .NeedMatchRootId("树木")
                 .DoRemoveById("树木", 1)
                 .DoCreate("木棍")
                 .StopPropagation()
@@ -164,9 +164,9 @@ namespace EasyPack.EmeCardSystem.Example
             _engine.RegisterRule(b => b
                 .OnUse()
                 .When(ctx => ctx.Source.HasTag("制作"))
-                .NeedTag("玩家")
-                .NeedTag("木棍")
-                .NeedTag("火")
+                .NeedMatchRootTag("玩家")
+                .NeedMatchRootTag("木棍")
+                .NeedMatchRootTag("火")
                 .DoRemoveByTag("木棍", 1)
                 .DoRemoveByTag("火", 1)
                 .DoCreate("火把")
@@ -252,7 +252,7 @@ namespace EasyPack.EmeCardSystem.Example
             _engine.RegisterRule(b => b
                 .On("检查夜晚")
                 .MatchAtRoot()
-                .NeedTagRecursive("夜晚")
+                .NeedMatchRootTagRecursive("夜晚")
                 .DoInvoke((_, matched) => { Debug.Log($"[递归选择] 在整个世界树中发现了 {matched.Count} 个夜晚标记"); })
             );
 
@@ -276,8 +276,8 @@ namespace EasyPack.EmeCardSystem.Example
             // 注册火把燃烧规则
             _engine.RegisterRule(b => b
                 .OnTick()
-                .MatchAtSelf()
-                .NeedTag("火把")
+                .MatchRootAtSelf()
+                .NeedMatchRootTag("火把")
                 .DoModifyTag("火把", "Ticks", 1f)
                 .DoInvoke((ctx, _) =>
                 {
@@ -290,7 +290,7 @@ namespace EasyPack.EmeCardSystem.Example
             // 注册燃尽规则
             _engine.RegisterRule(b => b
                 .OnTick()
-                .MatchAtSelf()
+                .MatchRootAtSelf()
                 .WhenWithCards(ctx =>
                 {
                     var burnedTorches = ctx.MatchRoot.Children
