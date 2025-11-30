@@ -129,10 +129,47 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     卡牌在世界中的位置。
-        ///     初始值为 CardEngine.VOID_POSITION，表示虚空位置。
+        ///     卡牌自身存储的位置。
         /// </summary>
-        public Vector3Int Position { get; set; } = CardEngine.VOID_POSITION;
+        private Vector3Int _localPosition = CardEngine.VOID_POSITION;
+
+        /// <summary>
+        ///     卡牌在世界中的位置。
+        ///     - 根卡牌（无 Owner）：返回自身存储的位置
+        ///     - 子卡牌（有 Owner）：返回 (父卡牌.x, 父卡牌.y, -1)
+        /// </summary>
+        public Vector3Int Position
+        {
+            get
+            {
+                if (Owner != null && Owner.Position.z >= 0)
+                {
+                    Vector3Int ownerPos = Owner.Position;
+                    return new Vector3Int(ownerPos.x, ownerPos.y, -1);
+                }
+                return _localPosition;
+            }
+            set
+            {
+                if (Owner == null)
+                {
+                    _localPosition = value;
+                }
+                else
+                {
+                    _localPosition = value;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     本地存储的位置
+        /// </summary>
+        internal Vector3Int LocalPosition
+        {
+            get => _localPosition;
+            set => _localPosition = value;
+        }
 
         /// <summary>
         ///     数值属性。
@@ -311,7 +348,7 @@ namespace EasyPack.EmeCardSystem
         /// <remarks>
         ///     成功加入后，将向子卡派发 AddedToOwner 事件，
         ///     其事件数据为新持有者（<c>this</c>）。
-        ///     子卡的位置会自动设置为虚空位置 CardEngine.VOID_POSITION
+        ///     子卡的位置通过 Position 属性动态从父卡牌派生（x,y 继承父卡牌，z=-1）。
         /// </remarks>
         /// <exception cref="InvalidOperationException">如果 child 已经是当前卡牌的祖父卡牌（会形成循环引用）。</exception>
         public Card AddChild(Card child, bool intrinsic = false)
@@ -324,17 +361,20 @@ namespace EasyPack.EmeCardSystem
                 throw new InvalidOperationException($"添加卡牌 '{child.Id}' 将形成循环依赖。");
             }
 
+            // 保存旧位置用于通知引擎
+            Vector3Int oldPosition = child.Position;
+
             _children.Add(child);
             child.Owner = this;
 
-            // 子卡牌移动到虚空位置，并更新位置映射
-            Vector3Int oldPosition = child.Position;
-            child.Position = CardEngine.VOID_POSITION;
+            // 子卡牌位置现在通过 Position 属性动态派生，无需手动设置
+            // 新位置将自动变为 (this.Position.x, this.Position.y, -1)
+            Vector3Int newPosition = child.Position;  // 获取派生后的新位置
 
             if (Engine != null && child.UID >= 0)
             {
-                // 从旧位置移除
-                Engine.NotifyCardPositionChanged(child, oldPosition, CardEngine.VOID_POSITION);
+                // 通知引擎位置变化
+                Engine.NotifyCardPositionChanged(child, oldPosition, newPosition);
             }
 
             if (intrinsic) _intrinsics.Add(child);

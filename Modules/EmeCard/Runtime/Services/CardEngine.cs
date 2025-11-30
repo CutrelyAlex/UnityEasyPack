@@ -508,21 +508,23 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     转移卡牌到新位置，自动更新位置映射。
-        ///     子卡牌移动将被强制转移到虚空位置。
+        ///     子卡牌的位置通过 Card.Position 属性动态从父卡牌派生。
         /// </summary>
         /// <param name="card">要转移的卡牌。</param>
-        /// <param name="newPosition">新位置（子卡牌将被强制转移到虚空）</param>
+        /// <param name="newPosition">新位置</param>
         /// <returns>当前引擎实例，支持链式调用。</returns>
         public CardEngine MoveCardToPosition(Card card, Vector3Int newPosition)
         {
             if (card == null) return this;
 
-            // 子卡牌不能转移到实际位置，只能在虚空
-            if (card.Owner != null && card.Owner.Position != VOID_POSITION)
+            // 子卡牌的位置由父卡牌决定，这里只更新 LocalPosition 作为缓存
+            if (card.Owner != null && card.Owner.Position.z >= 0)
             {
-                newPosition = VOID_POSITION;
+                card.LocalPosition = new Vector3Int(newPosition.x, newPosition.y, -1);
+                return this;
             }
 
+            // 根卡牌更新位置和索引
             Vector3Int oldPosition = card.Position;
 
             // 如果位置相同，无需更新
@@ -537,7 +539,7 @@ namespace EasyPack.EmeCardSystem
             // 更新卡牌位置
             card.Position = newPosition;
 
-            // 添加到新位置
+            // 添加根卡牌索引到新位置
             _cardsByPosition[newPosition] = card;
             _positionByUID[card.UID] = newPosition;
 
