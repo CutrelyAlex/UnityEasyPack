@@ -149,6 +149,19 @@ namespace EasyPack.EmeCardSystem
             Need(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount, maxMatched,
                 maxDepth);
 
+        /// <summary>需要源卡或直接子卡中有指定标签的卡牌</summary>
+        public CardRuleBuilder NeedSourceOrChildNeedTag(string tag) => AddRequirement(new AnyRequirement()
+        {
+            Children =
+            {
+                new ConditionRequirement((context => context.Source.HasTag(tag))),
+                new CardsRequirement()
+                {
+                    Root = SelectionRoot.Source,FilterMode = CardFilterMode.ByTag, FilterValue = tag, MinCount = 1, Scope = TargetScope.Children
+                },
+            }
+        });
+
         #endregion
     }
 }
