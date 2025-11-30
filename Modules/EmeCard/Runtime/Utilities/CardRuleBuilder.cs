@@ -302,12 +302,14 @@ namespace EasyPack.EmeCardSystem
             TargetScope scope = TargetScope.Matched,
             CardFilterMode filter = CardFilterMode.None,
             string filterValue = null,
+            Func<CardRuleContext,float> valueFunc=null,
             int? take = null,
             int? maxDepth = null)
         {
             _rule.Effects.Add(new ModifyPropertyEffect
             {
                 PropertyName = propertyName,
+                ValueFunc = valueFunc,
                 Value = value,
                 ApplyMode = mode,
                 Root = root,

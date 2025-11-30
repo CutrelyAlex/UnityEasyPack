@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using EasyPack.GamePropertySystem;
@@ -32,7 +33,7 @@ namespace EasyPack.EmeCardSystem
         ///     过滤模式（默认 None）。
         /// </summary>
         public CardFilterMode Filter { get; set; } = CardFilterMode.None;
-
+        
         /// <summary>
         ///     目标过滤值
         /// </summary>
@@ -78,6 +79,11 @@ namespace EasyPack.EmeCardSystem
         public Mode ApplyMode { get; set; } = Mode.AddToBase;
 
         /// <summary>
+        ///     数值参数函数（优先选择）
+        /// </summary>
+        public Func<CardRuleContext, float> ValueFunc;
+        
+        /// <summary>
         ///     数值参数：用于 AddToBase/SetBase 模式。
         /// </summary>
         public float Value { get; set; } = 0f;
@@ -90,7 +96,7 @@ namespace EasyPack.EmeCardSystem
         public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
             IReadOnlyList<Card> targets;
-
+            
             if (Scope == TargetScope.Matched)
             {
                 // 使用匹配结果
@@ -123,6 +129,8 @@ namespace EasyPack.EmeCardSystem
                         ? properties
                         : properties.Where(p => p.ID == PropertyName);
 
+                Value = ValueFunc?.Invoke(ctx) ?? Value;
+                
                 foreach (GameProperty gp in propsToModify)
                 {
                     if (gp == null) continue;

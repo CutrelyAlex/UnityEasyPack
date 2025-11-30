@@ -69,16 +69,16 @@ namespace EasyPack.EmeCardSystem
             string propertyName,
             float value,
             ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase,
-            int? take = null) =>
-            DoModify(propertyName, value, mode, SelectionRoot.MatchRoot, TargetScope.Matched,
-                CardFilterMode.ByTag, tag, take);
+            Func<CardRuleContext,float> valueFunc=null,
+            int? take = null)=>DoModify(propertyName,value, mode, SelectionRoot.MatchRoot, TargetScope.Matched,
+                CardFilterMode.ByTag, tag,valueFunc, take);
 
         /// <summary>修改匹配结果的属性</summary>
         public CardRuleBuilder DoModifyMatched(
             string propertyName,
             float value,
             ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase) =>
-            DoModify(propertyName, value, mode);
+            DoModify(propertyName,value, mode);
 
         /// <summary>批量触发匹配卡牌的自定义事件</summary>
         public CardRuleBuilder DoBatchCustom(string eventId, Func<CardRuleContext, object> data = null,
