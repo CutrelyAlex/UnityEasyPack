@@ -272,6 +272,9 @@ namespace EasyPack.EmeCardSystem
 
             try
             {
+                // 阶段0: 处理 PumpStart 事件（在所有普通事件处理前）
+                ProcessPumpLifecycleEvent(CardEventTypes.PUMP_START);
+                
                 // 循环处理：事件收集 → 效果执行 → 检查新事件 → 重复
                 const int MaxIterations = 1000;
                 int iteration = 0;
@@ -306,10 +309,54 @@ namespace EasyPack.EmeCardSystem
                 {
                     Debug.LogWarning($"[CardEngine] Pump 达到最大迭代次数 {MaxIterations}，可能存在无限循环");
                 }
+                
+                // 阶段3: 处理 PumpEnd 事件（在所有普通事件处理后）
+                // 适用于延迟删除、资源清理等需要在所有事件处理完成后执行的逻辑
+                ProcessPumpLifecycleEvent(CardEventTypes.PUMP_END);
             }
             finally
             {
                 _isPumping = false;
+            }
+        }
+
+        /// <summary>
+        ///     处理 Pump 生命周期事件（PumpStart/PumpEnd）。
+        ///     <para>
+        ///         此方法遍历所有已注册卡牌，为每张卡牌触发指定的生命周期事件。
+        ///         处理流程与普通事件一致，包括规则匹配和效果执行。
+        ///     </para>
+        /// </summary>
+        /// <param name="eventType">生命周期事件类型（PUMP_START 或 PUMP_END）。</param>
+        private void ProcessPumpLifecycleEvent(string eventType)
+        {
+            // 检查是否有注册此事件类型的规则
+            if (!_rules.TryGetValue(eventType, out var ruleList) || ruleList.Count == 0)
+            {
+                return;
+            }
+            
+            // 创建生命周期事件
+            var lifecycleEvent = new CardEvent<object>(eventType, null, eventType);
+            
+            // 遍历所有已注册卡牌，为每张卡牌处理生命周期事件
+            var cardSnapshot = new List<Card>(_cardsByUID.Values);
+            
+            foreach (Card card in cardSnapshot)
+            {
+                // 跳过已被移除的卡牌（可能在处理过程中被删除）
+                if (!_cardsByUID.ContainsKey(card.UID))
+                {
+                    continue;
+                }
+                
+                ProcessCore(card, lifecycleEvent);
+            }
+            
+            // 如果启用效果池，刷新收集的效果
+            if (Policy.EnableEffectPool)
+            {
+                FlushEffectPool();
             }
         }
 
@@ -455,6 +502,13 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void Process(Card source, ICardEvent evt)
         {
+            // Pump 生命周期事件（PumpStart/PumpEnd）不在普通事件处理中执行
+            // 它们仅在 Pump 边界由 ProcessPumpLifecycleEvent 处理
+            if (CardEventTypes.IsPumpLifecycle(evt))
+            {
+                return;
+            }
+            
             ProcessCore(source, evt);
         }
 
@@ -466,9 +520,9 @@ namespace EasyPack.EmeCardSystem
             // 预计算规则数量以优化容量分配
             int typeRulesCount = 0;
             int idRulesCount = 0;
-            List<CardRule> typeRules = null;
             List<CardRule> idRules = null;
 
+            List<CardRule> typeRules;
             if (_rules.TryGetValue(evt.EventType, out typeRules))
                 typeRulesCount = typeRules.Count;
 

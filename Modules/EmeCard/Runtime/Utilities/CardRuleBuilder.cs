@@ -45,6 +45,20 @@ namespace EasyPack.EmeCardSystem
         /// <summary>监听 RemovedFromOwner 事件</summary>
         public CardRuleBuilder OnRemovedFromOwner() => On(CardEventTypes.REMOVED_FROM_OWNER);
 
+        /// <summary>
+        ///     监听 PumpStart 事件。
+        ///     <para>在 Pump 循环开始前触发，适用于需要在所有事件处理前执行的初始化逻辑。</para>
+        ///     <para>注意：此事件仅在 Pump 边界处理，不会在普通事件处理中触发。</para>
+        /// </summary>
+        public CardRuleBuilder OnPumpStart() => On(CardEventTypes.PUMP_START);
+
+        /// <summary>
+        ///     监听 PumpEnd 事件。
+        ///     <para>在 Pump 循环结束后触发，适用于延迟删除、资源清理等需要在所有事件处理完成后执行的逻辑。</para>
+        ///     <para>注意：此事件仅在 Pump 边界处理，不会在普通事件处理中触发。</para>
+        /// </summary>
+        public CardRuleBuilder OnPumpEnd() => On(CardEventTypes.PUMP_END);
+
         #region 根节点跳数配置
 
         /// <summary>

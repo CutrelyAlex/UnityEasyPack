@@ -30,6 +30,12 @@ namespace EasyPack.EmeCardSystem
         /// <summary>使用卡牌事件类型标识符</summary>
         public const string USE = "Use";
 
+        /// <summary>Pump 开始事件类型标识符（仅在 Pump 边界处理）</summary>
+        public const string PUMP_START = "PumpStart";
+
+        /// <summary>Pump 结束事件类型标识符（仅在 Pump 边界处理）</summary>
+        public const string PUMP_END = "PumpEnd";
+
         #endregion
 
         #region 系统事件
@@ -38,6 +44,24 @@ namespace EasyPack.EmeCardSystem
         ///     Tick 事件：携带时间增量（deltaTime）。
         /// </summary>
         public static readonly CardEventDefinition<float> Tick = new(TICK);
+
+        #endregion
+
+        #region Pump 生命周期事件
+
+        /// <summary>
+        ///     Pump 开始事件：在 Pump 循环开始前触发。
+        ///     <para>此事件仅在 Pump 边界处理，不会在普通事件处理中触发。</para>
+        ///     <para>适用于需要在所有事件处理前执行的初始化逻辑。</para>
+        /// </summary>
+        public static readonly CardEventDefinition<object> PumpStart = new(PUMP_START);
+
+        /// <summary>
+        ///     Pump 结束事件：在 Pump 循环结束后触发。
+        ///     <para>此事件仅在 Pump 边界处理，不会在普通事件处理中触发。</para>
+        ///     <para>适用于延迟删除、资源清理等需要在所有事件处理完成后执行的逻辑。</para>
+        /// </summary>
+        public static readonly CardEventDefinition<object> PumpEnd = new(PUMP_END);
 
         #endregion
 
@@ -115,6 +139,23 @@ namespace EasyPack.EmeCardSystem
         ///     检查事件是否为 Use 类型。
         /// </summary>
         public static bool IsUse(ICardEvent evt) => evt?.EventType == USE;
+
+        /// <summary>
+        ///     检查事件是否为 PumpStart 类型。
+        /// </summary>
+        public static bool IsPumpStart(ICardEvent evt) => evt?.EventType == PUMP_START;
+
+        /// <summary>
+        ///     检查事件是否为 PumpEnd 类型。
+        /// </summary>
+        public static bool IsPumpEnd(ICardEvent evt) => evt?.EventType == PUMP_END;
+
+        /// <summary>
+        ///     检查事件是否为 Pump 生命周期事件（PumpStart 或 PumpEnd）。
+        ///     <para>Pump 生命周期事件仅在 Pump 边界处理，不应在普通事件队列中处理。</para>
+        /// </summary>
+        public static bool IsPumpLifecycle(ICardEvent evt) => 
+            evt != null && (evt.EventType == PUMP_START || evt.EventType == PUMP_END);
 
         #endregion
     }
