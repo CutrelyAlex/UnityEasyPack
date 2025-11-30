@@ -34,7 +34,7 @@ namespace EasyPack.EmeCardSystem
             _rules[CardEventTypes.ADDED_TO_OWNER] = new();
             _rules[CardEventTypes.REMOVED_FROM_OWNER] = new();
             _rules[CardEventTypes.USE] = new();
-            
+
             // 预注册 Pump 生命周期事件类型
             _rules[CardEventTypes.PUMP_START] = new();
             _rules[CardEventTypes.PUMP_END] = new();
@@ -518,7 +518,7 @@ namespace EasyPack.EmeCardSystem
             if (card == null) return this;
 
             // 子卡牌不能转移到实际位置，只能在虚空
-            if (card.Owner != null)
+            if (card.Owner != null && card.Owner.Position != VOID_POSITION)
             {
                 newPosition = VOID_POSITION;
             }
