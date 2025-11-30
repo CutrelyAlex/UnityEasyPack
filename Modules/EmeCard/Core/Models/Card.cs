@@ -127,24 +127,13 @@ namespace EasyPack.EmeCardSystem
                 return Data?.Category ?? CardData.DEFAULT_CATEGORY;
             }
         }
-        private Vector3Int _position;
+
         /// <summary>
         ///     卡牌在世界中的位置。
         ///     初始值为 CardEngine.VOID_POSITION，表示虚空位置。
         /// </summary>
-        public Vector3Int Position
-        {
-            get
-            {
-                if(Owner==null) return _position;
-                if (_position.z < 0)
-                {
-                    return Owner.Position;
-                }
-                return _position;
-            }
-            set => _position = value;
-        }
+        public Vector3Int Position { get; set; } = CardEngine.VOID_POSITION;
+
         /// <summary>
         ///     数值属性。
         /// </summary>
