@@ -281,6 +281,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="uid">卡牌的唯一标识符。</param>
         /// <returns>找到的卡牌，或 null 如果未找到。</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public Card GetCardByUID(long uid)
         {
             _cardsByUID.TryGetValue(uid, out Card card);
@@ -324,6 +325,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="position">要查询的位置。</param>
         /// <returns>在该位置的卡牌，如果未找到返回null。</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public Card GetCardByPosition(Vector3Int position)
         {
             _cardsByPosition.TryGetValue(position, out Card card);
@@ -335,6 +337,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="uid">卡牌的UID。</param>
         /// <returns>卡牌所在位置，如果未找到返回 VOID_POSITION。</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public Vector3Int GetPositionByUID(long uid) =>
             uid < 0 ? VOID_POSITION : _positionByUID.GetValueOrDefault(uid, VOID_POSITION);
 

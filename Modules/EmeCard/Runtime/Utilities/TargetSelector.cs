@@ -79,6 +79,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     获取卡牌的标签。
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         private static IEnumerable<string> GetCardTags(Card card)
         {
             if (card == null) return null;
@@ -158,6 +159,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     获取拥有指定Tag的所有卡牌
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         private static HashSet<Card> GetCardsByTagFromCache(string tag)
         {
             if (!_isCacheInitialized || string.IsNullOrEmpty(tag))
@@ -217,11 +219,11 @@ namespace EasyPack.EmeCardSystem
                     break;
 
                 case TargetScope.Descendants:
-                {
-                    int depth = maxDepth;
-                    if (depth <= 0) depth = int.MaxValue;
-                    return ApplyFilter(TraversalUtil.EnumerateDescendantsAsList(root, depth), filter, filterValue, categoryManager);
-                }
+                    {
+                        int depth = maxDepth;
+                        if (depth <= 0) depth = int.MaxValue;
+                        return ApplyFilter(TraversalUtil.EnumerateDescendantsAsList(root, depth), filter, filterValue, categoryManager);
+                    }
 
                 default:
                     return Array.Empty<Card>();
@@ -361,10 +363,8 @@ namespace EasyPack.EmeCardSystem
             for (int i = 0, count = cards.Count; i < count; i++)
             {
                 Card card = cards[i];
-#pragma warning disable CS0618
                 if (card.HasTag(tag))
                     fallbackResults.Add(card);
-#pragma warning restore CS0618
             }
             return fallbackResults;
         }
