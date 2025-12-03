@@ -64,6 +64,36 @@ namespace EasyPack.EmeCardSystem
         /// <summary>递归深度限制（仅对 Scope=Descendants 生效，null 或小于 0 表示使用 ctx.MaxDepth）。</summary>
         public int? MaxDepth = null;
 
+        public CardsRequirement() { }
+
+        public CardsRequirement(SelectionRoot root, CardFilterMode filterMode, string filterValue, int minCount, TargetScope scope)
+        {
+            Root = root;
+            FilterMode = filterMode;
+            FilterValue = filterValue;
+            MinCount = minCount;
+            Scope = scope;
+        }
+
+        public CardsRequirement(SelectionRoot root, TargetScope scope, CardFilterMode filterMode, string filterValue, int minCount, int maxMatched, int? maxDepth) : this()
+        {
+            Root = root;
+            Scope = scope;
+            FilterMode = filterMode;
+            FilterValue = filterValue;
+            MinCount = minCount;
+            MaxMatched = maxMatched;
+            MaxDepth = maxDepth;
+        }
+
+        public CardsRequirement(TargetScope scope, CardFilterMode filterMode, string filterValue, int minCount) : this()
+        {
+            Scope = scope;
+            FilterMode = filterMode;
+            FilterValue = filterValue;
+            MinCount = minCount;
+        }
+
         /// <inheritdoc />
         public bool TryMatch(CardRuleContext ctx, out List<Card> matched)
         {

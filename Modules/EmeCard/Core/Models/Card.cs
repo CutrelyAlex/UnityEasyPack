@@ -129,47 +129,9 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     卡牌自身存储的位置。
-        /// </summary>
-        private Vector3Int _localPosition = CardEngine.VOID_POSITION;
-
-        /// <summary>
         ///     卡牌在世界中的位置。
-        ///     - 根卡牌（无 Owner）：返回自身存储的位置
-        ///     - 子卡牌（有 Owner）：返回 (父卡牌.x, 父卡牌.y, -1)
         /// </summary>
-        public Vector3Int Position
-        {
-            get
-            {
-                if (Owner != null && Owner.Position.z >= 0)
-                {
-                    Vector3Int ownerPos = Owner.Position;
-                    return new Vector3Int(ownerPos.x, ownerPos.y, -1);
-                }
-                return _localPosition;
-            }
-            set
-            {
-                if (Owner == null)
-                {
-                    _localPosition = value;
-                }
-                else
-                {
-                    _localPosition = value;
-                }
-            }
-        }
-
-        /// <summary>
-        ///     本地存储的位置
-        /// </summary>
-        internal Vector3Int LocalPosition
-        {
-            get => _localPosition;
-            set => _localPosition = value;
-        }
+        public Vector3Int? Position { get; set; }
 
         /// <summary>
         ///     数值属性。
@@ -348,7 +310,8 @@ namespace EasyPack.EmeCardSystem
         /// <remarks>
         ///     成功加入后，将向子卡派发 AddedToOwner 事件，
         ///     其事件数据为新持有者（<c>this</c>）。
-        ///     子卡的位置通过 Position 属性动态从父卡牌派生（x,y 继承父卡牌，z=-1）。
+        ///     子卡牌的位置与父卡牌相同（通过 Position 属性继承）。
+        ///     注意：子卡牌不会被引擎的位置索引管理，只有根卡牌才会被索引。
         /// </remarks>
         /// <exception cref="InvalidOperationException">如果 child 已经是当前卡牌的祖父卡牌（会形成循环引用）。</exception>
         public Card AddChild(Card child, bool intrinsic = false)
@@ -361,21 +324,17 @@ namespace EasyPack.EmeCardSystem
                 throw new InvalidOperationException($"添加卡牌 '{child.Id}' 将形成循环依赖。");
             }
 
-            // 保存旧位置用于通知引擎
-            Vector3Int oldPosition = child.Position;
+            // 如果子卡牌之前在位置索引中（作为根卡牌），需要从索引中移除
+            if (Engine != null && child.UID >= 0 && child.Owner == null && child.Position != null)
+            {
+                Engine.NotifyChildAddedToParent(child);
+            }
 
             _children.Add(child);
             child.Owner = this;
 
-            // 子卡牌位置现在通过 Position 属性动态派生，无需手动设置
-            // 新位置将自动变为 (this.Position.x, this.Position.y, -1)
-            Vector3Int newPosition = child.Position;  // 获取派生后的新位置
-
-            if (Engine != null && child.UID >= 0)
-            {
-                // 通知引擎位置变化
-                Engine.NotifyCardPositionChanged(child, oldPosition, newPosition);
-            }
+            // 子卡牌与父卡牌在同一位置
+            child.Position = Position;
 
             if (intrinsic) _intrinsics.Add(child);
 
@@ -391,8 +350,11 @@ namespace EasyPack.EmeCardSystem
         /// <param name="force">是否强制移除；当为 false 时，固有子卡不会被移除。</param>
         /// <returns>若移除成功返回 true；否则返回 false。</returns>
         /// <remarks>
-        ///     移除成功后，将向子卡派发 RemovedFromOwner 事件，
-        ///     其 Data 为旧持有者实例。
+        ///     移除成功后，将向子卡派发 RemovedFromOwner 事件，其 Data 为旧持有者实例。
+        ///     注意：移除后的子卡牌的 Position 保持不变（与原父卡牌相同），
+        ///     但它不会自动添加到引擎的位置索引中。
+        ///     如果需要将移除的卡牌放回世界中的某个位置，
+        ///     调用者应使用 <see cref="CardEngine.MoveCardToPosition"/> 方法。
         /// </remarks>
         public bool RemoveChild(Card child, bool force = false)
         {
@@ -402,8 +364,8 @@ namespace EasyPack.EmeCardSystem
             if (removed)
             {
                 _intrinsics.Remove(child);
-                child.RaiseEvent(CardEventTypes.RemovedFromOwner.CreateEvent(this));
                 child.Owner = null;
+                child.RaiseEvent(CardEventTypes.RemovedFromOwner.CreateEvent(this));
             }
 
             return removed;

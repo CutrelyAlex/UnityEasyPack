@@ -209,16 +209,8 @@ namespace EasyPack.EmeCardSystem
             int maxMatched = -1,
             int? maxDepth = null)
         {
-            _rule.Requirements.Add(new CardsRequirement
-            {
-                Root = root,
-                Scope = scope,
-                FilterMode = filter,
-                FilterValue = filterValue,
-                MinCount = minCount,
-                MaxMatched = maxMatched,
-                MaxDepth = maxDepth,
-            });
+            _rule.Requirements.Add(new CardsRequirement(root: root, scope: scope, filterMode: filter,
+                filterValue: filterValue, minCount: minCount, maxMatched: maxMatched, maxDepth: maxDepth));
             return this;
         }
 

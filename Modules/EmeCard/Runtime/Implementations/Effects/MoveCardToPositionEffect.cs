@@ -10,8 +10,8 @@ namespace EasyPack.EmeCardSystem
     ///         <strong>行为说明</strong>：
     ///         <list type="bullet">
     ///             <item>只移动一个卡牌（Take 自动设为 1）</item>
-    ///             <item>强制覆盖：原位置的卡牌（若存在）会被转移到虚空位置（z=-1）</item>
-    ///             <item>虚空位置特性：子卡牌天然位于虚空，不占据地图位置</item>
+    ///             <item>只能移动根卡牌（无 Owner 的卡牌）</item>
+    ///             <item>强制覆盖：原位置的卡牌（若存在）会被移除出位置索引但保留在引擎中</item>
     ///         </list>
     ///     </para>
     ///     
@@ -49,13 +49,16 @@ namespace EasyPack.EmeCardSystem
         ///     目标位置。
         /// </summary>
         public Vector3Int TargetPosition { get; set; } = Vector3Int.zero;
+        
+        /// <summary>
+        ///     是否强制覆盖目标位置的卡牌。
+        ///     如果为 true，目标位置的卡牌会被设置为无位置状态。
+        ///     如果为 false，当目标位置有卡牌时不执行移动。
+        /// </summary>
+        public bool ForceOverwrite { get; set; } = true;
 
         /// <summary>
-        ///     执行位置转移（强制移动一个卡牌到目标位置）。
-        ///     
-        ///     <para>
-        ///         如果目标位置已有卡牌，该卡牌会被转移到虚空位置。
-        ///     </para>
+        ///     执行位置转移（强制移动一个根卡牌到目标位置）。
         /// </summary>
         /// <param name="ctx">规则上下文。</param>
         /// <param name="matched">匹配阶段结果（当 <see cref="Scope" />=Matched 时使用）。</param>
@@ -82,16 +85,31 @@ namespace EasyPack.EmeCardSystem
 
             if (targets == null || targets.Count == 0) return;
 
-            // 只移动第一个卡牌
-            Card cardToMove = targets[0];
-            if (ctx.Engine == null) return;
+            // 只移动第一个卡牌（必须是根卡牌）
+            Card cardToMove = null;
+            for (int i = 0; i < targets.Count; i++)
+            {
+                if (targets[i]?.Owner == null)
+                {
+                    cardToMove = targets[i];
+                    break;
+                }
+            }
+            
+            if (cardToMove == null || ctx.Engine == null) return;
 
-            // 强制覆盖：如果目标位置有卡牌，将其转移到虚空
+            // 检查目标位置是否有卡牌
             Card cardAtTarget = ctx.Engine.GetCardByPosition(TargetPosition);
             if (cardAtTarget != null && cardAtTarget != cardToMove)
             {
-                // 原位置物体转移到虚空（如果它不是 cardToMove）
-                ctx.Engine.MoveCardToPosition(cardAtTarget, CardEngine.VOID_POSITION);
+                if (!ForceOverwrite)
+                {
+                    // 不强制覆盖，目标位置有卡牌时不执行
+                    return;
+                }
+                
+                // 强制覆盖：将原位置卡牌的位置设为 null（移除出位置索引但保留在引擎中）
+                ctx.Engine.ClearCardPosition(cardAtTarget);
             }
 
             // 移动选中的卡牌到目标位置

@@ -12,12 +12,6 @@ namespace EasyPack.EmeCardSystem
     /// </summary>
     public sealed partial class CardEngine
     {
-        /// <summary>
-        ///     虚空位置：子卡牌所在的位置（z=-1）。
-        ///     子卡牌不占据实际地图位置，而是在虚空中。
-        /// </summary>
-        public static readonly Vector3Int VOID_POSITION = new(0, 0, -1);
-
         #region 初始化
 
         public CardEngine(CardFactory factory)
@@ -191,11 +185,12 @@ namespace EasyPack.EmeCardSystem
         // UID->Card缓存，支持 O(1) UID 查询
         private readonly Dictionary<long, Card> _cardsByUID = new();
 
-        // 位置->Card映射（一个位置最多一个卡牌）
-        private readonly Dictionary<Vector3Int, Card> _cardsByPosition = new();
+        // 位置->Card映射（一个位置最多一个卡牌）,我们认为此处是主世界位置
+        // 即子卡牌的位置不会出现在此映射中，子卡牌的位置通过父卡牌动态派生
+        private readonly Dictionary<Vector3Int?, Card> _cardsByPosition = new();
 
         // UID->位置缓存
-        private readonly Dictionary<long, Vector3Int> _positionByUID = new();
+        private readonly Dictionary<long, Vector3Int?> _positionByUID = new();
 
         // 全局效果池，跨事件收集效果，确保全局优先级排序
         private readonly EffectPool _globalEffectPool = new();
@@ -336,10 +331,13 @@ namespace EasyPack.EmeCardSystem
         ///     按UID查询卡牌的位置。
         /// </summary>
         /// <param name="uid">卡牌的UID。</param>
-        /// <returns>卡牌所在位置，如果未找到返回 VOID_POSITION。</returns>
+        /// <returns>卡牌所在位置，如果未找到或UID无效返回 null。</returns>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public Vector3Int GetPositionByUID(long uid) =>
-            uid < 0 ? VOID_POSITION : _positionByUID.GetValueOrDefault(uid, VOID_POSITION);
+        public Vector3Int? GetPositionByUID(long uid)
+        {
+            if (uid < 0) return null;
+            return _positionByUID.TryGetValue(uid, out var position) ? position : null;
+        }
 
         #endregion
 
@@ -348,26 +346,26 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     添加卡牌到引擎，分配唯一Index、UID并订阅事件。
         /// </summary>
-        public CardEngine AddCard(Card c)
+        public CardEngine AddCard(Card card)
         {
-            if (c == null) return this;
+            if (card == null) return this;
 
             // 设置卡牌的Engine引用
-            c.Engine = this;
+            card.Engine = this;
 
-            string id = c.Id;
+            string id = card.Id;
 
             // 第一步: 处理 UID（必须先分配 UID，因为 CategoryManager 使用 UID 作为键）
-            if (c.UID < 0)
+            if (card.UID < 0)
             {
                 // 未分配 UID，分配新的
-                EmeCardSystem.CardFactory.AssignUID(c);
+                EmeCardSystem.CardFactory.AssignUID(card);
             }
-            else if (_cardsByUID.ContainsKey(c.UID))
+            else if (_cardsByUID.ContainsKey(card.UID))
             {
                 // UID 冲突，重新分配
-                c.UID = -1;
-                EmeCardSystem.CardFactory.AssignUID(c);
+                card.UID = -1;
+                EmeCardSystem.CardFactory.AssignUID(card);
             }
 
             // 第二步: 分配索引（如果还未分配）
@@ -377,7 +375,7 @@ namespace EasyPack.EmeCardSystem
                 _idIndexes[id] = indexes;
             }
 
-            int assignedIndex = c.Index;
+            int assignedIndex = card.Index;
             // 只有当Index不已分配时才分配（Index < 0表示未分配），或者索引已被占用时，需要重新分配
             if (assignedIndex < 0 || indexes.Contains(assignedIndex))
             {
@@ -387,22 +385,19 @@ namespace EasyPack.EmeCardSystem
                     assignedIndex++;
                 }
 
-                c.Index = assignedIndex;
+                card.Index = assignedIndex;
             }
 
-            // 第三步: 检查是否已在实际存储中（使用 UID 检查，保证绝对唯一）
-            if (_cardsByUID.ContainsKey(c.UID))
-                return this; // 已存在，不重复添加
-
-            c.OnEvent += OnCardEvent;
-
+            // 第三步: 订阅卡牌事件
+            card.OnEvent += OnCardEvent;
+            
             // 第四步: 添加到索引
-            indexes.Add(c.Index);
-            var actualKey = new CardKey(c.Id, c.Index);
-            _cardMap[actualKey] = c;
+            indexes.Add(card.Index);
+            var actualKey = new CardKey(card.Id, card.Index);
+            _cardMap[actualKey] = card;
 
             // 添加到 UID 索引
-            _cardsByUID[c.UID] = c;
+            _cardsByUID[card.UID] = card;
 
             // 更新_cardsById缓存
             if (!_cardsById.TryGetValue(id, out var cardList))
@@ -411,27 +406,22 @@ namespace EasyPack.EmeCardSystem
                 _cardsById[id] = cardList;
             }
 
-            cardList.Add(c);
+            cardList.Add(card);
 
             // 第五步: 注册到 CategoryManager（使用 UID 作为键，保证绝对唯一）
-            RegisterToCategoryManager(c);
+            RegisterToCategoryManager(card);
 
-            // 第五点五步: 注册位置映射
-            // 子卡牌初始位置为虚空，主卡牌位置为自身 Position
-            Vector3Int initialPosition = c.Owner == null ? c.Position : VOID_POSITION;
-            _cardsByPosition[initialPosition] = c;
-            _positionByUID[c.UID] = initialPosition;
-
+            
             // 第六步: 将卡牌的所有标签加入TargetSelector缓存
-            foreach (string tag in c.Tags)
+            foreach (string tag in card.Tags)
             {
-                TargetSelector.OnCardTagAdded(c, tag);
+                TargetSelector.OnCardTagAdded(card, tag);
             }
-
+            
             // 第七步: 递归注册所有已存在的子卡牌（处理工厂创建时已通过 AddChild 添加的子卡牌）
-            if (c.Children != null && c.Children.Count > 0)
+            if (card.Children is { Count: > 0 })
             {
-                foreach (Card child in c.Children)
+                foreach (Card child in card.Children)
                 {
                     if (child != null && !HasCard(child))
                     {
@@ -439,6 +429,33 @@ namespace EasyPack.EmeCardSystem
                     }
                 }
             }
+            
+            // 第八步: 注册位置映射（仅对根卡牌，即没有 Owner 的卡牌）
+            // 子卡牌与父卡牌在同一位置，不单独索引
+            _positionByUID[card.UID] = card.Position;
+            
+            // 只有根卡牌才会被添加到位置索引中
+            if (card.Owner != null)
+            {
+                return this; // 子卡牌不添加到位置索引
+            }
+            
+            var initialPosition = card.Position;
+            if (initialPosition == null)
+            {
+                return this; // 无位置的根卡牌也不添加到位置索引
+            }
+
+            // 如果位置已被占用，记录错误
+            if (_cardsByPosition.TryGetValue(initialPosition, out Card existingCard))
+            {
+                Debug.LogError("[CardEngine] 位置冲突警告: 位置 " + initialPosition +
+                               " 已被卡牌 '" + existingCard.Id + "' (UID: " + existingCard.UID +
+                               ") 占用，无法放置卡牌 '" + card.Id + "' (UID: " + card.UID + ").");
+                return this;
+            }
+
+            _cardsByPosition[initialPosition] = card;
 
             return this;
         }
@@ -447,13 +464,13 @@ namespace EasyPack.EmeCardSystem
         ///     将子卡牌添加到父卡牌，同时确保子卡牌已注册到引擎。
         ///     此方法会：1) 将子卡牌注册到引擎（分配 UID、注册到 CategoryManager）
         ///              2) 建立父子关系
+        ///     如果子卡牌已有持有者，则会先将其从原持有者移除。
         /// </summary>
         /// <param name="parent">父卡牌（必须已注册到引擎）。</param>
         /// <param name="child">子卡牌。</param>
         /// <param name="intrinsic">是否作为固有子卡（固有子卡无法通过规则消耗或普通移除）。</param>
         /// <returns>当前引擎实例，支持链式调用。</returns>
         /// <exception cref="ArgumentNullException">parent 或 child 为 null。</exception>
-        /// <exception cref="InvalidOperationException">parent 未注册到引擎，或 child 已有其他持有者。</exception>
         public CardEngine AddChildToCard(Card parent, Card child, bool intrinsic = false)
         {
             if (parent == null) throw new ArgumentNullException(nameof(parent));
@@ -465,11 +482,8 @@ namespace EasyPack.EmeCardSystem
                 throw new InvalidOperationException($"父卡牌 '{parent.Id}' 未注册到引擎，请先调用 AddCard。");
             }
 
-            // 验证子卡牌没有其他持有者
-            if (child.Owner != null)
-            {
-                throw new InvalidOperationException($"子卡牌 '{child.Id}' 已被其他卡牌持有。");
-            }
+            // 将子卡牌从原持有者移除（如果有）
+            child.Owner?.RemoveChild(child);
 
             // 第一步：将子卡牌注册到引擎（如果尚未注册）
             if (!HasCard(child))
@@ -477,11 +491,8 @@ namespace EasyPack.EmeCardSystem
                 AddCard(child);
             }
 
-            // 第二步：建立父子关系
+            // 第二步：建立父子关系（AddChild 内部会处理位置继承）
             parent.AddChild(child, intrinsic);
-
-            // 第三步：子卡牌移动到虚空位置
-            MoveCardToPosition(child, VOID_POSITION);
 
             return this;
         }
@@ -510,62 +521,150 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     转移卡牌到新位置，自动更新位置映射。
-        ///     子卡牌的位置通过 Card.Position 属性动态从父卡牌派生。
+        ///     转移根卡牌到新位置，自动更新位置映射和所有子卡牌的位置。
+        ///     只能用于根卡牌（无 Owner 的卡牌）。
         /// </summary>
-        /// <param name="card">要转移的卡牌。</param>
+        /// <param name="card">要转移的根卡牌（必须无 Owner）。</param>
         /// <param name="newPosition">新位置</param>
         /// <returns>当前引擎实例，支持链式调用。</returns>
         public CardEngine MoveCardToPosition(Card card, Vector3Int newPosition)
         {
-            if (card == null) return this;
-
-            // 子卡牌的位置由父卡牌决定，这里只更新 LocalPosition 作为缓存
-            if (card.Owner != null && card.Owner.Position.z >= 0)
-            {
-                card.LocalPosition = new Vector3Int(newPosition.x, newPosition.y, -1);
-                return this;
-            }
-
-            // 根卡牌更新位置和索引
-            Vector3Int oldPosition = card.Position;
-
+            if (card == null || card.Owner != null) return this;
+            
+            var oldPosition = card.Position;
+            
             // 如果位置相同，无需更新
-            if (oldPosition == newPosition) return this;
+            if (oldPosition.HasValue && oldPosition.Value == newPosition) return this;
 
             // 从旧位置移除
-            if (_cardsByPosition.TryGetValue(oldPosition, out Card cardAtOldPosition) && cardAtOldPosition == card)
+            if (oldPosition != null && _cardsByPosition.TryGetValue(oldPosition, out Card cardAtOldPosition) && cardAtOldPosition == card)
             {
                 _cardsByPosition.Remove(oldPosition);
             }
-
-            // 更新卡牌位置
+            
+            // 更新根卡牌位置
             card.Position = newPosition;
-
+            
             // 添加根卡牌索引到新位置
             _cardsByPosition[newPosition] = card;
             _positionByUID[card.UID] = newPosition;
+            
+            // 递归更新所有子卡牌的位置（它们与父卡牌在同一位置）
+            UpdateChildrenPosition(card, newPosition);
 
             return this;
         }
+        
+        /// <summary>
+        ///     递归更新所有子卡牌的位置，使其与父卡牌保持一致。
+        /// </summary>
+        /// <param name="parent">父卡牌。</param>
+        /// <param name="newPosition">新位置。</param>
+        private void UpdateChildrenPosition(Card parent, Vector3Int newPosition)
+        {
+            if (parent?.Children == null || parent.Children.Count == 0) return;
+            
+            foreach (Card child in parent.Children)
+            {
+                if (child == null) continue;
+                
+                child.Position = newPosition;
+                _positionByUID[child.UID] = newPosition;
+                
+                // 递归更新子卡牌的子卡牌
+                UpdateChildrenPosition(child, newPosition);
+            }
+        }
 
         /// <summary>
-        ///     当卡牌位置通过 Card.AddChild 改变时，通知引擎更新位置映射。
+        ///     当卡牌被添加为子卡牌时，从位置索引中移除它。
+        ///     只有根卡牌（无 Owner 的卡牌）才会被位置索引管理。
         /// </summary>
-        /// <param name="card">发生位置变化的卡牌。</param>
-        /// <param name="oldPosition">旧位置。</param>
-        /// <param name="newPosition">新位置。</param>
-        internal void NotifyCardPositionChanged(Card card, Vector3Int oldPosition, Vector3Int newPosition)
+        /// <param name="child">被添加为子卡牌的卡牌。</param>
+        internal void NotifyChildAddedToParent(Card child)
         {
-            if (card == null) return;
+            if (child == null) return;
 
-            // 从旧位置移除
-            if (_cardsByPosition.TryGetValue(oldPosition, out Card cardAtOldPosition) && cardAtOldPosition == card)
+            // 从位置索引中移除（因为子卡牌不应该在位置索引中）
+            if (child.Position != null && 
+                _cardsByPosition.TryGetValue(child.Position, out Card cardAtPosition) && 
+                cardAtPosition == child)
+            {
+                _cardsByPosition.Remove(child.Position);
+            }
+            
+            // 更新 UID 到位置的映射（保留以便查询，但位置会随父卡牌变化）
+            // 子卡牌的位置现在由父卡牌决定
+        }
+
+        /// <summary>
+        ///     清除根卡牌的位置，将其从位置索引中移除但保留在引擎中。
+        ///     卡牌的 Position 会被设为 null。
+        /// </summary>
+        /// <param name="card">要清除位置的根卡牌（必须无 Owner）。</param>
+        /// <returns>当前引擎实例，支持链式调用。</returns>
+        public CardEngine ClearCardPosition(Card card)
+        {
+            if (card == null || card.Owner != null) return this;
+            
+            var oldPosition = card.Position;
+            if (oldPosition == null) return this;
+            
+            // 从位置索引中移除
+            if (_cardsByPosition.TryGetValue(oldPosition, out Card cardAtPosition) && cardAtPosition == card)
             {
                 _cardsByPosition.Remove(oldPosition);
             }
+            
+            // 清除卡牌位置
+            card.Position = null;
+            _positionByUID[card.UID] = null;
+            
+            // 递归清除所有子卡牌的位置
+            ClearChildrenPosition(card);
+            
+            return this;
+        }
+        
+        /// <summary>
+        ///     递归清除所有子卡牌的位置。
+        /// </summary>
+        private void ClearChildrenPosition(Card parent)
+        {
+            if (parent?.Children == null || parent.Children.Count == 0) return;
+            
+            foreach (Card child in parent.Children)
+            {
+                if (child == null) continue;
+                
+                child.Position = null;
+                _positionByUID[child.UID] = null;
+                
+                // 递归清除子卡牌的子卡牌
+                ClearChildrenPosition(child);
+            }
+        }
 
-            // 添加到新位置
+        /// <summary>
+        ///     当子卡牌从父卡牌移除时，如果它有位置，可能需要重新添加到位置索引。
+        ///     调用方负责在移除子卡牌后调用此方法（如果卡牌需要保留在世界中）。
+        /// </summary>
+        /// <param name="card">从父卡牌移除的卡牌。</param>
+        /// <param name="newPosition">新的世界位置。</param>
+        internal void NotifyChildRemovedFromParent(Card card, Vector3Int newPosition)
+        {
+            if (card == null || card.Owner != null) return; // 必须已移除 Owner
+
+            // 检查位置是否被占用
+            if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && existingCard != card)
+            {
+                Debug.LogWarning($"[CardEngine] 位置 {newPosition} 已被卡牌 '{existingCard.Id}' 占用，" +
+                                 $"无法放置卡牌 '{card.Id}'。");
+                return;
+            }
+
+            // 添加到位置索引
+            card.Position = newPosition;
             _cardsByPosition[newPosition] = card;
             _positionByUID[card.UID] = newPosition;
         }
@@ -618,8 +717,9 @@ namespace EasyPack.EmeCardSystem
                 // 从 CategoryManager 注销（使用 UID）
                 UnregisterFromCategoryManager(c);
 
-                // 从位置映射中移除
-                if (_cardsByPosition.TryGetValue(c.Position, out Card cardAtPosition) && cardAtPosition == c)
+                // 从位置映射中移除（仅针对根卡牌，子卡牌不在位置索引中）
+                if (c.Owner == null && c.Position != null && 
+                    _cardsByPosition.TryGetValue(c.Position, out Card cardAtPosition) && cardAtPosition == c)
                 {
                     _cardsByPosition.Remove(c.Position);
                 }
