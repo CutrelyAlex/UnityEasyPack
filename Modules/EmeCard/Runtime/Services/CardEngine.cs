@@ -232,7 +232,7 @@ namespace EasyPack.EmeCardSystem
         ///     检查指定卡牌是否接入引擎
         /// </summary>
         /// <returns></returns>
-        public bool HasCard(Card card) => GetCardByUID(card.UID) == null;
+        public bool HasCard(Card card) => card != null && GetCardByUID(card.UID) != null;
 
         /// <summary>
         ///     根据 UID 获取卡牌。
@@ -336,17 +336,22 @@ namespace EasyPack.EmeCardSystem
             {
                 indexes = new();
                 _idIndexes[id] = indexes;
-                _idMaxIndexes[id] = 0;
+                _idMaxIndexes[id] = -1;  // 初始化为 -1，第一个卡牌 Index 为 0
             }
 
-            int cardIndex = card.Index + 1;
-
-            // 只有当Index不已分配时才分配（Index < 0表示未分配），或者索引已被占用时，需要重新分配
-            var maxIndex = _idMaxIndexes[id];
-            if (cardIndex <= 0 || maxIndex > cardIndex)
+            // 只有当 Index 未分配时才分配（Index < 0 表示未分配）
+            if (card.Index < 0)
             {
-                card.Index = cardIndex;
-                _idMaxIndexes[id] = cardIndex;
+                var maxIndex = _idMaxIndexes[id];
+                card.Index = maxIndex + 1;
+                _idMaxIndexes[id] = card.Index;
+            }
+            else if (indexes.Contains(card.Index))
+            {
+                // Index 已被占用，重新分配
+                var maxIndex = _idMaxIndexes[id];
+                card.Index = maxIndex + 1;
+                _idMaxIndexes[id] = card.Index;
             }
 
             // 第三步: 订阅卡牌事件

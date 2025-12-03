@@ -366,6 +366,9 @@ namespace EasyPack.EmeCardSystem
             _children.Add(child);
             child.Owner = this;
 
+            // 子卡牌与父卡牌在同一位置
+            child._position = _position;
+
             // 维护 RootCard 引用：子卡牌继承父卡牌的 RootCard
             child.RootCard = RootCard ?? this;
 
