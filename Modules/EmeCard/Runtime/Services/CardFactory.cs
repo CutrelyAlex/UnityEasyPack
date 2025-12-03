@@ -31,11 +31,6 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private static long _nextUID = 1001;
 
-        /// <summary>
-        ///     UID 分配上限
-        /// </summary>
-        private const long MAX_UID = long.MaxValue;
-
         public void Register(string id, Func<Card> ctor)
         {
             if (string.IsNullOrEmpty(id)) throw new ArgumentNullException(nameof(id));
@@ -69,7 +64,7 @@ namespace EasyPack.EmeCardSystem
         private static long AllocateUID()
         {
             long uid = Interlocked.Increment(ref _nextUID);
-            return uid > MAX_UID ? throw new InvalidOperationException($"无法分配 UID：已达到上限 {MAX_UID}。") : uid;
+            return uid;
         }
 
         /// <summary>

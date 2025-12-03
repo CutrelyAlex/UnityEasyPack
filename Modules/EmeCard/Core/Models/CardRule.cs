@@ -23,11 +23,6 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public string EventType = CardEventTypes.ADDED_TO_OWNER;
 
-        /// <summary>
-        ///     自定义事件 ID（可选，用于更精确的事件匹配）。
-        /// </summary>
-        public string CustomId;
-
         #region Root Hops 配置
 
         /// <summary>
@@ -116,24 +111,24 @@ namespace EasyPack.EmeCardSystem
                     return sourceCard;
                 // Root (-1)
                 case < 0:
-                {
-                    Card current = sourceCard;
-                    while (current.Owner != null)
                     {
-                        current = current.Owner;
+                        Card current = sourceCard;
+                        while (current.Owner != null)
+                        {
+                            current = current.Owner;
+                        }
+                        return current;
                     }
-                    return current;
-                }
                 case >= 1:
-                {
-                    Card target = sourceCard;
-                    // N 级 Owner
-                    for (int i = 0; i < hops && target.Owner != null; i++)
                     {
-                        target = target.Owner;
+                        Card target = sourceCard;
+                        // N 级 Owner
+                        for (int i = 0; i < hops && target.Owner != null; i++)
+                        {
+                            target = target.Owner;
+                        }
+                        return target;
                     }
-                    return target;
-                }
             }
         }
 

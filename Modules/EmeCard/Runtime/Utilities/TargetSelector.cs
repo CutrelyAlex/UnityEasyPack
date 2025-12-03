@@ -58,7 +58,7 @@ namespace EasyPack.EmeCardSystem
                     if (card == null) continue;
 
                     // 优先使用 CategoryManager，回退到 Card.Tags
-                    IEnumerable<string> tags = GetCardTags(card);
+                    var tags = GetCardTags(card);
                     if (tags == null) continue;
 
                     foreach (string tag in tags)

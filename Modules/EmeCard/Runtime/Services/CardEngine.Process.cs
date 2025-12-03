@@ -12,7 +12,7 @@ namespace EasyPack.EmeCardSystem
     /// </summary>
     public sealed partial class CardEngine
     {
-        #region RuleUID 分配器
+        #region Rule与效果缓存
 
         /// <summary>
         ///     下一个可用的 RuleUID。
@@ -23,6 +23,23 @@ namespace EasyPack.EmeCardSystem
         ///     RuleUID -> Rule 的快速查找映射。
         /// </summary>
         private readonly Dictionary<int, CardRule> _rulesByUID = new();
+
+        // 规则表（按事件类型字符串索引）
+        private readonly Dictionary<string, List<CardRule>> _rules = new();
+
+        // 卡牌事件队列（统一使用 IEventEntry）
+        private readonly Queue<IEventEntry> _queue = new();
+
+        /// <summary>
+        ///     获取当前队列中待处理的事件数量
+        /// </summary>
+        public int PendingEventCount => _queue.Count;
+
+        // 全局效果池，跨事件收集效果，确保全局优先级排序
+        private readonly EffectPool _globalEffectPool = new();
+
+        // 全局效果池的规则顺序计数器
+        private int _globalOrderIndex;
 
         /// <summary>
         ///     根据 RuleUID 获取规则。
@@ -162,18 +179,6 @@ namespace EasyPack.EmeCardSystem
             }
 
             ruleList.Add(rule);
-
-            // 如果有 CustomId，也添加到 CustomId 索引
-            if (!string.IsNullOrEmpty(rule.CustomId))
-            {
-                if (!_customRulesById.TryGetValue(rule.CustomId, out var customRuleList))
-                {
-                    customRuleList = new();
-                    _customRulesById[rule.CustomId] = customRuleList;
-                }
-
-                customRuleList.Add(rule);
-            }
         }
 
         /// <summary>
@@ -221,16 +226,6 @@ namespace EasyPack.EmeCardSystem
             bool removed = false;
             if (_rules.TryGetValue(rule.EventType, out var ruleList)) removed = ruleList.Remove(rule);
 
-            // 如果有 CustomId，也从 CustomId 索引移除
-            if (removed && !string.IsNullOrEmpty(rule.CustomId))
-            {
-                if (_customRulesById.TryGetValue(rule.CustomId, out var customRuleList))
-                {
-                    customRuleList.Remove(rule);
-                    if (customRuleList.Count == 0) _customRulesById.Remove(rule.CustomId);
-                }
-            }
-
             // 从 RuleUID 索引移除
             if (removed && rule.RuleUID >= 0)
             {
@@ -242,7 +237,26 @@ namespace EasyPack.EmeCardSystem
 
         #endregion
 
-        #region 事件入队
+        #region 事件入队与策略
+
+        /// <summary>
+        ///     引擎全局策略
+        /// </summary>
+        public EnginePolicy Policy { get; } = new();
+
+        // Pump 状态标志
+        private bool _isPumping;
+        private bool _isFlushingEffectPool; // 防止效果池嵌套刷新
+
+        // 分帧处理相关
+        private float _frameStartTime; // 当前帧开始处理的时间（毫秒）
+        private int _frameProcessedCount; // 当前帧已处理事件数
+
+        // 时间限制分帧机制
+        private float _batchStartTime;
+        private float _batchTimeLimit;
+
+        public bool IsBatchProcessing { get; private set; }
 
         /// <summary>
         ///     卡牌事件回调，入队并驱动事件处理。
@@ -421,9 +435,9 @@ namespace EasyPack.EmeCardSystem
         /// <param name="timeLimitSeconds">自定义时间限制（秒），null则使用Policy.BatchTimeLimitSeconds</param>
         public void BeginTimeLimitedBatch(float? timeLimitSeconds = null)
         {
-            if (_isBatchProcessing) return;
+            if (IsBatchProcessing) return;
 
-            _isBatchProcessing = true;
+            IsBatchProcessing = true;
             _batchStartTime = Time.realtimeSinceStartup;
             _batchTimeLimit = timeLimitSeconds ?? Policy.BatchTimeLimitSeconds;
         }
@@ -435,7 +449,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public void PumpTimeLimitedBatch()
         {
-            if (!_isBatchProcessing) return;
+            if (!IsBatchProcessing) return;
 
             float elapsed = Time.realtimeSinceStartup - _batchStartTime;
             float remaining = _batchTimeLimit - elapsed;
@@ -461,7 +475,7 @@ namespace EasyPack.EmeCardSystem
                 // 处理后检查队列是否已清空
                 if (_queue.Count == 0)
                 {
-                    _isBatchProcessing = false;
+                    IsBatchProcessing = false;
                     batchCompleted = true;
                 }
                 else
@@ -482,7 +496,7 @@ namespace EasyPack.EmeCardSystem
                     Process(entry.SourceCard, entry.Event);
                 }
 
-                _isBatchProcessing = false;
+                IsBatchProcessing = false;
                 batchCompleted = true;
             }
 
@@ -517,22 +531,14 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void ProcessCore(Card source, ICardEvent evt)
         {
-            // 预计算规则数量以优化容量分配
             int typeRulesCount = 0;
-            int idRulesCount = 0;
             List<CardRule> idRules = null;
 
-            List<CardRule> typeRules;
-            if (_rules.TryGetValue(evt.EventType, out typeRules))
+            if (_rules.TryGetValue(evt.EventType, out var typeRules))
                 typeRulesCount = typeRules.Count;
+            
 
-            if (!string.IsNullOrEmpty(evt.EventId) && evt.EventId != evt.EventType)
-            {
-                if (_customRulesById.TryGetValue(evt.EventId, out idRules))
-                    idRulesCount = idRules.Count;
-            }
-
-            int totalCount = typeRulesCount + idRulesCount;
+            int totalCount = typeRulesCount;
             if (totalCount == 0) return;
 
             // 使用对象池复用 List，预分配正确容量
@@ -543,11 +549,6 @@ namespace EasyPack.EmeCardSystem
             {
                 for (int i = 0; i < typeRulesCount; i++)
                     rulesToProcess.Add(typeRules[i]);
-            }
-            if (idRules != null)
-            {
-                for (int i = 0; i < idRulesCount; i++)
-                    rulesToProcess.Add(idRules[i]);
             }
 
             // 根据配置选择串行或并行评估

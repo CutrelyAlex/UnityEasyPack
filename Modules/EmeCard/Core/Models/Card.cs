@@ -130,8 +130,36 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     卡牌在世界中的位置。
+        ///     - 对于根卡牌（Owner == null），返回自己的位置
+        ///     - 对于子卡牌（Owner != null），返回根卡牌的位置
         /// </summary>
-        public Vector3Int? Position { get; set; }
+        private Vector3Int? _position;
+
+        public Vector3Int? Position
+        {
+            get
+            {
+                // 如果当前卡牌有持有者，返回根卡牌的位置
+                if (Owner != null && RootCard != null && RootCard != this)
+                {
+                    return RootCard._position;
+                }
+                // 否则返回自己的位置
+                return _position;
+            }
+            set
+            {
+                switch (Owner)
+                {
+                    // 只有根卡牌才能设置位置
+                    case null when RootCard == this:
+                    // 初始化阶段，RootCard 还未设置
+                    case null when RootCard == null:
+                        _position = value;
+                        break;
+                }
+            }
+        }
 
         /// <summary>
         ///     数值属性。
@@ -246,6 +274,11 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public Card Owner { get; private set; }
 
+        /// <summary>
+        ///     根卡牌引用。对于根卡牌，RootCard 指向自身；对于子卡牌，RootCard 指向最顶层的根卡牌。
+        /// </summary>
+        public Card RootCard { get; set; }
+
         private readonly List<Card> _children = new();
 
         /// <summary>
@@ -333,8 +366,8 @@ namespace EasyPack.EmeCardSystem
             _children.Add(child);
             child.Owner = this;
 
-            // 子卡牌与父卡牌在同一位置
-            child.Position = Position;
+            // 维护 RootCard 引用：子卡牌继承父卡牌的 RootCard
+            child.RootCard = RootCard ?? this;
 
             if (intrinsic) _intrinsics.Add(child);
 
@@ -365,6 +398,7 @@ namespace EasyPack.EmeCardSystem
             {
                 _intrinsics.Remove(child);
                 child.Owner = null;
+                child.RootCard = null; // 清除 RootCard 引用
                 child.RaiseEvent(CardEventTypes.RemovedFromOwner.CreateEvent(this));
             }
 

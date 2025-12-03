@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using EasyPack.Architecture;
 using EasyPack.Category;
@@ -50,16 +51,13 @@ namespace EasyPack.EmeCardSystem
                 }
 
                 var serviceManager = categoryService.GetOrCreateManager<Card, long>(card => card.UID);
-                if (serviceManager != null)
-                {
-                    // 如果本地 CategoryManager 中有数据，需要迁移
-                    // 这里假设初始化时本地 Manager 是空的
-                    CategoryManager = serviceManager;
-                    Debug.Log("[CardEngine] 已切换到 CategoryService 托管的 CategoryManager");
-                    return true;
-                }
+                if (serviceManager == null) return false;
+                // 如果本地 CategoryManager 中有数据，需要迁移
+                // 这里假设初始化时本地 Manager 是空的
+                CategoryManager = serviceManager;
+                Debug.Log("[CardEngine] 已切换到 CategoryService 托管的 CategoryManager");
+                return true;
 
-                return false;
             }
             catch (Exception ex)
             {
@@ -132,55 +130,23 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public ICategoryManager<Card, long> CategoryManager { get; private set; }
 
-        /// <summary>
-        ///     引擎全局策略
-        /// </summary>
-        public EnginePolicy Policy { get; } = new();
-
-        // Pump 状态标志
-        private bool _isPumping;
-        private bool _isFlushingEffectPool; // 防止效果池嵌套刷新
-
-        // 分帧处理相关
-        private float _frameStartTime; // 当前帧开始处理的时间（毫秒）
-        private int _frameProcessedCount; // 当前帧已处理事件数
-
-        // 时间限制分帧机制
-        private bool _isBatchProcessing;
-        private float _batchStartTime;
-        private float _batchTimeLimit;
-
-        /// <summary>
-        ///     获取当前队列中待处理的事件数量
-        /// </summary>
-        public int PendingEventCount => _queue.Count;
-
-        public bool IsBatchProcessing => _isBatchProcessing;
-
         #endregion
 
         #region 内部缓存字段
 
-        // 规则表（按事件类型字符串索引）
-        private readonly Dictionary<string, List<CardRule>> _rules = new();
-
-        // 卡牌事件队列（统一使用 IEventEntry）
-        private readonly Queue<IEventEntry> _queue = new();
-
         // 已注册的卡牌集合
         private readonly HashSet<Card> _registeredCardsTemplates = new();
 
-        // 卡牌Key->Card缓存
-        private readonly Dictionary<CardKey, Card> _cardMap = new();
 
         // id->index集合缓存
         private readonly Dictionary<string, HashSet<int>> _idIndexes = new();
 
+        // id->maxIndex缓存
+        private readonly Dictionary<string, int> _idMaxIndexes = new();
+
         // id->Card列表缓存，用于快速查找
         private readonly Dictionary<string, List<Card>> _cardsById = new();
 
-        // Custom规则按ID分组缓存
-        private readonly Dictionary<string, List<CardRule>> _customRulesById = new();
 
         // UID->Card缓存，支持 O(1) UID 查询
         private readonly Dictionary<long, Card> _cardsByUID = new();
@@ -191,12 +157,6 @@ namespace EasyPack.EmeCardSystem
 
         // UID->位置缓存
         private readonly Dictionary<long, Vector3Int?> _positionByUID = new();
-
-        // 全局效果池，跨事件收集效果，确保全局优先级排序
-        private readonly EffectPool _globalEffectPool = new();
-
-        // 全局效果池的规则顺序计数器
-        private int _globalOrderIndex;
 
         #endregion
 
@@ -235,8 +195,11 @@ namespace EasyPack.EmeCardSystem
         public Card GetCardByKey(string id, int index)
         {
             if (string.IsNullOrEmpty(id)) return null;
-            var key = new CardKey(id, index);
-            return _cardMap.GetValueOrDefault(key);
+            foreach (Card card in _cardsById[id])
+            {
+                if (card.Index == index) return card;
+            }
+            return null;
         }
 
         /// <summary>
@@ -269,14 +232,14 @@ namespace EasyPack.EmeCardSystem
         ///     检查指定卡牌是否接入引擎
         /// </summary>
         /// <returns></returns>
-        public bool HasCard(Card card) => GetCardByKey(card.Id, card.Index) == card;
+        public bool HasCard(Card card) => GetCardByUID(card.UID) == null;
 
         /// <summary>
         ///     根据 UID 获取卡牌。
         /// </summary>
         /// <param name="uid">卡牌的唯一标识符。</param>
         /// <returns>找到的卡牌，或 null 如果未找到。</returns>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Card GetCardByUID(long uid)
         {
             _cardsByUID.TryGetValue(uid, out Card card);
@@ -320,7 +283,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="position">要查询的位置。</param>
         /// <returns>在该位置的卡牌，如果未找到返回null。</returns>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Card GetCardByPosition(Vector3Int position)
         {
             _cardsByPosition.TryGetValue(position, out Card card);
@@ -332,7 +295,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="uid">卡牌的UID。</param>
         /// <returns>卡牌所在位置，如果未找到或UID无效返回 null。</returns>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector3Int? GetPositionByUID(long uid)
         {
             if (uid < 0) return null;
@@ -373,28 +336,24 @@ namespace EasyPack.EmeCardSystem
             {
                 indexes = new();
                 _idIndexes[id] = indexes;
+                _idMaxIndexes[id] = 0;
             }
 
-            int assignedIndex = card.Index;
-            // 只有当Index不已分配时才分配（Index < 0表示未分配），或者索引已被占用时，需要重新分配
-            if (assignedIndex < 0 || indexes.Contains(assignedIndex))
-            {
-                assignedIndex = 0;
-                while (indexes.Contains(assignedIndex))
-                {
-                    assignedIndex++;
-                }
+            int cardIndex = card.Index + 1;
 
-                card.Index = assignedIndex;
+            // 只有当Index不已分配时才分配（Index < 0表示未分配），或者索引已被占用时，需要重新分配
+            var maxIndex = _idMaxIndexes[id];
+            if (cardIndex <= 0 || maxIndex > cardIndex)
+            {
+                card.Index = cardIndex;
+                _idMaxIndexes[id] = cardIndex;
             }
 
             // 第三步: 订阅卡牌事件
             card.OnEvent += OnCardEvent;
-            
+
             // 第四步: 添加到索引
             indexes.Add(card.Index);
-            var actualKey = new CardKey(card.Id, card.Index);
-            _cardMap[actualKey] = card;
 
             // 添加到 UID 索引
             _cardsByUID[card.UID] = card;
@@ -411,13 +370,13 @@ namespace EasyPack.EmeCardSystem
             // 第五步: 注册到 CategoryManager（使用 UID 作为键，保证绝对唯一）
             RegisterToCategoryManager(card);
 
-            
+
             // 第六步: 将卡牌的所有标签加入TargetSelector缓存
             foreach (string tag in card.Tags)
             {
                 TargetSelector.OnCardTagAdded(card, tag);
             }
-            
+
             // 第七步: 递归注册所有已存在的子卡牌（处理工厂创建时已通过 AddChild 添加的子卡牌）
             if (card.Children is { Count: > 0 })
             {
@@ -429,17 +388,23 @@ namespace EasyPack.EmeCardSystem
                     }
                 }
             }
-            
+
             // 第八步: 注册位置映射（仅对根卡牌，即没有 Owner 的卡牌）
             // 子卡牌与父卡牌在同一位置，不单独索引
             _positionByUID[card.UID] = card.Position;
-            
+
+            // 初始化 RootCard 引用（根卡牌指向自己）
+            if (card.RootCard == null)
+            {
+                card.RootCard = card;
+            }
+
             // 只有根卡牌才会被添加到位置索引中
             if (card.Owner != null)
             {
                 return this; // 子卡牌不添加到位置索引
             }
-            
+
             var initialPosition = card.Position;
             if (initialPosition == null)
             {
@@ -521,59 +486,40 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     转移根卡牌到新位置，自动更新位置映射和所有子卡牌的位置。
+        ///     转移根卡牌到新位置，自动更新位置映射。
         ///     只能用于根卡牌（无 Owner 的卡牌）。
+        ///     子卡牌会通过 RootCard 引用动态获取根卡牌位置，无需递归更新。
         /// </summary>
         /// <param name="card">要转移的根卡牌（必须无 Owner）。</param>
         /// <param name="newPosition">新位置</param>
         /// <returns>当前引擎实例，支持链式调用。</returns>
         public CardEngine MoveCardToPosition(Card card, Vector3Int newPosition)
         {
-            if (card == null || card.Owner != null) return this;
-            
+            if (card is not { Owner: null }) return this;
+
             var oldPosition = card.Position;
-            
+
             // 如果位置相同，无需更新
             if (oldPosition.HasValue && oldPosition.Value == newPosition) return this;
 
             // 从旧位置移除
-            if (oldPosition != null && _cardsByPosition.TryGetValue(oldPosition, out Card cardAtOldPosition) && cardAtOldPosition == card)
+            if (oldPosition != null
+                && _cardsByPosition.TryGetValue(oldPosition, out Card cardAtOldPosition)
+                && cardAtOldPosition == card)
             {
                 _cardsByPosition.Remove(oldPosition);
             }
-            
+
             // 更新根卡牌位置
             card.Position = newPosition;
-            
+
             // 添加根卡牌索引到新位置
             _cardsByPosition[newPosition] = card;
             _positionByUID[card.UID] = newPosition;
-            
-            // 递归更新所有子卡牌的位置（它们与父卡牌在同一位置）
-            UpdateChildrenPosition(card, newPosition);
+
+            // 子卡牌无需递归更新，它们通过 RootCard.Position 动态获取根卡牌位置
 
             return this;
-        }
-        
-        /// <summary>
-        ///     递归更新所有子卡牌的位置，使其与父卡牌保持一致。
-        /// </summary>
-        /// <param name="parent">父卡牌。</param>
-        /// <param name="newPosition">新位置。</param>
-        private void UpdateChildrenPosition(Card parent, Vector3Int newPosition)
-        {
-            if (parent?.Children == null || parent.Children.Count == 0) return;
-            
-            foreach (Card child in parent.Children)
-            {
-                if (child == null) continue;
-                
-                child.Position = newPosition;
-                _positionByUID[child.UID] = newPosition;
-                
-                // 递归更新子卡牌的子卡牌
-                UpdateChildrenPosition(child, newPosition);
-            }
         }
 
         /// <summary>
@@ -583,66 +529,42 @@ namespace EasyPack.EmeCardSystem
         /// <param name="child">被添加为子卡牌的卡牌。</param>
         internal void NotifyChildAddedToParent(Card child)
         {
-            if (child == null) return;
-
             // 从位置索引中移除（因为子卡牌不应该在位置索引中）
-            if (child.Position != null && 
-                _cardsByPosition.TryGetValue(child.Position, out Card cardAtPosition) && 
+            if (child?.Position != null &&
+                _cardsByPosition.TryGetValue(child.Position, out Card cardAtPosition) &&
                 cardAtPosition == child)
             {
                 _cardsByPosition.Remove(child.Position);
             }
-            
-            // 更新 UID 到位置的映射（保留以便查询，但位置会随父卡牌变化）
-            // 子卡牌的位置现在由父卡牌决定
         }
 
         /// <summary>
         ///     清除根卡牌的位置，将其从位置索引中移除但保留在引擎中。
         ///     卡牌的 Position 会被设为 null。
+        ///     子卡牌无需更新，它们通过 RootCard.Position 动态获取根卡牌位置。
         /// </summary>
         /// <param name="card">要清除位置的根卡牌（必须无 Owner）。</param>
         /// <returns>当前引擎实例，支持链式调用。</returns>
         public CardEngine ClearCardPosition(Card card)
         {
-            if (card == null || card.Owner != null) return this;
-            
+            if (card is not { Owner: null }) return this;
+
             var oldPosition = card.Position;
             if (oldPosition == null) return this;
-            
+
             // 从位置索引中移除
             if (_cardsByPosition.TryGetValue(oldPosition, out Card cardAtPosition) && cardAtPosition == card)
             {
                 _cardsByPosition.Remove(oldPosition);
             }
-            
+
             // 清除卡牌位置
             card.Position = null;
             _positionByUID[card.UID] = null;
-            
-            // 递归清除所有子卡牌的位置
-            ClearChildrenPosition(card);
-            
+
+            // 子卡牌无需递归更新，它们通过 RootCard.Position 动态获取根卡牌位置
+
             return this;
-        }
-        
-        /// <summary>
-        ///     递归清除所有子卡牌的位置。
-        /// </summary>
-        private void ClearChildrenPosition(Card parent)
-        {
-            if (parent?.Children == null || parent.Children.Count == 0) return;
-            
-            foreach (Card child in parent.Children)
-            {
-                if (child == null) continue;
-                
-                child.Position = null;
-                _positionByUID[child.UID] = null;
-                
-                // 递归清除子卡牌的子卡牌
-                ClearChildrenPosition(child);
-            }
         }
 
         /// <summary>
@@ -653,7 +575,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="newPosition">新的世界位置。</param>
         internal void NotifyChildRemovedFromParent(Card card, Vector3Int newPosition)
         {
-            if (card == null || card.Owner != null) return; // 必须已移除 Owner
+            if (card is not { Owner: null }) return; // 必须已移除 Owner
 
             // 检查位置是否被占用
             if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && existingCard != card)
@@ -674,64 +596,58 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public CardEngine RemoveCard(Card c)
         {
-            if (c == null) return this;
+            if (c == null || !_cardsByUID.ContainsKey(c.UID)) return this;
 
-            var key = new CardKey(c.Id, c.Index);
-            if (_cardMap.TryGetValue(key, out Card existing) && ReferenceEquals(existing, c))
+            c.OnEvent -= OnCardEvent;
+            // 从 UID 索引中移除
+            if (c.UID >= 0) _cardsByUID.Remove(c.UID);
+
+            if (_idIndexes.TryGetValue(c.Id, out var indexes))
             {
-                _cardMap.Remove(key);
-                c.OnEvent -= OnCardEvent;
+                indexes.Remove(c.Index);
+                if (indexes.Count == 0) _idIndexes.Remove(c.Id);
+            }
 
-                // 从 UID 索引中移除
-                if (c.UID >= 0) _cardsByUID.Remove(c.UID);
+            // 更新_cardsById缓存
+            if (_cardsById.TryGetValue(c.Id, out var cardList))
+            {
+                cardList.Remove(c);
+                if (cardList.Count == 0) _cardsById.Remove(c.Id);
+            }
 
-                if (_idIndexes.TryGetValue(c.Id, out var indexes))
+            // 从TargetSelector缓存中移除卡牌的标签（在注销前获取标签）
+            // 复制标签到数组
+            var tags = c.Tags;
+            int tagCount = tags.Count;
+            string[] tagArray = null;
+
+            if (tagCount > 0)
+            {
+                tagArray = new string[tagCount];
+                int idx = 0;
+                foreach (string tag in tags)
                 {
-                    indexes.Remove(c.Index);
-                    if (indexes.Count == 0) _idIndexes.Remove(c.Id);
+                    tagArray[idx++] = tag;
                 }
+            }
 
-                // 更新_cardsById缓存
-                if (_cardsById.TryGetValue(c.Id, out var cardList))
+            // 从 CategoryManager 注销（使用 UID）
+            UnregisterFromCategoryManager(c.UID);
+
+            // 从位置映射中移除（仅针对根卡牌，子卡牌不在位置索引中）
+            if (c.Owner == null && c.Position != null &&
+                _cardsByPosition.TryGetValue(c.Position, out Card cardAtPosition) && cardAtPosition == c)
+            {
+                _cardsByPosition.Remove(c.Position);
+            }
+            _positionByUID.Remove(c.UID);
+
+            // 移除标签缓存
+            if (tagArray != null)
+            {
+                for (int i = 0; i < tagArray.Length; i++)
                 {
-                    cardList.Remove(c);
-                    if (cardList.Count == 0) _cardsById.Remove(c.Id);
-                }
-
-                // 从TargetSelector缓存中移除卡牌的标签（在注销前获取标签）
-                // 复制标签到数组
-                var tags = c.Tags;
-                int tagCount = tags.Count;
-                string[] tagArray = null;
-
-                if (tagCount > 0)
-                {
-                    tagArray = new string[tagCount];
-                    int idx = 0;
-                    foreach (string tag in tags)
-                    {
-                        tagArray[idx++] = tag;
-                    }
-                }
-
-                // 从 CategoryManager 注销（使用 UID）
-                UnregisterFromCategoryManager(c);
-
-                // 从位置映射中移除（仅针对根卡牌，子卡牌不在位置索引中）
-                if (c.Owner == null && c.Position != null && 
-                    _cardsByPosition.TryGetValue(c.Position, out Card cardAtPosition) && cardAtPosition == c)
-                {
-                    _cardsByPosition.Remove(c.Position);
-                }
-                _positionByUID.Remove(c.UID);
-
-                // 移除标签缓存
-                if (tagArray != null)
-                {
-                    for (int i = 0; i < tagArray.Length; i++)
-                    {
-                        TargetSelector.OnCardTagRemoved(c, tagArray[i]);
-                    }
+                    TargetSelector.OnCardTagRemoved(c, tagArray[i]);
                 }
             }
 
@@ -741,12 +657,11 @@ namespace EasyPack.EmeCardSystem
         public void ClearAllCards()
         {
             // 从 CategoryManager 批量注销所有卡牌
-            foreach (Card card in _cardMap.Values)
+            foreach (var uid in _cardsByUID.Keys)
             {
-                UnregisterFromCategoryManager(card);
+                UnregisterFromCategoryManager(uid);
             }
 
-            _cardMap.Clear();
             _idIndexes.Clear();
             _cardsById.Clear();
             _cardsByUID.Clear();
@@ -788,10 +703,9 @@ namespace EasyPack.EmeCardSystem
             {
                 foreach (string tag in card.PendingExtraTags)
                 {
-                    if (!string.IsNullOrWhiteSpace(tag))
-                    {
-                        registration = registration.WithTags(tag);
-                    }
+                    if (string.IsNullOrWhiteSpace(tag)) continue;
+
+                    registration = registration.WithTags(tag);
                 }
                 // 清空临时标签列表
                 card.PendingExtraTags = null;
@@ -809,15 +723,15 @@ namespace EasyPack.EmeCardSystem
         ///     从 CategoryManager 注销卡牌（使用 UID）。
         /// </summary>
         /// <param name="card">要注销的卡牌。</param>
-        private void UnregisterFromCategoryManager(Card card)
+        private void UnregisterFromCategoryManager(long uid)
         {
-            if (card == null) return;
+            if (uid < 0) return;
 
             // 使用 UID（int）删除实体
-            OperationResult result = CategoryManager.DeleteEntity(card.UID);
+            OperationResult result = CategoryManager.DeleteEntity(uid);
             if (!result.IsSuccess && result.ErrorCode != ErrorCode.NotFound)
             {
-                Debug.LogWarning($"[CardEngine] CategoryManager 注销失败: Card UID={card.UID}, Error={result.ErrorMessage}");
+                Debug.LogWarning($"[CardEngine] CategoryManager 注销失败: Card UID={uid}, Error={result.ErrorMessage}");
             }
         }
 
@@ -840,35 +754,5 @@ namespace EasyPack.EmeCardSystem
         }
 
         #endregion
-    }
-
-    public readonly struct CardKey : IEquatable<CardKey>
-    {
-        public readonly string Id;
-        public readonly int Index;
-
-        public CardKey(string id, int index)
-        {
-            Id = id ?? string.Empty;
-            Index = index;
-        }
-
-        public bool Equals(CardKey other) =>
-            string.Equals(Id, other.Id, StringComparison.Ordinal) && Index == other.Index;
-
-        public override bool Equals(object obj) => obj is CardKey k && Equals(k);
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                int hash = 17;
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(Id ?? string.Empty);
-                hash = hash * 31 + Index;
-                return hash;
-            }
-        }
-
-        public override string ToString() => $"{Id}#{Index}";
     }
 }

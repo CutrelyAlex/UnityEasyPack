@@ -18,18 +18,16 @@ namespace EasyPack.EmeCardSystem
         #region 基础配置
 
         /// <summary>设置事件触发类型（使用字符串）</summary>
-        public CardRuleBuilder On(string eventType, string customId = null)
+        public CardRuleBuilder On(string eventType)
         {
             _rule.EventType = eventType;
-            _rule.CustomId = customId;
             return this;
         }
 
         /// <summary>设置事件触发类型（使用事件定义）</summary>
-        public CardRuleBuilder On<T>(CardEventDefinition<T> eventDef, string customId = null)
+        public CardRuleBuilder On<T>(CardEventDefinition<T> eventDef)
         {
             _rule.EventType = eventDef?.EventType;
-            _rule.CustomId = customId;
             return this;
         }
 
