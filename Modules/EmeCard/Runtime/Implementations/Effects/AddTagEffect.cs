@@ -47,9 +47,9 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="ctx">规则上下文。</param>
         /// <param name="matched">匹配阶段结果（当 <see cref="Scope" />=Matched 时使用）。</param>
-        public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
+        public void Execute(CardRuleContext ctx, HashSet<Card> matched)
         {
-            IReadOnlyList<Card> targets;
+            HashSet<Card> targets;
 
             if (Scope == TargetScope.Matched)
             {
@@ -60,27 +60,33 @@ namespace EasyPack.EmeCardSystem
 
                 // 应用过滤条件（FilterMode）
                 if (Filter != CardFilterMode.None && !string.IsNullOrEmpty(FilterValue))
-                    targets = TargetSelector.ApplyFilter(targets, Filter, FilterValue);
+                {
+                    var filtered = TargetSelector.ApplyFilter(targets, Filter, FilterValue);
+                    targets = new HashSet<Card>(filtered);
+                }
 
                 // 应用 Take 限制
                 if (Take is > 0 && targets.Count > Take.Value)
                 {
-                    var limited = new List<Card>(Take.Value);
-                    for (int i = 0; i < Take.Value && i < targets.Count; i++)
+                    var limited = new HashSet<Card>();
+                    int count = 0;
+                    foreach (var card in targets)
                     {
-                        limited.Add(targets[i]);
+                        if (count >= Take.Value) break;
+                        limited.Add(card);
+                        count++;
                     }
-
                     targets = limited;
                 }
             }
             else
             {
                 // 使用 TargetSelector 选择
-                targets = TargetSelector.SelectForEffect(this, ctx);
+                var selectedList = TargetSelector.SelectForEffect(this, ctx);
+                targets = new HashSet<Card>(selectedList);
             }
 
-            if (targets == null) return;
+            if (targets == null || targets.Count == 0) return;
 
             // 添加标签
             foreach (Card t in targets)

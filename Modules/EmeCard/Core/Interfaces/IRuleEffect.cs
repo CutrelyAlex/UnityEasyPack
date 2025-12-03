@@ -75,6 +75,6 @@ namespace EasyPack.EmeCardSystem
         ///     </list>
         /// </param>
         /// <param name="matched">规则匹配阶段选中的卡牌集合。</param>
-        void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched);
+        void Execute(CardRuleContext ctx, HashSet<Card> matched);
     }
 }

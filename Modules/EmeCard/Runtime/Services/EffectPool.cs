@@ -15,7 +15,7 @@ namespace EasyPack.EmeCardSystem
         public CardRuleContext Context { get; }
 
         /// <summary>匹配的卡牌列表</summary>
-        public IReadOnlyList<Card> Matched { get; }
+        public HashSet<Card> Matched { get; }
 
         /// <summary>规则优先级（用于排序）</summary>
         public int Priority { get; }
@@ -29,7 +29,7 @@ namespace EasyPack.EmeCardSystem
         public EffectPoolEntry(
             IRuleEffect effect,
             CardRuleContext context,
-            IReadOnlyList<Card> matched,
+            HashSet<Card> matched,
             int priority,
             int orderIndex,
             int effectIndex)
@@ -81,7 +81,7 @@ namespace EasyPack.EmeCardSystem
         /// <param name="context">规则上下文</param>
         /// <param name="matched">匹配的卡牌</param>
         /// <param name="orderIndex">规则的注册顺序</param>
-        public void AddRuleEffects(CardRule rule, CardRuleContext context, IReadOnlyList<Card> matched, int orderIndex)
+        public void AddRuleEffects(CardRule rule, CardRuleContext context, HashSet<Card> matched, int orderIndex)
         {
             if (rule?.Effects == null || rule.Effects.Count == 0) return;
 
@@ -100,7 +100,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     添加单个效果到池中。
         /// </summary>
-        public void AddEffect(IRuleEffect effect, CardRuleContext context, IReadOnlyList<Card> matched,
+        public void AddEffect(IRuleEffect effect, CardRuleContext context, HashSet<Card> matched,
                               int priority = 0, int orderIndex = 0, int effectIndex = 0)
         {
             if (effect == null) return;

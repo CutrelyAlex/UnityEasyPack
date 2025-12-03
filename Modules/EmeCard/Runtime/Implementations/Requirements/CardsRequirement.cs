@@ -104,10 +104,10 @@ namespace EasyPack.EmeCardSystem
             if (root == null) return false;
 
             var picks = TargetSelector.Select(
-                Scope, 
-                FilterMode, 
-                root, 
-                FilterValue, 
+                Scope,
+                FilterMode,
+                root,
+                FilterValue,
                 MaxDepth ?? ctx.MaxDepth,
                 ctx.Engine?.CategoryManager);
             int count = picks?.Count ?? 0;
@@ -127,12 +127,20 @@ namespace EasyPack.EmeCardSystem
 
                 int takeCount = Math.Min(maxReturn, count);
                 if (takeCount == count && picks != null)
-                    matched.AddRange(picks);
+                {
+                    foreach (var card in picks)
+                    {
+                        matched.Add(card);
+                    }
+                }
                 else if (picks != null)
                 {
-                    for (int i = 0; i < takeCount; i++)
+                    int i = 0;
+                    foreach (var card in picks)
                     {
-                        matched.Add(picks[i]);
+                        if (i >= takeCount) break;
+                        matched.Add(card);
+                        i++;
                     }
                 }
             }

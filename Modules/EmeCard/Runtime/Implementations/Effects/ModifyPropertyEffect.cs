@@ -33,7 +33,7 @@ namespace EasyPack.EmeCardSystem
         ///     过滤模式（默认 None）。
         /// </summary>
         public CardFilterMode Filter { get; set; } = CardFilterMode.None;
-        
+
         /// <summary>
         ///     目标过滤值
         /// </summary>
@@ -82,7 +82,7 @@ namespace EasyPack.EmeCardSystem
         ///     数值参数函数（优先选择）
         /// </summary>
         public Func<CardRuleContext, float> ValueFunc;
-        
+
         /// <summary>
         ///     数值参数：用于 AddToBase/SetBase 模式。
         /// </summary>
@@ -93,23 +93,38 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="ctx">规则上下文。</param>
         /// <param name="matched">匹配阶段的结果（当 <see cref="Scope" />=Matched 时使用）。</param>
-        public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
+        public void Execute(CardRuleContext ctx, HashSet<Card> matched)
         {
-            IReadOnlyList<Card> targets;
-            
+            HashSet<Card> targets;
+
             if (Scope == TargetScope.Matched)
             {
                 // 使用匹配结果
                 if (matched == null || matched.Count == 0) return;
 
-                targets = matched;
-
                 // 应用过滤条件（FilterMode）
                 if (Filter != CardFilterMode.None && !string.IsNullOrEmpty(FilterValue))
-                    targets = TargetSelector.ApplyFilter(targets, Filter, FilterValue);
+                {
+                    targets = TargetSelector.ApplyFilter(matched, Filter, FilterValue);
+                }
+                else
+                {
+                    targets = new HashSet<Card>(matched);
+                }
 
                 // 应用 Take 限制
-                if (Take is > 0 && targets.Count > Take.Value) targets = targets.Take(Take.Value).ToList();
+                if (Take is > 0 && targets.Count > Take.Value)
+                {
+                    var limited = new HashSet<Card>();
+                    int count = 0;
+                    foreach (var card in targets)
+                    {
+                        if (count >= Take.Value) break;
+                        limited.Add(card);
+                        count++;
+                    }
+                    targets = limited;
+                }
             }
             else
             {
@@ -130,7 +145,7 @@ namespace EasyPack.EmeCardSystem
                         : properties.Where(p => p.ID == PropertyName);
 
                 Value = ValueFunc?.Invoke(ctx) ?? Value;
-                
+
                 foreach (GameProperty gp in propsToModify)
                 {
                     if (gp == null) continue;

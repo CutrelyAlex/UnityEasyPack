@@ -57,29 +57,29 @@ namespace EasyPack.EmeCardSystem
         #region 对象池与缓存比较器
 
         [ThreadStatic] private static List<CardRule> t_rulesToProcess;
-        [ThreadStatic] private static List<(CardRule, List<Card>, CardRuleContext, int)> t_evals;
+        [ThreadStatic] private static List<(CardRule, HashSet<Card>, CardRuleContext, int)> t_evals;
         [ThreadStatic] private static HashSet<Card> t_distinctSet;
 
         // 缓存排序比较器
-        private static readonly Comparison<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>
+        private static readonly Comparison<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>
             s_priorityComparison = (a, b) =>
             {
                 int cmp = a.rule.Priority.CompareTo(b.rule.Priority);
                 return cmp != 0 ? cmp : a.orderIndex.CompareTo(b.orderIndex);
             };
 
-        private static readonly Comparison<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>
+        private static readonly Comparison<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>
             s_orderComparison = (a, b) => a.orderIndex.CompareTo(b.orderIndex);
 
         /// <summary>
         ///     从线程局部池获取或创建 evals 列表
         /// </summary>
-        private static List<(CardRule, List<Card>, CardRuleContext, int)> RentEvalsList(int capacity = 8)
+        private static List<(CardRule, HashSet<Card>, CardRuleContext, int)> RentEvalsList(int capacity = 8)
         {
             var list = t_evals;
             if (list == null)
             {
-                t_evals = new List<(CardRule, List<Card>, CardRuleContext, int)>(capacity);
+                t_evals = new List<(CardRule, HashSet<Card>, CardRuleContext, int)>(capacity);
                 return t_evals;
             }
             list.Clear();
@@ -518,24 +518,16 @@ namespace EasyPack.EmeCardSystem
 
             if (_rules.TryGetValue(evt.EventType, out var typeRules))
                 typeRulesCount = typeRules.Count;
-            
+
             if (typeRulesCount == 0) return;
 
             // 根据配置选择串行或并行评估
-            List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals;
-
-            if (Policy.EnableParallelMatching && typeRulesCount >= Policy.ParallelThreshold)
-            {
-                evals = EvaluateRulesParallel(typeRules, source, evt);
-            }
-            else
-            {
-                evals = EvaluateRulesSerial(typeRules, source, evt);
-            }
+            var evals = Policy.EnableParallelMatching && typeRulesCount >= Policy.ParallelThreshold
+                ? EvaluateRulesParallel(typeRules, source, evt)
+                : EvaluateRulesSerial(typeRules, source, evt);
 
             if (evals.Count == 0) return;
-
-            // 使用缓存的比较器排序
+            
             evals.Sort(Policy.RuleSelection == RuleSelectionMode.Priority ? s_priorityComparison : s_orderComparison);
 
             // 处理规则效果
@@ -549,7 +541,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     串行评估规则（默认模式）。
         /// </summary>
-        private List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>
+        private List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>
             EvaluateRulesSerial(List<CardRule> rules, Card source, ICardEvent evt)
         {
             // 使用对象池复用 evals 列表
@@ -562,13 +554,9 @@ namespace EasyPack.EmeCardSystem
                 CardRuleContext ctx = BuildContext(rule, source, evt);
                 if (ctx == null) continue;
 
-                if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
-                {
-                    if ((rule.Policy?.DistinctMatched ?? true) && matched is { Count: > 1 })
-                        DistinctInPlace(matched);
+                if (!EvaluateRequirements(ctx, rule.Requirements, out var matched, i)) continue;
 
-                    evals.Add((rule, matched, ctx, i));
-                }
+                evals.Add((rule, matched, ctx, i));
             }
 
             return evals;
@@ -581,10 +569,10 @@ namespace EasyPack.EmeCardSystem
         ///         建议仅在 Requirements 不修改共享状态时启用。
         ///     </para>
         /// </summary>
-        private List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>
+        private List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>
             EvaluateRulesParallel(List<CardRule> rules, Card source, ICardEvent evt)
         {
-            var results = new ConcurrentBag<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>();
+            var results = new ConcurrentBag<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>();
 
             var options = new ParallelOptions();
             if (Policy.MaxDegreeOfParallelism > 0)
@@ -599,10 +587,6 @@ namespace EasyPack.EmeCardSystem
 
                 if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
                 {
-                    // 并行模式下使用线程局部 HashSet 去重
-                    if ((rule.Policy?.DistinctMatched ?? true) && matched is { Count: > 1 })
-                        DistinctInPlace(matched);
-
                     results.Add((rule, matched, ctx, i));
                 }
             });
@@ -611,14 +595,13 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     评估规则的所有条件要求。
+        ///     评估规则的所有条件要求。使用 HashSet 对象池避免频繁分配。
         /// </summary>
         private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements,
-                                          out List<Card> matchedAll, int ruleId = -1)
+                                          out HashSet<Card> matchedAll, int ruleId = -1)
         {
-            // 使用对象池复用 matchedAll 列表
-            // 注意：这里必须创建新列表，因为结果会被保存到 evals 中
-            matchedAll = new List<Card>(8);
+            // 使用对象池获取 HashSet，自动清空
+            matchedAll = RentDistinctSet();
             if (requirements == null) return true;
 
             foreach (IRuleRequirement req in requirements)
@@ -627,7 +610,7 @@ namespace EasyPack.EmeCardSystem
 
                 if (!req.TryMatch(ctx, out var picks)) return false;
 
-                if (picks == null || picks.Count <= 0) continue;
+                if (picks is not { Count: > 0 }) continue;
 
                 foreach (Card t in picks)
                     matchedAll.Add(t);
@@ -669,7 +652,7 @@ namespace EasyPack.EmeCardSystem
         ///         池中的效果将在 Pump 结束时或手动刷新时按全局优先级执行。
         ///     </para>
         /// </summary>
-        private void ProcessRulesEffects(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+        private void ProcessRulesEffects(List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
         {
             if (Policy.EnableEffectPool)
             {
@@ -686,7 +669,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     直接执行规则效果（不使用效果池）。
         /// </summary>
-        private void ExecuteRulesDirect(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+        private void ExecuteRulesDirect(List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
         {
             if (Policy.FirstMatchOnly)
             {
@@ -706,7 +689,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     收集效果到全局效果池。
         /// </summary>
-        private void CollectEffectsToPool(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+        private void CollectEffectsToPool(List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
         {
             foreach (var e in evals)
             {
@@ -754,7 +737,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     执行单个规则的效果。
         /// </summary>
-        private bool ExecuteOne((CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex) e)
+        private bool ExecuteOne((CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex) e)
         {
             if (e.matched == null || e.rule.Effects == null || e.rule.Effects.Count == 0) return false;
 

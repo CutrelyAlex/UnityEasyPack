@@ -49,7 +49,7 @@ namespace EasyPack.EmeCardSystem
         ///     目标位置。
         /// </summary>
         public Vector3Int TargetPosition { get; set; } = Vector3Int.zero;
-        
+
         /// <summary>
         ///     是否强制覆盖目标位置的卡牌。
         ///     如果为 true，目标位置的卡牌会被设置为无位置状态。
@@ -62,25 +62,34 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="ctx">规则上下文。</param>
         /// <param name="matched">匹配阶段结果（当 <see cref="Scope" />=Matched 时使用）。</param>
-        public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
+        public void Execute(CardRuleContext ctx, HashSet<Card> matched)
         {
-            IReadOnlyList<Card> targets;
+            List<Card> targets;
 
             if (Scope == TargetScope.Matched)
             {
                 // 使用匹配结果
                 if (matched == null || matched.Count == 0) return;
 
-                targets = matched;
+                // 先转换为List下来
+                var targetList = new List<Card>(matched);
 
                 // 应用过滤条件（FilterMode）
                 if (Filter != CardFilterMode.None && !string.IsNullOrEmpty(FilterValue))
-                    targets = TargetSelector.ApplyFilter(targets, Filter, FilterValue);
+                {
+                    var filtered = TargetSelector.ApplyFilter(matched, Filter, FilterValue);
+                    targets = new List<Card>(filtered);
+                }
+                else
+                {
+                    targets = targetList;
+                }
             }
             else
             {
                 // 使用 TargetSelector 选择
-                targets = TargetSelector.SelectForEffect(this, ctx);
+                var selected = TargetSelector.SelectForEffect(this, ctx);
+                targets = new List<Card>(selected);
             }
 
             if (targets == null || targets.Count == 0) return;
@@ -95,7 +104,7 @@ namespace EasyPack.EmeCardSystem
                     break;
                 }
             }
-            
+
             if (cardToMove == null || ctx.Engine == null) return;
 
             // 检查目标位置是否有卡牌
@@ -107,7 +116,7 @@ namespace EasyPack.EmeCardSystem
                     // 不强制覆盖，目标位置有卡牌时不执行
                     return;
                 }
-                
+
                 // 强制覆盖：将原位置卡牌的位置设为 null（移除出位置索引但保留在引擎中）
                 ctx.Engine.ClearCardPosition(cardAtTarget);
             }
