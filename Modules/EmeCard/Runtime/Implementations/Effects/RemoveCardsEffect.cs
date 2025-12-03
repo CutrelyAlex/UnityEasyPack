@@ -54,27 +54,34 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="ctx">规则执行上下文</param>
         /// <param name="matched">规则匹配阶段的结果（当 <see cref="Scope" /> 为 <see cref="TargetScope.Matched" /> 时使用）</param>
-        public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
+        public void Execute(CardRuleContext ctx, HashSet<Card> matched)
         {
-            IReadOnlyList<Card> targets;
+            List<Card> targets;
 
             // 如果 Scope == Matched，使用已匹配的卡牌，但仍需要应用过滤
             if (Scope == TargetScope.Matched)
             {
                 if (matched == null || matched.Count == 0) return;
 
-                targets = matched;
-
                 // 应用过滤条件（FilterMode）
                 if (Filter != CardFilterMode.None && !string.IsNullOrEmpty(FilterValue))
-                    targets = TargetSelector.ApplyFilter(targets, Filter, FilterValue);
+                {
+                    var filtered = TargetSelector.ApplyFilter(matched, Filter, FilterValue);
+                    targets = new List<Card>(filtered);
+                }
+                else
+                {
+                    targets = new List<Card>(matched);
+                }
 
                 // 应用 Take 限制
-                if (Take is > 0 && targets.Count > Take.Value) targets = targets.Take(Take.Value).ToList();
+                if (Take is > 0 && targets.Count > Take.Value)
+                    targets = targets.Take(Take.Value).ToList();
             }
             else
             {
-                targets = TargetSelector.SelectForEffect(this, ctx);
+                var selected = TargetSelector.SelectForEffect(this, ctx);
+                targets = new List<Card>(selected);
             }
 
             if (targets == null || targets.Count == 0)

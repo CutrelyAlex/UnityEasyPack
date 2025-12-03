@@ -343,7 +343,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>执行自定义逻辑</summary>
-        public CardRuleBuilder DoInvoke(Action<CardRuleContext, IReadOnlyList<Card>> action)
+        public CardRuleBuilder DoInvoke(Action<CardRuleContext, HashSet<Card>> action)
         {
             if (action != null)
                 _rule.Effects.Add(new InvokeEffect(action));
@@ -398,7 +398,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     仅在编辑器中执行调试效果
         /// </summary>
-        public CardRuleBuilder DoDebugInvoke(Action<CardRuleContext, IReadOnlyList<Card>> debugAction = null)
+        public CardRuleBuilder DoDebugInvoke(Action<CardRuleContext, HashSet<Card>> debugAction = null)
         {
             if (debugAction != null) _rule.Effects.Add(new InvokeEffect(debugAction));
 

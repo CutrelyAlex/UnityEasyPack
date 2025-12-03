@@ -177,8 +177,8 @@ namespace EasyPack.EmeCardSystem
         /// <param name="ctx">规则上下文</param>
         /// <param name="filterValue">过滤值（标签名/ID/Category名）</param>
         /// <param name="maxDepth">递归最大深度（仅对 Descendants 生效）</param>
-        /// <returns>符合条件的卡牌列表</returns>
-        public static IReadOnlyList<Card> Select(
+        /// <returns>符合条件的卡牌集合</returns>
+        public static HashSet<Card> Select(
             TargetScope scope,
             CardFilterMode filter,
             CardRuleContext ctx,
@@ -186,7 +186,7 @@ namespace EasyPack.EmeCardSystem
             int? maxDepth = null)
         {
             return ctx?.MatchRoot == null
-                ? Array.Empty<Card>()
+                ? new HashSet<Card>()
                 : Select(scope, filter, ctx.MatchRoot, filterValue, maxDepth ?? ctx.MaxDepth,
                     ctx.Engine?.CategoryManager);
         }
@@ -194,7 +194,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     根据作用域和过滤条件选择目标卡牌。
         /// </summary>
-        public static IReadOnlyList<Card> Select(
+        public static HashSet<Card> Select(
             TargetScope scope,
             CardFilterMode filter,
             Card root,
@@ -203,30 +203,32 @@ namespace EasyPack.EmeCardSystem
             ICategoryManager<Card, long> categoryManager = null)
         {
             if (root == null)
-                return Array.Empty<Card>();
+                return new HashSet<Card>();
 
             // 特殊处理：Matched 不应该在这里处理，由调用方直接使用匹配结果
-            if (scope == TargetScope.Matched) return Array.Empty<Card>();
+            if (scope == TargetScope.Matched) return new HashSet<Card>();
 
-            List<Card> candidates;
+            HashSet<Card> candidates;
 
             // 第一步：根据 Scope 选择候选集
             switch (scope)
             {
                 case TargetScope.Children:
                     // 创建副本以避免并发修改
-                    candidates = new List<Card>(root.Children);
+                    candidates = new HashSet<Card>(root.Children);
                     break;
 
                 case TargetScope.Descendants:
                     {
                         int depth = maxDepth;
                         if (depth <= 0) depth = int.MaxValue;
-                        return ApplyFilter(TraversalUtil.EnumerateDescendantsAsList(root, depth), filter, filterValue, categoryManager);
+                        var descendantsList = TraversalUtil.EnumerateDescendantsAsList(root, depth);
+                        candidates = new HashSet<Card>(descendantsList);
+                        break;
                     }
 
                 default:
-                    return Array.Empty<Card>();
+                    return new HashSet<Card>();
             }
 
             // 第二步：根据 FilterMode 过滤
@@ -238,20 +240,20 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="selection">目标选择配置</param>
         /// <param name="ctx">当前规则上下文</param>
-        /// <returns>符合条件的卡牌列表</returns>
-        public static IReadOnlyList<Card> SelectForEffect(ITargetSelection selection, CardRuleContext ctx)
+        /// <returns>符合条件的卡牌集合</returns>
+        public static HashSet<Card> SelectForEffect(ITargetSelection selection, CardRuleContext ctx)
         {
             if (selection == null || ctx == null)
-                return Array.Empty<Card>();
+                return new HashSet<Card>();
 
             // Matched 由调用方处理
             if (selection.Scope == TargetScope.Matched)
-                return Array.Empty<Card>();
+                return new HashSet<Card>();
 
             // 确定根容器：效果使用 EffectRoot
             Card root = selection.Root == SelectionRoot.Source ? ctx.Source : ctx.EffectRoot;
             if (root == null)
-                return Array.Empty<Card>();
+                return new HashSet<Card>();
 
             // 选择目标
             var targets = Select(
@@ -267,10 +269,13 @@ namespace EasyPack.EmeCardSystem
             if (selection.Take is > 0 && targets.Count > selection.Take.Value)
             {
                 int takeCount = selection.Take.Value;
-                var limited = new List<Card>(takeCount);
-                for (int i = 0; i < takeCount; i++)
+                var limited = new HashSet<Card>();
+                int count = 0;
+                foreach (var card in targets)
                 {
-                    limited.Add(targets[i]);
+                    if (count >= takeCount) break;
+                    limited.Add(card);
+                    count++;
                 }
                 return limited;
             }
@@ -281,26 +286,26 @@ namespace EasyPack.EmeCardSystem
 
 
         /// <summary>
-        ///     对已有的卡牌列表应用过滤条件（线程安全）。
+        ///     对已有的卡牌集合应用过滤条件（线程安全）。针对 HashSet&lt;Card&gt;
         /// </summary>
-        /// <param name="cards">要过滤的卡牌列表</param>
+        /// <param name="cards">要过滤的卡牌集合</param>
         /// <param name="filter">过滤模式</param>
         /// <param name="filterValue">过滤值</param>
         /// <param name="categoryManager">可选的 CategoryManager（用于标签和分类查询）</param>
-        /// <returns>过滤后的卡牌列表</returns>
-        public static IReadOnlyList<Card> ApplyFilter(
-            IReadOnlyList<Card> cards,
+        /// <returns>过滤后的卡牌集合</returns>
+        public static HashSet<Card> ApplyFilter(
+            HashSet<Card> cards,
             CardFilterMode filter,
             string filterValue,
             ICategoryManager<Card, long> categoryManager = null)
         {
             if (cards == null || cards.Count == 0)
-                return Array.Empty<Card>();
+                return new HashSet<Card>();
 
             switch (filter)
             {
                 case CardFilterMode.None:
-                    return cards;
+                    return new HashSet<Card>(cards);
 
                 case CardFilterMode.ByTag:
                     return FilterByTag(cards, filterValue, categoryManager);
@@ -312,28 +317,28 @@ namespace EasyPack.EmeCardSystem
                     return FilterByCategory(cards, filterValue, categoryManager);
 
                 default:
-                    return Array.Empty<Card>();
+                    return new HashSet<Card>();
             }
         }
 
         /// <summary>
-        ///     按标签过滤（线程安全）。
+        ///     按标签过滤（线程安全）。针对 HashSet&lt;Card&gt;
         /// </summary>
-        private static IReadOnlyList<Card> FilterByTag(
-            IReadOnlyList<Card> cards,
+        private static HashSet<Card> FilterByTag(
+            HashSet<Card> cards,
             string tag,
             ICategoryManager<Card, long> categoryManager)
         {
             if (string.IsNullOrEmpty(tag))
-                return Array.Empty<Card>();
+                return new HashSet<Card>();
+
+            var results = new HashSet<Card>();
 
             // 优先使用 CategoryManager
             if (categoryManager != null)
             {
-                var results = new List<Card>(cards.Count);
-                for (int i = 0, count = cards.Count; i < count; i++)
+                foreach (Card card in cards)
                 {
-                    Card card = cards[i];
                     if (categoryManager.HasTag(card, tag))
                         results.Add(card);
                 }
@@ -345,42 +350,37 @@ namespace EasyPack.EmeCardSystem
             if (cachedCardSet is { Count: > 0 })
             {
                 // 使用缓存：取缓存中与候选集的交集
-                var tagResults = new List<Card>(cards.Count);
                 lock (cachedCardSet)
                 {
-                    for (int i = 0, count = cards.Count; i < count; i++)
+                    foreach (Card card in cards)
                     {
-                        Card card = cards[i];
                         if (cachedCardSet.Contains(card))
-                            tagResults.Add(card);
+                            results.Add(card);
                     }
                 }
-                return tagResults;
+                return results;
             }
 
             // 回退：缓存未初始化，使用 Card.HasTag
-            var fallbackResults = new List<Card>(cards.Count);
-            for (int i = 0, count = cards.Count; i < count; i++)
+            foreach (Card card in cards)
             {
-                Card card = cards[i];
                 if (card.HasTag(tag))
-                    fallbackResults.Add(card);
+                    results.Add(card);
             }
-            return fallbackResults;
+            return results;
         }
 
         /// <summary>
-        ///     按 ID 过滤。
+        ///     按 ID 过滤。针对 HashSet&lt;Card&gt;
         /// </summary>
-        private static IReadOnlyList<Card> FilterById(IReadOnlyList<Card> cards, string id)
+        private static HashSet<Card> FilterById(HashSet<Card> cards, string id)
         {
             if (string.IsNullOrEmpty(id))
-                return Array.Empty<Card>();
+                return new HashSet<Card>();
 
-            var results = new List<Card>(cards.Count);
-            for (int i = 0, count = cards.Count; i < count; i++)
+            var results = new HashSet<Card>();
+            foreach (Card card in cards)
             {
-                Card card = cards[i];
                 if (string.Equals(card.Id, id, StringComparison.Ordinal))
                     results.Add(card);
             }
@@ -388,23 +388,23 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     按分类过滤。使用 CategoryManager 检查卡牌是否属于指定分类。
+        ///     按分类过滤。使用 CategoryManager 检查卡牌是否属于指定分类。针对 HashSet&lt;Card&gt;
         /// </summary>
-        private static IReadOnlyList<Card> FilterByCategory(
-            IReadOnlyList<Card> cards,
+        private static HashSet<Card> FilterByCategory(
+            HashSet<Card> cards,
             string categoryStr,
             ICategoryManager<Card, long> categoryManager)
         {
             if (string.IsNullOrEmpty(categoryStr))
-                return Array.Empty<Card>();
+                return new HashSet<Card>();
+
+            var results = new HashSet<Card>();
 
             // 使用 CategoryManager 检查分类
             if (categoryManager != null)
             {
-                var results = new List<Card>(cards.Count);
-                for (int i = 0, count = cards.Count; i < count; i++)
+                foreach (Card card in cards)
                 {
-                    Card card = cards[i];
                     // 使用 IsInCategory 检查
                     if (categoryManager.IsInCategory(card, categoryStr, includeChildren: true))
                     {
@@ -415,14 +415,13 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 回退：通过 DefaultCategory 匹配
-            var catResults = new List<Card>(cards.Count);
-            for (int i = 0, count = cards.Count; i < count; i++)
+            foreach (Card card in cards)
             {
-                Card card = cards[i];
                 if (string.Equals(card.Data?.Category, categoryStr, StringComparison.OrdinalIgnoreCase))
-                    catResults.Add(card);
+                    results.Add(card);
             }
-            return catResults;
+            return results;
         }
+
     }
 }

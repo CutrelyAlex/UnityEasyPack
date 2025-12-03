@@ -28,7 +28,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="ctx">规则上下文（需包含 Engine 与 MatchRoot）。</param>
         /// <param name="matched">匹配结果（本效果不使用）。</param>
-        public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
+        public void Execute(CardRuleContext ctx, HashSet<Card> matched)
         {
             CardEngine engine = ctx.Engine;
             if (engine == null || ctx.MatchRoot == null || CardIds == null || CardIds.Count == 0 ||
