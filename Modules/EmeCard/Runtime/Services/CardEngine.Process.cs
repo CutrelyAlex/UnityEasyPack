@@ -72,23 +72,6 @@ namespace EasyPack.EmeCardSystem
             s_orderComparison = (a, b) => a.orderIndex.CompareTo(b.orderIndex);
 
         /// <summary>
-        ///     从线程局部池获取或创建 List&lt;CardRule&gt;
-        /// </summary>
-        private static List<CardRule> RentRulesList(int capacity = 16)
-        {
-            var list = t_rulesToProcess;
-            if (list == null)
-            {
-                t_rulesToProcess = new List<CardRule>(capacity);
-                return t_rulesToProcess;
-            }
-            list.Clear();
-            if (list.Capacity < capacity)
-                list.Capacity = capacity;
-            return list;
-        }
-
-        /// <summary>
         ///     从线程局部池获取或创建 evals 列表
         /// </summary>
         private static List<(CardRule, List<Card>, CardRuleContext, int)> RentEvalsList(int capacity = 8)
@@ -532,47 +515,31 @@ namespace EasyPack.EmeCardSystem
         private void ProcessCore(Card source, ICardEvent evt)
         {
             int typeRulesCount = 0;
-            List<CardRule> idRules = null;
 
             if (_rules.TryGetValue(evt.EventType, out var typeRules))
                 typeRulesCount = typeRules.Count;
             
-
-            int totalCount = typeRulesCount;
-            if (totalCount == 0) return;
-
-            // 使用对象池复用 List，预分配正确容量
-            var rulesToProcess = RentRulesList(totalCount);
-
-            // 直接使用 for 循环添加，避免 AddRange 的额外开销
-            if (typeRules != null)
-            {
-                for (int i = 0; i < typeRulesCount; i++)
-                    rulesToProcess.Add(typeRules[i]);
-            }
+            if (typeRulesCount == 0) return;
 
             // 根据配置选择串行或并行评估
             List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals;
 
-            if (Policy.EnableParallelMatching && totalCount >= Policy.ParallelThreshold)
+            if (Policy.EnableParallelMatching && typeRulesCount >= Policy.ParallelThreshold)
             {
-                evals = EvaluateRulesParallel(rulesToProcess, source, evt);
+                evals = EvaluateRulesParallel(typeRules, source, evt);
             }
             else
             {
-                evals = EvaluateRulesSerial(rulesToProcess, source, evt);
+                evals = EvaluateRulesSerial(typeRules, source, evt);
             }
 
             if (evals.Count == 0) return;
 
-            // 使用缓存的比较器排序，避免每次创建闭包
-            if (Policy.RuleSelection == RuleSelectionMode.Priority)
-                evals.Sort(s_priorityComparison);
-            else
-                evals.Sort(s_orderComparison);
+            // 使用缓存的比较器排序
+            evals.Sort(Policy.RuleSelection == RuleSelectionMode.Priority ? s_priorityComparison : s_orderComparison);
 
-            // 执行规则效果
-            ExecuteRules(evals);
+            // 处理规则效果
+            ProcessRulesEffects(evals);
         }
 
         #endregion
@@ -702,7 +669,7 @@ namespace EasyPack.EmeCardSystem
         ///         池中的效果将在 Pump 结束时或手动刷新时按全局优先级执行。
         ///     </para>
         /// </summary>
-        private void ExecuteRules(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+        private void ProcessRulesEffects(List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
         {
             if (Policy.EnableEffectPool)
             {
