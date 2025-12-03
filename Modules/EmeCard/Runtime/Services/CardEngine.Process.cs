@@ -44,14 +44,14 @@ namespace EasyPack.EmeCardSystem
         [ThreadStatic] private static HashSet<Card> t_distinctSet;
 
         // 缓存排序比较器
-        private static readonly Comparison<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> 
+        private static readonly Comparison<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>
             s_priorityComparison = (a, b) =>
             {
                 int cmp = a.rule.Priority.CompareTo(b.rule.Priority);
                 return cmp != 0 ? cmp : a.orderIndex.CompareTo(b.orderIndex);
             };
 
-        private static readonly Comparison<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> 
+        private static readonly Comparison<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>
             s_orderComparison = (a, b) => a.orderIndex.CompareTo(b.orderIndex);
 
         /// <summary>
@@ -131,7 +131,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         #endregion
-        
+
         #region 规则注册
 
         /// <summary>
@@ -274,11 +274,11 @@ namespace EasyPack.EmeCardSystem
             {
                 // 阶段0: 处理 PumpStart 事件（在所有普通事件处理前）
                 ProcessPumpLifecycleEvent(CardEventTypes.PUMP_START);
-                
+
                 // 循环处理：事件收集 → 效果执行 → 检查新事件 → 重复
                 const int MaxIterations = 1000;
                 int iteration = 0;
-                
+
                 while (iteration < MaxIterations)
                 {
                     // 阶段1: 处理当前队列中的所有事件（收集效果到池中）
@@ -288,28 +288,28 @@ namespace EasyPack.EmeCardSystem
                         IEventEntry entry = _queue.Dequeue();
                         Process(entry.SourceCard, entry.Event);
                     }
-                    
+
                     // 阶段2: 执行效果池中的所有效果
                     if (Policy.EnableEffectPool && Policy.EffectPoolFlushMode == EffectPoolFlushMode.AfterPump)
                     {
                         FlushEffectPool();
                     }
-                    
+
                     // 检查是否有新事件（由效果执行触发）
                     // 如果没有新事件，Pump 结束
                     if (_queue.Count == 0)
                     {
                         break;
                     }
-                    
+
                     iteration++;
                 }
-                
+
                 if (iteration >= MaxIterations)
                 {
                     Debug.LogWarning($"[CardEngine] Pump 达到最大迭代次数 {MaxIterations}，可能存在无限循环");
                 }
-                
+
                 // 阶段3: 处理 PumpEnd 事件（在所有普通事件处理后）
                 // 适用于延迟删除、资源清理等需要在所有事件处理完成后执行的逻辑
                 ProcessPumpLifecycleEvent(CardEventTypes.PUMP_END);
@@ -335,13 +335,13 @@ namespace EasyPack.EmeCardSystem
             {
                 return;
             }
-            
+
             // 创建生命周期事件
             var lifecycleEvent = new CardEvent<object>(eventType, null, eventType);
-            
+
             // 遍历所有已注册卡牌，为每张卡牌处理生命周期事件
             var cardSnapshot = new List<Card>(_cardsByUID.Values);
-            
+
             foreach (Card card in cardSnapshot)
             {
                 // 跳过已被移除的卡牌（可能在处理过程中被删除）
@@ -349,10 +349,10 @@ namespace EasyPack.EmeCardSystem
                 {
                     continue;
                 }
-                
+
                 ProcessCore(card, lifecycleEvent);
             }
-            
+
             // 如果启用效果池，刷新收集的效果
             if (Policy.EnableEffectPool)
             {
@@ -508,7 +508,7 @@ namespace EasyPack.EmeCardSystem
             {
                 return;
             }
-            
+
             ProcessCore(source, evt);
         }
 
@@ -552,7 +552,7 @@ namespace EasyPack.EmeCardSystem
 
             // 根据配置选择串行或并行评估
             List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> evals;
-            
+
             if (Policy.EnableParallelMatching && totalCount >= Policy.ParallelThreshold)
             {
                 evals = EvaluateRulesParallel(rulesToProcess, source, evt);
@@ -581,12 +581,12 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     串行评估规则（默认模式）。
         /// </summary>
-        private List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> 
+        private List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>
             EvaluateRulesSerial(List<CardRule> rules, Card source, ICardEvent evt)
         {
             // 使用对象池复用 evals 列表
             var evals = RentEvalsList(rules.Count);
-            
+
             for (int i = 0; i < rules.Count; i++)
             {
                 CardRule rule = rules[i];
@@ -613,11 +613,11 @@ namespace EasyPack.EmeCardSystem
         ///         建议仅在 Requirements 不修改共享状态时启用。
         ///     </para>
         /// </summary>
-        private List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)> 
+        private List<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>
             EvaluateRulesParallel(List<CardRule> rules, Card source, ICardEvent evt)
         {
             var results = new ConcurrentBag<(CardRule rule, List<Card> matched, CardRuleContext ctx, int orderIndex)>();
-            
+
             var options = new ParallelOptions();
             if (Policy.MaxDegreeOfParallelism > 0)
                 options.MaxDegreeOfParallelism = Policy.MaxDegreeOfParallelism;
@@ -660,7 +660,7 @@ namespace EasyPack.EmeCardSystem
                 if (!req.TryMatch(ctx, out var picks)) return false;
 
                 if (picks == null || picks.Count <= 0) continue;
-                
+
                 foreach (Card t in picks)
                     matchedAll.Add(t);
             }
@@ -676,9 +676,9 @@ namespace EasyPack.EmeCardSystem
             // 解析匹配根和效果根
             Card matchRoot = CardRule.ResolveRootCard(source, rule.MatchRootHops);
             Card effectRoot = CardRule.ResolveRootCard(source, rule.EffectRootHops);
-            
+
             if (matchRoot == null) return null;
-            
+
             return new CardRuleContext(
                 source,
                 matchRoot,
@@ -752,6 +752,10 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     刷新全局效果池，按优先级执行所有收集的效果。
+        ///     <para>
+        ///         支持 StopEventOnSuccess：当一个规则的所有效果执行完毕后，
+        ///         如果该规则设置了 StopEventOnSuccess，则跳过同一 OrderIndex（同一事件）的后续规则。
+        ///     </para>
         /// </summary>
         /// <returns>执行的效果数量</returns>
         public int FlushEffectPool()
@@ -763,7 +767,7 @@ namespace EasyPack.EmeCardSystem
             _isFlushingEffectPool = true;
             try
             {
-                int count = _globalEffectPool.ExecuteAll();
+                int count = _globalEffectPool.ExecuteWithStopEventOnSuccess();
                 _globalEffectPool.Clear();
                 _globalOrderIndex = 0; // 重置顺序计数器
                 return count;

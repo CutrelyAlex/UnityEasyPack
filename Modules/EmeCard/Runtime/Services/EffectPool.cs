@@ -165,6 +165,85 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
+        ///     执行池中所有效果，支持 StopEventOnSuccess。
+        ///     <para>
+        ///         当一个规则的所有效果执行完毕后，如果该规则设置了 StopEventOnSuccess，
+        ///         则跳过同一 OrderIndex（同一事件）的后续规则的所有效果。
+        ///     </para>
+        /// </summary>
+        /// <returns>执行的效果数量</returns>
+        public int ExecuteWithStopEventOnSuccess()
+        {
+            if (_entries.Count == 0) return 0;
+
+            // 排序
+            if (!_isSorted)
+            {
+                _entries.Sort();
+                _isSorted = true;
+            }
+
+            // 执行
+            int count = 0;
+            int skippingOrderIndex = -1;  // 需要跳过的 OrderIndex（-1 表示不跳过）
+            CardRule lastRule = null;
+            int lastOrderIndex = -1;
+            int lastRuleEffectCount = 0;
+            int currentEffectInRule = 0;
+
+            for (int i = 0; i < _entries.Count; i++)
+            {
+                EffectPoolEntry entry = _entries[i];
+
+                // 检查是否需要跳过当前效果（属于被中断的 OrderIndex）
+                if (skippingOrderIndex >= 0 && entry.OrderIndex == skippingOrderIndex)
+                {
+                    continue;
+                }
+
+                // 如果进入了新的 OrderIndex，重置跳过标记
+                if (entry.OrderIndex != skippingOrderIndex)
+                {
+                    skippingOrderIndex = -1;
+                }
+
+                // 获取当前规则
+                CardRule currentRule = entry.Context?.CurrentRule;
+
+                // 检测规则切换（不同规则或不同 OrderIndex）
+                if (currentRule != lastRule || entry.OrderIndex != lastOrderIndex)
+                {
+                    // 上一个规则的所有效果已执行完毕，检查 StopEventOnSuccess
+                    if (lastRule?.Policy?.StopEventOnSuccess == true &&
+                        currentEffectInRule >= lastRuleEffectCount &&
+                        lastOrderIndex >= 0)
+                    {
+                        // 标记跳过同一 OrderIndex 的后续规则
+                        // 但只有当新效果仍在同一 OrderIndex 时才跳过
+                        if (entry.OrderIndex == lastOrderIndex)
+                        {
+                            skippingOrderIndex = lastOrderIndex;
+                            continue;  // 跳过当前效果
+                        }
+                    }
+
+                    // 更新跟踪变量
+                    lastRule = currentRule;
+                    lastOrderIndex = entry.OrderIndex;
+                    lastRuleEffectCount = currentRule?.Effects?.Count ?? 0;
+                    currentEffectInRule = 0;
+                }
+
+                // 执行效果
+                entry.Effect.Execute(entry.Context, entry.Matched);
+                count++;
+                currentEffectInRule++;
+            }
+
+            return count;
+        }
+
+        /// <summary>
         ///     清空池。
         /// </summary>
         public void Clear()
