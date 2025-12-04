@@ -149,14 +149,9 @@ namespace EasyPack.EmeCardSystem
             }
             set
             {
-                switch (Owner)
+                if (RootCard == null && RootCard == this)
                 {
-                    // 只有根卡牌才能设置位置
-                    case null when RootCard == this:
-                    // 初始化阶段，RootCard 还未设置
-                    case null when RootCard == null:
-                        _position = value;
-                        break;
+                    _position = value;
                 }
             }
         }
