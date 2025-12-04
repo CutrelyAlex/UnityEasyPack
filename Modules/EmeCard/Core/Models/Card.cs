@@ -16,7 +16,7 @@ namespace EasyPack.EmeCardSystem
     ///     事件类型定义在 <see cref="CardEventTypes" /> 中。<br />
     ///     - 可选关联多个 <see cref="GameProperty" />
     /// </summary>
-    public class Card
+    public class Card : IEquatable<Card>
     {
         /// <summary>
         ///     卡牌所属的CardEngine
@@ -502,6 +502,40 @@ namespace EasyPack.EmeCardSystem
             {
                 RaiseEventInternal(evt);
             }
+        }
+
+        #endregion
+
+        #region Hash和相等性比较
+
+        /// <summary>
+        ///     获取卡牌的哈希码，基于 UID 计算。
+        /// </summary>
+        public override int GetHashCode()
+        {
+            return UID.GetHashCode();
+        }
+
+        /// <summary>
+        ///     判断两个卡牌是否相等，基于 UID 进行比较。
+        ///     UID 是全局唯一的，所以两个卡牌相等当且仅当它们的 UID 相同。
+        /// </summary>
+        /// <param name="obj">要比较的对象。</param>
+        /// <returns>如果两个卡牌的 UID 相同返回 true；否则返回 false。</returns>
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as Card);
+        }
+
+        /// <summary>
+        ///     判断两个卡牌是否相等，基于 UID 进行比较。
+        /// </summary>
+        /// <param name="other">要比较的另一个卡牌。</param>
+        /// <returns>如果两个卡牌的 UID 相同返回 true；如果 other 为 null 返回 false。</returns>
+        public bool Equals(Card other)
+        {
+            if (other == null) return false;
+            return UID == other.UID;
         }
 
         #endregion
