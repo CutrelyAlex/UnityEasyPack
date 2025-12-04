@@ -150,10 +150,7 @@ namespace EasyPack.EmeCardSystem
             _rule.Priority = priority;
             return this;
         }
-
-        /// <summary>设置规则优先级</summary>
-        public CardRuleBuilder WithPriority(int priority) => Priority(priority);
-
+        
         /// <summary>是否对匹配结果去重</summary>
         public CardRuleBuilder DistinctMatched(bool enabled = true)
         {

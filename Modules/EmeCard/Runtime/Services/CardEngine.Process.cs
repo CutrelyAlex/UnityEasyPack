@@ -688,17 +688,29 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     收集效果到全局效果池。
+        ///     <para>
+        ///         同一事件的所有规则共享同一个 EventIndex，
+        ///         以便 StopEventOnSuccess 能够正确跳过同事件的后续规则。
+        ///         同时保留规则的注册顺序（RuleOrderIndex）用于同优先级排序。
+        ///     </para>
         /// </summary>
         private void CollectEffectsToPool(List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
         {
-            foreach (var e in evals)
+            if (evals.Count == 0) return;
+
+            int currentEventIndex = _globalOrderIndex;
+
+            foreach (var (rule, matched, ctx, orderIndex) in evals)
             {
-                if (e.matched == null || e.rule.Effects == null || e.rule.Effects.Count == 0)
+                if (matched == null || rule.Effects == null || rule.Effects.Count == 0)
                     continue;
 
-                // 使用全局顺序索引确保跨事件的顺序一致性
-                _globalEffectPool.AddRuleEffects(e.rule, e.ctx, e.matched, _globalOrderIndex++);
+                // 同一事件的所有规则使用相同的 EventIndex，但保留各自的规则注册顺序
+                _globalEffectPool.AddRuleEffects(rule, ctx, matched, currentEventIndex, orderIndex);
             }
+
+            // 事件处理完毕，递增 EventIndex 用于下一个事件
+            _globalOrderIndex++;
         }
 
         /// <summary>

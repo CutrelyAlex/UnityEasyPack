@@ -6,8 +6,8 @@ namespace EasyPack.EmeCardSystem
         // 是否只执行一条命中的规则（跨所有规则）
         public bool FirstMatchOnly { get; set; } = false;
 
-        // 命中规则的裁决方式
-        public RuleSelectionMode RuleSelection { get; set; } = RuleSelectionMode.RegistrationOrder;
+        // 命中规则的裁决方式（默认按优先级排序，数值越小优先级越高）
+        public RuleSelectionMode RuleSelection { get; set; } = RuleSelectionMode.Priority;
 
         // ===== 并行处理配置 =====
 
