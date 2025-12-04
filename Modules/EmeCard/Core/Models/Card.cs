@@ -149,7 +149,7 @@ namespace EasyPack.EmeCardSystem
             }
             set
             {
-                if (RootCard == null && RootCard == this)
+                if (RootCard == null || RootCard == this)
                 {
                     _position = value;
                 }
