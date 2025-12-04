@@ -17,11 +17,6 @@ namespace EasyPack.EmeCardSystem
         ICardEvent Event { get; }
 
         /// <summary>
-        ///     事件时间戳（UTC 时间）。
-        /// </summary>
-        DateTime EventTimestamp { get; }
-
-        /// <summary>
         ///     事件优先级（数值越小优先级越高）。
         /// </summary>
         int Priority { get; }

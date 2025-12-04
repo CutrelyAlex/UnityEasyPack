@@ -15,9 +15,6 @@ namespace EasyPack.EmeCardSystem
         public ICardEvent Event { get; }
 
         /// <inheritdoc />
-        public DateTime EventTimestamp { get; }
-
-        /// <inheritdoc />
         public int Priority { get; }
 
         /// <inheritdoc />
@@ -44,11 +41,9 @@ namespace EasyPack.EmeCardSystem
         {
             SourceCard = source ?? throw new ArgumentNullException(nameof(source));
             Event = @event ?? throw new ArgumentNullException(nameof(@event));
-            EventTimestamp = DateTime.UtcNow;
             Priority = priority;
             EffectRoot = effectRoot ?? source;
         }
-
         public override string ToString() =>
             $"CardEventEntry[Source={SourceCard?.Id ?? "null"}, Event={Event.EventType}:{Event.EventId}, Priority={Priority}]";
     }
@@ -64,9 +59,6 @@ namespace EasyPack.EmeCardSystem
     {
         /// <inheritdoc />
         public ICardEvent Event { get; }
-
-        /// <inheritdoc />
-        public DateTime EventTimestamp { get; }
 
         /// <inheritdoc />
         public int Priority { get; }
@@ -98,7 +90,6 @@ namespace EasyPack.EmeCardSystem
             SourceRuleUID = ruleUID;
             Event = @event ?? throw new ArgumentNullException(nameof(@event));
             SourceCard = sourceCard;
-            EventTimestamp = DateTime.UtcNow;
             Priority = priority;
             EffectRoot = effectRoot ?? sourceCard;
         }
@@ -117,9 +108,6 @@ namespace EasyPack.EmeCardSystem
     {
         /// <inheritdoc />
         public ICardEvent Event { get; }
-
-        /// <inheritdoc />
-        public DateTime EventTimestamp { get; }
 
         /// <inheritdoc />
         public int Priority { get; }
@@ -145,7 +133,6 @@ namespace EasyPack.EmeCardSystem
         public SystemEventEntry(ICardEvent @event, int priority = 0)
         {
             Event = @event ?? throw new ArgumentNullException(nameof(@event));
-            EventTimestamp = DateTime.UtcNow;
             Priority = priority;
         }
 
@@ -163,9 +150,6 @@ namespace EasyPack.EmeCardSystem
     {
         /// <inheritdoc />
         public ICardEvent Event { get; }
-
-        /// <inheritdoc />
-        public DateTime EventTimestamp { get; }
 
         /// <inheritdoc />
         public int Priority { get; }
@@ -194,7 +178,6 @@ namespace EasyPack.EmeCardSystem
         {
             Event = @event ?? throw new ArgumentNullException(nameof(@event));
             SourceCard = sourceCard;
-            EventTimestamp = DateTime.UtcNow;
             Priority = priority;
             EffectRoot = effectRoot ?? sourceCard;
         }
