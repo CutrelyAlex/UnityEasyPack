@@ -239,6 +239,7 @@ namespace EasyPack.EmeCardSystem
                 cardAtPosition == child)
             {
                 _cardsByPosition.Remove(child.Position);
+                _positionByUID[child.UID] = null;
             }
         }
 
