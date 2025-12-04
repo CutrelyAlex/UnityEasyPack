@@ -83,19 +83,6 @@ namespace EasyPack.EmeCardSystem
             return this;
         }
 
-        /// <summary>
-        ///     [已弃用] 设置容器锚点（同时设置 MatchRootHops 和 EffectRootHops）。
-        ///     <para>请使用 <see cref="MatchRootHops"/> 和 <see cref="EffectRootHops"/> 分别设置。</para>
-        /// </summary>
-        /// <param name="hops">跳数值（0=Self, 1=Owner, -1=Root, N&gt;1=向上N层）</param>
-        /// <returns>构建器自身，用于链式调用</returns>
-        [Obsolete("使用 MatchRootHops() 和 EffectRootHops() 分别设置匹配和效果范围。")]
-        public CardRuleBuilder OwnerHops(int hops)
-        {
-            _rule.OwnerHops = hops;
-            return this;
-        }
-
         /// <summary>匹配范围以自身为根（MatchRootHops=0）</summary>
         public CardRuleBuilder MatchRootAtSelf() => MatchRootHops(0);
 
@@ -113,27 +100,6 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>效果范围以根容器为根（EffectRootHops=-1）</summary>
         public CardRuleBuilder EffectAtRoot() => EffectRootHops(-1);
-
-        /// <summary>
-        ///     [已弃用] 以自身为容器（OwnerHops=0）。
-        ///     <para>请使用 <see cref="MatchRootAtSelf"/> 或 <see cref="EffectAtSelf"/>。</para>
-        /// </summary>
-        [Obsolete("使用 MatchAtSelf() 或 EffectAtSelf()")]
-        public CardRuleBuilder AtSelf() => OwnerHops(0);
-
-        /// <summary>
-        ///     [已弃用] 以直接父级为容器（OwnerHops=1）。
-        ///     <para>请使用 <see cref="MatchRootAtParent"/> 或 <see cref="EffectAtParent"/>。</para>
-        /// </summary>
-        [Obsolete("使用 MatchAtParent() 或 EffectAtParent()")]
-        public CardRuleBuilder AtParent() => OwnerHops(1);
-
-        /// <summary>
-        ///     [已弃用] 以根容器为容器（OwnerHops=-1）。
-        ///     <para>请使用 <see cref="MatchAtRoot"/> 或 <see cref="EffectAtRoot"/>。</para>
-        /// </summary>
-        [Obsolete("使用 MatchAtRoot() 或 EffectAtRoot()")]
-        public CardRuleBuilder AtRoot() => OwnerHops(-1);
 
         #endregion
 

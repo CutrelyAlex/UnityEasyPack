@@ -47,21 +47,6 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public int EffectRootHops = 1;
 
-        /// <summary>
-        ///     [已弃用] 容器跳数。同时设置 MatchRootHops 和 EffectRootHops。
-        ///     <para>请使用 MatchRootHops 和 EffectRootHops 分别设置。</para>
-        /// </summary>
-        [Obsolete("使用 MatchRootHops 和 EffectRootHops 分别设置匹配和效果范围。")]
-        public int OwnerHops
-        {
-            get => MatchRootHops;
-            set
-            {
-                MatchRootHops = value;
-                EffectRootHops = value;
-            }
-        }
-
         #endregion
 
         /// <summary>递归选择的最大深度（仅对递归类 TargetKind 生效）。</summary>
@@ -112,12 +97,7 @@ namespace EasyPack.EmeCardSystem
                 // Root (-1)
                 case < 0:
                     {
-                        Card current = sourceCard;
-                        while (current.Owner != null)
-                        {
-                            current = current.Owner;
-                        }
-                        return current;
+                        return sourceCard.RootCard ?? sourceCard;
                     }
                 case >= 1:
                     {
