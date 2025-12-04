@@ -45,10 +45,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         #endregion
-
         #region 对象池与缓存比较器
-
-        [ThreadStatic] private static List<CardRule> t_rulesToProcess;
         [ThreadStatic] private static List<(CardRule, HashSet<Card>, CardRuleContext, int)> t_evals;
         [ThreadStatic] private static HashSet<Card> t_distinctSet;
 
@@ -77,48 +74,6 @@ namespace EasyPack.EmeCardSystem
             list.Clear();
             if (list.Capacity < capacity)
                 list.Capacity = capacity;
-            return list;
-        }
-
-        /// <summary>
-        ///     从线程局部池获取或创建 HashSet&lt;Card&gt; 用于去重
-        /// </summary>
-        private static HashSet<Card> RentDistinctSet()
-        {
-            var set = t_distinctSet;
-            if (set == null)
-            {
-                t_distinctSet = new HashSet<Card>();
-                return t_distinctSet;
-            }
-            set.Clear();
-            return set;
-        }
-
-        /// <summary>
-        ///     使用 HashSet 去重
-        /// </summary>
-        private static List<Card> DistinctInPlace(List<Card> list)
-        {
-            if (list is not { Count: > 1 }) return list;
-
-            var set = RentDistinctSet();
-            int writeIndex = 0;
-
-            for (int i = 0; i < list.Count; i++)
-            {
-                if (set.Add(list[i]))
-                {
-                    list[writeIndex++] = list[i];
-                }
-            }
-
-            // 移除重复的尾部元素
-            if (writeIndex < list.Count)
-            {
-                list.RemoveRange(writeIndex, list.Count - writeIndex);
-            }
-
             return list;
         }
 
@@ -226,26 +181,11 @@ namespace EasyPack.EmeCardSystem
             for (int i = 0; i < rules.Count; i++)
             {
                 CardRule rule = rules[i];
-                
-                // 快速路径：如果没有 Requirements，直接创建空匹配集
-                if (rule.Requirements == null || rule.Requirements.Count == 0)
-                {
-                    CardRuleContext ctx = BuildContext(rule, source, evt);
-                    if (ctx != null)
-                    {
-                        evals.Add((rule, new HashSet<Card>(), ctx, i));
-                    }
-                    continue;
-                }
-
-                // 常规路径：评估 Requirements
                 CardRuleContext context = BuildContext(rule, source, evt);
                 if (context == null) continue;
 
-                if (!EvaluateRequirements(context, rule.Requirements, out var matched, i))
-                {
+                if (!EvaluateRequirements(context, rule.Requirements, out var matched))
                     continue;
-                }
 
                 evals.Add((rule, matched, context, i));
             }
@@ -276,7 +216,7 @@ namespace EasyPack.EmeCardSystem
                 CardRuleContext ctx = BuildContext(rule, source, evt);
                 if (ctx == null) return;
 
-                if (EvaluateRequirements(ctx, rule.Requirements, out var matched, i))
+                if (EvaluateRequirements(ctx, rule.Requirements, out var matched))
                 {
                     results.Add((rule, matched, ctx, i));
                 }
@@ -289,17 +229,15 @@ namespace EasyPack.EmeCardSystem
         ///     评估规则的所有条件要求。
         /// </summary>
         private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements,
-                                          out HashSet<Card> matchedAll, int ruleId = -1)
+                                          out HashSet<Card> matchedAll)
         {
             matchedAll = new HashSet<Card>();
-            
+
             if (requirements == null || requirements.Count == 0)
                 return true;
 
-            // 快速路径：单条 Requirement
-            if (requirements.Count == 1)
+            foreach (IRuleRequirement req in requirements)
             {
-                IRuleRequirement req = requirements[0];
                 if (req == null)
                 {
                     matchedAll = null;
@@ -317,29 +255,6 @@ namespace EasyPack.EmeCardSystem
                     foreach (Card card in picks)
                         matchedAll.Add(card);
                 }
-
-                return true;
-            }
-
-            // 常规路径：多个 Requirement，合并所有匹配结果
-            foreach (IRuleRequirement req in requirements)
-            {
-                if (req == null)
-                {
-                    matchedAll = null;
-                    return false;
-                }
-
-                if (!req.TryMatch(ctx, out var picks))
-                {
-                    matchedAll = null;
-                    return false;
-                }
-
-                if (picks is not { Count: > 0 }) continue;
-
-                foreach (Card t in picks)
-                    matchedAll.Add(t);
             }
 
             return true;
