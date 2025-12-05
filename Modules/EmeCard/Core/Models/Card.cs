@@ -312,14 +312,14 @@ namespace EasyPack.EmeCardSystem
         public bool IsRecursiveParent(Card potentialChild)
         {
             if (potentialChild == null) return false;
-            if (potentialChild == this) return true;
+            if (potentialChild.Equals(this)) return true;
 
             var visited = new HashSet<Card>();
             Card current = Owner;
 
             while (current != null)
             {
-                if (current == potentialChild) return true;
+                if (current.Equals(potentialChild)) return true;
 
                 if (!visited.Add(current))
                     break;
