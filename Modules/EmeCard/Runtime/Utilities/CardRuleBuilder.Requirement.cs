@@ -154,9 +154,17 @@ namespace EasyPack.EmeCardSystem
         {
             Children =
             {
-                new ConditionRequirement((context => context.Source.HasTag(tag))),
+                new ConditionRequirement((context =>
+                {
+                    if (context.Source.HasTag(tag))
+                    {
+                        return (true,new List<Card>{context.Source});
+                    }
+
+                    return (false, null);
+                })),
                 new CardsRequirement(root: SelectionRoot.Source, filterMode: CardFilterMode.ByTag, filterValue: tag,
-                    minCount: 1, scope: TargetScope.Children),
+                    minCount: 1, scope: TargetScope.Children)
             }
         });
 
