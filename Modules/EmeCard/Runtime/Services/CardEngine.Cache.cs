@@ -24,6 +24,9 @@ namespace EasyPack.EmeCardSystem
 
         // UID -> Card 缓存，支持 O(1) UID 查询
         private readonly Dictionary<long, Card> _cardsByUID = new();
+        
+        // (id, index) -> Card 映射缓存，支持通过复合键快速查找卡牌
+        private readonly Dictionary<(string, int), Card> _cardsByKey = new();
 
         // 位置 -> Card 映射（一个位置最多一个卡牌）
         // 仅存储根卡牌（无 Owner 的卡牌），子卡牌的位置通过 RootCard 动态派生
@@ -88,6 +91,7 @@ namespace EasyPack.EmeCardSystem
             // 第四步: 添加到索引
             indexes.Add(card.Index);
             _cardsByUID[card.UID] = card;
+            _cardsByKey[(id, card.Index)] = card;
 
             if (!_cardsById.TryGetValue(id, out var cardList))
             {
@@ -196,7 +200,7 @@ namespace EasyPack.EmeCardSystem
             // 从旧位置移除
             if (oldPosition != null &&
                 _cardsByPosition.TryGetValue(oldPosition, out Card cardAtOldPosition) &&
-                cardAtOldPosition == card)
+                cardAtOldPosition.Equals(card))
             {
                 _cardsByPosition.Remove(oldPosition);
             }
@@ -218,7 +222,7 @@ namespace EasyPack.EmeCardSystem
             var oldPosition = card.Position;
             if (oldPosition == null) return this;
 
-            if (_cardsByPosition.TryGetValue(oldPosition, out Card cardAtPosition) && cardAtPosition == card)
+            if (_cardsByPosition.TryGetValue(oldPosition, out Card cardAtPosition) && cardAtPosition.Equals(card))
             {
                 _cardsByPosition.Remove(oldPosition);
             }
@@ -236,7 +240,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (child?.Position != null &&
                 _cardsByPosition.TryGetValue(child.Position, out Card cardAtPosition) &&
-                cardAtPosition == child)
+                cardAtPosition.Equals(child))
             {
                 _cardsByPosition.Remove(child.Position);
                 _positionByUID[child.UID] = null;
@@ -250,7 +254,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (card is not { Owner: null }) return;
 
-            if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && existingCard != card)
+            if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && !existingCard.Equals(card))
             {
                 Debug.LogWarning($"[CardEngine] 位置 {newPosition} 已被 '{existingCard.Id}' 占用");
                 return;
@@ -283,7 +287,9 @@ namespace EasyPack.EmeCardSystem
                 cardList.Remove(c);
                 if (cardList.Count == 0) _cardsById.Remove(c.Id);
             }
-
+            
+            _cardsByKey.Remove((c.Id, c.Index));
+            
             // 收集标签用于后续清理
             var tags = c.Tags;
             string[] tagArray = null;
@@ -302,11 +308,12 @@ namespace EasyPack.EmeCardSystem
             // 从位置映射中移除
             if (c.Owner == null && c.Position != null &&
                 _cardsByPosition.TryGetValue(c.Position, out Card cardAtPosition) &&
-                cardAtPosition == c)
+                cardAtPosition.Equals(c))
             {
                 _cardsByPosition.Remove(c.Position);
             }
             _positionByUID.Remove(c.UID);
+            
 
             // 清理 TargetSelector 标签缓存
             if (tagArray != null)
@@ -335,6 +342,7 @@ namespace EasyPack.EmeCardSystem
             _cardsByUID.Clear();
             _cardsByPosition.Clear();
             _positionByUID.Clear();
+            _cardsByKey.Clear();
         }
 
         #endregion

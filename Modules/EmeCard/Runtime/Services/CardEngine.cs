@@ -164,15 +164,8 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     按ID和Index精确查找卡牌。
         /// </summary>
-        public Card GetCardByKey(string id, int index)
-        {
-            if (string.IsNullOrEmpty(id)) return null;
-            foreach (Card card in _cardsById[id])
-            {
-                if (card.Index == index) return card;
-            }
-            return null;
-        }
+        public Card GetCardByKey(string id, int index) =>
+            string.IsNullOrEmpty(id) ? null : _cardsByKey.GetValueOrDefault((id, index));
 
         /// <summary>
         ///     按ID返回所有已注册卡牌。
