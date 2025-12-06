@@ -18,16 +18,8 @@ namespace EasyPack.EmeCardSystem
     /// </summary>
     public class Card : IEquatable<Card>
     {
-        /// <summary>
-        ///     卡牌所属的CardEngine
-        /// </summary>
-        internal CardEngine Engine { get; set; }
 
-        /// <summary>
-        ///     构造函数中临时收集的额外标签，在注册到Engine时同步到CategoryManager后清空。
-        /// </summary>
-        internal List<string> PendingExtraTags { get; set; }
-
+        #region  构造函数
         /// <summary>
         ///     构造函数：创建卡牌，可选单个属性
         /// </summary>
@@ -77,20 +69,32 @@ namespace EasyPack.EmeCardSystem
             : this(data, (IEnumerable<GameProperty>)null, extraTags) { }
 
 
+        #endregion
+
         #region 基本数据
+        
+        /// <summary>
+        ///     卡牌所属的CardEngine
+        /// </summary>
+        internal CardEngine Engine { get; set; }
+
+        /// <summary>
+        ///     构造函数中临时收集的额外标签，在注册到Engine时同步到CategoryManager后清空。
+        /// </summary>
+        internal List<string> PendingExtraTags { get; set; }
 
         /// <summary>
         ///     该卡牌的静态数据（ID/名称/描述/默认标签等）。
         ///     注意：更改 Data 不会自动更新 CategoryManager 中的标签，
         ///     标签管理统一由 Engine 在注册时处理。
         /// </summary>
-        public CardData Data { get; set; }
+        public CardData Data { get; protected set; }
 
         /// <summary>
         ///     唯一标识符：由 CardFactory 分配，全局唯一，线程安全。
         ///     未分配时默认为 -1。
         /// </summary>
-        public long UID { get; internal set; } = -1;
+        public long UID { get; set; } = -1;
 
         /// <summary>
         ///     实例索引：用于区分同一 ID 的多个实例（由CardEgnine在 AddCard 时分配，从 0 起）。
@@ -140,7 +144,7 @@ namespace EasyPack.EmeCardSystem
             get
             {
                 // 如果当前卡牌有持有者，返回根卡牌的位置
-                if (Owner != null && RootCard != null && RootCard != this)
+                if (Owner != null && RootCard != null && !RootCard.Equals(this))
                 {
                     return RootCard._position;
                 }
@@ -149,7 +153,7 @@ namespace EasyPack.EmeCardSystem
             }
             set
             {
-                if (RootCard == null || RootCard == this)
+                if (RootCard == null || RootCard.Equals(this))
                 {
                     _position = value;
                 }
@@ -388,26 +392,25 @@ namespace EasyPack.EmeCardSystem
         /// <param name="force">是否强制移除；当为 false 时，固有子卡不会被移除。</param>
         /// <returns>若移除成功返回 true；否则返回 false。</returns>
         /// <remarks>
-        ///     移除成功后，将向子卡派发 RemovedFromOwner 事件，其 Data 为旧持有者实例。
-        ///     注意：移除后的子卡牌的 Position 保持不变（与原父卡牌相同），
-        ///     但它不会自动添加到引擎的位置索引中。
-        ///     如果需要将移除的卡牌放回世界中的某个位置，
-        ///     调用者应使用 <see cref="CardEngine.MoveCardToPosition"/> 方法。
+        ///     移除成功后，将向子卡派发 RemovedFromOwner 事件<br/>
+        ///     移除后的子卡牌的 Position 变为 null， 如果需要将移除的卡牌放回世界中的某个位置,可使用 <see cref="CardEngine.TryMoveRootCardToPosition"/> 方法
+        ///     child的 Owner 和 RootCard 引用将被清除。
         /// </remarks>
         public bool RemoveChild(Card child, bool force = false)
         {
             if (child == null) return false;
             if (!force && _intrinsics.Contains(child)) return false; // 固有不可移除
+            
             bool removed = _children.Remove(child);
-            if (removed)
-            {
-                _intrinsics.Remove(child);
-                child.Owner = null;
-                child.RootCard = null; // 清除 RootCard 引用
-                child.RaiseEvent(CardEventTypes.RemovedFromOwner.CreateEvent(this));
-            }
+            if (!removed) return false;
+            
+            _intrinsics.Remove(child);
+            child.Owner = null;
+            child.RootCard = null; // 清除 RootCard 引用
+            child.Position = null; // 移除后位置设为 null
+            child.RaiseEvent(CardEventTypes.RemovedFromOwner.CreateEvent(this));
 
-            return removed;
+            return true;
         }
 
         #endregion
@@ -515,6 +518,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public override int GetHashCode()
         {
+            // ReSharper disable once NonReadonlyMemberInGetHashCode
             return UID.GetHashCode();
         }
 
