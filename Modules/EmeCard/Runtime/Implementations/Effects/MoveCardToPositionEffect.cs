@@ -122,7 +122,7 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 移动选中的卡牌到目标位置
-            ctx.Engine.MoveCardToPosition(cardToMove, TargetPosition);
+            ctx.Engine.TryMoveRootCardToPosition(cardToMove, TargetPosition);
         }
     }
 }

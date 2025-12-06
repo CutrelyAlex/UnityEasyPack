@@ -1701,7 +1701,6 @@ namespace EasyPack.Category
                     return OperationResult.Failure(ErrorCode.InvalidCategory, $"分类 '{category}' 不存在");
 
                 CategoryNode node = _categoryNodes[categoryId];
-                // TODO: node.EntityKeys需要更新
                 _entityKeyToNode[key] = node;
 
                 // 添加标签

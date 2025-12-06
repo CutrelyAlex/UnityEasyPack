@@ -133,7 +133,6 @@ namespace EasyPack.Category
         /// <summary>
         ///     删除所有 CategoryManager 实例
         /// </summary>
-        // TODO: CategoryService 缺少跨 Manager 的批量操作支持，如批量序列化所有 Manager、批量清空等
         public bool RemoveAllManagers()
         {
             try

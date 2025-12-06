@@ -124,10 +124,7 @@ namespace EasyPack.EmeCardSystem
             // 第八步: 注册位置映射（仅对根卡牌）
             _positionByUID[card.UID] = card.Position;
 
-            if (card.RootCard == null)
-            {
-                card.RootCard = card;
-            }
+            card.RootCard ??= card;
 
             // 子卡牌不添加到位置索引
             if (card.Owner != null) return this;
@@ -188,30 +185,85 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     转移根卡牌到新位置。
+        ///     转移注册在引擎里的根卡牌到新位置。
+        ///     旧位置和新位置相同时默认是成功移动。
         /// </summary>
-        public CardEngine MoveCardToPosition(Card card, Vector3Int newPosition)
+        public bool TryMoveRootCardToPosition(Card card, Vector3Int newPosition, bool forceOverwrite = false)
         {
-            if (card is not { Owner: null }) return this;
+            if (card is not { Owner: null }) return false;
 
             var oldPosition = card.Position;
-            if (oldPosition.HasValue && oldPosition.Value == newPosition) return this;
+            
+            // 认为旧位置和新位置相同是成功移动
+            if (oldPosition.HasValue && oldPosition.Value == newPosition) return true;
 
             // 从旧位置移除
-            if (oldPosition != null &&
-                _cardsByPosition.TryGetValue(oldPosition, out Card cardAtOldPosition) &&
-                cardAtOldPosition.Equals(card))
+            if (oldPosition == null ||
+                !_cardsByPosition.TryGetValue(oldPosition, out Card cardAtOldPosition) ||
+                !cardAtOldPosition.Equals(card))
             {
-                _cardsByPosition.Remove(oldPosition);
+                return false;
             }
-
+            
+            if(forceOverwrite && _cardsByPosition.TryGetValue(newPosition, out Card existingCard))
+            {
+                // 强制覆盖，先将目标位置的卡牌位置清空
+                ClearCardPosition(existingCard);
+            }
+            else if (_cardsByPosition.ContainsKey(newPosition))
+            {
+                Debug.LogWarning($"[CardEngine] 位置 {newPosition} 已被占用，无法移动卡牌 '{card.Id}' (UID: {card.UID})");
+                return false;
+            }
+            
+            _cardsByPosition.Remove(oldPosition);
             card.Position = newPosition;
             _cardsByPosition[newPosition] = card;
             _positionByUID[card.UID] = newPosition;
 
-            return this;
+            return true;
         }
+        
+        /// <summary>
+        /// 尝试移动任意注册在引擎中的卡牌到新位置。
+        /// 如果新位置有卡牌存在，则发出警告并忽略移动请求。
+        /// 如果是根卡牌，调用MoveRootCardToPosition。
+        /// 如果是子卡牌，则先从父卡牌移除，再设置为根卡牌并更新位置索引。
+        /// </summary>
+        /// <param name="card"></param>
+        /// <param name="newPosition"></param>
+        /// <returns>CardEngine</returns>
+        public bool TryMoveCardToPosition(Card card, Vector3Int newPosition, bool ignoreIntrinsic = false, bool forceOverwrite = false)
+        {
+            if (card == null) return false;
+            
+            if (card.Owner == null)
+            {
+                return TryMoveRootCardToPosition(card, newPosition, forceOverwrite);
+            }
+            
+            if(_cardsByPosition[newPosition] != null)
+            {
+                if (!forceOverwrite)
+                {
+                    Debug.LogWarning($"[CardEngine] 位置 {newPosition} 已被占用，无法移动卡牌 '{card.Id}' (UID: {card.UID})");
+                    return false;
+                }
 
+                // 强制覆盖，先将目标位置的卡牌位置清空
+                Card existingCard = _cardsByPosition[newPosition];
+                ClearCardPosition(existingCard);
+            }
+
+            if (!card.Owner.RemoveChild(card, ignoreIntrinsic)) return false;
+            
+            card.Position = newPosition;
+            _cardsByPosition[newPosition] = card;
+            _positionByUID[card.UID] = newPosition;
+            return true;
+        }
+        
+        
         /// <summary>
         ///     清除根卡牌的位置。
         /// </summary>
