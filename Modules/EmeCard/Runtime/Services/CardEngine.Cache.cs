@@ -193,30 +193,21 @@ namespace EasyPack.EmeCardSystem
             if (card is not { Owner: null }) return false;
 
             var oldPosition = card.Position;
-            
-            // 认为旧位置和新位置相同是成功移动
+
             if (oldPosition.HasValue && oldPosition.Value == newPosition) return true;
 
-            // 从旧位置移除
-            if (oldPosition == null ||
-                !_cardsByPosition.TryGetValue(oldPosition, out Card cardAtOldPosition) ||
-                !cardAtOldPosition.Equals(card))
+            if (oldPosition.HasValue &&
+                _cardsByPosition.TryGetValue(oldPosition.Value, out Card cardAtOldPosition) &&
+                cardAtOldPosition.Equals(card))
             {
-                return false;
+                _cardsByPosition.Remove(oldPosition.Value);
             }
-            
-            if(forceOverwrite && _cardsByPosition.TryGetValue(newPosition, out Card existingCard))
+
+            if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && !existingCard.Equals(card))
             {
-                // 强制覆盖，先将目标位置的卡牌位置清空
                 ClearCardPosition(existingCard);
             }
-            else if (_cardsByPosition.ContainsKey(newPosition))
-            {
-                Debug.LogWarning($"[CardEngine] 位置 {newPosition} 已被占用，无法移动卡牌 '{card.Id}' (UID: {card.UID})");
-                return false;
-            }
-            
-            _cardsByPosition.Remove(oldPosition);
+
             card.Position = newPosition;
             _cardsByPosition[newPosition] = card;
             _positionByUID[card.UID] = newPosition;
@@ -226,7 +217,7 @@ namespace EasyPack.EmeCardSystem
         
         /// <summary>
         /// 尝试移动任意注册在引擎中的卡牌到新位置。
-        /// 如果新位置有卡牌存在，则发出警告并忽略移动请求。
+        /// 如果新位置有卡牌存在，返回失败，除非强制覆盖。
         /// 如果是根卡牌，调用MoveRootCardToPosition。
         /// 如果是子卡牌，则先从父卡牌移除，再设置为根卡牌并更新位置索引。
         /// </summary>
@@ -242,7 +233,7 @@ namespace EasyPack.EmeCardSystem
                 return TryMoveRootCardToPosition(card, newPosition, forceOverwrite);
             }
             
-            if(_cardsByPosition[newPosition] != null)
+            if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && !existingCard.Equals(card))
             {
                 if (!forceOverwrite)
                 {
@@ -250,8 +241,6 @@ namespace EasyPack.EmeCardSystem
                     return false;
                 }
 
-                // 强制覆盖，先将目标位置的卡牌位置清空
-                Card existingCard = _cardsByPosition[newPosition];
                 ClearCardPosition(existingCard);
             }
 

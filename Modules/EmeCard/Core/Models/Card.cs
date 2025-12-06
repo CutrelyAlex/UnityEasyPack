@@ -291,7 +291,7 @@ namespace EasyPack.EmeCardSystem
         public int ChildrenCount => Children.Count;
 
         // 固有子卡牌（不可被消耗/移除）
-        private readonly HashSet<Card> _intrinsics = new();
+        private readonly HashSet<Card> _intrinsics = new(ReferenceEqualityComparer<Card>.Default);
 
         /// <summary>
         ///     判断某子卡是否为固有子卡。
@@ -393,7 +393,7 @@ namespace EasyPack.EmeCardSystem
         /// <returns>若移除成功返回 true；否则返回 false。</returns>
         /// <remarks>
         ///     移除成功后，将向子卡派发 RemovedFromOwner 事件<br/>
-        ///     移除后的子卡牌的 Position 变为 null， 如果需要将移除的卡牌放回世界中的某个位置,可使用 <see cref="CardEngine.TryMoveRootCardToPosition"/> 方法
+        ///     移除后的子卡牌会保留移除前的逻辑位置，可使用 <see cref="CardEngine.TryMoveRootCardToPosition"/> 重新定位
         ///     child的 Owner 和 RootCard 引用将被清除。
         /// </remarks>
         public bool RemoveChild(Card child, bool force = false)
@@ -403,11 +403,10 @@ namespace EasyPack.EmeCardSystem
             
             bool removed = _children.Remove(child);
             if (!removed) return false;
-            
+
             _intrinsics.Remove(child);
             child.Owner = null;
             child.RootCard = null; // 清除 RootCard 引用
-            child.Position = null; // 移除后位置设为 null
             child.RaiseEvent(CardEventTypes.RemovedFromOwner.CreateEvent(this));
 
             return true;
