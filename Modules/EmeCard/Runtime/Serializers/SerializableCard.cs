@@ -19,6 +19,7 @@ namespace EasyPack.EmeCardSystem
 
         // 运行时实例字段
         public int Index;
+        public long UID = -1;
         public SerializableGameProperty[] Properties;
         public string[] Tags;
         public string ChildrenJson;

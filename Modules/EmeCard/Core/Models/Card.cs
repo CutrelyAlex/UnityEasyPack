@@ -305,21 +305,28 @@ namespace EasyPack.EmeCardSystem
 
 
         /// <summary>
-        ///     检测传入卡牌是否是当前卡牌的祖父卡牌
+        ///     检测传入的卡牌是否是当前卡牌或当前卡牌的递归父级卡牌
         /// </summary>
         /// <param name="potentialChild">传入卡牌。</param>
         /// <returns>若 potentialChild 是当前卡牌的祖父卡牌，返回 true；否则返回 false。</returns>
         public bool IsRecursiveParent(Card potentialChild)
         {
             if (potentialChild == null) return false;
-            if (potentialChild.Equals(this)) return true;
+            if (ReferenceEquals(potentialChild, this))
+            {
+                return true;
+            }
 
-            var visited = new HashSet<Card>();
+            var visited = new HashSet<Card>(ReferenceEqualityComparer<Card>.Default);
             Card current = Owner;
 
             while (current != null)
             {
-                if (current.Equals(potentialChild)) return true;
+                if (ReferenceEquals(current, potentialChild)) return true;
+                if (current.UID >= 0 && potentialChild.UID >= 0 && current.UID == potentialChild.UID)
+                {
+                    return true;
+                }
 
                 if (!visited.Add(current))
                     break;

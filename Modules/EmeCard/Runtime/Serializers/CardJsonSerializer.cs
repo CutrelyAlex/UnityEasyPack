@@ -131,6 +131,7 @@ namespace EasyPack.EmeCardSystem
                     DefaultCategory = card.Data?.Category ?? CardData.DEFAULT_CATEGORY,
                     DefaultTags = card.Data.DefaultTags,
                     Index = card.Index,
+                    UID = card.UID,
                     Properties = Array.Empty<SerializableGameProperty>(),
                     Tags = card.Tags is { Count: > 0 } tags ? new List<string>(tags).ToArray() : Array.Empty<string>(),
                     ChildrenJson = null, // 默认为空，有子卡时才序列化
@@ -211,7 +212,11 @@ namespace EasyPack.EmeCardSystem
                 Array.Empty<string>()
             );
 
-            var card = new Card(cardData) { Index = data.Index };
+            var card = new Card(cardData)
+            {
+                Index = data.Index,
+                UID = data.UID
+            };
 
             // 恢复属性
             if (data.Properties != null)
@@ -234,7 +239,7 @@ namespace EasyPack.EmeCardSystem
             // 恢复标签 - 直接保存序列化时的所有标签
             // 注意：反序列化时不应用DefaultTags，这些标签完全由序列化数据决定
 
-            if (data.Tags != null && data.Tags.Length > 0)
+            if (data.Tags is { Length: > 0 })
             {
                 var allTags = new List<string>();
                 foreach (string tag in data.Tags)
