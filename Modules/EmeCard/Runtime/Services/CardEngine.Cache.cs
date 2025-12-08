@@ -69,7 +69,7 @@ namespace EasyPack.EmeCardSystem
             {
                 indexes = new();
                 _idIndexes[id] = indexes;
-                _idMaxIndexes[id] = 0;
+                _idMaxIndexes[id] = -1;
             }
 
             if (card.Index < 0 || indexes.Contains(card.Index))
