@@ -67,18 +67,12 @@ namespace EasyPack.EmeCardSystem
             // 第二步: 分配索引（如果还未分配）
             if (!_idIndexes.TryGetValue(id, out var indexes))
             {
-                indexes = new HashSet<int>();
+                indexes = new();
                 _idIndexes[id] = indexes;
-                _idMaxIndexes[id] = -1;
+                _idMaxIndexes[id] = 0;
             }
 
-            if (card.Index < 0)
-            {
-                int maxIndex = _idMaxIndexes[id];
-                card.Index = maxIndex + 1;
-                _idMaxIndexes[id] = card.Index;
-            }
-            else if (indexes.Contains(card.Index))
+            if (card.Index < 0 || indexes.Contains(card.Index))
             {
                 int maxIndex = _idMaxIndexes[id];
                 card.Index = maxIndex + 1;
