@@ -37,7 +37,7 @@ namespace EasyPack.EmeCardSystem
 
         #endregion
 
-        #region 卡牌缓存处理
+        #region 卡牌添加
 
         /// <summary>
         ///     添加卡牌到引擎，分配唯一 Index、UID 并订阅事件。
@@ -115,12 +115,12 @@ namespace EasyPack.EmeCardSystem
                 }
             }
 
-            // 第八步: 注册位置映射（仅对根卡牌）
+            // 第八步: 注册位置映射
             _positionByUID[card.UID] = card.Position;
 
             card.RootCard ??= card;
 
-            // 子卡牌不添加到位置索引
+            // 子卡牌不添加到_cardsByPosition位置索引
             if (card.Owner != null) return this;
 
             var initialPosition = card.Position;
@@ -177,7 +177,9 @@ namespace EasyPack.EmeCardSystem
             }
             return this;
         }
+        #endregion
 
+        #region 位置管理
         /// <summary>
         ///     转移注册在引擎里的根卡牌到新位置。
         ///     旧位置和新位置相同时默认是成功移动。
@@ -267,7 +269,9 @@ namespace EasyPack.EmeCardSystem
 
             return this;
         }
+        #endregion
 
+        #region 卡牌位置通知
         /// <summary>
         ///     当卡牌被添加为子卡牌时，从位置索引中移除它。
         /// </summary>
@@ -299,7 +303,9 @@ namespace EasyPack.EmeCardSystem
             _cardsByPosition[newPosition] = card;
             _positionByUID[card.UID] = newPosition;
         }
+        #endregion
 
+        #region 卡牌移除
         /// <summary>
         ///     移除卡牌，移除事件订阅、UID 映射与索引。
         /// </summary>
