@@ -84,6 +84,14 @@ namespace EasyPack.EmeCardSystem
                 card.Index = maxIndex + 1;
                 _idMaxIndexes[id] = card.Index;
             }
+            else 
+            {
+                _idIndexes[id].Add(card.Index);
+                if (card.Index > _idMaxIndexes[id])
+                {
+                    _idMaxIndexes[id] = card.Index;
+                }
+            }
 
             // 第三步: 订阅卡牌事件
             card.OnEvent += OnCardEvent;
