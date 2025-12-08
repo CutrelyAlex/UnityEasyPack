@@ -19,6 +19,7 @@ namespace EasyPack.EmeCardSystem
         // ID -> MaxIndex 缓存
         private readonly Dictionary<string, int> _idMaxIndexes = new();
 
+
         // ID -> Card 列表缓存，用于快速查找
         private readonly Dictionary<string, List<Card>> _cardsById = new();
 
@@ -72,19 +73,15 @@ namespace EasyPack.EmeCardSystem
                 _idMaxIndexes[id] = -1;
             }
 
+            int currentMaxIndex = _idMaxIndexes[id];
             if (card.Index < 0 || indexes.Contains(card.Index))
             {
-                int maxIndex = _idMaxIndexes[id];
-                card.Index = maxIndex + 1;
+                card.Index = currentMaxIndex + 1;
                 _idMaxIndexes[id] = card.Index;
             }
-            else 
+            else if (card.Index > currentMaxIndex)
             {
-                _idIndexes[id].Add(card.Index);
-                if (card.Index > _idMaxIndexes[id])
-                {
-                    _idMaxIndexes[id] = card.Index;
-                }
+                _idMaxIndexes[id] = card.Index;
             }
 
             // 第三步: 订阅卡牌事件
@@ -328,7 +325,11 @@ namespace EasyPack.EmeCardSystem
             if (_idIndexes.TryGetValue(c.Id, out var indexes))
             {
                 indexes.Remove(c.Index);
-                if (indexes.Count == 0) _idIndexes.Remove(c.Id);
+                if (indexes.Count == 0)
+                {
+                    _idIndexes.Remove(c.Id);
+                    _idMaxIndexes.Remove(c.Id);
+                }
             }
 
             if (_cardsById.TryGetValue(c.Id, out var cardList))
@@ -387,6 +388,7 @@ namespace EasyPack.EmeCardSystem
             }
 
             _idIndexes.Clear();
+            _idMaxIndexes.Clear();
             _cardsById.Clear();
             _cardsByUID.Clear();
             _cardsByPosition.Clear();
