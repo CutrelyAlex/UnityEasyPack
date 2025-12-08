@@ -97,7 +97,7 @@ namespace EasyPack.EmeCardSystem
         public long UID { get; set; } = -1;
 
         /// <summary>
-        ///     实例索引：用于区分同一 ID 的多个实例（由CardEgnine在 AddCard 时分配，从 0 起）。
+        ///     实例索引：用于区分同一 ID 的多个实例（由CardEngine在 AddCard 时分配，从 0 起）。
         ///     未分配时默认为 -1。
         /// </summary>
         public int Index { get; set; } = -1;
