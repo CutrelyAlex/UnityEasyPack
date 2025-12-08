@@ -16,6 +16,9 @@ namespace EasyPack.EmeCardSystem
         // ID -> Index 集合缓存
         private readonly Dictionary<string, HashSet<int>> _idIndexes = new();
 
+        // ID -> MaxIndex 缓存
+        private readonly Dictionary<string, int> _idMaxIndexes = new();
+
         // ID -> Card 列表缓存，用于快速查找
         private readonly Dictionary<string, List<Card>> _cardsById = new();
 
@@ -66,13 +69,22 @@ namespace EasyPack.EmeCardSystem
             {
                 indexes = new();
                 _idIndexes[id] = indexes;
+                _idMaxIndexes[id] = 0;
             }
 
-            // 如果卡牌还未分配有效的 Index，或者该 Index 已经被使用，则自动分配下一个可用的 Index
             if (card.Index < 0 || indexes.Contains(card.Index))
             {
-                // 直接用已使用的数量作为下一个 Index
-                card.Index = indexes.Count;
+                int maxIndex = _idMaxIndexes[id];
+                card.Index = maxIndex + 1;
+                _idMaxIndexes[id] = card.Index;
+            }
+            else 
+            {
+                _idIndexes[id].Add(card.Index);
+                if (card.Index > _idMaxIndexes[id])
+                {
+                    _idMaxIndexes[id] = card.Index;
+                }
             }
 
             // 第三步: 订阅卡牌事件
@@ -316,11 +328,7 @@ namespace EasyPack.EmeCardSystem
             if (_idIndexes.TryGetValue(c.Id, out var indexes))
             {
                 indexes.Remove(c.Index);
-                // 如果该 ID 的所有卡牌都已移除，清除这个 ID 的索引集
-                if (indexes.Count == 0)
-                {
-                    _idIndexes.Remove(c.Id);
-                }
+                if (indexes.Count == 0) _idIndexes.Remove(c.Id);
             }
 
             if (_cardsById.TryGetValue(c.Id, out var cardList))
