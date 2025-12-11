@@ -28,6 +28,9 @@ namespace EasyPack.EmeCardSystem
         // Pump 状态标志
         private bool _isPumping;
         private bool _isFlushingEffectPool;
+        /// <summary>
+        /// 用来设置指定事件的泵入层级，不过目前End只能在Normal层级已有事件时才能延迟执行，如果泵入时Normal或Start内无事件则不会延迟
+        /// </summary>
         private EEventPumpType _currentPumpState;
 
         // 分帧处理相关
