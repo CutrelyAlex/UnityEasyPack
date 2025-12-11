@@ -49,7 +49,7 @@
 
 ### Services（服务系统）
 
-- **CategoryManager**：分类管理服务
+- **CategoryManager**：分类管理服务，支持Tag分类、metadata和树状分类
 - **ObjectPool**：对象池服务
 - **Serialization**（序列化系统）：支持 JSON、二进制及自定义策略的服务
 
