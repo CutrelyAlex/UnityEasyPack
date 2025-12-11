@@ -164,7 +164,7 @@ namespace EasyPack.BuffSystem
                 BuffData = buffData,
                 Creator = creator,
                 Target = target,
-                DurationTimer = buffData.Duration > 0 ? buffData.Duration : -1f,
+                DurationTimer = buffData.Duration > 0 ? buffData.Duration : BuffData.InfiniteDuration,
                 TriggerTimer = buffData.TriggerInterval,
                 CurrentStacks = 1,
             };

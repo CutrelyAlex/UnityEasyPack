@@ -9,6 +9,7 @@ namespace EasyPack.BuffSystem
     /// </summary>
     public class BuffData
     {
+        public const float InfiniteDuration = -1f;
         /// <summary>
         ///     Buff 的唯一标识符
         /// </summary>
@@ -40,12 +41,13 @@ namespace EasyPack.BuffSystem
         public int MaxStacks = 1;
 
         /// <summary>
-        ///     持续时间（秒），-1 表示永久效果
+        ///     持续时间（秒）
         /// </summary>
-        public float Duration = -1f;
+        public float Duration = InfiniteDuration;
 
         /// <summary>
         ///     触发间隔时间（秒），定义 Buff 每次触发的间隔
+        ///     默认：1f
         /// </summary>
         public float TriggerInterval = 1f;
 
