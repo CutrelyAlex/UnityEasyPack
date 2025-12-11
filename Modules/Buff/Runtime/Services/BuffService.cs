@@ -803,7 +803,9 @@ namespace EasyPack.BuffSystem
                 buff.TriggerTimer -= deltaTime;
                 if (buff.TriggerTimer <= 0)
                 {
-                    buff.TriggerTimer = buff.BuffData.TriggerInterval;
+                    // 这里加上buff.TriggerTimers是为了补偿超出的时间以防止触发不均
+                    // 例如当前帧TriggerTimer为0.1，deltaTime为0.3，则本次应触发一次且下次触发时间为0.8而非1.0
+                    buff.TriggerTimer = buff.BuffData.TriggerInterval + buff.TriggerTimer;
                     _triggeredBuffs.Add(buff);
                 }
             }
