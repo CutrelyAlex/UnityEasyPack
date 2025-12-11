@@ -13,6 +13,8 @@ namespace EasyPack.EmeCardSystem
 
         // 事件队列
         private readonly Queue<(Card source, ICardEvent evt)> _eventQueue = new();
+        private readonly Queue<(Card source, ICardEvent evt)> _startEventQueue = new();
+        private readonly Queue<(Card source, ICardEvent evt)> _endEventQueue = new();
 
         #endregion
 
@@ -26,6 +28,7 @@ namespace EasyPack.EmeCardSystem
         // Pump 状态标志
         private bool _isPumping;
         private bool _isFlushingEffectPool;
+        private EEventPumpType _currentPumpState;
 
         // 分帧处理相关
         private float _frameStartTime;
@@ -49,7 +52,20 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void OnCardEvent(Card source, ICardEvent evt)
         {
-            _eventQueue.Enqueue((source, evt));
+            switch (evt.PumpType)
+            {
+                case EEventPumpType.Start:
+                    if(_currentPumpState>EEventPumpType.Start) return;
+                    _startEventQueue.Enqueue((source, evt));
+                    break;
+                case EEventPumpType.Normal:
+                    if(_currentPumpState>EEventPumpType.Normal) return;
+                    _eventQueue.Enqueue((source, evt));
+                    break;
+                case EEventPumpType.End:
+                    _endEventQueue.Enqueue((source, evt));
+                    break;
+            }
 
             // 非分帧模式立即处理
             if (!_isPumping && !Policy.EnableFrameDistribution)
@@ -72,7 +88,7 @@ namespace EasyPack.EmeCardSystem
 
             try
             {
-                ProcessPumpLifecycleEvent(CardEventTypes.PUMP_START);
+                //ProcessPumpLifecycleEvent(CardEventTypes.PUMP_START);
 
                 const int MaxIterations = 1000;
                 int iteration = 0;
@@ -80,9 +96,21 @@ namespace EasyPack.EmeCardSystem
                 while (iteration < MaxIterations)
                 {
                     // 处理队列中的所有事件
+                    while (_startEventQueue.Count > 0)
+                    {
+                        var (source, evt) = _startEventQueue.Dequeue();
+                        Process(source, evt);
+                    }
                     while (_eventQueue.Count > 0)
                     {
+                        _currentPumpState = EEventPumpType.Normal;
                         var (source, evt) = _eventQueue.Dequeue();
+                        Process(source, evt);
+                    }
+                    while (_endEventQueue.Count > 0)
+                    {
+                        _currentPumpState = EEventPumpType.End;
+                        var (source, evt) = _endEventQueue.Dequeue();
                         Process(source, evt);
                     }
 
@@ -101,11 +129,12 @@ namespace EasyPack.EmeCardSystem
                     Debug.LogWarning($"[CardEngine] Pump 达到最大迭代次数 {MaxIterations}");
                 }
 
-                ProcessPumpLifecycleEvent(CardEventTypes.PUMP_END);
+                //ProcessPumpLifecycleEvent(CardEventTypes.PUMP_END);
             }
             finally
             {
                 _isPumping = false;
+                _currentPumpState = EEventPumpType.Start;
             }
         }
 

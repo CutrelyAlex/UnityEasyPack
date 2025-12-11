@@ -64,18 +64,23 @@ namespace EasyPack.EmeCardSystem
         /// <inheritdoc />
         public object DataObject => Data;
 
+        /// <inheritdoc />
+        public EEventPumpType PumpType { get; }
+
         /// <summary>
         ///     创建强类型事件。
         /// </summary>
         /// <param name="eventType">事件类型标识符（如 "Collision"、"Damage"）。</param>
         /// <param name="data">事件数据。</param>
         /// <param name="eventId">事件实例 ID（可选，默认使用 eventType）。</param>
+        /// <param name="pumpType">泵入何处（可选，默认使用 Normal）。</param>
         /// <exception cref="ArgumentNullException">当 eventType 为 null 时抛出。</exception>
-        public CardEvent(string eventType, TData data, string eventId = null)
+        public CardEvent(string eventType, TData data, string eventId = null,EEventPumpType pumpType=EEventPumpType.Normal)
         {
             EventType = eventType ?? throw new ArgumentNullException(nameof(eventType));
             EventId = eventId ?? eventType;
             Data = data;
+            PumpType = pumpType;
         }
 
         public override string ToString() =>
@@ -85,7 +90,7 @@ namespace EasyPack.EmeCardSystem
         ///     隐式转换为基础接口。
         /// </summary>
         public static implicit operator CardEvent<object>(CardEvent<TData> evt) =>
-            new(evt.EventType, evt.Data, evt.EventId);
+            new(evt.EventType, evt.Data, evt.EventId,evt.PumpType);
     }
 
     /// <summary>

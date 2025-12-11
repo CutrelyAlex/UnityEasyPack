@@ -464,9 +464,10 @@ namespace EasyPack.EmeCardSystem
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
         /// <param name="data">事件数据。</param>
-        public void RaiseEvent<T>(string eventType, T data)
+        /// <param name="eventPumpType">泵入何处</param>
+        public void RaiseEvent<T>(string eventType, T data ,EEventPumpType eventPumpType=EEventPumpType.Normal)
         {
-            RaiseEventInternal(new CardEvent<T>(eventType, data));
+            RaiseEventInternal(new CardEvent<T>(eventType, data,null,eventPumpType));
         }
 
         /// <summary>
