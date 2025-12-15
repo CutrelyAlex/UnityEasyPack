@@ -453,9 +453,9 @@ namespace EasyPack.EmeCardSystem
         ///     触发无数据事件。
         /// </summary>
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
-        public void RaiseEvent(string eventType)
+        public void RaiseEvent(string eventType,EEventPumpType eventPumpType=EEventPumpType.Normal)
         {
-            RaiseEventInternal(new CardEvent<Unit>(eventType, Unit.Default));
+            RaiseEventInternal(new CardEvent<Unit>(eventType, Unit.Default,null,eventPumpType));
         }
 
         /// <summary>
