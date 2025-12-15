@@ -160,6 +160,16 @@ namespace EasyPack.EmeCardSystem
         #endregion
 
         #region 查询服务
+            
+        /// <summary>
+        ///     获取所有在卡牌工厂中注册的卡牌模板。
+        /// </summary>
+        public HashSet<Card> GetAllCardsTemplates() => _registeredCardsTemplates;
+
+        /// <summary>
+        ///     获取所有的卡牌。
+        /// </summary>
+        public IEnumerable<Card> GetAllCards() => _cardsByUID.Values;
 
         /// <summary>
         ///     按ID和Index精确查找卡牌。
