@@ -78,11 +78,13 @@ namespace EasyPack.BuffSystem
 
         /// <summary>
         ///     标签列表，用于分类和查询 Buff
+        ///     TODO: 迁移使用CategoryManager的Tag体系
         /// </summary>
         public List<string> Tags = new();
 
         /// <summary>
         ///     层级列表，用于 Buff 的层级管理
+        ///     TODO: 迁移使用CategoryManager的Category体系
         /// </summary>
         public List<string> Layers = new();
 
