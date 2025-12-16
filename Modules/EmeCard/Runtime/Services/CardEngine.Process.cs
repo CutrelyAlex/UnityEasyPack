@@ -45,6 +45,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         #endregion
+        
         #region 对象池与缓存比较器
         [ThreadStatic] private static List<(CardRule, HashSet<Card>, CardRuleContext, int)> t_evals;
         [ThreadStatic] private static HashSet<Card> t_distinctSet;
