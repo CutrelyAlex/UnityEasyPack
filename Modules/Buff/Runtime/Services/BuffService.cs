@@ -804,7 +804,8 @@ namespace EasyPack.BuffSystem
                 if (buff.TriggerTimer <= 0)
                 {
                     // 这里加上buff.TriggerTimers是为了补偿超出的时间以防止触发不均
-                    // 例如当前帧TriggerTimer为0.1，deltaTime为0.3，则本次应触发一次且下次触发时间为0.8而非1.0
+                    // 例如当前帧TriggerTimer为0.1，deltaTime为0.3，小于0后超出的时间直接被丢弃
+                    // 会导致有0.2s的时间没有被计算进下一个触发周期
                     buff.TriggerTimer = buff.BuffData.TriggerInterval + buff.TriggerTimer;
                     _triggeredBuffs.Add(buff);
                 }
