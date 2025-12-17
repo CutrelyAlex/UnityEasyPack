@@ -193,22 +193,11 @@ namespace EasyPack.EmeCardSystem
         {
             if (card is not { Owner: null }) return false;
 
-            var oldPosition = card.Position;
-
-            if (oldPosition.HasValue && oldPosition.Value == newPosition) return true;
-
-            if (oldPosition.HasValue &&
-                _cardsByPosition.TryGetValue(oldPosition.Value, out Card cardAtOldPosition) &&
-                cardAtOldPosition.Equals(card))
-            {
-                _cardsByPosition.Remove(oldPosition.Value);
-            }
-
             if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && !existingCard.Equals(card))
             {
                 ClearCardPosition(existingCard);
             }
-
+            
             card.Position = newPosition;
             _cardsByPosition[newPosition] = card;
             _positionByUID[card.UID] = newPosition;
@@ -241,7 +230,6 @@ namespace EasyPack.EmeCardSystem
                     Debug.LogWarning($"[CardEngine] 位置 {newPosition} 已被占用，无法移动卡牌 '{card.Id}' (UID: {card.UID})");
                     return false;
                 }
-
                 ClearCardPosition(existingCard);
             }
 
@@ -268,7 +256,7 @@ namespace EasyPack.EmeCardSystem
             {
                 _cardsByPosition.Remove(oldPosition);
             }
-
+           
             card.Position = null;
             _positionByUID[card.UID] = null;
 
