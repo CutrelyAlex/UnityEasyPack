@@ -201,14 +201,13 @@ namespace EasyPack.EmeCardSystem
             {
                 if (!forceOverwrite)
                 {
-                    Debug.LogWarning($"[CardEngine] 位置 {newPosition} 已被占用，无法移动卡牌 '{card.Id}' (UID: {card.UID})");
                     return false;
                 }
 
                 ClearCardPosition(existingCard);
             }
 
-            // 目标位置可用后再清理旧位置索引，避免移动失败导致卡牌处于“无格子”状态
+            // 目标位置可用后再清理旧位置索引
             if (oldPosition.HasValue && oldPosition.Value != newPosition)
             {
                 if (_cardsByPosition.TryGetValue(oldPosition.Value, out Card oldPosCard) && oldPosCard.Equals(card))
