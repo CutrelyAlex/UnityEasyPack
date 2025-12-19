@@ -193,11 +193,30 @@ namespace EasyPack.EmeCardSystem
         {
             if (card is not { Owner: null }) return false;
 
+            var oldPosition = card.Position;
+            if (oldPosition.HasValue && oldPosition.Value == newPosition) return true;
+
+            // 先检查目标位置是否可用：若不可用且不允许覆盖，必须保持旧位置不变
             if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && !existingCard.Equals(card))
             {
+                if (!forceOverwrite)
+                {
+                    Debug.LogWarning($"[CardEngine] 位置 {newPosition} 已被占用，无法移动卡牌 '{card.Id}' (UID: {card.UID})");
+                    return false;
+                }
+
                 ClearCardPosition(existingCard);
             }
-            
+
+            // 目标位置可用后再清理旧位置索引，避免移动失败导致卡牌处于“无格子”状态
+            if (oldPosition.HasValue && oldPosition.Value != newPosition)
+            {
+                if (_cardsByPosition.TryGetValue(oldPosition.Value, out Card oldPosCard) && oldPosCard.Equals(card))
+                {
+                    _cardsByPosition.Remove(oldPosition.Value);
+                }
+            }
+
             card.Position = newPosition;
             _cardsByPosition[newPosition] = card;
             _positionByUID[card.UID] = newPosition;

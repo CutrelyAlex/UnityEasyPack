@@ -91,7 +91,8 @@ namespace EasyPack.EmeCardSystem
 
             try
             {
-                //ProcessPumpLifecycleEvent(CardEventTypes.PUMP_START);
+                _currentPumpState = EEventPumpType.Start;
+                ProcessPumpLifecycleEvent(CardEventTypes.PUMP_START);
 
                 const int MaxIterations = 1000;
                 int iteration = 0;
@@ -101,6 +102,7 @@ namespace EasyPack.EmeCardSystem
                     // 处理队列中的所有事件
                     while (_startEventQueue.Count > 0)
                     {
+                        _currentPumpState = EEventPumpType.Start;
                         var (source, evt) = _startEventQueue.Dequeue();
                         Process(source, evt);
                     }
@@ -132,7 +134,8 @@ namespace EasyPack.EmeCardSystem
                     Debug.LogWarning($"[CardEngine] Pump 达到最大迭代次数 {MaxIterations}");
                 }
 
-                //ProcessPumpLifecycleEvent(CardEventTypes.PUMP_END);
+                _currentPumpState = EEventPumpType.End;
+                ProcessPumpLifecycleEvent(CardEventTypes.PUMP_END);
             }
             finally
             {
