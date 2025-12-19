@@ -35,6 +35,7 @@ namespace EasyPack.CustomData
         private static void ClearOtherValues(CustomDataEntry entry)
         {
             entry.IntValue = 0;
+            entry.LongValue = 0;
             entry.FloatValue = 0;
             entry.StringValue = null;
             entry.Vector2Value = default;

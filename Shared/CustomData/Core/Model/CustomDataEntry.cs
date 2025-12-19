@@ -19,6 +19,7 @@ namespace EasyPack.CustomData
         public CustomDataType Type = CustomDataType.None;
 
         [NonSerialized] public int IntValue;
+        [NonSerialized] public long LongValue;
         [NonSerialized] public float FloatValue;
         [NonSerialized] public bool BoolValue;
         [NonSerialized] public string StringValue;
@@ -45,6 +46,9 @@ namespace EasyPack.CustomData
 
         public static CustomDataEntry CreateInt(string key, int value) =>
             new() { Key = key, Type = CustomDataType.Int, IntValue = value };
+
+        public static CustomDataEntry CreateLong(string key, long value) =>
+            new() { Key = key, Type = CustomDataType.Long, LongValue = value };
 
         public static CustomDataEntry CreateFloat(string key, float value) =>
             new() { Key = key, Type = CustomDataType.Float, FloatValue = value };

@@ -540,6 +540,7 @@ namespace EasyPack.CustomData
                     Key = entry.Key,
                     Type = entry.Type,
                     IntValue = entry.IntValue,
+                    LongValue = entry.LongValue,
                     FloatValue = entry.FloatValue,
                     BoolValue = entry.BoolValue,
                     StringValue = entry.StringValue,
@@ -568,6 +569,17 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
+        ///     增加 long 值
+        /// </summary>
+        public long AddLong(string id, long delta = 1L)
+        {
+            long current = GetValue(id, 0L);
+            long newValue = current + delta;
+            SetValue(id, newValue);
+            return newValue;
+        }
+
+        /// <summary>
         ///     增加 float 值
         /// </summary>
         public float AddFloat(string id, float delta = 1f)
@@ -580,6 +592,12 @@ namespace EasyPack.CustomData
 
         /// <summary>快速设置 int 值</summary>
         public void SetInt(string id, int value)
+        {
+            SetValue(id, value);
+        }
+
+        /// <summary>快速设置 long 值</summary>
+        public void SetLong(string id, long value)
         {
             SetValue(id, value);
         }
@@ -622,6 +640,9 @@ namespace EasyPack.CustomData
 
         /// <summary>快速获取 int 值</summary>
         public int GetInt(string id, int defaultValue = 0) => GetValue(id, defaultValue);
+
+        /// <summary>快速获取 long 值</summary>
+        public long GetLong(string id, long defaultValue = 0L) => GetValue(id, defaultValue);
 
         /// <summary>快速获取 float 值</summary>
         public float GetFloat(string id, float defaultValue = 0f) => GetValue(id, defaultValue);

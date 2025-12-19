@@ -23,6 +23,7 @@ namespace EasyPack.CustomData
         static ValueHandlerRegistry()
         {
             Handlers[CustomDataType.Int] = new IntValueHandler();
+            Handlers[CustomDataType.Long] = new LongValueHandler();
             Handlers[CustomDataType.Float] = new FloatValueHandler();
             Handlers[CustomDataType.Bool] = new BoolValueHandler();
             Handlers[CustomDataType.String] = new StringValueHandler();
@@ -57,6 +58,7 @@ namespace EasyPack.CustomData
             return valueType switch
             {
                 _ when valueType == typeof(int) => Handlers[CustomDataType.Int],
+                _ when valueType == typeof(long) => Handlers[CustomDataType.Long],
                 _ when valueType == typeof(float) => Handlers[CustomDataType.Float],
                 _ when valueType == typeof(bool) => Handlers[CustomDataType.Bool],
                 _ when valueType == typeof(string) => Handlers[CustomDataType.String],
