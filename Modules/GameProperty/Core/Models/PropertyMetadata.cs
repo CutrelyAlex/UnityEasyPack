@@ -8,7 +8,7 @@ namespace EasyPack.GamePropertySystem
     ///     存储属性的显示信息和扩展数据
     /// </summary>
     [Serializable]
-    public class PropertyMetadata
+    public class PropertyData
     {
         /// <summary>显示名称</summary>
         public string DisplayName;
@@ -32,7 +32,7 @@ namespace EasyPack.GamePropertySystem
         /// <summary>
         ///     默认构造函数
         /// </summary>
-        public PropertyMetadata() => CustomData = new();
+        public PropertyData() => CustomData = new();
 
         /// <summary>
         ///     获取自定义数据值

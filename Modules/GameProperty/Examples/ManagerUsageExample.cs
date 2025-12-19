@@ -92,7 +92,7 @@ namespace EasyPack.GamePropertySystem.Example
 
             // 创建属性并附加元数据
             var hp = new GameProperty("hp_meta", 100);
-            var metadata = new PropertyMetadata
+            var metadata = new PropertyData
             {
                 DisplayName = "生命值",
                 Description = "角色当前生命值",
@@ -108,7 +108,7 @@ namespace EasyPack.GamePropertySystem.Example
             _manager.Register(hp, "Character.Vital", metadata);
 
             // 获取并使用元数据
-            PropertyMetadata retrievedMeta = _manager.GetMetadata("hp_meta");
+            PropertyData retrievedMeta = _manager.GetMetadata("hp_meta");
             Debug.Log($"显示名: {retrievedMeta.DisplayName}");
             Debug.Log($"描述: {retrievedMeta.Description}");
             Debug.Log($"标签: {string.Join(", ", retrievedMeta.Tags)}");

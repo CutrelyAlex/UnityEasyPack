@@ -148,7 +148,7 @@ namespace EasyPack.GamePropertySystem.Editor
             var allTags = new HashSet<string>();
             foreach (string propId in _manager.GetAllPropertyIds())
             {
-                PropertyMetadata metadata = _manager.GetMetadata(propId);
+                PropertyData metadata = _manager.GetMetadata(propId);
                 if (metadata?.Tags != null)
                 {
                     foreach (string tag in metadata.Tags)
@@ -209,7 +209,7 @@ namespace EasyPack.GamePropertySystem.Editor
 
             if (_showMetadata)
             {
-                PropertyMetadata metadata = _manager.GetMetadata(property.ID);
+                PropertyData metadata = _manager.GetMetadata(property.ID);
                 if (metadata != null)
                 {
                     EditorGUI.indentLevel++;
@@ -272,7 +272,7 @@ namespace EasyPack.GamePropertySystem.Editor
                     if (p.ID.IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) >= 0)
                         return true;
 
-                    PropertyMetadata metadata = _manager.GetMetadata(p.ID);
+                    PropertyData metadata = _manager.GetMetadata(p.ID);
                     if (metadata != null)
                     {
                         if (!string.IsNullOrEmpty(metadata.DisplayName) &&

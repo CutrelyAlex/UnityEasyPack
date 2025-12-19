@@ -220,7 +220,7 @@ namespace EasyPack.GamePropertySystem.Example
             foreach ((string id, float value, string displayName, string icon, int order) in uiProps)
             {
                 var property = new GameProperty(id, value);
-                var metadata = new PropertyMetadata
+                var metadata = new PropertyData
                 {
                     DisplayName = displayName, IconPath = icon, Tags = new[] { "displayInUI" },
                 };
@@ -236,11 +236,11 @@ namespace EasyPack.GamePropertySystem.Example
             Debug.Log("UI面板生成:");
             foreach (GameProperty prop in displayProps.OrderBy(p =>
                      {
-                         PropertyMetadata meta = _manager.GetMetadata(p.ID);
+                         PropertyData meta = _manager.GetMetadata(p.ID);
                          return meta.GetCustomData("sortOrder", 999);
                      }))
             {
-                PropertyMetadata meta = _manager.GetMetadata(prop.ID);
+                PropertyData meta = _manager.GetMetadata(prop.ID);
                 Debug.Log($"  [{meta.IconPath}] {meta.DisplayName}: {prop.GetValue()}");
             }
 

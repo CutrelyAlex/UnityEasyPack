@@ -29,19 +29,13 @@ namespace EasyPack.GamePropertySystem
 
                 string propertyJson = _propertySerializer.SerializeToJson(property);
 
-                string category = "Default";
-                foreach (string cat in obj.GetAllCategories())
-                {
-                    if (obj.GetByCategory(cat).Any(p => p.ID == propertyId))
-                    {
-                        category = cat;
-                        break;
-                    }
-                }
+                string category = obj.TryGetCategoryOfProperty(propertyId, out string cachedCategory)
+                    ? cachedCategory
+                    : "Default";
 
                 propertiesList.Add(new() { ID = propertyId, Category = category, SerializedProperty = propertyJson });
 
-                PropertyMetadata metadata = obj.GetMetadata(propertyId);
+                PropertyData metadata = obj.GetMetadata(propertyId);
                 if (metadata != null)
                 {
                     metadataList.Add(new()
@@ -77,7 +71,7 @@ namespace EasyPack.GamePropertySystem
                     GameProperty property = _propertySerializer.DeserializeFromJson(entry.SerializedProperty);
                     if (property == null) continue;
 
-                    PropertyMetadata metadata = null;
+                    PropertyData metadata = null;
                     if (dto.Metadata != null)
                     {
                         MetadataEntry metadataEntry = dto.Metadata.FirstOrDefault(m => m.PropertyID == entry.ID);

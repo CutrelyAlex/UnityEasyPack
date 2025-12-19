@@ -21,7 +21,7 @@ namespace EasyPack.GamePropertySystem
         /// <param name="metadata">可选的元数据（显示名、描述、标签等）</param>
         /// <exception cref="ArgumentException">属性ID已存在时抛出</exception>
         /// <exception cref="InvalidOperationException">服务未就绪时抛出</exception>
-        void Register(GameProperty property, string category = "Default", PropertyMetadata metadata = null);
+        void Register(GameProperty property, string category = "Default", PropertyData metadata = null);
 
         /// <summary>
         ///     批量注册属性到指定分类
@@ -40,6 +40,13 @@ namespace EasyPack.GamePropertySystem
         /// <param name="id">属性ID</param>
         /// <returns>属性实例，不存在则返回null</returns>
         GameProperty Get(string id);
+
+        /// <summary>
+        ///     通过 UID 获取属性
+        /// </summary>
+        /// <param name="uid">属性 UID</param>
+        /// <returns>属性实例，不存在则返回 null</returns>
+        GameProperty GetByUid(long uid);
 
         /// <summary>
         ///     获取指定分类的所有属性
@@ -69,7 +76,7 @@ namespace EasyPack.GamePropertySystem
         /// </summary>
         /// <param name="id">属性ID</param>
         /// <returns>元数据实例，不存在则返回null</returns>
-        PropertyMetadata GetMetadata(string id);
+        PropertyData GetMetadata(string id);
 
         /// <summary>
         ///     获取所有已注册的属性ID
@@ -93,6 +100,21 @@ namespace EasyPack.GamePropertySystem
         /// <param name="id">属性ID</param>
         /// <returns>是否成功移除（false表示属性不存在）</returns>
         bool Unregister(string id);
+
+        /// <summary>
+        ///     通过 UID 移除指定属性
+        /// </summary>
+        /// <param name="uid">属性 UID</param>
+        /// <returns>是否成功移除（false表示属性不存在）</returns>
+        bool UnregisterByUid(long uid);
+
+        /// <summary>
+        ///     通过 UID 将属性移动到新的分类
+        /// </summary>
+        /// <param name="uid">属性 UID</param>
+        /// <param name="newCategory">新的分类名</param>
+        /// <returns>是否成功移动</returns>
+        bool MoveToCategoryByUid(long uid, string newCategory);
 
         /// <summary>
         ///     移除整个分类及其所有属性
