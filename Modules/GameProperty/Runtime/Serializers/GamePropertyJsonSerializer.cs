@@ -18,6 +18,12 @@ namespace EasyPack.GamePropertySystem
         public string ID;
 
         /// <summary>
+        ///     属性的唯一 UID。
+        ///     -1 表示未分配。
+        /// </summary>
+        public long UID;
+
+        /// <summary>
         ///     属性的基础值
         /// </summary>
         public float BaseValue;
@@ -56,8 +62,9 @@ namespace EasyPack.GamePropertySystem
 
             return new SerializableGameProperty
             {
-                ID = obj.ID, 
-                BaseValue = obj.GetBaseValue(), 
+                ID = obj.ID,
+                UID = obj.UID,
+                BaseValue = obj.GetBaseValue(),
                 Modifiers = modifiersList.ToArray(),
             };
         }
@@ -71,7 +78,12 @@ namespace EasyPack.GamePropertySystem
         {
             if (dto == null) return null;
 
-            var property = new GameProperty(dto.ID, dto.BaseValue);
+            var property = new GameProperty(dto.ID, dto.BaseValue)
+            {
+                // UID 由 Service 统一分配与校验；
+                // 这里仅还原序列化值。
+                UID = dto.UID == 0 ? -1 : dto.UID
+            };
 
             // 使用 ModifierSerializer 还原所有修饰器
             if (dto.Modifiers != null)

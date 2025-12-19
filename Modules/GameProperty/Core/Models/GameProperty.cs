@@ -22,6 +22,12 @@ namespace EasyPack.GamePropertySystem
         /// </summary>
         public string ID { get; set; }
 
+        /// <summary>
+        ///    属性的唯一UID
+        ///    -1 表示未分配
+        /// </summary>
+        public long UID { get; set; } = -1;
+
         private float _baseValue;
         private float _cacheValue;
 
