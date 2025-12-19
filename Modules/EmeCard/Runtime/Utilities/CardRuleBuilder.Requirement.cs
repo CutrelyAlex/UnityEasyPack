@@ -154,7 +154,7 @@ namespace EasyPack.EmeCardSystem
                 maxDepth);
 
         /// <summary>需要源卡或直接子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceOrChildNeedTag(string tag) => AddRequirement(new AnyRequirement()
+        public CardRuleBuilder NeedSourceOrChildHasTag(string tag) => AddRequirement(new AnyRequirement()
         {
             Children =
             {
@@ -171,6 +171,24 @@ namespace EasyPack.EmeCardSystem
                     minCount: 1, scope: TargetScope.Children)
             }
         });
+        /// <summary>需要源卡或直接子卡中有指定标签的卡牌</summary>
+        public CardRuleBuilder NeedSourceOrChildNotHasTag(string tag) => AddRequirement(new NotRequirement(){Inner = new AnyRequirement()
+        {
+            Children =
+            {
+                new ConditionRequirement((context =>
+                {
+                    if (context.Source.HasTag(tag))
+                    {
+                        return (true,new List<Card>{context.Source});
+                    }
+
+                    return (false, null);
+                })),
+                new CardsRequirement(root: SelectionRoot.Source, filterMode: CardFilterMode.ByTag, filterValue: tag,
+                    minCount: 1, scope: TargetScope.Children)
+            }
+        }});
 
         #endregion
     }
