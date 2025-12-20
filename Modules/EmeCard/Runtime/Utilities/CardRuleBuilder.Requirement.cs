@@ -167,8 +167,8 @@ namespace EasyPack.EmeCardSystem
 
                     return (false, null);
                 })),
-                new CardsRequirement(root: SelectionRoot.Source, filterMode: CardFilterMode.ByTag, filterValue: tag,
-                    minCount: 1, scope: TargetScope.Children)
+                new CardsRequirement(root: SelectionRoot.Source, scope: TargetScope.Children, filterMode: CardFilterMode.ByTag, filterValue: tag,
+                    minCount: 1,maxMatched:0,maxDepth:1)
             }
         });
         /// <summary>需要源卡或直接子卡中有指定标签的卡牌</summary>
