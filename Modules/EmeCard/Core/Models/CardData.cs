@@ -1,4 +1,5 @@
 using System;
+using EasyPack.CustomData;
 using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
@@ -44,9 +45,14 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     默认标签集合：
         ///     - 通常在基于 <see cref="CardData" /> 创建 <see cref="Card" /> 实例时拷贝到实例的标签集中；
-        ///     - 本数组应视为只读元数据，不建议在运行时直接修改该数组内容（修改应作用于实例）。
+        ///     - 本数组应视为只读原数据，不建议在运行时直接修改该数组内容（修改应作用于实例）。
         /// </summary>
         public string[] DefaultTags { get; }
+
+        /// <summary>
+        ///    自定义数据集合的默认实例
+        /// </summary>
+        public CustomDataCollection DefaultMetaData { get; } = new();
 
         /// <summary>
         ///     创建一条卡牌静态数据。

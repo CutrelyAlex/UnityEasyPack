@@ -25,7 +25,7 @@ namespace EasyPack.EmeCardSystem
 
         // UID -> Card 缓存，支持 O(1) UID 查询
         private readonly Dictionary<long, Card> _cardsByUID = new();
-        
+
         // (id, index) -> Card 映射缓存，支持通过复合键快速查找卡牌
         private readonly Dictionary<(string, int), Card> _cardsByKey = new();
 
@@ -222,7 +222,7 @@ namespace EasyPack.EmeCardSystem
 
             return true;
         }
-        
+
         /// <summary>
         /// 尝试移动任意注册在引擎中的卡牌到新位置。
         /// 如果新位置有卡牌存在，返回失败，除非强制覆盖。
@@ -235,12 +235,12 @@ namespace EasyPack.EmeCardSystem
         public bool TryMoveCardToPosition(Card card, Vector3Int newPosition, bool ignoreIntrinsic = false, bool forceOverwrite = false)
         {
             if (card == null) return false;
-            
+
             if (card.Owner == null)
             {
                 return TryMoveRootCardToPosition(card, newPosition, forceOverwrite);
             }
-            
+
             if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && !existingCard.Equals(card))
             {
                 if (!forceOverwrite)
@@ -252,14 +252,14 @@ namespace EasyPack.EmeCardSystem
             }
 
             if (!card.Owner.RemoveChild(card, ignoreIntrinsic)) return false;
-            
+
             card.Position = newPosition;
             _cardsByPosition[newPosition] = card;
             _positionByUID[card.UID] = newPosition;
             return true;
         }
-        
-        
+
+
         /// <summary>
         ///     清除根卡牌的位置。
         /// </summary>
@@ -274,7 +274,7 @@ namespace EasyPack.EmeCardSystem
             {
                 _cardsByPosition.Remove(oldPosition);
             }
-           
+
             card.Position = null;
             _positionByUID[card.UID] = null;
 
@@ -343,9 +343,9 @@ namespace EasyPack.EmeCardSystem
                 cardList.Remove(c);
                 if (cardList.Count == 0) _cardsById.Remove(c.Id);
             }
-            
+
             _cardsByKey.Remove((c.Id, c.Index));
-            
+
             // 收集标签用于后续清理
             var tags = c.Tags;
             string[] tagArray = null;
@@ -369,7 +369,7 @@ namespace EasyPack.EmeCardSystem
                 _cardsByPosition.Remove(c.Position);
             }
             _positionByUID.Remove(c.UID);
-            
+
 
             // 清理 TargetSelector 标签缓存
             if (tagArray != null)

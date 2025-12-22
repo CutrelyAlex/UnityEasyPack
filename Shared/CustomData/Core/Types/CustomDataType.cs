@@ -14,7 +14,6 @@ namespace EasyPack.CustomData
         Custom, // 使用自定义序列化器
         /// <summary>
         ///     64位整数
-        ///     注意：追加在末尾以避免改变已有枚举值序列化后的数值。
         /// </summary>
         Long,
     }

@@ -160,7 +160,7 @@ namespace EasyPack.EmeCardSystem
         #endregion
 
         #region 查询服务
-            
+
         /// <summary>
         ///     获取所有在卡牌工厂中注册的卡牌模板。
         /// </summary>
@@ -291,7 +291,7 @@ namespace EasyPack.EmeCardSystem
 
             string category = ExtractCategoryPath(card);
 
-            // 使用 UID（int）注册实体，保证绝对唯一
+            // 使用 UID注册实体，保证唯一
             IEntityRegistration registration = CategoryManager.RegisterEntity(card, category);
 
             // 应用运行时的DefaultTags（来自CardData）
@@ -317,6 +317,13 @@ namespace EasyPack.EmeCardSystem
                 }
                 // 清空临时标签列表
                 card.PendingExtraTags = null;
+            }
+
+            // 应用默认的metadata
+            var defaultMetaData = card.Data?.DefaultMetaData;
+            if (defaultMetaData != null)
+            {
+                registration = registration.WithMetadata(defaultMetaData);
             }
 
             // 完成注册
