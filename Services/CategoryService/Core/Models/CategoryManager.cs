@@ -110,6 +110,28 @@ namespace EasyPack.Category
 
         #endregion
 
+        #region 全量实体访问
+
+        /// <summary>
+        ///     获取当前 Manager 内的所有实体快照。
+        ///     <para>注意：返回的是快照列表，不是实时引用</para>
+        /// </summary>
+        public IReadOnlyList<T> GetAllEntities()
+        {
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                // Values 集合在锁内复制为 List，避免外部枚举时与写入并发。
+                return _entities.Values.ToList();
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
+        }
+
+        #endregion
+
         #region 实体注册
 
         /// <summary>

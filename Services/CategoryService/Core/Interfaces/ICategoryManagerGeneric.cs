@@ -82,6 +82,13 @@ namespace EasyPack.Category
         #region 分类查询
 
         /// <summary>
+        ///     获取当前 Manager 内的所有实体快照。
+        ///     <para>注意：返回的是快照列表，不是实时引用。</para>
+        /// </summary>
+        /// <returns>所有实体列表（快照）。</returns>
+        IReadOnlyList<T> GetAllEntities();
+
+        /// <summary>
         ///     根据分类获取实体（支持通配符）。
         /// </summary>
         /// <param name="pattern">分类名称或通配符模式。</param>
