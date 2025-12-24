@@ -27,7 +27,6 @@ namespace EasyPack.GamePropertySystem
         // 核心数据
         private ConcurrentDictionary<string, GameProperty> _properties;
         private ConcurrentDictionary<string, PropertyDisplayInfo> _propertyDisplayInfo;
-        private ConcurrentDictionary<string, string> _propertyToCategory;
 
         // UID -> Property 查找缓存
         private ConcurrentDictionary<long, GameProperty> _uidToProperties;
@@ -53,7 +52,6 @@ namespace EasyPack.GamePropertySystem
             // 初始化字典
             _properties = new();
             _propertyDisplayInfo = new();
-            _propertyToCategory = new();
 
             _uidToProperties = new();
 
@@ -112,7 +110,6 @@ namespace EasyPack.GamePropertySystem
         {
             _properties?.Clear();
             _propertyDisplayInfo?.Clear();
-            _propertyToCategory?.Clear();
             _uidToProperties?.Clear();
 
             // 释放 CategoryManager
@@ -209,7 +206,6 @@ namespace EasyPack.GamePropertySystem
 
             // 2) 建立本地索引
             _properties[property.ID] = property;
-            _propertyToCategory[property.ID] = effectiveCategory;
             _uidToProperties[property.UID] = property;
 
             // 3) 记录 PropertyDisplayInfo
@@ -428,7 +424,12 @@ namespace EasyPack.GamePropertySystem
         internal bool TryGetCategoryOfProperty(string propertyId, out string category)
         {
             category = null;
-            return _propertyToCategory != null && _propertyToCategory.TryGetValue(propertyId, out category);
+            if (_properties.TryGetValue(propertyId, out var property))
+            {
+                category = _categoryManager?.GetReadableCategoryPath(property.UID);
+                return !string.IsNullOrEmpty(category);
+            }
+            return false;
         }
 
         /// <summary>
@@ -466,8 +467,6 @@ namespace EasyPack.GamePropertySystem
             // 从元数据移除
             _propertyDisplayInfo.TryRemove(id, out _);
 
-            _propertyToCategory.TryRemove(id, out _);
-
             return true;
         }
 
@@ -504,18 +503,7 @@ namespace EasyPack.GamePropertySystem
             }
 
             Category.OperationResult result = concrete.MoveEntityToCategorySafe(uid, newCategory);
-            if (!result.IsSuccess) return false;
-
-            // 更新本地缓存
-            if (_uidToProperties != null && _uidToProperties.TryGetValue(uid, out GameProperty property) && property != null)
-            {
-                string normalizedCategory = CategoryNameNormalizer.Normalize(newCategory);
-                if (string.IsNullOrWhiteSpace(normalizedCategory))
-                    normalizedCategory = "Default";
-                _propertyToCategory[property.ID] = normalizedCategory;
-            }
-
-            return true;
+            return result.IsSuccess;
         }
 
         /// <summary>
