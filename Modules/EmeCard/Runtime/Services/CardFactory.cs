@@ -4,8 +4,8 @@ using System.Threading;
 
 namespace EasyPack.EmeCardSystem
 {
-    // 按 ID 创建卡牌实例（仅供内部使用）
-    internal interface ICardFactory
+    // 按 ID 创建卡牌实例
+    public interface ICardFactory
     {
         Card Create(string id);
         T Create<T>(string id) where T : Card;

@@ -21,6 +21,9 @@ namespace EasyPack.EmeCardSystem
 
             if (CategoryManager is CategoryManager<Card, long> concreteManager)
             {
+                // 确保序列化器使用当前的工厂
+                CardJsonSerializer.Factory = _cardFactory;
+
                 dto.CategoryState = concreteManager.GetSerializableState(
                     card => _cardSerializer.SerializeToJson(card),
                     uid => uid.ToString(),
@@ -37,6 +40,9 @@ namespace EasyPack.EmeCardSystem
         public void LoadState(CardEngineDTO dto)
         {
             if (dto == null || dto.CategoryState == null) return;
+
+            // 确保序列化器使用当前的工厂
+            CardJsonSerializer.Factory = _cardFactory;
 
             // 1. 清除当前状态
             ClearAllCards();
@@ -70,7 +76,16 @@ namespace EasyPack.EmeCardSystem
                         RestoreCardToEngine(card);
 
                         // 注册到分类
-                        newManager.RegisterEntity(card.UID, card, entityDto.Category);
+                        // 如果有 DefaultMetaData，先应用它（创建副本以避免修改共享数据）
+                        if (card.Data?.DefaultMetaData != null && card.Data.DefaultMetaData.Count > 0)
+                        {
+                            var initialMetadata = new CustomDataCollection(card.Data.DefaultMetaData);
+                            newManager.RegisterEntityWithMetadata(card.UID, card, entityDto.Category, initialMetadata);
+                        }
+                        else
+                        {
+                            newManager.RegisterEntity(card.UID, card, entityDto.Category);
+                        }
                     }
                 }
             }
@@ -103,8 +118,20 @@ namespace EasyPack.EmeCardSystem
                         var wrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(metaDto.MetadataJson);
                         if (wrapper != null && wrapper.Entries != null)
                         {
-                            var collection = new CustomDataCollection(wrapper.Entries);
-                            newManager.UpdateMetadata(uid, collection);
+                            // 合并并持久化元数据：
+                            // 注意：CategoryManager.GetMetadata(key) 在未命中时会返回 new()，并不会自动写回 _metadataStore。
+                            // 所以这里无论是否命中，都必须在合并后调用 UpdateMetadata 写回。
+
+                            var mergedMetadata = newManager.GetMetadata(uid) ?? new CustomDataCollection();
+                            foreach (var entry in wrapper.Entries)
+                            {
+                                // 使用 SetValue 确保覆盖同名 key，且缓存一致
+                                mergedMetadata.SetValue(entry.Key, entry.GetValue());
+                            }
+
+                            // 写回（即使 mergedMetadata 是从 store 取出的引用，也允许幂等写回；
+                            // 若此前不存在元数据，则确保落到 _metadataStore）
+                            newManager.UpdateMetadata(uid, mergedMetadata);
                         }
                     }
                 }

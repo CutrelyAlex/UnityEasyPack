@@ -15,6 +15,11 @@ namespace EasyPack.EmeCardSystem
     public class CardJsonSerializer : ITypeSerializer<Card, SerializableCard>
     {
         private readonly GamePropertyJsonSerializer _propertySerializer = new();
+        
+        /// <summary>
+        ///     可选的卡牌工厂引用，用于在反序列化时重建符合静态数据的原型
+        /// </summary>
+        public static ICardFactory Factory { get; set; }
 
         #region ITypeSerializer<Card, SerializableCard> 实现
 
@@ -229,23 +234,49 @@ namespace EasyPack.EmeCardSystem
             // 反序列化时创建的CardData不应包含DefaultTags
             // DefaultTags仅在新建卡牌时使用，反序列化的卡牌标签完全由序列化数据决定
             
-            string category = data.Category;
-            if (string.IsNullOrEmpty(category))
+            // 尝试使用工厂创建原型以获取正确的 CardData
+            Card prototype = null;
+            if (Factory != null && !string.IsNullOrEmpty(data.ID))
             {
-                category = data.DefaultCategory;
-            }
-            if (string.IsNullOrEmpty(category))
-            {
-                category = CardData.DEFAULT_CATEGORY;
+                try
+                {
+                    // 创建一个临时原型来获取 CardData
+                    // 注意：这里可能会有副作用（如果工厂方法里有副作用），但通常工厂方法只负责创建对象
+                    prototype = Factory.Create(data.ID);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[CardJsonSerializer] 无法从工厂创建原型 ID={data.ID}: {ex.Message}");
+                }
             }
 
-            var cardData = new CardData(
-                data.ID,
-                data.Name ?? "Default",
-                data.Description ?? string.Empty,
-                category,
-                Array.Empty<string>()
-            );
+            CardData cardData;
+            if (prototype != null && prototype.Data != null)
+            {
+                // 使用工厂创建的 CardData
+                cardData = prototype.Data;
+            }
+            else
+            {
+                // 回退
+                string category = data.Category;
+                if (string.IsNullOrEmpty(category))
+                {
+                    category = data.DefaultCategory;
+                }
+                if (string.IsNullOrEmpty(category))
+                {
+                    category = CardData.DEFAULT_CATEGORY;
+                }
+
+                cardData = new CardData(
+                    data.ID,
+                    data.Name ?? "Default",
+                    data.Description ?? string.Empty,
+                    category,
+                    Array.Empty<string>()
+                );
+            }
 
             var card = new Card(cardData)
             {

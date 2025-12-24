@@ -18,6 +18,8 @@ namespace EasyPack.EmeCardSystem
         public CardEngine(CardFactory factory)
         {
             _cardFactory = factory;
+            // 注入工厂到序列化器
+            CardJsonSerializer.Factory = factory;
 
             CategoryManager = new CategoryManager<Card, long>(card => card.UID);
 
