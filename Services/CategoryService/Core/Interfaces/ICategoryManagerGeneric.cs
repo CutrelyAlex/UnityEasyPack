@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using EasyPack.CustomData;
+using EasyPack.Category;
 
 namespace EasyPack.Category
 {
@@ -11,7 +12,7 @@ namespace EasyPack.Category
     /// </summary>
     /// <typeparam name="T">实体类型</typeparam>
     /// <typeparam name="TKey">键类型，用于唯一标识实体</typeparam>
-    public interface ICategoryManager<T, in TKey> : ICategoryManager
+    public interface ICategoryManager<T, TKey> : ICategoryManager
         where TKey : IEquatable<TKey>
     {
         #region 实体注册
@@ -62,6 +63,16 @@ namespace EasyPack.Category
         OperationResult RegisterEntityWithMetadata(TKey key, T entity, string category, CustomDataCollection metadata);
 
         /// <summary>
+        ///     更新实体的引用。
+        ///     如果键不存在，则返回失败。
+        ///     此操作不会改变实体的分类、标签或元数据。
+        /// </summary>
+        /// <param name="key">实体键。</param>
+        /// <param name="entity">新的实体对象。</param>
+        /// <returns>操作结果。</returns>
+        OperationResult UpdateEntityReference(TKey key, T entity);
+
+        /// <summary>
         ///     批量注册多个实体到同一分类。
         /// </summary>
         /// <param name="entities">实体列表。</param>
@@ -80,6 +91,13 @@ namespace EasyPack.Category
         #endregion
 
         #region 分类查询
+
+        /// <summary>
+        ///     获取当前 Manager 内的所有实体快照。
+        ///     <para>注意：返回的是快照列表，不是实时引用。</para>
+        /// </summary>
+        /// <returns>所有实体列表（快照）。</returns>
+        IReadOnlyList<T> GetAllEntities();
 
         /// <summary>
         ///     根据分类获取实体（支持通配符）。
@@ -236,6 +254,19 @@ namespace EasyPack.Category
         /// <param name="metadata">新的元数据集合。</param>
         /// <returns>操作结果。</returns>
         OperationResult UpdateMetadata(TKey key, CustomDataCollection metadata);
+
+        #endregion
+
+        #region 序列化支持
+
+        /// <summary>
+        ///     获取可序列化的状态对象。
+        /// </summary>
+        /// <param name="entitySerializer">实体序列化函数。</param>
+        /// <param name="keySerializer">键序列化函数。</param>
+        /// <param name="metadataSerializer">元数据序列化函数。</param>
+        /// <returns>可序列化的状态对象。</returns>
+        SerializableCategoryManagerState<T, TKey> GetSerializableState(Func<T, string> entitySerializer, Func<TKey, string> keySerializer, Func<CustomDataCollection, string> metadataSerializer);
 
         #endregion
     }

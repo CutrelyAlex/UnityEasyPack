@@ -1,6 +1,7 @@
 using System;
 using EasyPack.GamePropertySystem;
 using EasyPack.Serialization;
+using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
 {
@@ -24,6 +25,11 @@ namespace EasyPack.EmeCardSystem
         public string[] Tags;
         public string ChildrenJson;
         public bool IsIntrinsic;
+        public string Category; // 运行时分类路径
+        
+        // 位置信息
+        public bool HasPosition;
+        public Vector3Int Position;
     }
 
     /// <summary>

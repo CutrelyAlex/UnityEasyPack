@@ -110,6 +110,28 @@ namespace EasyPack.Category
 
         #endregion
 
+        #region 全量实体访问
+
+        /// <summary>
+        ///     获取当前 Manager 内的所有实体快照。
+        ///     <para>注意：返回的是快照列表，不是实时引用</para>
+        /// </summary>
+        public IReadOnlyList<T> GetAllEntities()
+        {
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                // Values 集合在锁内复制为 List，避免外部枚举时与写入并发。
+                return _entities.Values.ToList();
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
+        }
+
+        #endregion
+
         #region 实体注册
 
         /// <summary>
@@ -630,6 +652,58 @@ namespace EasyPack.Category
             {
                 _treeLock.ExitWriteLock();
             }
+        }
+
+        /// <summary>
+        ///     更新实体的引用。
+        ///     如果键不存在，则返回失败。
+        ///     此操作不会改变实体的分类、标签或元数据。
+        /// </summary>
+        public OperationResult UpdateEntityReference(TKey key, T entity)
+        {
+            if (entity == null) return OperationResult.Failure(ErrorCode.InvalidParameter, "实体不能为空");
+
+            TKey extractedKey = _keyExtractor(entity);
+            if (!_keyComparer.Equals(extractedKey, key))
+            {
+                return OperationResult.Failure(ErrorCode.InvalidParameter,
+                    "实体的键与提供的键不匹配");
+            }
+
+            _entitiesLock.EnterWriteLock();
+            try
+            {
+                if (!_entities.ContainsKey(key))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+                }
+
+                // 更新实体引用
+                _entities[key] = entity;
+            }
+            finally
+            {
+                _entitiesLock.ExitWriteLock();
+            }
+
+            // 检查该实体是否有关联的标签，如果有，需要清理标签缓存
+            _tagSystemLock.EnterWriteLock();
+            try
+            {
+                if (_entityToTagIds.TryGetValue(key, out var tagIds))
+                {
+                    foreach (int tagId in tagIds)
+                    {
+                        _tagCache.Remove(tagId);
+                    }
+                }
+            }
+            finally
+            {
+                _tagSystemLock.ExitWriteLock();
+            }
+
+            return OperationResult.Success();
         }
 
         /// <summary>
@@ -1452,6 +1526,114 @@ namespace EasyPack.Category
             {
                 _metadataLock.ExitWriteLock();
             }
+        }
+
+        /// <summary>
+        ///     获取可序列化的状态对象。
+        /// </summary>
+        public SerializableCategoryManagerState<T, TKey> GetSerializableState(Func<T, string> entitySerializer, Func<TKey, string> keySerializer, Func<CustomDataCollection, string> metadataSerializer)
+        {
+            if (keySerializer == null) throw new ArgumentNullException(nameof(keySerializer));
+
+            var data = new SerializableCategoryManagerState<T, TKey>
+            {
+                Entities = new(), Categories = new(), Tags = new(), Metadata = new(),
+                IncludeEntities = entitySerializer != null
+            };
+
+            var entitySnapshots = new List<(TKey Key, T Entity, string CategoryName)>();
+            var categoryNames = new List<string>();
+
+            _treeLock.EnterReadLock();
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                categoryNames.AddRange(_categoryIdToName.Values);
+
+                foreach (var kvp in _entityKeyToNode)
+                {
+                    TKey key = kvp.Key;
+                    CategoryNode node = kvp.Value;
+
+                    if (!_entities.TryGetValue(key, out T entity))
+                        continue;
+
+                    string categoryName = _categoryIdToName.TryGetValue(node.TermId, out string name)
+                        ? name
+                        : "Default";
+
+                    entitySnapshots.Add((key, entity, categoryName));
+                }
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+                _treeLock.ExitReadLock();
+            }
+
+            foreach (string categoryName in categoryNames)
+            {
+                data.Categories.Add(new() { Name = categoryName });
+            }
+
+            foreach (var snap in entitySnapshots)
+            {
+                string keyJson = keySerializer(snap.Key);
+                string entityJson = entitySerializer != null ? entitySerializer(snap.Entity) : null;
+                data.Entities.Add(new() { KeyJson = keyJson, EntityJson = entityJson, Category = snap.CategoryName });
+            }
+
+            var tagSnapshots = new List<(string TagName, List<TKey> Keys)>();
+            _tagSystemLock.EnterReadLock();
+            try
+            {
+                foreach (var kvp in _tagToEntityKeys)
+                {
+                    int tagId = kvp.Key;
+                    if (!_tagMapper.TryGetString(tagId, out string tagName))
+                        continue;
+
+                    var keysCopy = kvp.Value != null ? kvp.Value.ToList() : new List<TKey>();
+                    tagSnapshots.Add((tagName, keysCopy));
+                }
+            }
+            finally
+            {
+                _tagSystemLock.ExitReadLock();
+            }
+
+            foreach (var tagSnap in tagSnapshots)
+            {
+                var keyJsons = new List<string>(tagSnap.Keys.Count);
+                foreach (var k in tagSnap.Keys)
+                {
+                    keyJsons.Add(keySerializer(k));
+                }
+                data.Tags.Add(new() { TagName = tagSnap.TagName, EntityKeyJsons = keyJsons });
+            }
+
+            var metadataSnapshots = new List<(TKey Key, CustomDataCollection Metadata)>();
+            _metadataLock.EnterReadLock();
+            try
+            {
+                foreach (var kvp in _metadataStore)
+                {
+                    metadataSnapshots.Add((kvp.Key, kvp.Value));
+                }
+            }
+            finally
+            {
+                _metadataLock.ExitReadLock();
+            }
+
+            foreach (var metaSnap in metadataSnapshots)
+            {
+                string keyJson = keySerializer(metaSnap.Key);
+                string metadataJson = metadataSerializer != null ? metadataSerializer(metaSnap.Metadata) : null;
+                data.Metadata.Add(new() { EntityKeyJson = keyJson, MetadataJson = metadataJson });
+            }
+
+            return data;
         }
 
         /// <summary>

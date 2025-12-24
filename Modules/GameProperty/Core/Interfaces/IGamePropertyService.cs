@@ -18,10 +18,12 @@ namespace EasyPack.GamePropertySystem
         /// </summary>
         /// <param name="property">要注册的属性</param>
         /// <param name="category">分类名（支持层级，如"Character.Base"）</param>
-        /// <param name="metadata">可选的元数据（显示名、描述、标签等）</param>
+        /// <param name="displayInfo">可选的显示信息（显示名、描述、图标等）</param>
+        /// <param name="tags">可选的标签列表</param>
+        /// <param name="customData">可选的自定义扩展数据</param>
         /// <exception cref="ArgumentException">属性ID已存在时抛出</exception>
         /// <exception cref="InvalidOperationException">服务未就绪时抛出</exception>
-        void Register(GameProperty property, string category = "Default", PropertyData metadata = null);
+        void Register(GameProperty property, string category = "Default", PropertyDisplayInfo displayInfo = null, string[] tags = null, CustomData.CustomDataCollection customData = null);
 
         /// <summary>
         ///     批量注册属性到指定分类
@@ -64,6 +66,21 @@ namespace EasyPack.GamePropertySystem
         IEnumerable<GameProperty> GetByTag(string tag);
 
         /// <summary>
+        ///     检查属性是否包含指定标签
+        /// </summary>
+        /// <param name="id">属性ID</param>
+        /// <param name="tag">标签名</param>
+        /// <returns>是否包含</returns>
+        bool HasTag(string id, string tag);
+
+        /// <summary>
+        ///     获取属性的所有标签
+        /// </summary>
+        /// <param name="id">属性ID</param>
+        /// <returns>标签集合</returns>
+        IEnumerable<string> GetTags(string id);
+
+        /// <summary>
         ///     组合查询：获取同时满足分类和标签条件的属性（交集）
         /// </summary>
         /// <param name="category">分类名</param>
@@ -72,11 +89,18 @@ namespace EasyPack.GamePropertySystem
         IEnumerable<GameProperty> GetByCategoryAndTag(string category, string tag);
 
         /// <summary>
-        ///     获取属性的元数据
+        ///     获取属性的显示元数据
         /// </summary>
         /// <param name="id">属性ID</param>
         /// <returns>元数据实例，不存在则返回null</returns>
-        PropertyData GetMetadata(string id);
+        PropertyDisplayInfo GetPropertyDisplayInfo(string id);
+
+        /// <summary>
+        ///     获取属性的自定义扩展数据
+        /// </summary>
+        /// <param name="id">属性ID</param>
+        /// <returns>自定义数据集合</returns>
+        CustomData.CustomDataCollection GetCustomData(string id);
 
         /// <summary>
         ///     获取所有已注册的属性ID

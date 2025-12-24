@@ -127,7 +127,7 @@ classDiagram
     
     class IGamePropertyManager {
         <<interface>>
-        +void Register(GameProperty, string, PropertyMetadata)
+        +void Register(GameProperty, string, PropertyDisplayInfo)
         +GameProperty Get(string)
         +IEnumerable~GameProperty~ GetByCategory(string, bool)
         +IEnumerable~GameProperty~ GetByTag(string)
@@ -137,23 +137,23 @@ classDiagram
     
     class GamePropertyManager {
         -ConcurrentDictionary~string,GameProperty~ _properties
-        -ConcurrentDictionary~string,PropertyMetadata~ _metadata
+        -ConcurrentDictionary~string,PropertyDisplayInfo~ _metadata
         -ConcurrentDictionary~string,string~ _propertyToCategory
         -ConcurrentDictionary~string,HashSet~string~~ _categories
         -ConcurrentDictionary~string,HashSet~string~~ _tagIndex
-        +void Register(GameProperty, string, PropertyMetadata)
+        +void Register(GameProperty, string, PropertyDisplayInfo)
         +GameProperty Get(string)
         +IEnumerable~GameProperty~ GetByCategory(string, bool)
         +IEnumerable~GameProperty~ GetByTag(string)
         +IEnumerable~GameProperty~ GetByCategoryAndTag(string, string)
-        +PropertyMetadata GetMetadata(string)
+        +PropertyDisplayInfo GetMetadata(string)
         +bool Unregister(string)
         +void UnregisterCategory(string)
         +OperationResult SetCategoryActive(string, bool)
         +OperationResult ApplyModifierToCategory(string, IModifier)
     }
     
-    class PropertyMetadata {
+    class PropertyDisplayInfo {
         +string DisplayName
         +string Description
         +string IconPath
@@ -173,7 +173,7 @@ classDiagram
     IModifier ..> ModifierType : uses
     IGamePropertyManager <|.. GamePropertyManager
     GamePropertyManager o-- GameProperty : manages
-    GamePropertyManager o-- PropertyMetadata : stores
+    GamePropertyManager o-- PropertyDisplayInfo : stores
 ```
 
 **说明：**
@@ -182,7 +182,7 @@ classDiagram
 - **PropertyDependencyManager**：内部依赖管理器，处理属性间的依赖关系
 - **IModifier**：修饰符接口，支持 FloatModifier 和 RangeModifier 两种实现
 - **GamePropertyManager**：集中管理多个属性，提供分类、标签查询功能
-- **PropertyMetadata**：存储属性的显示信息和扩展数据
+- **PropertyDisplayInfo**：存储属性的显示信息和扩展数据
 
 ---
 

@@ -148,10 +148,10 @@ namespace EasyPack.GamePropertySystem.Editor
             var allTags = new HashSet<string>();
             foreach (string propId in _manager.GetAllPropertyIds())
             {
-                PropertyData metadata = _manager.GetMetadata(propId);
-                if (metadata?.Tags != null)
+                var propTags = _manager.GetTags(propId);
+                if (propTags != null)
                 {
-                    foreach (string tag in metadata.Tags)
+                    foreach (string tag in propTags)
                     {
                         allTags.Add(tag);
                     }
@@ -209,7 +209,7 @@ namespace EasyPack.GamePropertySystem.Editor
 
             if (_showMetadata)
             {
-                PropertyData metadata = _manager.GetMetadata(property.ID);
+                PropertyDisplayInfo metadata = _manager.GetPropertyDisplayInfo(property.ID);
                 if (metadata != null)
                 {
                     EditorGUI.indentLevel++;
@@ -220,8 +220,9 @@ namespace EasyPack.GamePropertySystem.Editor
                     if (!string.IsNullOrEmpty(metadata.Description))
                         EditorGUILayout.LabelField($"描述: {metadata.Description}");
 
-                    if (metadata.Tags is { Length: > 0 })
-                        EditorGUILayout.LabelField($"标签: {string.Join(", ", metadata.Tags)}");
+                    var propTags = _manager.GetTags(property.ID);
+                    if (propTags != null && propTags.Any())
+                        EditorGUILayout.LabelField($"标签: {string.Join(", ", propTags)}");
 
                     EditorGUI.indentLevel--;
                 }
@@ -272,7 +273,7 @@ namespace EasyPack.GamePropertySystem.Editor
                     if (p.ID.IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) >= 0)
                         return true;
 
-                    PropertyData metadata = _manager.GetMetadata(p.ID);
+                    PropertyDisplayInfo metadata = _manager.GetPropertyDisplayInfo(p.ID);
                     if (metadata != null)
                     {
                         if (!string.IsNullOrEmpty(metadata.DisplayName) &&
