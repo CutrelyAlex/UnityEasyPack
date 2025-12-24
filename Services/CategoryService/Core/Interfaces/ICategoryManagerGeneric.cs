@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using EasyPack.CustomData;
+using EasyPack.Category;
 
 namespace EasyPack.Category
 {
@@ -11,7 +12,7 @@ namespace EasyPack.Category
     /// </summary>
     /// <typeparam name="T">实体类型</typeparam>
     /// <typeparam name="TKey">键类型，用于唯一标识实体</typeparam>
-    public interface ICategoryManager<T, in TKey> : ICategoryManager
+    public interface ICategoryManager<T, TKey> : ICategoryManager
         where TKey : IEquatable<TKey>
     {
         #region 实体注册
@@ -253,6 +254,19 @@ namespace EasyPack.Category
         /// <param name="metadata">新的元数据集合。</param>
         /// <returns>操作结果。</returns>
         OperationResult UpdateMetadata(TKey key, CustomDataCollection metadata);
+
+        #endregion
+
+        #region 序列化支持
+
+        /// <summary>
+        ///     获取可序列化的状态对象。
+        /// </summary>
+        /// <param name="entitySerializer">实体序列化函数。</param>
+        /// <param name="keySerializer">键序列化函数。</param>
+        /// <param name="metadataSerializer">元数据序列化函数。</param>
+        /// <returns>可序列化的状态对象。</returns>
+        SerializableCategoryManagerState<T, TKey> GetSerializableState(Func<T, string> entitySerializer, Func<TKey, string> keySerializer, Func<CustomDataCollection, string> metadataSerializer);
 
         #endregion
     }

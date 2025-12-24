@@ -54,7 +54,11 @@ namespace EasyPack.GamePropertySystem
             // 序列化分类系统状态
             if (obj._categoryManager is CategoryManager<GameProperty, long> concreteManager)
             {
-                dto.CategoryState = _categorySerializer.ToSerializable(concreteManager);
+                dto.CategoryState = concreteManager.GetSerializableState(
+                    entity => _propertySerializer.SerializeToJson(entity),
+                    key => key.ToString(),
+                    metadata => JsonUtility.ToJson(new CustomDataWrapper { Entries = metadata.ToArray() })
+                );
             }
 
             return dto;
