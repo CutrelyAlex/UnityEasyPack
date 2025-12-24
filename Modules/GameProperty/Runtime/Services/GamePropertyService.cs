@@ -175,7 +175,7 @@ namespace EasyPack.GamePropertySystem
             string[] effectiveTags = metadata?.Tags;
             CustomDataCollection effectiveCustomData = metadata?.CustomData;
 
-            OperationResult<GameProperty> existingInManager = _categoryManager.GetById(property.UID);
+            Category.OperationResult<GameProperty> existingInManager = _categoryManager.GetById(property.UID);
             if (existingInManager != null && existingInManager.IsSuccess)
             {
                 GameProperty managerEntity = existingInManager.Value;
@@ -201,7 +201,7 @@ namespace EasyPack.GamePropertySystem
                         effectiveCustomData = existingMetadata;
 
                     // 由于 CategoryManager 不支持直接替换 entity，这里保留旧数据后重建 entity 引用。
-                    OperationResult deleteResult = _categoryManager.DeleteEntity(property.UID);
+                    Category.OperationResult deleteResult = _categoryManager.DeleteEntity(property.UID);
                     if (!deleteResult.IsSuccess)
                         Debug.LogWarning($"[GamePropertyService] 预清理已存在的 CategoryManager 实体失败: UID={property.UID}, Error={deleteResult.ErrorMessage}");
                 }
@@ -236,21 +236,21 @@ namespace EasyPack.GamePropertySystem
             }
 
             // 4) 注册到分类系统
-            OperationResult registerResult = _categoryManager.RegisterEntity(property.UID, property, effectiveCategory);
+            Category.OperationResult registerResult = _categoryManager.RegisterEntity(property.UID, property, effectiveCategory);
             if (!registerResult.IsSuccess)
                 throw new InvalidOperationException($"CategoryManager 注册失败: {registerResult.ErrorMessage}");
 
             // 5) 同步标签（默认使用 PropertyData.Tags）
             if (effectiveTags is { Length: > 0 })
             {
-                OperationResult tagResult = _categoryManager.AddTags(property.UID, effectiveTags);
+                Category.OperationResult tagResult = _categoryManager.AddTags(property.UID, effectiveTags);
                 if (!tagResult.IsSuccess)
                     throw new InvalidOperationException($"标签注册失败: {tagResult.ErrorMessage}");
             }
 
             // 6) 同步元数据（仅承载 CustomData）
             CustomDataCollection customData = effectiveCustomData ?? metadata?.CustomData ?? new();
-            OperationResult metadataResult = _categoryManager.UpdateMetadata(property.UID, customData);
+            Category.OperationResult metadataResult = _categoryManager.UpdateMetadata(property.UID, customData);
             if (!metadataResult.IsSuccess)
                 throw new InvalidOperationException($"元数据写入失败: {metadataResult.ErrorMessage}");
         }
@@ -472,7 +472,7 @@ namespace EasyPack.GamePropertySystem
                 return Unregister(property.ID);
 
             // 本地不存在时，仍尝试从 CategoryManager 移除（避免留下脏数据）
-            OperationResult result = _categoryManager?.DeleteEntity(uid);
+            Category.OperationResult result = _categoryManager?.DeleteEntity(uid);
             return result != null && result.IsSuccess;
         }
 
@@ -492,7 +492,7 @@ namespace EasyPack.GamePropertySystem
                 return false;
             }
 
-            OperationResult result = concrete.MoveEntityToCategorySafe(uid, newCategory);
+            Category.OperationResult result = concrete.MoveEntityToCategorySafe(uid, newCategory);
             if (!result.IsSuccess) return false;
 
             // 更新本地缓存
