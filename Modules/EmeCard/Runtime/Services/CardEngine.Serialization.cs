@@ -49,16 +49,24 @@ namespace EasyPack.EmeCardSystem
             var state = dto.CategoryState;
             
             // 3. Entities (同时恢复 CardEngine 内部状态)
+            // 使用 Identity Map 确保同一 UID 只对应一个实例
+            var identityMap = new Dictionary<long, Card>();
+
             if (state.Entities != null)
             {
                 foreach (var entityDto in state.Entities)
                 {
                     if (string.IsNullOrEmpty(entityDto.EntityJson)) continue;
                     
-                    Card card = _cardSerializer.DeserializeFromJson(entityDto.EntityJson);
+                    // 传入 identityMap，如果该 UID 已存在于 map 中，则直接返回现有实例
+                    // 这样可以自动合并父子关系中的重复序列化数据
+                    Card card = _cardSerializer.DeserializeFromJson(entityDto.EntityJson, identityMap);
+                    
                     if (card != null)
                     {
                         // 恢复 CardEngine 内部状态
+                        // 注意：对于同一个实例（如子卡），这里可能会被调用多次（一次作为父卡的子卡，一次作为独立实体）
+                        // RestoreCardToEngine 内部操作（字典赋值）是幂等的，或者是安全的覆盖
                         RestoreCardToEngine(card);
 
                         // 注册到分类

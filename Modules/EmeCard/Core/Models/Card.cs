@@ -76,7 +76,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     卡牌所属的CardEngine
         /// </summary>
-        internal CardEngine Engine { get; set; }
+        public CardEngine Engine { get; set; }
 
         /// <summary>
         ///     构造函数中临时收集的额外标签，在注册到Engine时同步到CategoryManager后清空。

@@ -45,7 +45,12 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     从可序列化 DTO 转换回 Card 对象
         /// </summary>
-        public Card FromSerializable(SerializableCard dto) => DeserializeCardRecursive(dto);
+        public Card FromSerializable(SerializableCard dto) => DeserializeCardRecursive(dto, null);
+
+        /// <summary>
+        ///     从可序列化 DTO 转换回 Card 对象
+        /// </summary>
+        public Card FromSerializable(SerializableCard dto, Dictionary<long, Card> cache) => DeserializeCardRecursive(dto, cache);
 
         /// <summary>
         ///     将 DTO 序列化为 JSON 字符串
@@ -98,10 +103,15 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     从 JSON 直接反序列化为 Card
         /// </summary>
-        public Card DeserializeFromJson(string json)
+        public Card DeserializeFromJson(string json) => DeserializeFromJson(json, null);
+
+        /// <summary>
+        ///     从 JSON 直接反序列化为 Card，使用缓存避免重复创建
+        /// </summary>
+        public Card DeserializeFromJson(string json, Dictionary<long, Card> cache)
         {
             SerializableCard dto = FromJson(json);
-            return FromSerializable(dto);
+            return FromSerializable(dto, cache);
         }
 
         #endregion
@@ -143,6 +153,8 @@ namespace EasyPack.EmeCardSystem
                     HasPosition = card.Position.HasValue,
                     Position = card.Position ?? Vector3Int.zero
                 };
+                
+                // Debug.Log($"[Serialize] ID={dto.ID}, DefaultCategory={dto.DefaultCategory}, Category={dto.Category}");
 
                 // 序列化 GameProperty 列表
                 if (card.Properties != null)
@@ -197,7 +209,7 @@ namespace EasyPack.EmeCardSystem
                 visited.Remove(card);
             }
         }
-        private Card DeserializeCardRecursive(SerializableCard data)
+        private Card DeserializeCardRecursive(SerializableCard data, Dictionary<long, Card> cache)
         {
             if (data == null)
                 return null;
@@ -208,13 +220,30 @@ namespace EasyPack.EmeCardSystem
                     SerializationErrorCode.DeserializationFailed);
             }
 
+            // 检查缓存
+            if (cache != null && cache.TryGetValue(data.UID, out var existingCard))
+            {
+                return existingCard;
+            }
+
             // 反序列化时创建的CardData不应包含DefaultTags
             // DefaultTags仅在新建卡牌时使用，反序列化的卡牌标签完全由序列化数据决定
+            
+            string category = data.Category;
+            if (string.IsNullOrEmpty(category))
+            {
+                category = data.DefaultCategory;
+            }
+            if (string.IsNullOrEmpty(category))
+            {
+                category = CardData.DEFAULT_CATEGORY;
+            }
+
             var cardData = new CardData(
                 data.ID,
                 data.Name ?? "Default",
                 data.Description ?? string.Empty,
-                data.Category ?? data.DefaultCategory ?? CardData.DEFAULT_CATEGORY, // 优先使用运行时分类
+                category,
                 Array.Empty<string>()
             );
 
@@ -224,6 +253,12 @@ namespace EasyPack.EmeCardSystem
                 UID = data.UID,
                 Position = data.HasPosition ? data.Position : null
             };
+
+            // 加入缓存
+            if (cache != null)
+            {
+                cache[card.UID] = card;
+            }
 
             // 恢复属性
             if (data.Properties != null)
@@ -272,7 +307,7 @@ namespace EasyPack.EmeCardSystem
                     {
                         foreach (SerializableCard childData in childrenArray.Cards)
                         {
-                            Card child = DeserializeCardRecursive(childData);
+                            Card child = DeserializeCardRecursive(childData, cache);
                             bool intrinsic = childData is { IsIntrinsic: true };
                             card.AddChild(child, intrinsic);
                         }
