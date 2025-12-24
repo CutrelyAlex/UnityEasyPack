@@ -73,5 +73,30 @@ namespace EasyPack.EmeCardSystem
             DefaultTags = defaultTags ?? Array.Empty<string>();
             Sprite = sprite ?? Resources.Load<Sprite>(ID);
         }
+
+        /// <summary>
+        ///     克隆当前数据并指定新的 ID。
+        /// </summary>
+        /// <param name="newId">新的逻辑 ID。</param>
+        /// <returns>克隆后的 CardData 实例。</returns>
+        public CardData Clone(string newId)
+        {
+            var clone = new CardData(
+                newId,
+                Name,
+                Description,
+                Category,
+                DefaultTags is { Length: > 0 } ? (string[])DefaultTags.Clone() : null,
+                Sprite
+            );
+
+            // 深度拷贝元数据
+            if (DefaultMetaData != null)
+            {
+                clone.DefaultMetaData.Merge(DefaultMetaData);
+            }
+
+            return clone;
+        }
     }
 }
