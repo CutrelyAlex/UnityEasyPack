@@ -135,7 +135,13 @@ namespace EasyPack.EmeCardSystem
                     Properties = Array.Empty<SerializableGameProperty>(),
                     Tags = card.Tags is { Count: > 0 } tags ? new List<string>(tags).ToArray() : Array.Empty<string>(),
                     ChildrenJson = null, // 默认为空，有子卡时才序列化
-                    IsIntrinsic = false,
+
+                    // 运行时分类由 CategoryManager 的状态（SerializedEntity.Category）负责保存。
+                    Category = null,
+                    
+                    // 位置信息
+                    HasPosition = card.Position.HasValue,
+                    Position = card.Position ?? Vector3Int.zero
                 };
 
                 // 序列化 GameProperty 列表
@@ -208,14 +214,15 @@ namespace EasyPack.EmeCardSystem
                 data.ID,
                 data.Name ?? "Default",
                 data.Description ?? string.Empty,
-                data.DefaultCategory,
+                data.Category ?? data.DefaultCategory ?? CardData.DEFAULT_CATEGORY, // 优先使用运行时分类
                 Array.Empty<string>()
             );
 
             var card = new Card(cardData)
             {
                 Index = data.Index,
-                UID = data.UID
+                UID = data.UID,
+                Position = data.HasPosition ? data.Position : null
             };
 
             // 恢复属性

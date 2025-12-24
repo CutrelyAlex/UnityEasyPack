@@ -300,7 +300,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        ///     获取指定键的值（GetValue 的别名）
+        ///     获取指定键的值
         /// </summary>
         public T Get<T>(string key, T defaultValue = default) => GetValue(key, defaultValue);
 
@@ -318,7 +318,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        ///     设置指定键的值（SetValue 的别名）
+        ///     设置指定键的值
         /// </summary>
         public void Set(string key, object value) => SetValue(key, value);
 
