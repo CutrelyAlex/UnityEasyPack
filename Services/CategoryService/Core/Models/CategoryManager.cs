@@ -655,6 +655,58 @@ namespace EasyPack.Category
         }
 
         /// <summary>
+        ///     更新实体的引用。
+        ///     如果键不存在，则返回失败。
+        ///     此操作不会改变实体的分类、标签或元数据。
+        /// </summary>
+        public OperationResult UpdateEntityReference(TKey key, T entity)
+        {
+            if (entity == null) return OperationResult.Failure(ErrorCode.InvalidParameter, "实体不能为空");
+
+            TKey extractedKey = _keyExtractor(entity);
+            if (!_keyComparer.Equals(extractedKey, key))
+            {
+                return OperationResult.Failure(ErrorCode.InvalidParameter,
+                    "实体的键与提供的键不匹配");
+            }
+
+            _entitiesLock.EnterWriteLock();
+            try
+            {
+                if (!_entities.ContainsKey(key))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+                }
+
+                // 更新实体引用
+                _entities[key] = entity;
+            }
+            finally
+            {
+                _entitiesLock.ExitWriteLock();
+            }
+
+            // 检查该实体是否有关联的标签，如果有，需要清理标签缓存
+            _tagSystemLock.EnterWriteLock();
+            try
+            {
+                if (_entityToTagIds.TryGetValue(key, out var tagIds))
+                {
+                    foreach (int tagId in tagIds)
+                    {
+                        _tagCache.Remove(tagId);
+                    }
+                }
+            }
+            finally
+            {
+                _tagSystemLock.ExitWriteLock();
+            }
+
+            return OperationResult.Success();
+        }
+
+        /// <summary>
         ///     删除单个分类及一级实体，不影响子分类。
         /// </summary>
         /// <param name="category">分类名称。</param>

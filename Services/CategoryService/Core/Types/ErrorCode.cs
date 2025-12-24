@@ -40,5 +40,9 @@ namespace EasyPack.Category
         ///     锁超时
         /// </summary>
         LockTimeout = 6,
+        /// <summary>
+        ///     无效的参数
+        /// </summary>
+        InvalidParameter = 7,
     }
 }
