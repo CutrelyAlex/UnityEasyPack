@@ -22,6 +22,7 @@ namespace EasyPack.GamePropertySystem
     public class GamePropertyService : BaseService, IGamePropertyService
     {
         private const int FirstUID = 1000;
+        private const string DefaultCategory = "Default";
         #region 字段
 
         // 核心数据
@@ -131,7 +132,7 @@ namespace EasyPack.GamePropertySystem
         /// <summary>
         ///     注册单个属性到指定分类
         /// </summary>
-        public void Register(GameProperty property, string category = "Default", PropertyDisplayInfo displayInfo = null, string[] tags = null, CustomDataCollection customData = null)
+        public void Register(GameProperty property, string category = DefaultCategory, PropertyDisplayInfo displayInfo = null, string[] tags = null, CustomDataCollection customData = null)
         {
             ThrowIfNotReady();
 
