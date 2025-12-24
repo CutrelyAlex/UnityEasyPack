@@ -1,4 +1,5 @@
 using System;
+using EasyPack.Category;
 using EasyPack.Serialization;
 
 namespace EasyPack.GamePropertySystem
@@ -15,14 +16,19 @@ namespace EasyPack.GamePropertySystem
         public PropertyEntry[] Properties = Array.Empty<PropertyEntry>();
 
         /// <summary>
-        ///     元数据条目列表
+        ///     元数据条目列表（显示信息）
         /// </summary>
-        public MetadataEntry[] Metadata = Array.Empty<MetadataEntry>();
+        public PropertyDisplayInfoEntry[] PropertyDisplayInfo = Array.Empty<PropertyDisplayInfoEntry>();
+
+        /// <summary>
+        ///     分类系统状态（分类、标签、自定义数据）
+        /// </summary>
+        public SerializableCategoryManagerState<GameProperty, long> CategoryState;
     }
 
     /// <summary>
     ///     属性条目
-    ///     存储属性 ID、分类和序列化的属性数据
+    ///     存储属性 ID 和序列化的属性数据
     /// </summary>
     [Serializable]
     public struct PropertyEntry
@@ -33,11 +39,6 @@ namespace EasyPack.GamePropertySystem
         public string ID;
 
         /// <summary>
-        ///     属性所属分类（用于重建分类索引）
-        /// </summary>
-        public string Category;
-
-        /// <summary>
         ///     序列化的 GameProperty JSON 字符串
         /// </summary>
         public string SerializedProperty;
@@ -45,10 +46,10 @@ namespace EasyPack.GamePropertySystem
 
     /// <summary>
     ///     元数据条目
-    ///     存储属性元数据信息
+    ///     存储属性显示相关的元数据信息
     /// </summary>
     [Serializable]
-    public struct MetadataEntry
+    public struct PropertyDisplayInfoEntry
     {
         /// <summary>
         ///     对应的属性 ID
@@ -69,15 +70,5 @@ namespace EasyPack.GamePropertySystem
         ///     图标资源路径
         /// </summary>
         public string IconPath;
-
-        /// <summary>
-        ///     标签数组（用于重建标签索引）
-        /// </summary>
-        public string[] Tags;
-
-        /// <summary>
-        ///     自定义扩展数据的 JSON 字符串
-        /// </summary>
-        public string CustomDataJson;
     }
 }

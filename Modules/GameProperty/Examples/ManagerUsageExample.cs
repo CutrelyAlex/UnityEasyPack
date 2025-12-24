@@ -92,32 +92,36 @@ namespace EasyPack.GamePropertySystem.Example
 
             // 创建属性并附加元数据
             var hp = new GameProperty("hp_meta", 100);
-            var metadata = new PropertyData
+            var metadata = new PropertyDisplayInfo
             {
                 DisplayName = "生命值",
                 Description = "角色当前生命值",
-                IconPath = "Icons/Stats/HP",
-                Tags = new[] { "vital", "displayInUI", "saveable" },
+                IconPath = "Icons/Stats/HP"
             };
 
-            // 设置自定义数据
-            metadata.SetCustomData("localizationKey", "stats.hp");
-            metadata.SetCustomData("color", "#FF0000");
-            metadata.SetCustomData("sortOrder", 1);
+            var tags = new[] { "vital", "displayInUI", "saveable" };
+            var customData = new EasyPack.CustomData.CustomDataCollection();
+            customData.Set("localizationKey", "stats.hp");
+            customData.Set("color", "#FF0000");
+            customData.Set("sortOrder", 1);
 
-            _manager.Register(hp, "Character.Vital", metadata);
+            _manager.Register(hp, "Character.Vital", metadata, tags, customData);
 
             // 获取并使用元数据
-            PropertyData retrievedMeta = _manager.GetMetadata("hp_meta");
+            PropertyDisplayInfo retrievedMeta = _manager.GetPropertyDisplayInfo("hp_meta");
             Debug.Log($"显示名: {retrievedMeta.DisplayName}");
             Debug.Log($"描述: {retrievedMeta.Description}");
-            Debug.Log($"标签: {string.Join(", ", retrievedMeta.Tags)}");
+            
+            // 获取标签
+            var retrievedTags = _manager.GetTags("hp_meta");
+            Debug.Log($"标签: {string.Join(", ", retrievedTags)}");
 
             // 使用自定义数据
-            string color = retrievedMeta.GetCustomData<string>("color");
+            var retrievedCustomData = _manager.GetCustomData("hp_meta");
+            string color = retrievedCustomData.Get<string>("color");
             Debug.Log($"UI颜色: {color}");
 
-            int sortOrder = retrievedMeta.GetCustomData<int>("sortOrder");
+            int sortOrder = retrievedCustomData.Get<int>("sortOrder");
             Debug.Log($"排序顺序: {sortOrder}");
 
             return Task.CompletedTask;
@@ -172,11 +176,11 @@ namespace EasyPack.GamePropertySystem.Example
 
             // 创建层级分类
             _manager.Register(new("hp_adv", 100), "Character.Vital.HP",
-                new() { Tags = new[] { "vital", "ui" } });
+                null, new[] { "vital", "ui" });
             _manager.Register(new("mp_adv", 50), "Character.Vital.MP",
-                new() { Tags = new[] { "vital", "ui" } });
+                null, new[] { "vital", "ui" });
             _manager.Register(new("crit_adv", 0.1f), "Character.Combat.Offense",
-                new() { Tags = new[] { "combat", "ui" } });
+                null, new[] { "combat", "ui" });
 
             // 查询所有Vital子分类
             var vitalProps = _manager.GetByCategory("Character.Vital", true);

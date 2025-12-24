@@ -88,16 +88,16 @@ namespace EasyPack.GamePropertySystem.Example
 
             // 注册属性并添加标签
             _manager.Register(new("hp_tag", 100), "Character",
-                new() { Tags = new[] { "vital", "displayInUI", "saveable" } });
+                null, new[] { "vital", "displayInUI", "saveable" });
 
             _manager.Register(new("mp_tag", 50), "Character",
-                new() { Tags = new[] { "vital", "displayInUI", "saveable" } });
+                null, new[] { "vital", "displayInUI", "saveable" });
 
             _manager.Register(new("level_tag", 1), "Character",
-                new() { Tags = new[] { "displayInUI", "saveable" } });
+                null, new[] { "displayInUI", "saveable" });
 
             _manager.Register(new("tempBuff", 10), "Character",
-                new() { Tags = new[] { "temporary" } });
+                null, new[] { "temporary" });
 
             // 按标签查询
             var vitalProps = _manager.GetByTag("vital");
@@ -124,16 +124,16 @@ namespace EasyPack.GamePropertySystem.Example
 
             // 创建角色属性
             _manager.Register(new("hp_comb", 100), "Character.Vital",
-                new() { Tags = new[] { "combat", "ui" } });
+                null, new[] { "combat", "ui" });
 
             _manager.Register(new("mp_comb", 50), "Character.Vital",
-                new() { Tags = new[] { "ui" } });
+                null, new[] { "ui" });
 
             _manager.Register(new("attack_comb", 20), "Character.Combat",
-                new() { Tags = new[] { "combat", "ui" } });
+                null, new[] { "combat", "ui" });
 
             _manager.Register(new("defense_comb", 15), "Character.Combat",
-                new() { Tags = new[] { "combat" } });
+                null, new[] { "combat" });
 
             // 组合查询: Vital分类 + combat标签
             var vitalCombatProps = _manager.GetByCategoryAndTag("Character.Vital", "combat");
@@ -220,15 +220,16 @@ namespace EasyPack.GamePropertySystem.Example
             foreach ((string id, float value, string displayName, string icon, int order) in uiProps)
             {
                 var property = new GameProperty(id, value);
-                var metadata = new PropertyData
+                var metadata = new PropertyDisplayInfo
                 {
-                    DisplayName = displayName, IconPath = icon, Tags = new[] { "displayInUI" },
+                    DisplayName = displayName, IconPath = icon
                 };
 
-                // 设置排序顺序
-                metadata.SetCustomData("sortOrder", order);
+                var tags = new[] { "displayInUI" };
+                var customData = new CustomData.CustomDataCollection();
+                customData.Set("sortOrder", order);
 
-                _manager.Register(property, "Character.Resources", metadata);
+                _manager.Register(property, "Character.Resources", metadata, tags, customData);
             }
 
             // 模拟UI系统查询和显示
@@ -236,11 +237,11 @@ namespace EasyPack.GamePropertySystem.Example
             Debug.Log("UI面板生成:");
             foreach (GameProperty prop in displayProps.OrderBy(p =>
                      {
-                         PropertyData meta = _manager.GetMetadata(p.ID);
-                         return meta.GetCustomData("sortOrder", 999);
+                         var customData = _manager.GetCustomData(p.ID);
+                         return customData?.Get<int>("sortOrder") ?? 999;
                      }))
             {
-                PropertyData meta = _manager.GetMetadata(prop.ID);
+                PropertyDisplayInfo meta = _manager.GetPropertyDisplayInfo(prop.ID);
                 Debug.Log($"  [{meta.IconPath}] {meta.DisplayName}: {prop.GetValue()}");
             }
 

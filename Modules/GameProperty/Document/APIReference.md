@@ -12,7 +12,7 @@
   - [IGamePropertyService 接口](#igamepropertyservice-接口)
   - [GamePropertyService 类](#gamepropertyservice-类)
   - [GamePropertyManager 类](#gamepropertymanager-类)
-  - [PropertyMetadata 类](#propertymetadata-类)
+  - [PropertyDisplayInfo 类](#PropertyDisplayInfo-类)
   - [OperationResult 类](#operationresult-类)
   - [PropertyDependencyManager 类](#propertydependencymanager-类)
 - [修饰符类](#修饰符类)
@@ -786,7 +786,7 @@ attack.MakeDirty(); // 不再输出
 
 #### 方法
 
-##### Register(GameProperty property, string category = "Default", PropertyMetadata metadata = null)
+##### Register(GameProperty property, string category = "Default", PropertyDisplayInfo metadata = null)
 
 注册单个游戏属性到管理器中。
 
@@ -794,7 +794,7 @@ attack.MakeDirty(); // 不再输出
 |------|------|--------|------|
 | `property` | `GameProperty` | - | 要注册的属性实例 |
 | `category` | `string` | `"Default"` | 属性所属的分类 |
-| `metadata` | `PropertyMetadata` | `null` | 属性的元数据信息 |
+| `metadata` | `PropertyDisplayInfo` | `null` | 属性的元数据信息 |
 
 **返回值：** 无
 
@@ -805,7 +805,7 @@ attack.MakeDirty(); // 不再输出
 **示例：**
 ```csharp
 var health = new GameProperty("health", 100f);
-var metadata = new PropertyMetadata { Description = "生命值" };
+var metadata = new PropertyDisplayInfo { Description = "生命值" };
 
 await _propertyService.Register(health, "Character.Vital", metadata);
 ```
@@ -921,7 +921,7 @@ var upgradableCombatProps = await _propertyService.GetByCategoryAndTag("Characte
 |------|------|------|
 | `id` | `string` | 属性 ID |
 
-**返回值：** `PropertyMetadata` - 属性的元数据，不存在返回 `null`
+**返回值：** `PropertyDisplayInfo` - 属性的元数据，不存在返回 `null`
 
 **示例：**
 ```csharp
@@ -1056,10 +1056,10 @@ Debug.Log($"成功应用到 {result.SuccessCount} 个属性");
 
 #### 注册与注销
 
-##### Register(GameProperty property, string category = null, PropertyMetadata metadata = null)
+##### Register(GameProperty property, string category = null, PropertyDisplayInfo metadata = null)
 
 ```csharp
-bool Register(GameProperty property, string category = null, PropertyMetadata metadata = null)
+bool Register(GameProperty property, string category = null, PropertyDisplayInfo metadata = null)
 ```
 
 注册一个属性到管理器。
@@ -1070,7 +1070,7 @@ bool Register(GameProperty property, string category = null, PropertyMetadata me
 |--------|------|--------|------|
 | property | GameProperty | - | 要注册的属性实例 |
 | category | string | null | 属性分类（支持层级，如 "Character.Vital"） |
-| metadata | PropertyMetadata | null | 属性元数据 |
+| metadata | PropertyDisplayInfo | null | 属性元数据 |
 
 **返回值：**
 - `true`：注册成功
@@ -1089,7 +1089,7 @@ async Task Example()
     
     var health = new GameProperty("health", 100f);
     
-    bool success = manager.Register(health, "Character.Vital", new PropertyMetadata
+    bool success = manager.Register(health, "Character.Vital", new PropertyDisplayInfo
     {
         DisplayName = "生命值",
         Description = "角色当前生命值",
@@ -1276,12 +1276,12 @@ IEnumerable<GameProperty> GetByTag(string tag)
 ```csharp
 var manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
 
-manager.Register(new GameProperty("hp", 100f), "Character", new PropertyMetadata
+manager.Register(new GameProperty("hp", 100f), "Character", new PropertyDisplayInfo
 {
     Tags = new[] { "vital", "displayInUI" }
 });
 
-manager.Register(new GameProperty("mp", 50f), "Character", new PropertyMetadata
+manager.Register(new GameProperty("mp", 50f), "Character", new PropertyDisplayInfo
 {
     Tags = new[] { "vital" }
 });
@@ -1399,12 +1399,12 @@ BatchModifierResult ApplyModifierToTag(string tag, IModifier modifier)
 ```csharp
 var manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
 
-manager.Register(new GameProperty("hp", 100f), null, new PropertyMetadata
+manager.Register(new GameProperty("hp", 100f), null, new PropertyDisplayInfo
 {
     Tags = new[] { "saveable" }
 });
 
-manager.Register(new GameProperty("mp", 50f), null, new PropertyMetadata
+manager.Register(new GameProperty("mp", 50f), null, new PropertyDisplayInfo
 {
     Tags = new[] { "saveable" }
 });
@@ -1469,7 +1469,7 @@ BatchModifierResult RemoveModifierFromTag(string tag, IModifier modifier)
 ##### GetMetadata(string propertyId)
 
 ```csharp
-PropertyMetadata GetMetadata(string propertyId)
+PropertyDisplayInfo GetMetadata(string propertyId)
 ```
 
 获取属性的元数据。
@@ -1481,7 +1481,7 @@ PropertyMetadata GetMetadata(string propertyId)
 | propertyId | string | - | 属性的 ID |
 
 **返回值：**
-- 成功：返回 PropertyMetadata 实例
+- 成功：返回 PropertyDisplayInfo 实例
 - 失败：返回 `null`
 
 **示例：**
@@ -1489,7 +1489,7 @@ PropertyMetadata GetMetadata(string propertyId)
 ```csharp
 var manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyManager>();
 
-manager.Register(new GameProperty("hp", 100f), null, new PropertyMetadata
+manager.Register(new GameProperty("hp", 100f), null, new PropertyDisplayInfo
 {
     DisplayName = "生命值",
     Description = "角色当前生命值"
@@ -1503,10 +1503,10 @@ if (metadata != null)
 }
 ```
 
-##### UpdateMetadata(string propertyId, PropertyMetadata metadata)
+##### UpdateMetadata(string propertyId, PropertyDisplayInfo metadata)
 
 ```csharp
-bool UpdateMetadata(string propertyId, PropertyMetadata metadata)
+bool UpdateMetadata(string propertyId, PropertyDisplayInfo metadata)
 ```
 
 更新属性的元数据。
@@ -1516,7 +1516,7 @@ bool UpdateMetadata(string propertyId, PropertyMetadata metadata)
 | 参数名 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | propertyId | string | - | 属性的 ID |
-| metadata | PropertyMetadata | - | 新的元数据 |
+| metadata | PropertyDisplayInfo | - | 新的元数据 |
 
 **返回值：**
 - `true`：更新成功
@@ -1529,7 +1529,7 @@ var manager = await EasyPackArchitecture.Instance.ResolveAsync<IGamePropertyMana
 
 manager.Register(new GameProperty("hp", 100f));
 
-var newMetadata = new PropertyMetadata
+var newMetadata = new PropertyDisplayInfo
 {
     DisplayName = "生命值",
     Description = "角色最大生命值",
@@ -1542,7 +1542,7 @@ Debug.Log($"更新成功: {updated}");
 
 ---
 
-### PropertyMetadata 类
+### PropertyDisplayInfo 类
 
 存储属性的元数据信息。
 
@@ -1698,12 +1698,12 @@ public Dictionary<string, List<string>> Categories { get; set; }
 ##### Metadata
 
 ```csharp
-public Dictionary<string, PropertyMetadata> Metadata { get; set; }
+public Dictionary<string, PropertyDisplayInfo> Metadata { get; set; }
 ```
 
 属性元数据字典。
 
-**类型：** `Dictionary<string, PropertyMetadata>`
+**类型：** `Dictionary<string, PropertyDisplayInfo>`
 
 ---
 
@@ -1744,7 +1744,7 @@ GamePropertyManager 的可视化管理窗口，通过 EasyPack 架构安全解�
 - `IGamePropertyManager` 服务必须已注册并初始化为 Ready 状态
 ---
 
-### PropertyMetadata 类（继续）
+### PropertyDisplayInfo 类（继续）
 
 存储属性的元数据信息。
 
@@ -1763,7 +1763,7 @@ public string DisplayName { get; set; }
 **示例：**
 
 ```csharp
-var metadata = new PropertyMetadata
+var metadata = new PropertyDisplayInfo
 {
     DisplayName = "生命值"
 };
@@ -1780,7 +1780,7 @@ public string Description { get; set; }
 **示例：**
 
 ```csharp
-var metadata = new PropertyMetadata
+var metadata = new PropertyDisplayInfo
 {
     Description = "角色当前生命值，归零时角色死亡"
 };
@@ -1799,7 +1799,7 @@ public Sprite Icon { get; set; }
 ```csharp
 using UnityEngine;
 
-var metadata = new PropertyMetadata
+var metadata = new PropertyDisplayInfo
 {
     Icon = Resources.Load<Sprite>("Icons/Health")
 };
@@ -1816,7 +1816,7 @@ public string[] Tags { get; set; }
 **示例：**
 
 ```csharp
-var metadata = new PropertyMetadata
+var metadata = new PropertyDisplayInfo
 {
     Tags = new[] { "vital", "displayInUI", "saveable" }
 };

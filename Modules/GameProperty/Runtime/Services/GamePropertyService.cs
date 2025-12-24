@@ -26,14 +26,14 @@ namespace EasyPack.GamePropertySystem
 
         // 核心数据
         private ConcurrentDictionary<string, GameProperty> _properties;
-        private ConcurrentDictionary<string, PropertyData> _propertyData;
+        private ConcurrentDictionary<string, PropertyDisplayInfo> _propertyDisplayInfo;
         private ConcurrentDictionary<string, string> _propertyToCategory;
 
         // UID -> Property 查找缓存
         private ConcurrentDictionary<long, GameProperty> _uidToProperties;
 
         // 分类/标签/元数据系统（使用 UID 作为 key）
-        private ICategoryManager<GameProperty, long> _categoryManager;
+        internal ICategoryManager<GameProperty, long> _categoryManager;
 
         // UID 分配器（单实例内全局唯一）
         private long _nextUid;
@@ -52,7 +52,7 @@ namespace EasyPack.GamePropertySystem
 
             // 初始化字典
             _properties = new();
-            _propertyData = new();
+            _propertyDisplayInfo = new();
             _propertyToCategory = new();
 
             _uidToProperties = new();
@@ -111,7 +111,7 @@ namespace EasyPack.GamePropertySystem
         protected override async Task OnDisposeAsync()
         {
             _properties?.Clear();
-            _propertyData?.Clear();
+            _propertyDisplayInfo?.Clear();
             _propertyToCategory?.Clear();
             _uidToProperties?.Clear();
 
@@ -134,7 +134,7 @@ namespace EasyPack.GamePropertySystem
         /// <summary>
         ///     注册单个属性到指定分类
         /// </summary>
-        public void Register(GameProperty property, string category = "Default", PropertyData metadata = null)
+        public void Register(GameProperty property, string category = "Default", PropertyDisplayInfo displayInfo = null, string[] tags = null, CustomDataCollection customData = null)
         {
             ThrowIfNotReady();
 
@@ -147,13 +147,13 @@ namespace EasyPack.GamePropertySystem
             if (_properties.ContainsKey(property.ID))
                 throw new ArgumentException($"属性ID '{property.ID}' 已存在，不能重复注册");
 
-            RegisterInternal(property, category, metadata);
+            RegisterInternal(property, category, displayInfo, tags, customData);
         }
 
         /// <summary>
         ///     内部注册逻辑
         /// </summary>
-        private void RegisterInternal(GameProperty property, string category, PropertyData metadata)
+        private void RegisterInternal(GameProperty property, string category, PropertyDisplayInfo displayInfo, string[] tags, CustomDataCollection customData)
         {
             if (_categoryManager == null)
                 throw new InvalidOperationException("CategoryManager 未初始化");
@@ -172,8 +172,8 @@ namespace EasyPack.GamePropertySystem
             // 1.1) 如果 CategoryManager 已预先加载，
             //      则优先使用 Manager 内的分类/标签/元数据，并避免 DuplicateId。
             string effectiveCategory = normalizedCategory;
-            string[] effectiveTags = metadata?.Tags;
-            CustomDataCollection effectiveCustomData = metadata?.CustomData;
+            string[] effectiveTags = tags;
+            CustomDataCollection effectiveCustomData = customData;
 
             Category.OperationResult<GameProperty> existingInManager = _categoryManager.GetById(property.UID);
             if (existingInManager != null && existingInManager.IsSuccess)
@@ -212,27 +212,10 @@ namespace EasyPack.GamePropertySystem
             _propertyToCategory[property.ID] = effectiveCategory;
             _uidToProperties[property.UID] = property;
 
-            // 3) 记录 PropertyData
-            if (metadata == null && (effectiveTags != null || effectiveCustomData != null))
-                metadata = new();
-
-            if (metadata != null)
+            // 3) 记录 PropertyDisplayInfo
+            if (displayInfo != null)
             {
-                // 若 Manager 已有数据，则以 Manager 为准
-                if (effectiveTags != null)
-                    metadata.Tags = effectiveTags;
-
-                if (effectiveCustomData != null)
-                    metadata.CustomData = effectiveCustomData;
-
-                if (metadata.CustomData == null)
-                    metadata.CustomData = new();
-
-                // 去重标签
-                if (metadata.Tags != null)
-                    metadata.Tags = metadata.Tags.Distinct().ToArray();
-
-                _propertyData[property.ID] = metadata;
+                _propertyDisplayInfo[property.ID] = displayInfo;
             }
 
             // 4) 注册到分类系统
@@ -240,17 +223,19 @@ namespace EasyPack.GamePropertySystem
             if (!registerResult.IsSuccess)
                 throw new InvalidOperationException($"CategoryManager 注册失败: {registerResult.ErrorMessage}");
 
-            // 5) 同步标签（默认使用 PropertyData.Tags）
+            // 5) 同步标签
             if (effectiveTags is { Length: > 0 })
             {
-                Category.OperationResult tagResult = _categoryManager.AddTags(property.UID, effectiveTags);
+                // 去重
+                string[] distinctTags = effectiveTags.Distinct().ToArray();
+                Category.OperationResult tagResult = _categoryManager.AddTags(property.UID, distinctTags);
                 if (!tagResult.IsSuccess)
                     throw new InvalidOperationException($"标签注册失败: {tagResult.ErrorMessage}");
             }
 
-            // 6) 同步元数据（仅承载 CustomData）
-            CustomDataCollection customData = effectiveCustomData ?? metadata?.CustomData ?? new();
-            Category.OperationResult metadataResult = _categoryManager.UpdateMetadata(property.UID, customData);
+            // 6) 同步元数据（CustomData）
+            CustomDataCollection finalCustomData = effectiveCustomData ?? new();
+            Category.OperationResult metadataResult = _categoryManager.UpdateMetadata(property.UID, finalCustomData);
             if (!metadataResult.IsSuccess)
                 throw new InvalidOperationException($"元数据写入失败: {metadataResult.ErrorMessage}");
         }
@@ -393,6 +378,18 @@ namespace EasyPack.GamePropertySystem
             return _categoryManager.GetByTag(tag);
         }
 
+        public bool HasTag(string id, string tag)
+        {
+            var property = Get(id);
+            return property != null && _categoryManager.HasTag(property, tag);
+        }
+
+        public IEnumerable<string> GetTags(string id)
+        {
+            var property = Get(id);
+            return property != null ? _categoryManager.GetTags(property) : Enumerable.Empty<string>();
+        }
+
         /// <summary>
         ///     组合查询：获取同时满足分类和标签条件的属性（交集）
         /// </summary>
@@ -403,15 +400,29 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
-        ///     获取属性的元数据
+        ///     获取属性的显示元数据
         /// </summary>
-        public PropertyData GetMetadata(string id)
+        public PropertyDisplayInfo GetPropertyDisplayInfo(string id)
         {
             if (string.IsNullOrEmpty(id))
                 return null;
 
-            _propertyData.TryGetValue(id, out PropertyData metadata);
-            return metadata;
+            _propertyDisplayInfo.TryGetValue(id, out PropertyDisplayInfo propertyDisplayInfo);
+            return propertyDisplayInfo;
+        }
+
+        /// <summary>
+        ///     获取属性的自定义扩展数据
+        /// </summary>
+        public CustomDataCollection GetCustomData(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return null;
+
+            _properties.TryGetValue(id, out GameProperty property);
+            if (property == null) return null;
+
+            return _categoryManager?.GetMetadata(property.UID);
         }
 
         internal bool TryGetCategoryOfProperty(string propertyId, out string category)
@@ -453,7 +464,7 @@ namespace EasyPack.GamePropertySystem
             }
 
             // 从元数据移除
-            _propertyData.TryRemove(id, out _);
+            _propertyDisplayInfo.TryRemove(id, out _);
 
             _propertyToCategory.TryRemove(id, out _);
 
@@ -622,3 +633,4 @@ namespace EasyPack.GamePropertySystem
         #endregion
     }
 }
+

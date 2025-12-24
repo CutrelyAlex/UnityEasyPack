@@ -281,19 +281,17 @@ public class ManagerExample : MonoBehaviour
         var mp = new GameProperty("mp", 50f);
         var stamina = new GameProperty("stamina", 80f);
         
-        // 注册到分类，并添加元数据
-        manager.Register(hp, "Character.Vital", new PropertyMetadata
+        // 注册到分类，并添加元数据和标签
+        manager.Register(hp, "Character.Vital", new PropertyDisplayInfo
         {
             DisplayName = "生命值",
-            Description = "角色当前生命值",
-            Tags = new[] { "vital", "displayInUI" }
-        });
+            Description = "角色当前生命值"
+        }, new[] { "vital", "displayInUI" });
         
-        manager.Register(mp, "Character.Vital", new PropertyMetadata
+        manager.Register(mp, "Character.Vital", new PropertyDisplayInfo
         {
-            DisplayName = "魔法值",
-            Tags = new[] { "vital", "displayInUI" }
-        });
+            DisplayName = "魔法值"
+        }, new[] { "vital", "displayInUI" });
         
         manager.Register(stamina, "Character.Resource");
         
@@ -731,7 +729,7 @@ public class CharacterStats
 
 - **Tag（标签）**：属性的标签，用于分组查询（如 "displayInUI", "saveable"）。
 
-- **PropertyMetadata（属性元数据）**：属性的附加信息，包括显示名称、描述、图标等。
+- **PropertyDisplayInfo（属性元数据）**：属性的附加信息，包括显示名称、描述、图标等。
 
 ### 事件系统
 
