@@ -177,9 +177,7 @@ namespace EasyPack.Category
             try
             {
                 var serializer = new CategoryManagerJsonSerializer<T, TKey>(keyExtractor);
-                _serializationService.RegisterSerializer<
-                    CategoryManager<T, TKey>,
-                    SerializableCategoryManagerState<T, TKey>>(serializer);
+                _serializationService.RegisterSerializer(serializer);
                 _serializers[typeKey] = serializer;
 
                 Debug.Log($"[CategoryService] 已注册 CategoryManager<{typeof(T).Name}, {typeof(TKey).Name}> 序列化器");
