@@ -23,7 +23,6 @@ namespace EasyPack.Architecture
             Container.Register<IInventoryService, InventoryService>();
 
             // Services
-            Container.Register<ICategoryService, CategoryService>();
             Container.Register<ISerializationService, SerializationService>();
             Container.Register<IObjectPoolService, ObjectPoolService>();
 
@@ -51,9 +50,6 @@ namespace EasyPack.Architecture
 
         public static async Task<IInventoryService> GetInventoryServiceAsync() =>
             await Instance.Container.ResolveAsync<IInventoryService>();
-
-        public static async Task<ICategoryService> GetCategoryServiceAsync() =>
-            await Instance.Container.ResolveAsync<ICategoryService>();
 
         public static async Task<IGamePropertyService> GetGamePropertyServiceAsync() =>
             await Instance.Container.ResolveAsync<IGamePropertyService>();
