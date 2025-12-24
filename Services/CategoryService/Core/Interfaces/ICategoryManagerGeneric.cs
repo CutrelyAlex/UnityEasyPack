@@ -62,6 +62,16 @@ namespace EasyPack.Category
         OperationResult RegisterEntityWithMetadata(TKey key, T entity, string category, CustomDataCollection metadata);
 
         /// <summary>
+        ///     更新实体的引用。
+        ///     如果键不存在，则返回失败。
+        ///     此操作不会改变实体的分类、标签或元数据。
+        /// </summary>
+        /// <param name="key">实体键。</param>
+        /// <param name="entity">新的实体对象。</param>
+        /// <returns>操作结果。</returns>
+        OperationResult UpdateEntityReference(TKey key, T entity);
+
+        /// <summary>
         ///     批量注册多个实体到同一分类。
         /// </summary>
         /// <param name="entities">实体列表。</param>

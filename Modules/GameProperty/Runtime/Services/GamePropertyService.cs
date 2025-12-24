@@ -186,6 +186,25 @@ namespace EasyPack.GamePropertySystem
                 }
                 else
                 {
+                    // 直接更新 CategoryManager 中的实体引用，保留原有的分类、标签和元数据
+                    OperationResult updateResult = _categoryManager.UpdateEntityReference(property.UID, property);
+                    if (updateResult.IsSuccess)
+                    {
+                        // 更新成功，建立本地索引并记录显示信息
+                        _properties[property.ID] = property;
+                        _uidToProperties[property.UID] = property;
+
+                        if (displayInfo != null)
+                        {
+                            _propertyDisplayInfo[property.ID] = displayInfo;
+                        }
+
+                        return;
+                    }
+
+                    // 如果更新失败（理论上不应该），则回退到旧的“删除并重新注册”逻辑
+                    Debug.LogWarning($"[GamePropertyService] UpdateEntityReference 失败: {updateResult.ErrorMessage}，将尝试重新注册。");
+
                     string existingCategory = _categoryManager.GetReadableCategoryPath(property.UID);
                     if (!string.IsNullOrWhiteSpace(existingCategory))
                         effectiveCategory = existingCategory;
@@ -198,10 +217,7 @@ namespace EasyPack.GamePropertySystem
                     if (existingMetadata != null)
                         effectiveCustomData = existingMetadata;
 
-                    // 由于 CategoryManager 不支持直接替换 entity，这里保留旧数据后重建 entity 引用。
-                    Category.OperationResult deleteResult = _categoryManager.DeleteEntity(property.UID);
-                    if (!deleteResult.IsSuccess)
-                        Debug.LogWarning($"[GamePropertyService] 预清理已存在的 CategoryManager 实体失败: UID={property.UID}, Error={deleteResult.ErrorMessage}");
+                    _categoryManager.DeleteEntity(property.UID);
                 }
             }
 
