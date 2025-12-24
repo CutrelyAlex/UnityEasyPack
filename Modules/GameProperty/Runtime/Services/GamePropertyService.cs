@@ -35,9 +35,6 @@ namespace EasyPack.GamePropertySystem
         // 分类/标签/元数据系统（使用 UID 作为 key）
         private ICategoryManager<GameProperty, long> _categoryManager;
 
-        // 分类服务（持有并管理 CategoryManager 实例）
-        private ICategoryService _categoryService;
-
         // UID 分配器（单实例内全局唯一）
         private long _nextUid;
 
@@ -60,10 +57,8 @@ namespace EasyPack.GamePropertySystem
 
             _uidToProperties = new();
 
-            // CategoryManager 由 CategoryService 统一持有与管理
-            _categoryService = await EasyPackArchitecture.Instance.ResolveAsync<ICategoryService>()
-                               ?? throw new InvalidOperationException("[GamePropertyService] ICategoryService 未初始化，无法获取 CategoryManager");
-            _categoryManager = _categoryService.GetOrCreateManager<GameProperty, long>(p => p.UID) ?? throw new InvalidOperationException("[GamePropertyService] 获取 CategoryManager 失败");
+            // 直接初始化 CategoryManager
+            _categoryManager = new CategoryManager<GameProperty, long>(p => p.UID);
 
             // UID 从 1001 起算
             _nextUid = FirstUID;
@@ -98,6 +93,9 @@ namespace EasyPack.GamePropertySystem
 
                 serializationService.RegisterSerializer(new GamePropertyJsonSerializer());
                 serializationService.RegisterSerializer(new PropertyManagerSerializer());
+                
+                // 注册 CategoryManager 序列化器
+                serializationService.RegisterSerializer(new CategoryManagerJsonSerializer<GameProperty, long>(p => p.UID));
 
                 Debug.Log("[GamePropertyService] 序列化器注册完成");
             }
@@ -117,9 +115,12 @@ namespace EasyPack.GamePropertySystem
             _propertyToCategory?.Clear();
             _uidToProperties?.Clear();
 
-            // CategoryManager 生命周期由 CategoryService 管理
+            // 释放 CategoryManager
+            if (_categoryManager is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
             _categoryManager = null;
-            _categoryService = null;
 
             await base.OnDisposeAsync();
 
@@ -174,7 +175,7 @@ namespace EasyPack.GamePropertySystem
             string[] effectiveTags = metadata?.Tags;
             CustomDataCollection effectiveCustomData = metadata?.CustomData;
 
-            Category.OperationResult<GameProperty> existingInManager = _categoryManager.GetById(property.UID);
+            OperationResult<GameProperty> existingInManager = _categoryManager.GetById(property.UID);
             if (existingInManager != null && existingInManager.IsSuccess)
             {
                 GameProperty managerEntity = existingInManager.Value;
@@ -187,22 +188,22 @@ namespace EasyPack.GamePropertySystem
                 }
                 else
                 {
-                string existingCategory = _categoryManager.GetReadableCategoryPath(property.UID);
-                if (!string.IsNullOrWhiteSpace(existingCategory))
-                    effectiveCategory = existingCategory;
+                    string existingCategory = _categoryManager.GetReadableCategoryPath(property.UID);
+                    if (!string.IsNullOrWhiteSpace(existingCategory))
+                        effectiveCategory = existingCategory;
 
-                IReadOnlyList<string> existingTags = _categoryManager.GetEntityTags(property.UID);
-                if (existingTags is { Count: > 0 })
-                    effectiveTags = existingTags.ToArray();
+                    IReadOnlyList<string> existingTags = _categoryManager.GetEntityTags(property.UID);
+                    if (existingTags is { Count: > 0 })
+                        effectiveTags = existingTags.ToArray();
 
-                CustomDataCollection existingMetadata = _categoryManager.GetMetadata(property.UID);
-                if (existingMetadata != null)
-                    effectiveCustomData = existingMetadata;
+                    CustomDataCollection existingMetadata = _categoryManager.GetMetadata(property.UID);
+                    if (existingMetadata != null)
+                        effectiveCustomData = existingMetadata;
 
-                // 由于 CategoryManager 不支持直接替换 entity，这里保留旧数据后重建 entity 引用。
-                OperationResult deleteResult = _categoryManager.DeleteEntity(property.UID);
-                if (!deleteResult.IsSuccess)
-                    Debug.LogWarning($"[GamePropertyService] 预清理已存在的 CategoryManager 实体失败: UID={property.UID}, Error={deleteResult.ErrorMessage}");
+                    // 由于 CategoryManager 不支持直接替换 entity，这里保留旧数据后重建 entity 引用。
+                    OperationResult deleteResult = _categoryManager.DeleteEntity(property.UID);
+                    if (!deleteResult.IsSuccess)
+                        Debug.LogWarning($"[GamePropertyService] 预清理已存在的 CategoryManager 实体失败: UID={property.UID}, Error={deleteResult.ErrorMessage}");
                 }
             }
 
