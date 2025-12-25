@@ -48,11 +48,15 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     比较顺序：优先级 → 规则注册顺序 → 效果索引
+        ///     比较顺序：优先级 → 事件顺序 → 规则注册顺序 → 效果索引
         /// </summary>
         public int CompareTo(EffectPoolEntry other)
         {
             int cmp = Priority.CompareTo(other.Priority);
+            if (cmp != 0) return cmp;
+
+            // 相同优先级下，保持事件入队顺序。
+            cmp = EventIndex.CompareTo(other.EventIndex);
             if (cmp != 0) return cmp;
 
             cmp = RuleOrderIndex.CompareTo(other.RuleOrderIndex);
