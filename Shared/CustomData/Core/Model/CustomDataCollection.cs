@@ -307,6 +307,14 @@ namespace EasyPack.CustomData
             if (key == null) return defaultValue;
             return TryGetValue(key, out T value) ? value : defaultValue;
         }
+        
+        /// <summary>
+        ///     获取指定键的值
+        /// </summary>
+        public string GetToString(string key)
+        {
+            return TryGetValue(key, out object value) ? value.ToString() : "null";
+        }
 
         /// <summary>
         ///     获取指定键的值，如果不存在则返回默认值
