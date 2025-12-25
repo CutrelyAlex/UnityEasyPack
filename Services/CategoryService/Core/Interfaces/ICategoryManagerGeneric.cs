@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using EasyPack.CustomData;
 using EasyPack.Category;
+using EasyPack.CustomData;
 
 namespace EasyPack.Category
 {
@@ -254,6 +254,13 @@ namespace EasyPack.Category
         /// <param name="metadata">新的元数据集合。</param>
         /// <returns>操作结果。</returns>
         OperationResult UpdateMetadata(TKey key, CustomDataCollection metadata);
+
+        /// <summary>
+        ///    删除实体的元数据。
+        /// </summary>
+        /// <param name="key">实体键。</param>
+        /// <returns>操作结果。</returns>
+        OperationResult DeleteMetadata(TKey key);
 
         #endregion
 

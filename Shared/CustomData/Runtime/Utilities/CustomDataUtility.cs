@@ -51,7 +51,7 @@ namespace EasyPack.CustomData
 
             foreach (CustomDataEntry entry in other)
             {
-                entries.SetValue(entry.Key, entry.GetValue());
+                entries.Set(entry.Key, entry.GetValue());
             }
         }
 

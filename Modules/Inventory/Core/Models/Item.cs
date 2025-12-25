@@ -32,7 +32,7 @@ namespace EasyPack.InventorySystem
         /// <param name="defaultValue">默认值</param>
         /// <returns>找到的值或默认值</returns>
         public static T GetCustomData<T>(this IItem item, string id, T defaultValue = default) =>
-            item.CustomData.GetValue(id, defaultValue);
+            item.CustomData.Get(id, defaultValue);
 
         /// <summary>设置自定义数据值</summary>
         /// <param name="item">物品实例</param>
@@ -42,14 +42,14 @@ namespace EasyPack.InventorySystem
         {
             item.CustomData ??= new();
 
-            item.CustomData.SetValue(id, value);
+            item.CustomData.Set(id, value);
         }
 
         /// <summary>移除自定义数据</summary>
         /// <param name="item">物品实例</param>
         /// <param name="id">数据键</param>
         /// <returns>是否成功移除</returns>
-        public static bool RemoveCustomData(this IItem item, string id) => item.CustomData.RemoveValue(id);
+        public static bool RemoveCustomData(this IItem item, string id) => item.CustomData.Remove(id);
 
         /// <summary>检查是否存在自定义数据</summary>
         /// <param name="item">物品实例</param>
@@ -114,7 +114,7 @@ namespace EasyPack.InventorySystem
         #region CustomData 辅助方法
 
         /// <summary>获取自定义数据值</summary>
-        public T GetCustomData<T>(string id, T defaultValue = default) => CustomData.GetValue(id, defaultValue);
+        public T GetCustomData<T>(string id, T defaultValue = default) => CustomData.Get(id, defaultValue);
 
         /// <summary>设置自定义数据值</summary>
         public void SetCustomData(string id, object value)
@@ -122,11 +122,11 @@ namespace EasyPack.InventorySystem
             if (CustomData == null)
                 CustomData = new();
 
-            CustomData.SetValue(id, value);
+            CustomData.Set(id, value);
         }
 
         /// <summary>移除自定义数据</summary>
-        public bool RemoveCustomData(string id) => CustomData.RemoveValue(id);
+        public bool RemoveCustomData(string id) => CustomData.Remove(id);
 
         /// <summary>检查是否存在自定义数据</summary>
         public bool HasCustomData(string id) => CustomData.HasValue(id);

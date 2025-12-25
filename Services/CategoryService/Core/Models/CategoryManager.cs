@@ -1528,6 +1528,31 @@ namespace EasyPack.Category
             }
         }
 
+        public OperationResult DeleteMetadata(TKey key)
+        {
+            _entitiesLock.EnterReadLock();
+            try
+            {
+                if (!_entities.ContainsKey(key))
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+            }
+            finally
+            {
+                _entitiesLock.ExitReadLock();
+            }
+
+            _metadataLock.EnterWriteLock();
+            try
+            {
+                _metadataStore.Remove(key);
+                return OperationResult.Success();
+            }
+            finally
+            {
+                _metadataLock.ExitWriteLock();
+            }
+        }
+
         /// <summary>
         ///     获取可序列化的状态对象。
         /// </summary>
@@ -1537,7 +1562,10 @@ namespace EasyPack.Category
 
             var data = new SerializableCategoryManagerState<T, TKey>
             {
-                Entities = new(), Categories = new(), Tags = new(), Metadata = new(),
+                Entities = new(),
+                Categories = new(),
+                Tags = new(),
+                Metadata = new(),
                 IncludeEntities = entitySerializer != null
             };
 
@@ -1672,7 +1700,7 @@ namespace EasyPack.Category
         }
 
         #endregion
-        
+
         #region 序列化
 
         /// <summary>

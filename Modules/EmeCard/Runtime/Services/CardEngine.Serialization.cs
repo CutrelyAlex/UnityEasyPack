@@ -51,9 +51,9 @@ namespace EasyPack.EmeCardSystem
             if (CategoryManager is IDisposable disposable) disposable.Dispose();
             var newManager = new CategoryManager<Card, long>(card => card.UID);
             CategoryManager = newManager;
-            
+
             var state = dto.CategoryState;
-            
+
             // 3. Entities (同时恢复 CardEngine 内部状态)
             // 使用 Identity Map 确保同一 UID 只对应一个实例
             var identityMap = new Dictionary<long, Card>();
@@ -63,11 +63,11 @@ namespace EasyPack.EmeCardSystem
                 foreach (var entityDto in state.Entities)
                 {
                     if (string.IsNullOrEmpty(entityDto.EntityJson)) continue;
-                    
+
                     // 传入 identityMap，如果该 UID 已存在于 map 中，则直接返回现有实例
                     // 这样可以自动合并父子关系中的重复序列化数据
                     Card card = _cardSerializer.DeserializeFromJson(entityDto.EntityJson, identityMap);
-                    
+
                     if (card != null)
                     {
                         // 恢复 CardEngine 内部状态
@@ -89,7 +89,7 @@ namespace EasyPack.EmeCardSystem
                     }
                 }
             }
-            
+
             // 4. Tags
             if (state.Tags != null)
             {
@@ -107,7 +107,7 @@ namespace EasyPack.EmeCardSystem
                     }
                 }
             }
-            
+
             // 5. Metadata
             if (state.Metadata != null)
             {
@@ -126,7 +126,7 @@ namespace EasyPack.EmeCardSystem
                             foreach (var entry in wrapper.Entries)
                             {
                                 // 使用 SetValue 确保覆盖同名 key，且缓存一致
-                                mergedMetadata.SetValue(entry.Key, entry.GetValue());
+                                mergedMetadata.Set(entry.Key, entry.GetValue());
                             }
 
                             // 写回（即使 mergedMetadata 是从 store 取出的引用，也允许幂等写回；
@@ -136,7 +136,7 @@ namespace EasyPack.EmeCardSystem
                     }
                 }
             }
-            
+
             // 6. 重新初始化缓存
             InitializeTargetSelectorCache();
         }
@@ -149,7 +149,7 @@ namespace EasyPack.EmeCardSystem
             if (card == null) return;
 
             card.Engine = this;
-            
+
             // 恢复索引
             string id = card.Id;
             if (!_idIndexes.TryGetValue(id, out var indexes))
@@ -158,7 +158,7 @@ namespace EasyPack.EmeCardSystem
                 _idIndexes[id] = indexes;
                 _idMaxIndexes[id] = -1;
             }
-            
+
             indexes.Add(card.Index);
             if (card.Index > _idMaxIndexes[id])
             {
