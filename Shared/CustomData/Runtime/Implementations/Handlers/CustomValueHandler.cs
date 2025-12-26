@@ -9,7 +9,9 @@ namespace EasyPack.CustomData
         public object GetValue(CustomDataEntry entry)
         {
             if (entry.Serializer == null || string.IsNullOrEmpty(entry.JsonValue))
+            {
                 return null;
+            }
 
             try
             {
@@ -24,7 +26,9 @@ namespace EasyPack.CustomData
         public void SetValue(CustomDataEntry entry, object value)
         {
             if (entry.Serializer == null)
+            {
                 throw new InvalidOperationException("需要一个有效的序列化器来设置自定义值");
+            }
 
             try
             {
@@ -41,7 +45,9 @@ namespace EasyPack.CustomData
         public bool TryDeserialize(CustomDataEntry entry, string data, Type jsonClrType = null)
         {
             if (entry.Serializer == null)
+            {
                 return false;
+            }
 
             try
             {

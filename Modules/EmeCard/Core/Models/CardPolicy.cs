@@ -99,12 +99,12 @@ namespace EasyPack.EmeCardSystem
     {
         /// <summary>每次 Pump() 调用结束时刷新（处理完所有排队事件后）</summary>
         AfterPump,
-        
+
         /// <summary>每帧结束时刷新（配合 PumpFrame 系列方法）</summary>
         AfterFrame,
-        
+
         /// <summary>手动调用 FlushEffectPool() 刷新</summary>
-        Manual
+        Manual,
     }
 
     // 规则策略

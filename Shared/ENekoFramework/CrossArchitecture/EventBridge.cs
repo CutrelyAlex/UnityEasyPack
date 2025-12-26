@@ -79,7 +79,9 @@ namespace EasyPack.ENekoFramework
                 try
                 {
                     if (listener is Action<string, TEventData> typedListener)
+                    {
                         typedListener.Invoke(eventName, data);
+                    }
                     else
                     {
                         Debug.LogWarning($"[EventBridge] 事件 '{eventName}' 的监听器类型不匹配。" +

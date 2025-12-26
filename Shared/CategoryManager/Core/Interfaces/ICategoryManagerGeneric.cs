@@ -256,7 +256,7 @@ namespace EasyPack.Category
         OperationResult UpdateMetadata(TKey key, CustomDataCollection metadata);
 
         /// <summary>
-        ///    删除实体的元数据。
+        ///     删除实体的元数据。
         /// </summary>
         /// <param name="key">实体键。</param>
         /// <returns>操作结果。</returns>
@@ -273,7 +273,10 @@ namespace EasyPack.Category
         /// <param name="keySerializer">键序列化函数。</param>
         /// <param name="metadataSerializer">元数据序列化函数。</param>
         /// <returns>可序列化的状态对象。</returns>
-        SerializableCategoryManagerState<T, TKey> GetSerializableState(Func<T, string> entitySerializer, Func<TKey, string> keySerializer, Func<CustomDataCollection, string> metadataSerializer);
+        SerializableCategoryManagerState<T, TKey> GetSerializableState(Func<T, string> entitySerializer,
+                                                                       Func<TKey, string> keySerializer,
+                                                                       Func<CustomDataCollection, string>
+                                                                           metadataSerializer);
 
         #endregion
     }

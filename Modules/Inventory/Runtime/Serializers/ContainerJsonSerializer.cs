@@ -61,7 +61,9 @@ namespace EasyPack.InventorySystem
                 string itemJson = null;
                 if (slot.Item is Item concrete)
                     // 使用注入的序列化服务序列化物品
+                {
                     itemJson = _serializationService.SerializeToJson(concrete, concrete.GetType());
+                }
 
                 dto.Slots.Add(new()
                 {

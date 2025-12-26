@@ -54,10 +54,14 @@ namespace EasyPack.ENekoFramework
                 Type serviceType = typeof(TService);
 
                 if (_services.ContainsKey(serviceType))
+                {
                     throw new InvalidOperationException($"服务 {serviceType.Name} 已经被注册。");
+                }
 
                 if (_services.Count >= MaxServiceCapacity)
+                {
                     throw new InvalidOperationException($"服务容量已超限。最大容量：{MaxServiceCapacity}");
+                }
 
                 var descriptor = new ServiceDescriptor(serviceType, typeof(TImplementation));
                 _services[serviceType] = descriptor;
@@ -79,7 +83,9 @@ namespace EasyPack.ENekoFramework
                 Type serviceType = typeof(TService);
 
                 if (!_services.TryGetValue(serviceType, out descriptor))
+                {
                     throw new InvalidOperationException($"服务 {serviceType.Name} 未注册。");
+                }
 
                 descriptor.LastAccessedAt = DateTime.UtcNow;
             }
@@ -153,7 +159,9 @@ namespace EasyPack.ENekoFramework
                 foreach (ServiceDescriptor descriptor in descriptors)
                 {
                     if (descriptor.Instance is IDisposable disposable)
+                    {
                         disposable.Dispose();
+                    }
                 }
 
                 _services.Clear();
@@ -172,10 +180,14 @@ namespace EasyPack.ENekoFramework
                 Type serviceType = typeof(TService);
 
                 if (_services.ContainsKey(serviceType))
+                {
                     throw new InvalidOperationException($"服务 {serviceType.Name} 已经被注册。");
+                }
 
                 if (_services.Count >= MaxServiceCapacity)
+                {
                     throw new InvalidOperationException($"服务容量已超限。最大容量：{MaxServiceCapacity}");
+                }
 
                 var descriptor = new ServiceDescriptor(serviceType, factory);
                 _services[serviceType] = descriptor;
@@ -194,10 +206,14 @@ namespace EasyPack.ENekoFramework
                 Type serviceType = typeof(TService);
 
                 if (_services.ContainsKey(serviceType))
+                {
                     throw new InvalidOperationException($"服务 {serviceType.Name} 已经被注册。");
+                }
 
                 if (_services.Count >= MaxServiceCapacity)
+                {
                     throw new InvalidOperationException($"服务容量已超限。最大容量：{MaxServiceCapacity}");
+                }
 
                 var descriptor = new ServiceDescriptor(serviceType, instance);
                 _services[serviceType] = descriptor;
@@ -237,7 +253,9 @@ namespace EasyPack.ENekoFramework
                 lock (_lock)
                 {
                     if (!_services.TryGetValue(serviceType, out descriptor))
+                    {
                         throw new InvalidOperationException($"服务 {serviceType.Name} 未注册。");
+                    }
 
                     descriptor.LastAccessedAt = DateTime.UtcNow;
                 }
@@ -251,9 +269,13 @@ namespace EasyPack.ENekoFramework
                     if (descriptor.Instance == null)
                     {
                         if (descriptor.Factory != null)
+                        {
                             descriptor.Instance = descriptor.Factory(this);
+                        }
                         else if (descriptor.ImplementationType != null)
+                        {
                             descriptor.Instance = Activator.CreateInstance(descriptor.ImplementationType);
+                        }
                     }
                 }
 

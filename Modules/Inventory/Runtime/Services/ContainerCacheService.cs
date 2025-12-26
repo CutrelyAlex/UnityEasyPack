@@ -43,43 +43,61 @@ namespace EasyPack.InventorySystem
         public void UpdateItemSlotIndexCache(string itemId, int slotIndex, bool isAdding)
         {
             if (string.IsNullOrEmpty(itemId))
+            {
                 return;
+            }
 
             if (isAdding)
             {
                 if (!_itemSlotIndexCache.ContainsKey(itemId))
+                {
                     _itemSlotIndexCache[itemId] = new();
+                }
 
                 if (!_itemSlotIndexCache[itemId].Contains(slotIndex))
+                {
                     _itemSlotIndexCache[itemId].Add(slotIndex);
+                }
             }
             else
             {
                 if (_itemSlotIndexCache.ContainsKey(itemId) && _itemSlotIndexCache[itemId].Contains(slotIndex))
+                {
                     _itemSlotIndexCache[itemId].Remove(slotIndex);
+                }
 
                 if (_itemSlotIndexCache.ContainsKey(itemId) && _itemSlotIndexCache[itemId].Count == 0)
+                {
                     _itemSlotIndexCache.Remove(itemId);
+                }
             }
         }
 
         public void UpdateEmptySlotCache(int slotIndex, bool isEmpty)
         {
             if (isEmpty)
+            {
                 _emptySlotIndices.Add(slotIndex);
+            }
             else
+            {
                 _emptySlotIndices.Remove(slotIndex);
+            }
         }
 
         public void UpdateItemTypeCache(string itemType, int slotIndex, bool isAdding)
         {
             if (string.IsNullOrEmpty(itemType))
+            {
                 return;
+            }
 
             if (isAdding)
             {
                 if (!_itemTypeIndexCache.ContainsKey(itemType))
+                {
                     _itemTypeIndexCache[itemType] = new();
+                }
 
                 _itemTypeIndexCache[itemType].Add(slotIndex);
             }
@@ -89,7 +107,9 @@ namespace EasyPack.InventorySystem
                 {
                     _itemTypeIndexCache[itemType].Remove(slotIndex);
                     if (_itemTypeIndexCache[itemType].Count == 0)
+                    {
                         _itemTypeIndexCache.Remove(itemType);
+                    }
                 }
             }
         }
@@ -97,18 +117,19 @@ namespace EasyPack.InventorySystem
         public void UpdateItemCountCache(string itemId, int delta)
         {
             if (string.IsNullOrEmpty(itemId))
+            {
                 return;
+            }
 
             if (_itemCountCache.ContainsKey(itemId))
             {
                 _itemCountCache[itemId] += delta;
                 if (_itemCountCache[itemId] <= 0)
+                {
                     _itemCountCache.Remove(itemId);
+                }
             }
-            else if (delta > 0)
-            {
-                _itemCountCache[itemId] = delta;
-            }
+            else if (delta > 0) _itemCountCache[itemId] = delta;
         }
 
         #endregion
@@ -192,13 +213,19 @@ namespace EasyPack.InventorySystem
                 {
                     if (index < slots.Count && slots[index].IsOccupied &&
                         slots[index].Item != null && slots[index].Item.ID == kvp.Key)
+                    {
                         validIndices.Add(index);
+                    }
                 }
 
                 if (validIndices.Count == 0)
+                {
                     itemsToRemove.Add(kvp.Key);
+                }
                 else
+                {
                     _itemSlotIndexCache[kvp.Key] = validIndices;
+                }
             }
 
             foreach (string itemId in itemsToRemove)
@@ -211,7 +238,9 @@ namespace EasyPack.InventorySystem
             foreach (int index in _emptySlotIndices)
             {
                 if (index >= slots.Count || slots[index].IsOccupied)
+                {
                     emptyToRemove.Add(index);
+                }
             }
 
             foreach (int index in emptyToRemove)

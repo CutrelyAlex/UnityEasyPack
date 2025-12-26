@@ -12,6 +12,7 @@ namespace EasyPack.CustomData
         Color,
         Json, // 使用 JsonValue 储存的可序列化对象
         Custom, // 使用自定义序列化器
+
         /// <summary>
         ///     64位整数
         /// </summary>

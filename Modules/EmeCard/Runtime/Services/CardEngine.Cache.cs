@@ -79,10 +79,7 @@ namespace EasyPack.EmeCardSystem
                 card.Index = currentMaxIndex + 1;
                 _idMaxIndexes[id] = card.Index;
             }
-            else if (card.Index > currentMaxIndex)
-            {
-                _idMaxIndexes[id] = card.Index;
-            }
+            else if (card.Index > currentMaxIndex) _idMaxIndexes[id] = card.Index;
 
             // 第三步: 订阅卡牌事件
             card.OnEvent += OnCardEvent;
@@ -94,9 +91,10 @@ namespace EasyPack.EmeCardSystem
 
             if (!_cardsById.TryGetValue(id, out var cardList))
             {
-                cardList = new List<Card>();
+                cardList = new();
                 _cardsById[id] = cardList;
             }
+
             cardList.Add(card);
 
             // 第五步: 注册到 CategoryManager
@@ -113,10 +111,7 @@ namespace EasyPack.EmeCardSystem
             {
                 foreach (Card child in card.Children)
                 {
-                    if (child != null && !HasCard(child))
-                    {
-                        AddCard(child);
-                    }
+                    if (child != null && !HasCard(child)) AddCard(child);
                 }
             }
 
@@ -133,7 +128,8 @@ namespace EasyPack.EmeCardSystem
 
             if (_cardsByPosition.TryGetValue(initialPosition, out Card existingCard))
             {
-                Debug.LogError($"[CardEngine] 位置冲突: {initialPosition} 已被 '{existingCard.Id}' (UID: {existingCard.UID}) 占用");
+                Debug.LogError(
+                    $"[CardEngine] 位置冲突: {initialPosition} 已被 '{existingCard.Id}' (UID: {existingCard.UID}) 占用");
                 return this;
             }
 
@@ -149,17 +145,11 @@ namespace EasyPack.EmeCardSystem
             if (parent == null) throw new System.ArgumentNullException(nameof(parent));
             if (child == null) throw new System.ArgumentNullException(nameof(child));
 
-            if (!HasCard(parent))
-            {
-                throw new System.InvalidOperationException($"父卡牌 '{parent.Id}' 未注册到引擎");
-            }
+            if (!HasCard(parent)) throw new System.InvalidOperationException($"父卡牌 '{parent.Id}' 未注册到引擎");
 
             child.Owner?.RemoveChild(child);
 
-            if (!HasCard(child))
-            {
-                AddCard(child);
-            }
+            if (!HasCard(child)) AddCard(child);
 
             parent.AddChild(child, intrinsic);
             return this;
@@ -175,16 +165,16 @@ namespace EasyPack.EmeCardSystem
 
             foreach (Card child in children)
             {
-                if (child != null)
-                {
-                    AddChildToCard(parent, child, intrinsic);
-                }
+                if (child != null) AddChildToCard(parent, child, intrinsic);
             }
+
             return this;
         }
+
         #endregion
 
         #region 位置管理
+
         /// <summary>
         ///     转移注册在引擎里的根卡牌到新位置。
         ///     旧位置和新位置相同时默认是成功移动。
@@ -199,10 +189,7 @@ namespace EasyPack.EmeCardSystem
             // 先检查目标位置是否可用：若不可用且不允许覆盖，必须保持旧位置不变
             if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && !existingCard.Equals(card))
             {
-                if (!forceOverwrite)
-                {
-                    return false;
-                }
+                if (!forceOverwrite) return false;
 
                 ClearCardPosition(existingCard);
             }
@@ -224,22 +211,20 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        /// 尝试移动任意注册在引擎中的卡牌到新位置。
-        /// 如果新位置有卡牌存在，返回失败，除非强制覆盖。
-        /// 如果是根卡牌，调用MoveRootCardToPosition。
-        /// 如果是子卡牌，则先从父卡牌移除，再设置为根卡牌并更新位置索引。
+        ///     尝试移动任意注册在引擎中的卡牌到新位置。
+        ///     如果新位置有卡牌存在，返回失败，除非强制覆盖。
+        ///     如果是根卡牌，调用MoveRootCardToPosition。
+        ///     如果是子卡牌，则先从父卡牌移除，再设置为根卡牌并更新位置索引。
         /// </summary>
         /// <param name="card"></param>
         /// <param name="newPosition"></param>
         /// <returns>CardEngine</returns>
-        public bool TryMoveCardToPosition(Card card, Vector3Int newPosition, bool ignoreIntrinsic = false, bool forceOverwrite = false)
+        public bool TryMoveCardToPosition(Card card, Vector3Int newPosition, bool ignoreIntrinsic = false,
+                                          bool forceOverwrite = false)
         {
             if (card == null) return false;
 
-            if (card.Owner == null)
-            {
-                return TryMoveRootCardToPosition(card, newPosition, forceOverwrite);
-            }
+            if (card.Owner == null) return TryMoveRootCardToPosition(card, newPosition, forceOverwrite);
 
             if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && !existingCard.Equals(card))
             {
@@ -248,6 +233,7 @@ namespace EasyPack.EmeCardSystem
                     Debug.LogWarning($"[CardEngine] 位置 {newPosition} 已被占用，无法移动卡牌 '{card.Id}' (UID: {card.UID})");
                     return false;
                 }
+
                 ClearCardPosition(existingCard);
             }
 
@@ -280,9 +266,11 @@ namespace EasyPack.EmeCardSystem
 
             return this;
         }
+
         #endregion
 
         #region 卡牌位置通知
+
         /// <summary>
         ///     当卡牌被添加为子卡牌时，从位置索引中移除它。
         /// </summary>
@@ -314,9 +302,11 @@ namespace EasyPack.EmeCardSystem
             _cardsByPosition[newPosition] = card;
             _positionByUID[card.UID] = newPosition;
         }
+
         #endregion
 
         #region 卡牌移除
+
         /// <summary>
         ///     移除卡牌，移除事件订阅、UID 映射与索引。
         /// </summary>
@@ -368,6 +358,7 @@ namespace EasyPack.EmeCardSystem
             {
                 _cardsByPosition.Remove(c.Position);
             }
+
             _positionByUID.Remove(c.UID);
 
 
@@ -388,7 +379,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public void ClearAllCards()
         {
-            foreach (var uid in _cardsByUID.Keys)
+            foreach (long uid in _cardsByUID.Keys)
             {
                 UnregisterFromCategoryManager(uid);
             }

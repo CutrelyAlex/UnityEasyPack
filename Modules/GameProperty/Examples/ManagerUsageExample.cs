@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using EasyPack.Architecture;
+using EasyPack.CustomData;
 using EasyPack.Modifiers;
 using UnityEngine;
 
@@ -41,7 +42,8 @@ namespace EasyPack.GamePropertySystem.Example
         /// </summary>
         private void CleanupExampleData()
         {
-            string[] exampleIds = {
+            string[] exampleIds =
+            {
                 "hp", "mp", "strength", "hp_meta", "hp_batch", "mp_batch", "stamina_batch", "hp_adv", "mp_adv",
                 "crit_adv",
             };
@@ -94,13 +96,11 @@ namespace EasyPack.GamePropertySystem.Example
             var hp = new GameProperty("hp_meta", 100);
             var metadata = new PropertyDisplayInfo
             {
-                DisplayName = "生命值",
-                Description = "角色当前生命值",
-                IconPath = "Icons/Stats/HP"
+                DisplayName = "生命值", Description = "角色当前生命值", IconPath = "Icons/Stats/HP",
             };
 
-            var tags = new[] { "vital", "displayInUI", "saveable" };
-            var customData = new EasyPack.CustomData.CustomDataCollection();
+            string[] tags = new[] { "vital", "displayInUI", "saveable" };
+            var customData = new CustomData.CustomDataCollection();
             customData.Set("localizationKey", "stats.hp");
             customData.Set("color", "#FF0000");
             customData.Set("sortOrder", 1);
@@ -111,13 +111,13 @@ namespace EasyPack.GamePropertySystem.Example
             PropertyDisplayInfo retrievedMeta = _manager.GetPropertyDisplayInfo("hp_meta");
             Debug.Log($"显示名: {retrievedMeta.DisplayName}");
             Debug.Log($"描述: {retrievedMeta.Description}");
-            
+
             // 获取标签
             var retrievedTags = _manager.GetTags("hp_meta");
             Debug.Log($"标签: {string.Join(", ", retrievedTags)}");
 
             // 使用自定义数据
-            var retrievedCustomData = _manager.GetCustomData("hp_meta");
+            CustomDataCollection retrievedCustomData = _manager.GetCustomData("hp_meta");
             string color = retrievedCustomData.Get<string>("color");
             Debug.Log($"UI颜色: {color}");
 

@@ -13,7 +13,10 @@ namespace EasyPack.Modifiers
             var rangeMods = new List<RangeModifier>();
             foreach (IModifier mod in modifiers)
             {
-                if (mod is FloatModifier fm) floatMods.Add(fm);
+                if (mod is FloatModifier fm)
+                {
+                    floatMods.Add(fm);
+                }
                 else if (mod is RangeModifier rm) rangeMods.Add(rm);
             }
 

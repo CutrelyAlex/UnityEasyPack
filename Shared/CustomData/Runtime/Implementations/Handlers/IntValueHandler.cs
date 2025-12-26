@@ -20,7 +20,10 @@ namespace EasyPack.CustomData
         public bool TryDeserialize(CustomDataEntry entry, string data, Type jsonClrType = null)
         {
             if (!int.TryParse(data, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
+            {
                 return false;
+            }
+
             entry.IntValue = value;
             entry.Type = CustomDataType.Int;
             ClearOtherValues(entry);

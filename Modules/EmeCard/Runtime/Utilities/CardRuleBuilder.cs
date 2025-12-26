@@ -116,7 +116,7 @@ namespace EasyPack.EmeCardSystem
             _rule.Priority = priority;
             return this;
         }
-        
+
         /// <summary>是否对匹配结果去重</summary>
         public CardRuleBuilder DistinctMatched(bool enabled = true)
         {
@@ -141,7 +141,10 @@ namespace EasyPack.EmeCardSystem
         public CardRuleBuilder When(Func<CardRuleContext, bool> predicate)
         {
             if (predicate != null)
+            {
                 _rule.Requirements.Add(new ConditionRequirement(predicate));
+            }
+
             return this;
         }
 
@@ -156,7 +159,10 @@ namespace EasyPack.EmeCardSystem
             Func<CardRuleContext, (bool matched, List<Card> cards)> predicate)
         {
             if (predicate != null)
+            {
                 _rule.Requirements.Add(new ConditionRequirement(predicate));
+            }
+
             return this;
         }
 
@@ -170,8 +176,8 @@ namespace EasyPack.EmeCardSystem
             int maxMatched = -1,
             int? maxDepth = null)
         {
-            _rule.Requirements.Add(new CardsRequirement(root: root, scope: scope, filterMode: filter,
-                filterValue: filterValue, minCount: minCount, maxMatched: maxMatched, maxDepth: maxDepth));
+            _rule.Requirements.Add(new CardsRequirement(root, scope, filter,
+                filterValue, minCount, maxMatched, maxDepth));
             return this;
         }
 
@@ -179,7 +185,10 @@ namespace EasyPack.EmeCardSystem
         public CardRuleBuilder AddRequirement(IRuleRequirement requirement)
         {
             if (requirement != null)
+            {
                 _rule.Requirements.Add(requirement);
+            }
+
             return this;
         }
 
@@ -191,7 +200,10 @@ namespace EasyPack.EmeCardSystem
         public CardRuleBuilder Do(IRuleEffect effect)
         {
             if (effect != null)
+            {
                 _rule.Effects.Add(effect);
+            }
+
             return this;
         }
 
@@ -203,7 +215,9 @@ namespace EasyPack.EmeCardSystem
                 foreach (IRuleEffect effect in effects)
                 {
                     if (effect != null)
+                    {
                         _rule.Effects.Add(effect);
+                    }
                 }
             }
 
@@ -218,7 +232,9 @@ namespace EasyPack.EmeCardSystem
                 foreach (IRuleEffect effect in effects)
                 {
                     if (effect != null)
+                    {
                         _rule.Effects.Add(effect);
+                    }
                 }
             }
 
@@ -255,7 +271,7 @@ namespace EasyPack.EmeCardSystem
             TargetScope scope = TargetScope.Matched,
             CardFilterMode filter = CardFilterMode.None,
             string filterValue = null,
-            Func<CardRuleContext,float> valueFunc=null,
+            Func<CardRuleContext, float> valueFunc = null,
             int? take = null,
             int? maxDepth = null)
         {
@@ -309,7 +325,10 @@ namespace EasyPack.EmeCardSystem
         public CardRuleBuilder DoInvoke(Action<CardRuleContext, HashSet<Card>> action)
         {
             if (action != null)
+            {
                 _rule.Effects.Add(new InvokeEffect(action));
+            }
+
             return this;
         }
 

@@ -103,7 +103,10 @@ namespace EasyPack.InventorySystem
         public int CoordToIndex(int x, int y)
         {
             if (x < 0 || x >= GridWidth || y < 0 || y >= GridHeight)
+            {
                 return -1;
+            }
+
             return y * GridWidth + x;
         }
 
@@ -115,7 +118,10 @@ namespace EasyPack.InventorySystem
         public (int x, int y) IndexToCoord(int index)
         {
             if (index < 0 || index >= Capacity)
+            {
                 return (-1, -1);
+            }
+
             return (index % GridWidth, index / GridWidth);
         }
 
@@ -136,7 +142,9 @@ namespace EasyPack.InventorySystem
         {
             // 检查是否超出边界
             if (x < 0 || y < 0 || x + width > GridWidth || y + height > GridHeight)
+            {
                 return false;
+            }
 
             // 检查区域内所有槽位是否可用
             for (int dy = 0; dy < height; dy++)
@@ -147,7 +155,9 @@ namespace EasyPack.InventorySystem
 
                 ISlot slot = Slots[checkIndex];
                 if (slot.IsOccupied)
+                {
                     return false;
+                }
             }
 
             return true;
@@ -172,7 +182,9 @@ namespace EasyPack.InventorySystem
 
                 // 检查是否超出边界
                 if (x < 0 || x >= GridWidth || y < 0 || y >= GridHeight)
+                {
                     return false;
+                }
 
                 int checkIndex = CoordToIndex(x, y);
                 if (checkIndex == excludeIndex) continue;
@@ -181,7 +193,9 @@ namespace EasyPack.InventorySystem
 
                 // 检查槽位是否已被占用
                 if (slot.IsOccupied)
+                {
                     return false;
+                }
             }
 
             return true;
@@ -202,7 +216,9 @@ namespace EasyPack.InventorySystem
         public (AddItemResult result, int actualCount) AddItemAt(IItem item, int x, int y, int count = 1)
         {
             if (item == null)
+            {
                 return (AddItemResult.ItemIsNull, 0);
+            }
 
             int slotIndex = CoordToIndex(x, y);
             return slotIndex < 0 ? (AddItemResult.SlotNotFound, 0) : AddItems(item, count, slotIndex);
@@ -214,14 +230,20 @@ namespace EasyPack.InventorySystem
         public override (AddItemResult result, int actualCount) AddItems(IItem item, int count = 1, int slotIndex = -1)
         {
             if (item == null)
+            {
                 return (AddItemResult.ItemIsNull, 0);
+            }
 
             if (count <= 0)
+            {
                 return (AddItemResult.AddNothingLOL, 0);
+            }
 
             // 检查容器条件
             if (!ValidateItemCondition(item))
+            {
                 return (AddItemResult.ItemConditionNotMet, 0);
+            }
 
             // 如果是网格物品，使用特殊逻辑
             if (item is GridItem gridItem) return AddGridItem(gridItem, count, slotIndex);
@@ -237,13 +259,17 @@ namespace EasyPack.InventorySystem
         {
             // 网格物品通常不可堆叠
             if (count != 1)
+            {
                 return (AddItemResult.AddNothingLOL, 0);
+            }
 
             // 如果指定了槽位，检查该位置是否可以放置
             if (slotIndex >= 0)
             {
                 if (!CanPlaceGridItem(gridItem, slotIndex))
+                {
                     return (AddItemResult.NoSuitableSlotFound, 0);
+                }
 
                 // 放置物品并占用空间
                 PlaceGridItem(gridItem, slotIndex);
@@ -253,7 +279,9 @@ namespace EasyPack.InventorySystem
             // 自动寻找可放置位置
             int targetIndex = FindPlacementPosition(gridItem);
             if (targetIndex < 0)
+            {
                 return (AddItemResult.ContainerIsFull, 0);
+            }
 
             PlaceGridItem(gridItem, targetIndex);
             return (AddItemResult.Success, 1);
@@ -266,7 +294,9 @@ namespace EasyPack.InventorySystem
         {
             var occupiedCells = gridItem.GetOccupiedCells();
             if (occupiedCells.Count == 0)
+            {
                 return -1;
+            }
 
             // 计算物品的边界框
             int maxDx = occupiedCells.Max(c => c.x);
@@ -345,7 +375,9 @@ namespace EasyPack.InventorySystem
             // 先找到物品所在的槽位
             var slotIndices = FindSlotIndices(itemId);
             if (slotIndices == null || slotIndices.Count == 0)
+            {
                 return RemoveItemResult.ItemNotFound;
+            }
 
             int slotIndex = slotIndices[0];
             ISlot slot = _slots[slotIndex];
@@ -368,7 +400,9 @@ namespace EasyPack.InventorySystem
                                                                            int count)
         {
             if (count != 1)
+            {
                 return (RemoveItemResult.InsufficientQuantity, 0);
+            }
 
             string itemId = gridItem.ID;
             string itemType = gridItem.Type;
@@ -456,7 +490,9 @@ namespace EasyPack.InventorySystem
             }
 
             if (slot.Item is not GridItem { CanRotate: true } gridItem)
+            {
                 return false;
+            }
 
             // 计算当前的起始位置（锚点）
             (int mainX, int mainY) = IndexToCoord(mainSlotIndex);
@@ -512,11 +548,17 @@ namespace EasyPack.InventorySystem
                     ISlot slot = Slots[index];
 
                     if (!slot.IsOccupied)
+                    {
                         lines.Append("[ ]");
+                    }
                     else if (slot.Item is GridOccupiedMarker)
+                    {
                         lines.Append("[X]");
+                    }
                     else
+                    {
                         lines.Append($"[{slot.Item.ID[0]}]");
+                    }
                 }
 
                 lines.AppendLine();

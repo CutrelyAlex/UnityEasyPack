@@ -50,7 +50,7 @@ namespace EasyPack.EmeCardSystem
         public string[] DefaultTags { get; }
 
         /// <summary>
-        ///    自定义数据集合的默认实例
+        ///     自定义数据集合的默认实例
         /// </summary>
         public CustomDataCollection DefaultMetaData { get; } = new();
 

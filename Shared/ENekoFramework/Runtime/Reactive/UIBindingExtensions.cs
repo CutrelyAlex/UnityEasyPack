@@ -22,7 +22,9 @@ namespace EasyPack.ENekoFramework
         public static void BindTo(this Text text, BindableProperty<string> property)
         {
             if (text == null || property == null)
+            {
                 return;
+            }
 
             // 立即设置初始值
             text.text = property.Value;
@@ -44,7 +46,9 @@ namespace EasyPack.ENekoFramework
         public static void BindTo(this Text text, BindableProperty<int> property, Func<int, string> formatter = null)
         {
             if (text == null || property == null)
+            {
                 return;
+            }
 
             formatter = formatter ?? (value => value.ToString());
 
@@ -69,7 +73,9 @@ namespace EasyPack.ENekoFramework
                                   Func<float, string> formatter = null)
         {
             if (text == null || property == null)
+            {
                 return;
+            }
 
             formatter = formatter ?? (value => value.ToString("F2"));
 
@@ -93,7 +99,9 @@ namespace EasyPack.ENekoFramework
         public static void BindTo(this Slider slider, BindableProperty<int> property)
         {
             if (slider == null || property == null)
+            {
                 return;
+            }
 
             slider.value = property.Value;
 
@@ -112,7 +120,9 @@ namespace EasyPack.ENekoFramework
         public static void BindTo(this Slider slider, BindableProperty<float> property)
         {
             if (slider == null || property == null)
+            {
                 return;
+            }
 
             slider.value = property.Value;
 
@@ -131,7 +141,9 @@ namespace EasyPack.ENekoFramework
         public static void BindBidirectional(this Slider slider, BindableProperty<int> property)
         {
             if (slider == null || property == null)
+            {
                 return;
+            }
 
             slider.value = property.Value;
 
@@ -162,7 +174,9 @@ namespace EasyPack.ENekoFramework
         public static void BindColorTo(this Image image, BindableProperty<Color> property)
         {
             if (image == null || property == null)
+            {
                 return;
+            }
 
             image.color = property.Value;
 
@@ -180,7 +194,9 @@ namespace EasyPack.ENekoFramework
         public static void BindSpriteTo(this Image image, BindableProperty<Sprite> property)
         {
             if (image == null || property == null)
+            {
                 return;
+            }
 
             image.sprite = property.Value;
 
@@ -202,7 +218,9 @@ namespace EasyPack.ENekoFramework
         public static void BindActiveTo(this GameObject gameObject, BindableProperty<bool> property)
         {
             if (gameObject == null || property == null)
+            {
                 return;
+            }
 
             gameObject.SetActive(property.Value);
 
@@ -224,7 +242,9 @@ namespace EasyPack.ENekoFramework
         public static void BindBidirectional(this Toggle toggle, BindableProperty<bool> property)
         {
             if (toggle == null || property == null)
+            {
                 return;
+            }
 
             toggle.isOn = property.Value;
 
@@ -255,7 +275,9 @@ namespace EasyPack.ENekoFramework
         public static void BindBidirectional(this InputField inputField, BindableProperty<string> property)
         {
             if (inputField == null || property == null)
+            {
                 return;
+            }
 
             inputField.text = property.Value;
 

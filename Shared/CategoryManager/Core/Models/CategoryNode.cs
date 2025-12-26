@@ -46,7 +46,9 @@ namespace EasyPack.Category
         public CategoryNode(int termId, CategoryNode parentNode = null)
         {
             if (termId < 0)
+            {
                 throw new ArgumentException($"TermId must be >= 0, got {termId}", nameof(termId));
+            }
 
             TermId = termId;
             ParentNode = parentNode;
@@ -65,7 +67,9 @@ namespace EasyPack.Category
         public CategoryNode GetOrCreateChild(int childTermId)
         {
             if (childTermId < 0)
+            {
                 throw new ArgumentException($"ChildTermId must be >= 0, got {childTermId}", nameof(childTermId));
+            }
 
             if (!_children.TryGetValue(childTermId, out CategoryNode child))
             {

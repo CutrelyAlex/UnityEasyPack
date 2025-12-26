@@ -60,7 +60,7 @@ namespace EasyPack.EmeCardSystem
 
             if (state.Entities != null)
             {
-                foreach (var entityDto in state.Entities)
+                foreach (SerializableCategoryManagerState<Card, long>.SerializedEntity entityDto in state.Entities)
                 {
                     if (string.IsNullOrEmpty(entityDto.EntityJson)) continue;
 
@@ -93,11 +93,11 @@ namespace EasyPack.EmeCardSystem
             // 4. Tags
             if (state.Tags != null)
             {
-                foreach (var tagDto in state.Tags)
+                foreach (SerializableCategoryManagerState<Card, long>.SerializedTag tagDto in state.Tags)
                 {
                     if (tagDto.EntityKeyJsons != null)
                     {
-                        foreach (var keyJson in tagDto.EntityKeyJsons)
+                        foreach (string keyJson in tagDto.EntityKeyJsons)
                         {
                             if (long.TryParse(keyJson, out long uid))
                             {
@@ -111,7 +111,7 @@ namespace EasyPack.EmeCardSystem
             // 5. Metadata
             if (state.Metadata != null)
             {
-                foreach (var metaDto in state.Metadata)
+                foreach (SerializableCategoryManagerState<Card, long>.SerializedMetadata metaDto in state.Metadata)
                 {
                     if (long.TryParse(metaDto.EntityKeyJson, out long uid))
                     {
@@ -122,8 +122,9 @@ namespace EasyPack.EmeCardSystem
                             // 注意：CategoryManager.GetMetadata(key) 在未命中时会返回 new()，并不会自动写回 _metadataStore。
                             // 所以这里无论是否命中，都必须在合并后调用 UpdateMetadata 写回。
 
-                            var mergedMetadata = newManager.GetMetadata(uid) ?? new CustomDataCollection();
-                            foreach (var entry in wrapper.Entries)
+                            CustomDataCollection mergedMetadata =
+                                newManager.GetMetadata(uid) ?? new CustomDataCollection();
+                            foreach (CustomDataEntry entry in wrapper.Entries)
                             {
                                 // 使用 SetValue 确保覆盖同名 key，且缓存一致
                                 mergedMetadata.Set(entry.Key, entry.GetValue());
@@ -171,9 +172,10 @@ namespace EasyPack.EmeCardSystem
 
             if (!_cardsById.TryGetValue(id, out var cardList))
             {
-                cardList = new List<Card>();
+                cardList = new();
                 _cardsById[id] = cardList;
             }
+
             cardList.Add(card);
 
             // 恢复位置缓存

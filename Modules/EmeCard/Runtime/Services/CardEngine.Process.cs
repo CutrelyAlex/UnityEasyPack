@@ -47,6 +47,7 @@ namespace EasyPack.EmeCardSystem
         #endregion
 
         #region 对象池与缓存比较器
+
         [ThreadStatic] private static List<(CardRule, HashSet<Card>, CardRuleContext, int)> t_evals;
 
         // 缓存排序比较器
@@ -68,12 +69,16 @@ namespace EasyPack.EmeCardSystem
             var list = t_evals;
             if (list == null)
             {
-                t_evals = new List<(CardRule, HashSet<Card>, CardRuleContext, int)>(capacity);
+                t_evals = new(capacity);
                 return t_evals;
             }
+
             list.Clear();
             if (list.Capacity < capacity)
+            {
                 list.Capacity = capacity;
+            }
+
             return list;
         }
 
@@ -90,7 +95,9 @@ namespace EasyPack.EmeCardSystem
         {
             if (rule == null) throw new ArgumentNullException(nameof(rule));
             if (string.IsNullOrEmpty(rule.EventType))
+            {
                 throw new ArgumentException("Rule must have an EventType", nameof(rule));
+            }
 
             // 分配 RuleUID（如果尚未分配）
             if (rule.RuleUID < 0)
@@ -135,7 +142,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (configures == null) throw new ArgumentNullException(nameof(configures));
 
-            foreach (Action<CardRuleBuilder> configure in configures)
+            foreach (var configure in configures)
             {
                 if (configure != null)
                 {
@@ -185,7 +192,9 @@ namespace EasyPack.EmeCardSystem
                 if (context == null) continue;
 
                 if (!EvaluateRequirements(context, rule.Requirements, out var matched))
+                {
                     continue;
+                }
 
                 evals.Add((rule, matched, context, i));
             }
@@ -203,11 +212,14 @@ namespace EasyPack.EmeCardSystem
         private List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>
             EvaluateRulesParallel(List<CardRule> rules, Card source, ICardEvent evt)
         {
-            var results = new ConcurrentBag<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>();
+            var results =
+                new ConcurrentBag<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>();
 
             var options = new ParallelOptions();
             if (Policy.MaxDegreeOfParallelism > 0)
+            {
                 options.MaxDegreeOfParallelism = Policy.MaxDegreeOfParallelism;
+            }
 
             Parallel.For(0, rules.Count, options, i =>
             {
@@ -231,10 +243,12 @@ namespace EasyPack.EmeCardSystem
         private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements,
                                           out HashSet<Card> matchedAll)
         {
-            matchedAll = new HashSet<Card>();
+            matchedAll = new();
 
             if (requirements == null || requirements.Count == 0)
+            {
                 return true;
+            }
 
             foreach (IRuleRequirement req in requirements)
             {
@@ -253,7 +267,9 @@ namespace EasyPack.EmeCardSystem
                 if (picks is { Count: > 0 })
                 {
                     foreach (Card card in picks)
+                    {
                         matchedAll.Add(card);
+                    }
                 }
             }
 
@@ -272,7 +288,7 @@ namespace EasyPack.EmeCardSystem
             if (matchRoot == null) return null;
 
             // 直接创建新的 CardRuleContext
-            return new CardRuleContext(
+            return new(
                 source,
                 matchRoot,
                 effectRoot,

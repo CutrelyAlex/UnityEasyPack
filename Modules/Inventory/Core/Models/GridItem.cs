@@ -43,7 +43,9 @@ namespace EasyPack.InventorySystem
         public List<(int x, int y)> GetOccupiedCells()
         {
             if (Shape == null || Shape.Count == 0)
+            {
                 return new() { (0, 0) };
+            }
 
             return RotateShape(Shape, Rotation);
         }
@@ -54,7 +56,9 @@ namespace EasyPack.InventorySystem
         private List<(int x, int y)> RotateShape(List<(int x, int y)> shape, RotationAngle angle)
         {
             if (angle == Rotate0)
+            {
                 return new(shape);
+            }
 
             // 计算形状的边界
             int minX = shape.Min(p => p.x);

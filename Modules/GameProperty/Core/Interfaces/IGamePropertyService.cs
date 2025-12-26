@@ -23,7 +23,8 @@ namespace EasyPack.GamePropertySystem
         /// <param name="customData">可选的自定义扩展数据</param>
         /// <exception cref="ArgumentException">属性ID已存在时抛出</exception>
         /// <exception cref="InvalidOperationException">服务未就绪时抛出</exception>
-        void Register(GameProperty property, string category = "Default", PropertyDisplayInfo displayInfo = null, string[] tags = null, CustomData.CustomDataCollection customData = null);
+        void Register(GameProperty property, string category = "Default", PropertyDisplayInfo displayInfo = null,
+                      string[] tags = null, CustomData.CustomDataCollection customData = null);
 
         /// <summary>
         ///     批量注册属性到指定分类

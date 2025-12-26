@@ -55,7 +55,9 @@ namespace EasyPack.InventorySystem
         public ISerializableCondition FromDto(SerializedCondition dto)
         {
             if (dto?.Params == null)
+            {
                 return this;
+            }
 
             // 清空现有内部条件
             Inner = null;
@@ -69,7 +71,7 @@ namespace EasyPack.InventorySystem
                     {
                         var innerDto = JsonUtility.FromJson<SerializedCondition>(p.StringValue);
                         if (innerDto == null || string.IsNullOrEmpty(innerDto.Kind)) continue;
-                        
+
                         var serializer = new ConditionJsonSerializer();
                         string innerJson = JsonUtility.ToJson(innerDto);
                         Inner = serializer.DeserializeFromJson(innerJson);

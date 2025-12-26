@@ -5,7 +5,6 @@ namespace EasyPack.EmeCardSystem
 {
     /// <summary>
     ///     移动卡牌位置效果：将目标卡牌强制移动到指定位置。
-    ///     
     ///     <para>
     ///         <strong>行为说明</strong>：
     ///         <list type="bullet">
@@ -14,7 +13,6 @@ namespace EasyPack.EmeCardSystem
     ///             <item>强制覆盖：原位置的卡牌（若存在）会被移除出位置索引但保留在引擎中</item>
     ///         </list>
     ///     </para>
-    ///     
     /// </summary>
     public class MoveCardToPositionEffect : IRuleEffect, ITargetSelection
     {
@@ -78,7 +76,7 @@ namespace EasyPack.EmeCardSystem
                 if (Filter != CardFilterMode.None && !string.IsNullOrEmpty(FilterValue))
                 {
                     var filtered = TargetSelector.ApplyFilter(matched, Filter, FilterValue);
-                    targets = new List<Card>(filtered);
+                    targets = new(filtered);
                 }
                 else
                 {
@@ -89,7 +87,7 @@ namespace EasyPack.EmeCardSystem
             {
                 // 使用 TargetSelector 选择
                 var selected = TargetSelector.SelectForEffect(this, ctx);
-                targets = new List<Card>(selected);
+                targets = new(selected);
             }
 
             if (targets == null || targets.Count == 0) return;

@@ -56,19 +56,27 @@ namespace EasyPack.InventorySystem
         public bool CheckCondition(IItem item)
         {
             if (item?.CustomData == null)
+            {
                 return false;
+            }
 
             CustomDataEntry entry = item.CustomData.FirstOrDefault(e => e.Key == AttributeName);
             if (ComparisonType == AttributeComparisonType.Exists)
+            {
                 return entry != null;
+            }
 
             if (entry == null)
+            {
                 return false;
+            }
 
             object actualValue = entry.GetValue();
 
             if (actualValue == null)
+            {
                 return AttributeValue == null;
+            }
 
             return ComparisonType switch
             {
@@ -87,22 +95,30 @@ namespace EasyPack.InventorySystem
         private int CompareNumeric(object value1, object value2)
         {
             if (value1 == null || value2 == null)
+            {
                 return 0;
+            }
 
             if (value1 is IComparable comparable1 && value2 is IComparable comparable2)
             {
                 try
                 {
                     if (value1.GetType() == value2.GetType())
+                    {
                         return comparable1.CompareTo(comparable2);
+                    }
 
                     if (decimal.TryParse(value1.ToString(), out decimal num1) &&
                         decimal.TryParse(value2.ToString(), out decimal num2))
+                    {
                         return num1.CompareTo(num2);
+                    }
 
                     if (double.TryParse(value1.ToString(), out double d1) &&
                         double.TryParse(value2.ToString(), out double d2))
+                    {
                         return d1.CompareTo(d2);
+                    }
                 }
                 catch
                 {
@@ -116,17 +132,23 @@ namespace EasyPack.InventorySystem
         private bool CompareContains(object container, object value)
         {
             if (container == null || value == null)
+            {
                 return false;
+            }
 
             if (container is string containerStr && value is string valueStr)
+            {
                 return containerStr.Contains(valueStr);
+            }
 
             if (container is IEnumerable enumerable and not string)
             {
                 foreach (object item in enumerable)
                 {
                     if (item != null && item.Equals(value))
+                    {
                         return true;
+                    }
                 }
             }
 

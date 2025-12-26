@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using EasyPack.Architecture;
+using EasyPack.CustomData;
 using UnityEngine;
 
 namespace EasyPack.GamePropertySystem.Example
@@ -37,7 +38,8 @@ namespace EasyPack.GamePropertySystem.Example
 
         private void CleanupExampleData()
         {
-            string[] exampleIds = {
+            string[] exampleIds =
+            {
                 "hp", "hpRegen", "mp", "mpRegen", "strength", "intelligence", "hp_tag", "mp_tag", "level_tag",
                 "tempBuff", "hp_comb", "mp_comb", "attack_comb", "defense_comb", "crit_wild", "critDamage_wild",
                 "armor_wild", "magicResist_wild",
@@ -220,12 +222,9 @@ namespace EasyPack.GamePropertySystem.Example
             foreach ((string id, float value, string displayName, string icon, int order) in uiProps)
             {
                 var property = new GameProperty(id, value);
-                var metadata = new PropertyDisplayInfo
-                {
-                    DisplayName = displayName, IconPath = icon
-                };
+                var metadata = new PropertyDisplayInfo { DisplayName = displayName, IconPath = icon };
 
-                var tags = new[] { "displayInUI" };
+                string[] tags = new[] { "displayInUI" };
                 var customData = new CustomData.CustomDataCollection();
                 customData.Set("sortOrder", order);
 
@@ -237,7 +236,7 @@ namespace EasyPack.GamePropertySystem.Example
             Debug.Log("UI面板生成:");
             foreach (GameProperty prop in displayProps.OrderBy(p =>
                      {
-                         var customData = _manager.GetCustomData(p.ID);
+                         CustomDataCollection customData = _manager.GetCustomData(p.ID);
                          return customData?.Get<int>("sortOrder") ?? 999;
                      }))
             {

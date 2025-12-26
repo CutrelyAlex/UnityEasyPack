@@ -266,7 +266,9 @@ namespace EasyPack.BuffSystem
         public BuffService IncreaseBuffStacks(Buff buff, int stack = 1)
         {
             if (buff.CurrentStacks >= buff.BuffData.MaxStacks)
+            {
                 return this;
+            }
 
             buff.CurrentStacks += stack;
             buff.CurrentStacks = Mathf.Min(buff.CurrentStacks, buff.BuffData.MaxStacks);
@@ -286,7 +288,9 @@ namespace EasyPack.BuffSystem
         public BuffService DecreaseBuffStacks(Buff buff, int stack = 1)
         {
             if (buff == null || stack <= 0)
+            {
                 return this;
+            }
 
             // 先减少堆叠数
             buff.CurrentStacks -= stack;
@@ -309,7 +313,9 @@ namespace EasyPack.BuffSystem
         public void RemoveBuff(Buff buff)
         {
             if (buff == null)
+            {
                 return;
+            }
 
             switch (buff.BuffData.BuffRemoveStrategy)
             {
@@ -332,7 +338,9 @@ namespace EasyPack.BuffSystem
         public BuffService QueueBuffForRemoval(Buff buff)
         {
             if (buff == null)
+            {
                 return this;
+            }
 
             _buffsToRemove.Add(buff);
             ProcessBuffRemovals();
@@ -374,7 +382,7 @@ namespace EasyPack.BuffSystem
                 foreach (Buff t in buffs)
                 {
                     if (t.BuffData.ID != buffID) continue;
-                    
+
                     buff = t;
                     break;
                 }
@@ -394,7 +402,9 @@ namespace EasyPack.BuffSystem
                 foreach (Buff t in buffs)
                 {
                     if (t.BuffData.HasTag(tag))
+                    {
                         _buffsToRemove.Add(t);
+                    }
                 }
 
                 ProcessBuffRemovals();
@@ -408,7 +418,9 @@ namespace EasyPack.BuffSystem
                 foreach (Buff t in buffs)
                 {
                     if (t.BuffData.InLayer(layer))
+                    {
                         _buffsToRemove.Add(t);
+                    }
                 }
 
                 ProcessBuffRemovals();
@@ -480,7 +492,9 @@ namespace EasyPack.BuffSystem
         private void ProcessBuffRemovals()
         {
             if (_buffsToRemove.Count == 0)
+            {
                 return;
+            }
 
             // 执行移除回调
             foreach (Buff buff in _buffsToRemove)
@@ -578,7 +592,9 @@ namespace EasyPack.BuffSystem
         private void BatchRemoveFromList(List<Buff> list, Dictionary<Buff, int> positions, HashSet<Buff> itemsToRemove)
         {
             if (list.Count == 0 || itemsToRemove.Count == 0)
+            {
                 return;
+            }
 
             _removalIndices.Clear();
 
@@ -586,11 +602,15 @@ namespace EasyPack.BuffSystem
             foreach (Buff item in itemsToRemove)
             {
                 if (positions.TryGetValue(item, out int index))
+                {
                     _removalIndices.Add(index);
+                }
             }
 
             if (_removalIndices.Count == 0)
+            {
                 return;
+            }
 
             // 从高到低排序索引，避免移除时索引变化
             _removalIndices.Sort((a, b) => b.CompareTo(a));
@@ -641,13 +661,18 @@ namespace EasyPack.BuffSystem
         public bool ContainsBuff(object target, string buffID)
         {
             if (target == null || string.IsNullOrEmpty(buffID))
+            {
                 return false;
+            }
+
             if (_targetToBuffs.TryGetValue(target, out var buffs))
             {
                 foreach (Buff t in buffs)
                 {
                     if (t.BuffData.ID == buffID)
+                    {
                         return true;
+                    }
                 }
             }
 
@@ -657,13 +682,18 @@ namespace EasyPack.BuffSystem
         public Buff GetBuff(object target, string buffID)
         {
             if (target == null || string.IsNullOrEmpty(buffID))
+            {
                 return null;
+            }
+
             if (_targetToBuffs.TryGetValue(target, out var buffs))
             {
                 foreach (Buff t in buffs)
                 {
                     if (t.BuffData.ID == buffID)
+                    {
                         return t;
+                    }
                 }
             }
 
@@ -673,7 +703,9 @@ namespace EasyPack.BuffSystem
         public List<Buff> GetTargetBuffs(object target)
         {
             if (target == null)
+            {
                 return new();
+            }
 
             if (_targetToBuffs.TryGetValue(target, out var buffs)) return new(buffs);
 
@@ -683,7 +715,9 @@ namespace EasyPack.BuffSystem
         public List<Buff> GetBuffsByTag(object target, string tag)
         {
             if (target == null || string.IsNullOrEmpty(tag))
+            {
                 return new();
+            }
 
             if (_targetToBuffs.TryGetValue(target, out var buffs))
             {
@@ -691,7 +725,9 @@ namespace EasyPack.BuffSystem
                 foreach (Buff t in buffs)
                 {
                     if (t.BuffData.HasTag(tag))
+                    {
                         result.Add(t);
+                    }
                 }
 
                 return result;
@@ -703,7 +739,9 @@ namespace EasyPack.BuffSystem
         public List<Buff> GetBuffsByLayer(object target, string layer)
         {
             if (target == null || string.IsNullOrEmpty(layer))
+            {
                 return new();
+            }
 
             if (_targetToBuffs.TryGetValue(target, out var buffs))
             {
@@ -711,7 +749,9 @@ namespace EasyPack.BuffSystem
                 foreach (Buff t in buffs)
                 {
                     if (t.BuffData.InLayer(layer))
+                    {
                         result.Add(t);
+                    }
                 }
 
                 return result;
@@ -763,7 +803,9 @@ namespace EasyPack.BuffSystem
         {
             // 暂停时跳过更新
             if (State != ServiceLifecycleState.Ready)
+            {
                 return;
+            }
 
             _removedBuffs.Clear();
             _triggeredBuffs.Clear();
@@ -866,7 +908,9 @@ namespace EasyPack.BuffSystem
                                       params object[] parameters)
         {
             if (buff?.BuffData?.BuffModules?.Count == 0)
+            {
                 return;
+            }
 
             // 筛选需要执行的模块
             _moduleCache.Clear();
@@ -874,7 +918,9 @@ namespace EasyPack.BuffSystem
             foreach (BuffModule t in modules)
             {
                 if (t.ShouldExecute(callBackType, customCallbackName))
+                {
                     _moduleCache.Add(t);
+                }
             }
 
             // 按优先级插入排序

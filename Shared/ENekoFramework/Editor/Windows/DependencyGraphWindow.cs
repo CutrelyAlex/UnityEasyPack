@@ -123,7 +123,9 @@ namespace EasyPack.ENekoFramework.Editor
 
             var services = ServiceInspector.GetAllServices();
             if (services == null || services.Count == 0)
+            {
                 return;
+            }
 
             var serviceNodes = new Dictionary<Type, ServiceNode>();
 
@@ -140,7 +142,9 @@ namespace EasyPack.ENekoFramework.Editor
             {
                 var dependencies = ServiceInspector.GetServiceDependencies(service.ServiceType);
                 if (dependencies == null)
+                {
                     continue;
+                }
 
                 foreach (Edge edge in from depType in dependencies
                                       where serviceNodes.ContainsKey(service.ServiceType) &&
@@ -164,7 +168,9 @@ namespace EasyPack.ENekoFramework.Editor
         {
             var serviceNodes = nodes.ToList().Cast<ServiceNode>().ToList();
             if (serviceNodes.Count == 0)
+            {
                 return;
+            }
 
             // 简单的层次布局算法
             var layers = CalculateLayers(serviceNodes);
@@ -221,7 +227,9 @@ namespace EasyPack.ENekoFramework.Editor
 
             if (layer0.Count == 0)
                 // 如果所有节点都有依赖（可能是循环依赖），全部放在第一层
+            {
                 layer0.AddRange(serviceNodes);
+            }
 
             layers.Add(layer0);
             foreach (ServiceNode node in layer0)
@@ -241,7 +249,9 @@ namespace EasyPack.ENekoFramework.Editor
                 foreach (ServiceNode node in serviceNodes)
                 {
                     if (processed.Contains(node))
+                    {
                         continue;
+                    }
 
                     var deps = ServiceInspector.GetServiceDependencies(node.ServiceType);
                     if (deps == null)
@@ -268,7 +278,9 @@ namespace EasyPack.ENekoFramework.Editor
                     foreach (ServiceNode node in serviceNodes)
                     {
                         if (!processed.Contains(node))
+                        {
                             nextLayer.Add(node);
+                        }
                     }
                 }
 

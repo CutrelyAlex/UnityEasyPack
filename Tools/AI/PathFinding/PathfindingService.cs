@@ -54,7 +54,9 @@ namespace EasyPack.Tools.PathFinding
                 foreach (Tilemap tm in fromTilemaps)
                 {
                     if (tm != null && !globalTilemaps.Contains(tm))
+                    {
                         globalTilemaps.Add(tm);
+                    }
                 }
             }
 
@@ -73,9 +75,13 @@ namespace EasyPack.Tools.PathFinding
             if (globalTilemaps.Count == 0) CollectFromGridsIfAny(globalGrids, globalTilemaps);
 
             if (globalTilemaps.Count > 0)
+            {
                 BuildUnifiedMapInternal(globalTilemaps);
+            }
             else
+            {
                 Debug.LogWarning("[PathfindingService] 没有可用 Tilemap 重建。");
+            }
         }
 
         private void CollectFromGridsIfAny(List<Grid> grids, List<Tilemap> outList)
@@ -88,7 +94,9 @@ namespace EasyPack.Tools.PathFinding
                 foreach (Tilemap tm in tms)
                 {
                     if (tm != null && !outList.Contains(tm))
+                    {
                         outList.Add(tm);
+                    }
                 }
             }
         }

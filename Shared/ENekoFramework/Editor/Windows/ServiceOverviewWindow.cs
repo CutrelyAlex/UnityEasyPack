@@ -136,7 +136,9 @@ namespace EasyPack.ENekoFramework.Editor
 
             EditorGUILayout.BeginHorizontal(GUILayout.Width(100));
             if (_isRefreshing)
+            {
                 GUILayout.Label("刷新中...", EditorStyles.toolbarButton, GUILayout.ExpandWidth(true));
+            }
             else
             {
                 _autoRefresh = GUILayout.Toggle(_autoRefresh, "自动刷新", EditorStyles.toolbarButton,
@@ -150,7 +152,9 @@ namespace EasyPack.ENekoFramework.Editor
             bool newMonitoringState =
                 GUILayout.Toggle(monitoringEnabled, "启用监控", EditorStyles.toolbarButton, GUILayout.Width(80));
             if (newMonitoringState != monitoringEnabled)
+            {
                 EditorMonitoringConfig.EnableServiceMonitoring = newMonitoringState;
+            }
 
             GUILayout.FlexibleSpace();
 
@@ -177,7 +181,9 @@ namespace EasyPack.ENekoFramework.Editor
                 }
             }
             else
+            {
                 EditorGUILayout.HelpBox("未发现匹配的服务", MessageType.Info);
+            }
 
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
@@ -190,7 +196,9 @@ namespace EasyPack.ENekoFramework.Editor
             for (int i = 0; i < _architectureNames.Count; i++)
             {
                 if (_architectureFilters[i])
+                {
                     currentSelectedArchitectures.Add(_architectureNames[i]);
+                }
             }
 
             bool filterChanged = !_filterCacheValid ||
@@ -319,7 +327,9 @@ namespace EasyPack.ENekoFramework.Editor
                 EditorGUILayout.LabelField("状态", _selectedService.State.ToString());
 
                 if (_selectedService.RegisteredAt != default)
+                {
                     EditorGUILayout.LabelField("注册时间", _selectedService.RegisteredAt.ToString("yyyy-MM-dd HH:mm:ss"));
+                }
 
                 if (_selectedService.LastAccessedAt.HasValue && _selectedService.LastAccessedAt.Value != default)
                 {
@@ -360,7 +370,9 @@ namespace EasyPack.ENekoFramework.Editor
 
                 // 检查循环依赖
                 if (ServiceInspector.HasCircularDependency(_selectedService.ServiceType))
+                {
                     EditorGUILayout.HelpBox("⚠️ 检测到循环依赖！", MessageType.Warning);
+                }
             }
             else
             {
@@ -417,7 +429,9 @@ namespace EasyPack.ENekoFramework.Editor
                             // 如果当前选择的服务不在新列表中，清除选择
                             if (_selectedService != null &&
                                 _services.All(s => s.ServiceType != _selectedService.ServiceType))
+                            {
                                 _selectedService = null;
+                            }
                         }
 
                         _isRefreshing = false;

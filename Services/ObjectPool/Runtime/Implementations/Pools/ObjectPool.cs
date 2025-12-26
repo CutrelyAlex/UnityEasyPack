@@ -35,10 +35,14 @@ namespace EasyPack.ObjectPool
         public ObjectPool(Func<T> factory, Action<T> cleanup = null, int maxCapacity = 64)
         {
             if (maxCapacity <= 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(maxCapacity), "最大容量必须大于0");
+            }
 
             if (factory == null)
+            {
                 throw new ArgumentNullException(nameof(factory));
+            }
 
             MaxCapacity = maxCapacity;
 
@@ -67,7 +71,9 @@ namespace EasyPack.ObjectPool
         public void Return(T obj)
         {
             if (obj == null)
+            {
                 return;
+            }
 
             _pool.Release(obj);
         }

@@ -28,7 +28,9 @@ namespace EasyPack.InventorySystem
         public SerializedCondition ToSerializable(IItemCondition condition)
         {
             if (condition == null)
+            {
                 return null;
+            }
 
             if (condition is not ISerializableCondition serializableCondition)
             {
@@ -87,7 +89,9 @@ namespace EasyPack.InventorySystem
         public SerializedCondition FromJson(string json)
         {
             if (string.IsNullOrEmpty(json))
+            {
                 return null;
+            }
 
             try
             {

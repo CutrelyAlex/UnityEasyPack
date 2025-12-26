@@ -47,8 +47,7 @@ namespace EasyPack.GamePropertySystem
 
             var dto = new PropertyManagerDTO
             {
-                Properties = propertiesList.ToArray(),
-                PropertyDisplayInfo = propertyDisplayInfoList.ToArray()
+                Properties = propertiesList.ToArray(), PropertyDisplayInfo = propertyDisplayInfoList.ToArray(),
             };
 
             // 序列化分类系统状态
@@ -76,7 +75,8 @@ namespace EasyPack.GamePropertySystem
             Task.Run(async () => await manager.InitializeAsync()).Wait();
 
             // 1. 恢复分类系统状态
-            if (dto.CategoryState != null && manager._categoryManager is CategoryManager<GameProperty, long> concreteManager)
+            if (dto.CategoryState != null &&
+                manager._categoryManager is CategoryManager<GameProperty, long> concreteManager)
             {
                 var restoredManager = _categorySerializer.FromSerializable(dto.CategoryState);
                 if (manager._categoryManager is IDisposable disposable) disposable.Dispose();
@@ -94,10 +94,11 @@ namespace EasyPack.GamePropertySystem
                     PropertyDisplayInfo propertyDisplayInfo = null;
                     if (dto.PropertyDisplayInfo != null)
                     {
-                        PropertyDisplayInfoEntry propertyDisplayInfoEntry = dto.PropertyDisplayInfo.FirstOrDefault(m => m.PropertyID == entry.ID);
+                        PropertyDisplayInfoEntry propertyDisplayInfoEntry =
+                            dto.PropertyDisplayInfo.FirstOrDefault(m => m.PropertyID == entry.ID);
                         if (!string.IsNullOrEmpty(propertyDisplayInfoEntry.PropertyID))
                         {
-                            propertyDisplayInfo = new PropertyDisplayInfo
+                            propertyDisplayInfo = new()
                             {
                                 DisplayName = propertyDisplayInfoEntry.DisplayName,
                                 Description = propertyDisplayInfoEntry.Description,

@@ -143,9 +143,13 @@ namespace EasyPack.ENekoFramework.Editor
 
             EditorGUILayout.BeginHorizontal(GUILayout.Width(80));
             if (_isRefreshing)
+            {
                 GUILayout.Label("刷新中...", EditorStyles.toolbarButton, GUILayout.ExpandWidth(true));
+            }
             else
+            {
                 GUILayout.Label("", EditorStyles.toolbarButton, GUILayout.ExpandWidth(true));
+            }
 
             EditorGUILayout.EndHorizontal();
 
@@ -160,7 +164,9 @@ namespace EasyPack.ENekoFramework.Editor
                 float newInterval = EditorGUILayout.FloatField(_refreshInterval, EditorStyles.toolbarTextField,
                     GUILayout.Width(40));
                 if (!Mathf.Approximately(newInterval, _refreshInterval))
+                {
                     _refreshInterval = Mathf.Max(0.1f, newInterval); // 最小0.1秒
+                }
 
                 GUILayout.Label("秒", EditorStyles.toolbarButton, GUILayout.Width(20));
             }
@@ -170,7 +176,9 @@ namespace EasyPack.ENekoFramework.Editor
             bool newMonitoringState =
                 GUILayout.Toggle(monitoringEnabled, "启用监控", EditorStyles.toolbarButton, GUILayout.Width(80));
             if (newMonitoringState != monitoringEnabled)
+            {
                 EditorMonitoringConfig.EnableCommandMonitoring = newMonitoringState;
+            }
 
             GUILayout.FlexibleSpace();
 
@@ -207,7 +215,9 @@ namespace EasyPack.ENekoFramework.Editor
                 }
             }
             else
+            {
                 EditorGUILayout.HelpBox("暂无匹配的命令记录", MessageType.Info);
+            }
 
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
@@ -220,7 +230,9 @@ namespace EasyPack.ENekoFramework.Editor
             for (int i = 0; i < _architectureNames.Count; i++)
             {
                 if (_architectureFilters[i])
+                {
                     currentSelectedArchitectures.Add(_architectureNames[i]);
+                }
             }
 
             bool filterChanged = !_filterCacheValid ||
@@ -337,7 +349,9 @@ namespace EasyPack.ENekoFramework.Editor
             // 时间信息
             string timeText = command.StartedAt.ToString("HH:mm:ss");
             if (command.CompletedAt.HasValue)
+            {
                 timeText += $" ({command.ExecutionTimeMs:F2}ms)";
+            }
             else if (command.Status == CommandStatus.Running) timeText += " (运行中...)";
 
             EditorGUILayout.LabelField(timeText, EditorStyles.miniLabel);
@@ -448,7 +462,9 @@ namespace EasyPack.ENekoFramework.Editor
         private void DrawTimeline()
         {
             if (_commandHistory == null || _commandHistory.Count == 0)
+            {
                 return;
+            }
 
             EditorGUILayout.LabelField("执行时间线", EditorStyles.boldLabel);
 
@@ -463,7 +479,9 @@ namespace EasyPack.ENekoFramework.Editor
             double timeRange = (maxTime - minTime).TotalSeconds;
 
             if (timeRange <= 0)
+            {
                 timeRange = 1;
+            }
 
             // 绘制每个命令的时间条
             foreach (CommandDescriptor cmd in _commandHistory)
@@ -474,7 +492,9 @@ namespace EasyPack.ENekoFramework.Editor
                 float width = endX - startX;
 
                 if (width < 2)
+                {
                     width = 2;
+                }
 
                 var barRect = new Rect(startX, rect.y + 10, width, rect.height - 20);
                 Color color = GetStatusColor(cmd.Status);
@@ -525,7 +545,9 @@ namespace EasyPack.ENekoFramework.Editor
                             // 如果当前选择的命令不在新列表中，清除选择
                             if (_selectedCommand != null &&
                                 _commandHistory.All(c => c.ExecutionId != _selectedCommand.ExecutionId))
+                            {
                                 _selectedCommand = null;
+                            }
                         }
 
                         _isRefreshing = false;
@@ -568,7 +590,7 @@ namespace EasyPack.ENekoFramework.Editor
                     BindingFlags.Public);
 
                 if (dispatcherProp == null) continue;
-                
+
                 var dispatcher = dispatcherProp.GetValue(arch) as CommandDispatcher;
                 var history = dispatcher?.GetCommandHistory();
                 if (history != null) allHistories.AddRange(history);

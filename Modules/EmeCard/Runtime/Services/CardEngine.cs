@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using EasyPack.Architecture;
 using EasyPack.Category;
+using EasyPack.CustomData;
 using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
@@ -285,12 +286,13 @@ namespace EasyPack.EmeCardSystem
 
                     registration = registration.WithTags(tag);
                 }
+
                 // 清空临时标签列表
                 card.PendingExtraTags = null;
             }
 
             // 应用默认的metadata
-            var defaultMetaData = card.Data?.DefaultMetaData;
+            CustomDataCollection defaultMetaData = card.Data?.DefaultMetaData;
             if (defaultMetaData != null)
             {
                 registration = registration.WithMetadata(defaultMetaData);
@@ -300,7 +302,8 @@ namespace EasyPack.EmeCardSystem
             OperationResult result = registration.Complete();
             if (!result.IsSuccess)
             {
-                Debug.LogWarning($"[CardEngine] CategoryManager 注册失败: Card UID={card.UID}, Id={card.Id}#{card.Index}, Error={result.ErrorMessage}");
+                Debug.LogWarning(
+                    $"[CardEngine] CategoryManager 注册失败: Card UID={card.UID}, Id={card.Id}#{card.Index}, Error={result.ErrorMessage}");
             }
         }
 

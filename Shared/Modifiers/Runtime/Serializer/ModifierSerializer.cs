@@ -88,7 +88,7 @@ namespace EasyPack.Modifiers
         public SerializableModifier ToSerializable(FloatModifier obj)
         {
             if (obj == null) return null;
-            return new SerializableModifier
+            return new()
             {
                 Type = obj.Type, Priority = obj.Priority, IsRangeModifier = false, FloatValue = obj.Value,
             };
@@ -133,7 +133,7 @@ namespace EasyPack.Modifiers
         public SerializableModifier ToSerializable(RangeModifier obj)
         {
             if (obj == null) return null;
-            return new SerializableModifier
+            return new()
             {
                 Type = obj.Type, Priority = obj.Priority, IsRangeModifier = true, RangeValue = obj.Value,
             };

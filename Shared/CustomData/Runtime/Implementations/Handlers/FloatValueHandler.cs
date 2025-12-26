@@ -20,7 +20,10 @@ namespace EasyPack.CustomData
         {
             if (!float.TryParse(data, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture,
                     out float value))
+            {
                 return false;
+            }
+
             entry.FloatValue = value;
             entry.Type = CustomDataType.Float;
             ClearOtherValues(entry);

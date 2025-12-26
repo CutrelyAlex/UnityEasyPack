@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EasyPack.GamePropertySystem;
 
 namespace EasyPack.EmeCardSystem
 {
@@ -19,11 +20,13 @@ namespace EasyPack.EmeCardSystem
             TargetScope.Matched, CardFilterMode.ById, id, take);
 
         /// <summary>移除容器子卡中指定标签的卡牌</summary>
-        public CardRuleBuilder DoRemoveMatchRootChildByTag(string tag, int? take = null) => DoRemove(SelectionRoot.MatchRoot,
+        public CardRuleBuilder DoRemoveMatchRootChildByTag(string tag, int? take = null) => DoRemove(
+            SelectionRoot.MatchRoot,
             TargetScope.Children, CardFilterMode.ByTag, tag, take);
 
         /// <summary>移除容器子卡中指定ID的卡牌</summary>
-        public CardRuleBuilder DoRemoveMatchRootChildById(string id, int? take = null) => DoRemove(SelectionRoot.MatchRoot,
+        public CardRuleBuilder DoRemoveMatchRootChildById(string id, int? take = null) => DoRemove(
+            SelectionRoot.MatchRoot,
             TargetScope.Children, CardFilterMode.ById, id, take);
 
         /// <summary>给匹配结果添加标签</summary>
@@ -48,8 +51,9 @@ namespace EasyPack.EmeCardSystem
                 take);
 
         /// <summary>给容器子卡中指定ID的卡牌添加标签</summary>
-        public CardRuleBuilder DoAddTagToMatchRootChildById(string targetId, string newTag, int? take = null) => DoAddTag(newTag,
-            SelectionRoot.MatchRoot, TargetScope.Children, CardFilterMode.ById, targetId, take);
+        public CardRuleBuilder DoAddTagToMatchRootChildById(string targetId, string newTag, int? take = null) =>
+            DoAddTag(newTag,
+                SelectionRoot.MatchRoot, TargetScope.Children, CardFilterMode.ById, targetId, take);
 
         /// <summary>给源卡牌自身移除标签</summary>
         public CardRuleBuilder DoRemoveTagFromSource(string tag)
@@ -69,16 +73,16 @@ namespace EasyPack.EmeCardSystem
             string propertyName,
             float value,
             ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase,
-            Func<CardRuleContext,float> valueFunc=null,
-            int? take = null)=>DoModify(propertyName,value, mode, SelectionRoot.MatchRoot, TargetScope.Matched,
-                CardFilterMode.ByTag, tag,valueFunc, take);
+            Func<CardRuleContext, float> valueFunc = null,
+            int? take = null) => DoModify(propertyName, value, mode, SelectionRoot.MatchRoot, TargetScope.Matched,
+            CardFilterMode.ByTag, tag, valueFunc, take);
 
         /// <summary>修改匹配结果的属性</summary>
         public CardRuleBuilder DoModifyMatched(
             string propertyName,
             float value,
             ModifyPropertyEffect.Mode mode = ModifyPropertyEffect.Mode.AddToBase) =>
-            DoModify(propertyName,value, mode);
+            DoModify(propertyName, value, mode);
 
         /// <summary>批量触发匹配卡牌的自定义事件</summary>
         public CardRuleBuilder DoBatchCustom(string eventId, Func<CardRuleContext, object> data = null,
@@ -129,6 +133,7 @@ namespace EasyPack.EmeCardSystem
                         if (take.HasValue && count >= take.Value) break;
                     }
                 }
+
                 foreach (Card card in toRemove)
                 {
                     ctx.EffectRoot.RemoveChild(card);
@@ -153,6 +158,7 @@ namespace EasyPack.EmeCardSystem
                         if (take.HasValue && count >= take.Value) break;
                     }
                 }
+
                 foreach (Card card in toRemove)
                 {
                     ctx.EffectRoot.RemoveChild(card);
@@ -214,7 +220,7 @@ namespace EasyPack.EmeCardSystem
                 {
                     if (child.HasTag(tag))
                     {
-                        var prop = child.GetProperty(propertyName);
+                        GameProperty prop = child.GetProperty(propertyName);
                         if (prop != null)
                         {
                             switch (mode)
@@ -228,6 +234,7 @@ namespace EasyPack.EmeCardSystem
                                 // AddModifier/RemoveModifier 需要 IModifier，请使用 DoModify 完整版本
                             }
                         }
+
                         count++;
                         if (take.HasValue && count >= take.Value) break;
                     }
@@ -258,7 +265,7 @@ namespace EasyPack.EmeCardSystem
             return DoInvoke((ctx, matched) =>
             {
                 if (ctx.EffectRoot == null || ctx.Engine == null) return;
-                foreach (var (cardId, count) in cards)
+                foreach ((string cardId, int count) in cards)
                 {
                     for (int i = 0; i < count; i++)
                     {

@@ -43,7 +43,9 @@ namespace EasyPack.BuffSystem
         private GameProperty GetProperty()
         {
             if (_cachedProperty == null && PropertyManagerInterface != null)
+            {
                 _cachedProperty = PropertyManagerInterface.Get(PropertyID);
+            }
 
             return _cachedProperty;
         }
@@ -116,7 +118,9 @@ namespace EasyPack.BuffSystem
         {
             GameProperty property = GetProperty();
             if (property == null)
+            {
                 return;
+            }
 
             IModifier newModifier = Modifier.Clone();
 
@@ -133,7 +137,9 @@ namespace EasyPack.BuffSystem
         {
             GameProperty property = GetProperty();
             if (property == null || _appliedModifiers.Count == 0)
+            {
                 return;
+            }
 
             // 移除最后添加的修饰符
             IModifier lastModifier = _appliedModifiers[^1];
@@ -148,7 +154,9 @@ namespace EasyPack.BuffSystem
         {
             GameProperty property = GetProperty();
             if (property == null || _appliedModifiers.Count == 0)
+            {
                 return;
+            }
 
             // 逆序移除所有已应用的修饰符
             for (int i = _appliedModifiers.Count - 1; i >= 0; i--)

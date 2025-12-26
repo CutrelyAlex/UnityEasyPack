@@ -34,10 +34,7 @@ namespace EasyPack.Serialization
 
         public Type TargetType { get; }
 
-        public string SerializeToJson(object obj)
-        {
-            return obj == null ? null : JsonUtility.ToJson(obj);
-        }
+        public string SerializeToJson(object obj) => obj == null ? null : JsonUtility.ToJson(obj);
 
         public object DeserializeFromJson(string json)
         {
@@ -142,7 +139,9 @@ namespace EasyPack.Serialization
                 foreach (Type interfaceType in type.GetInterfaces())
                 {
                     if (_serializers.TryGetValue(interfaceType, out serializer))
+                    {
                         return serializer;
+                    }
                 }
 
                 // 4. 如果没有注册的序列化器，检查是否有 [Serializable] 特性

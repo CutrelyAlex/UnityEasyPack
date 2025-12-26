@@ -146,9 +146,13 @@ namespace EasyPack.InventorySystem
             OnItemTotalCountChanged?.Invoke(itemId, itemRef, oldTotal, newTotal);
 
             if (newTotal > 0)
+            {
                 _itemTotalCounts[itemId] = newTotal;
+            }
             else
+            {
                 _itemTotalCounts.Remove(itemId);
+            }
         }
 
         #endregion
@@ -179,7 +183,9 @@ namespace EasyPack.InventorySystem
         protected void EndBatchUpdate()
         {
             if (_batchDepth <= 0)
+            {
                 return;
+            }
 
             _batchDepth--;
             if (_batchDepth == 0)
@@ -214,13 +220,19 @@ namespace EasyPack.InventorySystem
             get
             {
                 if (Capacity < 0)
+                {
                     return false;
+                }
 
                 if (_slots.Count < Capacity)
+                {
                     return false;
+                }
 
                 if (_cacheService.GetEmptySlotIndices().Count > 0)
+                {
                     return false;
+                }
 
                 return _notFullStackSlotsCount <= 0;
             }
@@ -242,7 +254,9 @@ namespace EasyPack.InventorySystem
                 foreach (IItemCondition condition in ContainerCondition)
                 {
                     if (!condition.CheckCondition(item))
+                    {
                         return false;
+                    }
                 }
             }
 
@@ -257,10 +271,14 @@ namespace EasyPack.InventorySystem
         protected virtual AddItemResult CanAddItem(IItem item)
         {
             if (item == null)
+            {
                 return AddItemResult.ItemIsNull;
+            }
 
             if (!ValidateItemCondition(item))
+            {
                 return AddItemResult.ItemConditionNotMet;
+            }
 
             // 如果容器已满，需要检查是否有可堆叠的槽位
             if (Full)
@@ -278,7 +296,9 @@ namespace EasyPack.InventorySystem
                                 if (slot.IsOccupied && slot.Item.ID == item.ID &&
                                     slot.Item.IsStackable && (slot.Item.MaxStackCount <= 0 ||
                                                               slot.ItemCount < slot.Item.MaxStackCount))
+                                {
                                     return AddItemResult.Success;
+                                }
                             }
                         }
                     }
@@ -309,7 +329,9 @@ namespace EasyPack.InventorySystem
             {
                 if (!s.IsOccupied || s.Item is not { IsStackable: true }) continue;
                 if (s.Item.MaxStackCount <= 0 || s.ItemCount < s.Item.MaxStackCount)
+                {
                     _notFullStackSlotsCount++;
+                }
             }
         }
 
@@ -333,7 +355,9 @@ namespace EasyPack.InventorySystem
         {
             // 数量缓存只更新一次
             if (updates.TotalCountDelta != 0)
+            {
                 _cacheService.UpdateItemCountCache(updates.ItemId, updates.TotalCountDelta);
+            }
 
             // 批量更新槽位索引缓存
             foreach ((int slotIndex, bool isAdding) in updates.SlotIndexUpdates)
@@ -580,13 +604,19 @@ namespace EasyPack.InventorySystem
         private (bool isValid, AddItemResult result) ValidateAddItemRequest(IItem item, int count)
         {
             if (item == null)
+            {
                 return (false, AddItemResult.ItemIsNull);
+            }
 
             if (count <= 0)
+            {
                 return (false, AddItemResult.AddNothingLOL);
+            }
 
             if (!ValidateItemCondition(item))
+            {
                 return (false, AddItemResult.ItemConditionNotMet);
+            }
 
             return (true, AddItemResult.Success);
         }
@@ -601,7 +631,9 @@ namespace EasyPack.InventorySystem
             var affectedSlots = new List<int>();
 
             if (!item.IsStackable)
+            {
                 return (0, affectedSlots, cacheUpdates);
+            }
 
             (int stackedCount, var stackedSlots, var slotChanges) = TryStackItems(item, count);
 
@@ -632,7 +664,9 @@ namespace EasyPack.InventorySystem
             var cacheUpdates = new BatchCacheUpdates(item.ID, item.Type);
 
             if (slotIndex < 0)
+            {
                 return (false, 0, count, cacheUpdates);
+            }
 
             (bool success, int addedCount, int newRemaining) = TryAddToSpecificSlot(item, slotIndex, count);
 
@@ -675,7 +709,10 @@ namespace EasyPack.InventorySystem
                     cacheUpdates.TypeIndexUpdates.Add((emptySlotIndex, true));
 
                     if (remainingCount <= 0)
+                    {
                         break;
+                    }
+
                     continue;
                 }
 
@@ -694,7 +731,10 @@ namespace EasyPack.InventorySystem
                     cacheUpdates.TypeIndexUpdates.Add((newSlotIndex, true));
 
                     if (remainingCount <= 0)
+                    {
                         break;
+                    }
+
                     continue;
                 }
 
@@ -707,7 +747,6 @@ namespace EasyPack.InventorySystem
 
         /// <summary>
         ///     添加指定数量的物品到容器（内部实现，带超出数量返回）
-        /// 
         /// </summary>
         private (AddItemResult result, int actualCount)
             AddItemsWithCount(IItem item, out int exceededCount, int count = 1, int slotIndex = -1)
@@ -783,7 +822,9 @@ namespace EasyPack.InventorySystem
                     {
                         // 指定槽位失败，部分成功时也要应用缓存
                         if (totalAdded > 0)
+                        {
                             ApplyBatchCacheUpdates(aggregatedCacheUpdates);
+                        }
 
                         OnItemAddResult?.Invoke(item, totalAdded > 0 ? totalAdded : count,
                             totalAdded > 0 ? totalAdded : 0,
@@ -844,7 +885,9 @@ namespace EasyPack.InventorySystem
             IItem item, int count, CancellationToken cancellationToken = default)
         {
             if (count > 10000 || _slots.Count > 100000)
+            {
                 return await Task.Run(() => AddItems(item, count), cancellationToken);
+            }
 
             return AddItems(item, count);
         }
@@ -860,7 +903,9 @@ namespace EasyPack.InventorySystem
             var results = new List<(IItem item, AddItemResult result, int addedCount, int exceededCount)>();
 
             if (itemsToAdd == null || itemsToAdd.Count == 0)
+            {
                 return results;
+            }
 
             // 开始批量更新模式
             BeginBatchUpdate();
@@ -895,12 +940,16 @@ namespace EasyPack.InventorySystem
         {
             // 早期退出
             if (remainingCount <= 0 || !item.IsStackable)
+            {
                 return (0, new(0), new(0));
+            }
 
             int maxStack = item.MaxStackCount;
 
             if (maxStack <= 1 || !_cacheService.TryGetItemSlotIndices(item.ID, out var indices) || indices.Count == 0)
+            {
                 return (0, new(0), new(0));
+            }
 
             // 数组池化
             int estimatedSize = Math.Min(indices.Count, 16);
@@ -925,7 +974,9 @@ namespace EasyPack.InventorySystem
 
             if (stackableSlots.Count > 20)
                 // 按可用空间降序排序，优先填满大空间槽位
+            {
                 stackableSlots.Sort((a, b) => b.space.CompareTo(a.space));
+            }
 
             // 堆叠实现
             int stackedCount = 0;
@@ -1134,7 +1185,10 @@ namespace EasyPack.InventorySystem
         public virtual ISlot GetSlot(int index)
         {
             if (index < 0 || index >= _slots.Count)
+            {
                 return null;
+            }
+
             return _slots[index];
         }
 
@@ -1160,11 +1214,15 @@ namespace EasyPack.InventorySystem
         public virtual bool ClearSlot(int slotIndex)
         {
             if (slotIndex < 0 || slotIndex >= _slots.Count)
+            {
                 return false;
+            }
 
             ISlot slot = _slots[slotIndex];
             if (!slot.IsOccupied)
+            {
                 return false;
+            }
 
             IItem item = slot.Item;
             int oldCount = slot.ItemCount;
@@ -1189,7 +1247,9 @@ namespace EasyPack.InventorySystem
             for (int i = 0; i < _slots.Count; i++)
             {
                 if (_slots[i].IsOccupied)
+                {
                     ClearSlot(i);
+                }
             }
         }
 
@@ -1207,7 +1267,9 @@ namespace EasyPack.InventorySystem
         public virtual bool CheckContainerCondition(IItem item)
         {
             if (item == null || ContainerCondition == null || ContainerCondition.Count == 0)
+            {
                 return true;
+            }
 
             return ContainerCondition.All(c => c.CheckCondition(item));
         }

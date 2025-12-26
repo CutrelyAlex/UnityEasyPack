@@ -20,7 +20,7 @@ namespace EasyPack.EmeCardSystem
     {
         void Register(string id, Func<Card> ctor);
         void Register(IReadOnlyDictionary<string, Func<Card>> productionList);
-        
+
         /// <summary>
         ///     基于现有卡牌模板注册一个变体。
         /// </summary>
@@ -61,38 +61,40 @@ namespace EasyPack.EmeCardSystem
             if (string.IsNullOrEmpty(newId)) throw new ArgumentNullException(nameof(newId));
 
             if (!_constructors.TryGetValue(baseId, out var baseCtor))
+            {
                 throw new KeyNotFoundException($"未找到基础卡牌 ID: {baseId}");
+            }
 
             Register(newId, () =>
             {
                 // 1. 调用基础构造器获取原型
-                var baseCard = baseCtor();
-                
+                Card baseCard = baseCtor();
+
                 // 2. 克隆静态数据并应用新 ID
-                var newData = baseCard.Data.Clone(newId);
-                
+                CardData newData = baseCard.Data.Clone(newId);
+
                 // 3. 创建新卡牌实例
                 var newCard = new Card(newData);
-                
+
                 // 4. 复制运行时属性 (GameProperties)
                 if (baseCard.Properties is { Count: > 0 })
                 {
-                    foreach (var prop in baseCard.Properties)
+                    foreach (GameProperty prop in baseCard.Properties)
                     {
                         // 简单复制 ID 和值
-                        newCard.Properties.Add(new GameProperty(prop.ID, prop.GetValue()));
+                        newCard.Properties.Add(new(prop.ID, prop.GetValue()));
                     }
                 }
 
                 // 5. 复制待处理标签 (PendingExtraTags)
                 if (baseCard.PendingExtraTags is { Count: > 0 })
                 {
-                    newCard.PendingExtraTags = new List<string>(baseCard.PendingExtraTags);
+                    newCard.PendingExtraTags = new(baseCard.PendingExtraTags);
                 }
 
                 // 6. 执行自定义微调
                 tweakAction?.Invoke(newCard);
-                
+
                 return newCard;
             });
         }
@@ -128,10 +130,14 @@ namespace EasyPack.EmeCardSystem
         public static void AssignUID(Card card)
         {
             if (card == null)
+            {
                 throw new ArgumentNullException(nameof(card), "卡牌不能为 null");
+            }
 
             if (card.UID != -1)
+            {
                 throw new InvalidOperationException($"卡牌已有 UID {card.UID}，无法重新分配");
+            }
 
             card.UID = AllocateUID();
         }

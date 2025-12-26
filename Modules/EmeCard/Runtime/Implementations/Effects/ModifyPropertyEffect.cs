@@ -109,7 +109,7 @@ namespace EasyPack.EmeCardSystem
                 }
                 else
                 {
-                    targets = new HashSet<Card>(matched);
+                    targets = new(matched);
                 }
 
                 // 应用 Take 限制
@@ -117,12 +117,13 @@ namespace EasyPack.EmeCardSystem
                 {
                     var limited = new HashSet<Card>();
                     int count = 0;
-                    foreach (var card in targets)
+                    foreach (Card card in targets)
                     {
                         if (count >= Take.Value) break;
                         limited.Add(card);
                         count++;
                     }
+
                     targets = limited;
                 }
             }

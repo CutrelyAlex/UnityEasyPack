@@ -79,7 +79,9 @@ namespace EasyPack.InventorySystem
                         {
                             ISlot slot = container.Slots[i];
                             if (slot.IsOccupied && slot.Item?.ID == itemId)
+                            {
                                 results.Add(new(container.ID, i, slot.Item, slot.ItemCount));
+                            }
                         }
                     }
                 }
@@ -163,7 +165,9 @@ namespace EasyPack.InventorySystem
                         {
                             ISlot slot = container.Slots[i];
                             if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
+                            {
                                 results.Add(new(container.ID, i, slot.Item, slot.ItemCount));
+                            }
                         }
                     }
                 }

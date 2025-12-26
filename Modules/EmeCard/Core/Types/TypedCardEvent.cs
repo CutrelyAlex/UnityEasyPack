@@ -75,7 +75,8 @@ namespace EasyPack.EmeCardSystem
         /// <param name="eventId">事件实例 ID（可选，默认使用 eventType）。</param>
         /// <param name="pumpType">泵入何处（可选，默认使用 Normal）。</param>
         /// <exception cref="ArgumentNullException">当 eventType 为 null 时抛出。</exception>
-        public CardEvent(string eventType, TData data, string eventId = null,EEventPumpType pumpType=EEventPumpType.Normal)
+        public CardEvent(string eventType, TData data, string eventId = null,
+                         EEventPumpType pumpType = EEventPumpType.Normal)
         {
             EventType = eventType ?? throw new ArgumentNullException(nameof(eventType));
             EventId = eventId ?? eventType;
@@ -90,7 +91,7 @@ namespace EasyPack.EmeCardSystem
         ///     隐式转换为基础接口。
         /// </summary>
         public static implicit operator CardEvent<object>(CardEvent<TData> evt) =>
-            new(evt.EventType, evt.Data, evt.EventId,evt.PumpType);
+            new(evt.EventType, evt.Data, evt.EventId, evt.PumpType);
     }
 
     /// <summary>
@@ -123,7 +124,10 @@ namespace EasyPack.EmeCardSystem
         public CardEventDefinition(string eventType)
         {
             if (string.IsNullOrEmpty(eventType))
+            {
                 throw new ArgumentNullException(nameof(eventType));
+            }
+
             EventType = eventType;
         }
 

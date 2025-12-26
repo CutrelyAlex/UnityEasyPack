@@ -93,7 +93,9 @@ namespace EasyPack.InventorySystem
                 foreach (SerializedSlot slotDto in dto.Slots)
                 {
                     if (slotDto.Index < 0 || slotDto.Index >= container.Capacity)
+                    {
                         continue;
+                    }
 
                     // 使用注入的序列化服务反序列化
                     var item = _serializationService.DeserializeFromJson<Item>(slotDto.ItemJson);

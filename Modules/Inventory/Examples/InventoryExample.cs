@@ -646,9 +646,13 @@ namespace EasyPack.InventorySystem.Example
             {
                 ISlot slot = container.Slots[i];
                 if (slot.IsOccupied)
+                {
                     Debug.Log($"  [{i}] {slot.Item.Name} x{slot.ItemCount} ({slot.Item.Type})");
+                }
                 else
+                {
                     Debug.Log($"  [{i}] 空");
+                }
             }
         }
     }

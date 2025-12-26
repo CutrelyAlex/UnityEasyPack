@@ -215,14 +215,22 @@ namespace EasyPack.CustomData
         private void RebuildCache()
         {
             if (_keyIndexMap == null)
+            {
                 _keyIndexMap = new(_list.Count);
+            }
             else
+            {
                 _keyIndexMap.Clear();
+            }
 
             if (_entryCache == null)
+            {
                 _entryCache = new(_list.Count);
+            }
             else
+            {
                 _entryCache.Clear();
+            }
 
             // 构建 key -> index 和 key -> entry 映射
             for (int i = 0; i < _list.Count; i++)
@@ -307,14 +315,11 @@ namespace EasyPack.CustomData
             if (key == null) return defaultValue;
             return TryGetValue(key, out T value) ? value : defaultValue;
         }
-        
+
         /// <summary>
         ///     获取指定键的值
         /// </summary>
-        public string GetToString(string key)
-        {
-            return TryGetValue(key, out object value) ? value.ToString() : "null";
-        }
+        public string GetToString(string key) => TryGetValue(key, out object value) ? value.ToString() : "null";
 
         /// <summary>
         ///     获取指定键的值，如果不存在则返回默认值
@@ -351,6 +356,7 @@ namespace EasyPack.CustomData
                 _entryCache[key] = newEntry; // 缓存entry对象
             }
         }
+
         /// <summary>
         ///     设置指定键的值，如果键不存在则添加新条目
         /// </summary>
@@ -559,7 +565,9 @@ namespace EasyPack.CustomData
         public CustomDataCollection Clone()
         {
             if (Count == 0)
+            {
                 return new();
+            }
 
             var cloned = new CustomDataCollection();
             foreach (CustomDataEntry entry in _list)
@@ -669,6 +677,7 @@ namespace EasyPack.CustomData
 
         /// <summary>快速获取 int 值</summary>
         public int GetInt(string id, int defaultValue = 0) => Get(id, defaultValue);
+
         /// <summary>快速获取 long 值</summary>
         public long GetLong(string id, long defaultValue = 0L) => Get(id, defaultValue);
 
@@ -684,6 +693,7 @@ namespace EasyPack.CustomData
         /// <summary>快速获取 Vector2 值</summary>
         public Vector2 GetVector2(string id, Vector2? defaultValue = null) =>
             Get(id, defaultValue ?? Vector2.zero);
+
         /// <summary>快速获取 Vector3 值</summary>
         public Vector3 GetVector3(string id, Vector3? defaultValue = null) =>
             Get(id, defaultValue ?? Vector3.zero);
@@ -707,9 +717,13 @@ namespace EasyPack.CustomData
         public void IfElse<T>(string id, Action<T> onExists, Action onNotExists)
         {
             if (TryGetValue(id, out T value))
+            {
                 onExists?.Invoke(value);
+            }
             else
+            {
                 onNotExists?.Invoke();
+            }
         }
 
         #endregion

@@ -62,7 +62,7 @@ namespace EasyPack.EmeCardSystem
                 if (Filter != CardFilterMode.None && !string.IsNullOrEmpty(FilterValue))
                 {
                     var filtered = TargetSelector.ApplyFilter(targets, Filter, FilterValue);
-                    targets = new HashSet<Card>(filtered);
+                    targets = new(filtered);
                 }
 
                 // 应用 Take 限制
@@ -70,12 +70,13 @@ namespace EasyPack.EmeCardSystem
                 {
                     var limited = new HashSet<Card>();
                     int count = 0;
-                    foreach (var card in targets)
+                    foreach (Card card in targets)
                     {
                         if (count >= Take.Value) break;
                         limited.Add(card);
                         count++;
                     }
+
                     targets = limited;
                 }
             }
@@ -83,7 +84,7 @@ namespace EasyPack.EmeCardSystem
             {
                 // 使用 TargetSelector 选择
                 var selectedList = TargetSelector.SelectForEffect(this, ctx);
-                targets = new HashSet<Card>(selectedList);
+                targets = new(selectedList);
             }
 
             if (targets == null || targets.Count == 0) return;
@@ -92,7 +93,9 @@ namespace EasyPack.EmeCardSystem
             foreach (Card t in targets)
             {
                 if (!string.IsNullOrEmpty(Tag))
+                {
                     t.AddTag(Tag);
+                }
             }
         }
     }

@@ -45,11 +45,19 @@ namespace EasyPack.Category
         {
             // 对于基元类型直接转换
             if (typeof(TKey) == typeof(int))
+            {
                 return key.ToString();
+            }
+
             if (typeof(TKey) == typeof(string))
+            {
                 return (string)(object)key;
+            }
+
             if (typeof(TKey) == typeof(long) || typeof(TKey) == typeof(Guid))
+            {
                 return key.ToString();
+            }
 
             // 其他类型使用 JSON 序列化
             return JsonUtility.ToJson(key);
@@ -61,17 +69,30 @@ namespace EasyPack.Category
         private TKey DeserializeKey(string keyJson)
         {
             if (string.IsNullOrEmpty(keyJson))
+            {
                 return default;
+            }
 
             // 对于基元类型直接转换
             if (typeof(TKey) == typeof(int))
+            {
                 return (TKey)(object)int.Parse(keyJson);
+            }
+
             if (typeof(TKey) == typeof(string))
+            {
                 return (TKey)(object)keyJson;
+            }
+
             if (typeof(TKey) == typeof(long))
+            {
                 return (TKey)(object)long.Parse(keyJson);
+            }
+
             if (typeof(TKey) == typeof(Guid))
+            {
                 return (TKey)(object)Guid.Parse(keyJson);
+            }
 
             // 其他类型使用 JSON 反序列化
             return JsonUtility.FromJson<TKey>(keyJson);
@@ -229,7 +250,7 @@ namespace EasyPack.Category
         /// </summary>
         public string SerializeToJson(CategoryManager<T, TKey> manager)
         {
-            SerializableCategoryManagerState<T, TKey> dto = ToSerializable(manager);
+            var dto = ToSerializable(manager);
             return ToJson(dto);
         }
 
@@ -238,7 +259,7 @@ namespace EasyPack.Category
         /// </summary>
         public CategoryManager<T, TKey> DeserializeFromJson(string json)
         {
-            SerializableCategoryManagerState<T, TKey> dto = FromJson(json);
+            var dto = FromJson(json);
             return FromSerializable(dto);
         }
 

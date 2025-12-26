@@ -199,7 +199,9 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             // 检查饱食度相关状态
             float satiety = Satiety.GetValue();
             if (satiety < 20)
+            {
                 effects.Add("⚠️ 饱食度过低：生命值每日额外减少5点");
+            }
             else if (satiety > 80) effects.Add("⚠️ 饱食度过高：生命值每日额外减少1点");
 
             // 检查SAN值相关状态

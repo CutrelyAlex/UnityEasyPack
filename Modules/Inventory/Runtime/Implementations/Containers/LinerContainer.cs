@@ -35,7 +35,9 @@ namespace EasyPack.InventorySystem
         public bool MoveItemToContainer(int sourceSlotIndex, Container targetContainer)
         {
             if (!ValidateSourceSlot(sourceSlotIndex, out ISlot sourceSlot, out IItem sourceItem, out int sourceCount))
+            {
                 return false;
+            }
 
             return ValidateTargetContainer(targetContainer,
                        sourceItem) &&
@@ -114,11 +116,15 @@ namespace EasyPack.InventorySystem
             sourceCount = 0;
 
             if (sourceSlotIndex < 0 || sourceSlotIndex >= _slots.Count)
+            {
                 return false;
+            }
 
             sourceSlot = _slots[sourceSlotIndex];
             if (!sourceSlot.IsOccupied || sourceSlot.Item == null)
+            {
                 return false;
+            }
 
             sourceItem = sourceSlot.Item;
             sourceCount = sourceSlot.ItemCount;
@@ -135,7 +141,9 @@ namespace EasyPack.InventorySystem
             (AddItemResult result, int addedCount) = targetContainer.AddItems(sourceItem, sourceCount);
 
             if (result != AddItemResult.Success || addedCount <= 0)
+            {
                 return false;
+            }
 
             UpdateSourceSlotAfterMove(sourceSlot, sourceSlotIndex, sourceItem, sourceCount, addedCount);
             return true;
@@ -145,9 +153,13 @@ namespace EasyPack.InventorySystem
                                                int sourceCount, int addedCount)
         {
             if (addedCount == sourceCount)
+            {
                 HandleCompleteMove(sourceSlot, sourceSlotIndex, sourceItem, sourceCount);
+            }
             else
+            {
                 HandlePartialMove(sourceSlot, sourceSlotIndex, sourceItem, sourceCount, addedCount);
+            }
         }
 
         private void HandleCompleteMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem, int sourceCount)
@@ -233,9 +245,13 @@ namespace EasyPack.InventorySystem
                 (IItem item, int count) = backupData[i];
 
                 if (item != null)
+                {
                     slot.SetItem(item, count);
+                }
                 else
+                {
                     slot.ClearSlot();
+                }
             }
 
             RebuildCaches();
@@ -281,7 +297,9 @@ namespace EasyPack.InventorySystem
         {
             string itemId = slot.Item.ID;
             if (!itemGroups.ContainsKey(itemId))
+            {
                 itemGroups[itemId] = new List<(int, IItem, int)>();
+            }
 
             itemGroups[itemId].Add((slotIndex, slot.Item, slot.ItemCount));
         }
@@ -291,7 +309,9 @@ namespace EasyPack.InventorySystem
             foreach (var itemGroup in itemGroups.Values)
             {
                 if (itemGroup.Count >= 2)
+                {
                     ConsolidateSingleItemGroup(itemGroup);
+                }
             }
         }
 

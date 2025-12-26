@@ -15,7 +15,7 @@ namespace EasyPack.InventorySystem
         public SerializedItem ToSerializable(Item obj)
         {
             if (obj == null) return null;
-            return new SerializedItem
+            return new()
             {
                 ID = obj.ID,
                 Name = obj.Name,
@@ -49,14 +49,20 @@ namespace EasyPack.InventorySystem
                 IsContainerItem = dto.isContanierItem,
             };
             if (dto.CustomData is { Count: > 0 })
+            {
                 item.CustomData = new(dto.CustomData);
+            }
             else
+            {
                 item.CustomData = new();
+            }
+
             if (dto.ContainerIds is { Count: > 0 })
             {
                 item.IsContainerItem = true;
                 item.ContainerIds = new(dto.ContainerIds);
             }
+
             return item;
         }
 
