@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using EasyPack.Category;
+using EasyPack.CustomData;
 using EasyPack.GamePropertySystem;
 using UnityEngine;
 
@@ -289,6 +290,8 @@ namespace EasyPack.EmeCardSystem
             return op.IsSuccess;
         }
 
+
+
         /// <summary>
         ///     当前卡牌的持有者（父卡）。
         /// </summary>
@@ -436,7 +439,51 @@ namespace EasyPack.EmeCardSystem
         }
 
         #endregion
+        #region MetaData帮助
 
+        /// <summary>
+        ///     当前卡牌注册时使用的分类管理器（运行时标签/元数据管理）。
+        /// </summary>
+        public ICategoryManager<Card, long> RuntimeCategoryManager => Engine?.CategoryManager;
+
+        /// <summary>
+        ///     在 CategoryManager 中存储的运行时元数据（如果已注册）。
+        /// </summary>
+        public CustomDataCollection RuntimeMetadata
+        {
+            get
+            {
+                if (RuntimeCategoryManager == null || UID < 0) return null;
+                return RuntimeCategoryManager.GetMetadata(UID);
+            }
+        }
+
+        /// <summary>
+        ///     尝试获取当前卡牌的运行时元数据。
+        /// </summary>
+        public bool TryGetRuntimeMetadata(out CustomDataCollection metadata)
+        {
+            metadata = RuntimeMetadata;
+            return metadata != null;
+        }
+
+        /// <summary>
+        ///     对当前卡牌的运行时元数据执行操作（如果已注册）。
+        /// </summary>
+        public Card ModifyRuntimeMetadata(Action<CustomDataCollection> action)
+        {
+            if (action == null) return this;
+
+            var metadata = RuntimeMetadata;
+            if (metadata != null)
+            {
+                action(metadata);
+            }
+
+            return this;
+        }
+
+        #endregion
         #region 事件回调
 
         /// <summary>
@@ -530,6 +577,91 @@ namespace EasyPack.EmeCardSystem
             {
                 RaiseEventInternal(evt);
             }
+        }
+
+        #endregion
+
+        #region Fluent API
+
+        /// <summary>
+        ///     链式添加属性
+        /// </summary>
+        public Card WithProperty(string id, float value)
+        {
+            Properties.Add(new GameProperty(id, value));
+            return this;
+        }
+
+        /// <summary>
+        ///     链式添加属性
+        /// </summary>
+        public Card WithProperty(GameProperty property)
+        {
+            if (property != null) Properties.Add(property);
+            return this;
+        }
+
+        /// <summary>
+        ///     链式添加多个属性
+        /// </summary>
+        public Card WithProperties(IEnumerable<GameProperty> properties)
+        {
+            if (properties != null) Properties.AddRange(properties);
+            return this;
+        }
+
+        /// <summary>
+        ///     链式添加子卡牌
+        /// </summary>
+        public Card WithChild(Card child, bool intrinsic = false)
+        {
+            AddChild(child, intrinsic);
+            return this;
+        }
+
+        /// <summary>
+        ///     链式添加标签
+        /// </summary>
+        public Card WithTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return this;
+            if (Engine != null)
+            {
+                AddTag(tag);
+            }
+            else
+            {
+                PendingExtraTags ??= new List<string>();
+                PendingExtraTags.Add(tag);
+            }
+            return this;
+        }
+
+        /// <summary>
+        ///     链式添加多个标签
+        /// </summary>
+        public Card WithTags(params string[] tags)
+        {
+            if (tags == null || tags.Length == 0) return this;
+            if (Engine != null)
+            {
+                AddTags(tags);
+            }
+            else
+            {
+                PendingExtraTags ??= new List<string>();
+                PendingExtraTags.AddRange(tags);
+            }
+            return this;
+        }
+
+        /// <summary>
+        ///     链式配置元数据
+        /// </summary>
+        public Card WithMetaData(Action<CustomDataCollection> action)
+        {
+            action?.Invoke(Data.DefaultMetaData);
+            return this;
         }
 
         #endregion
