@@ -12,8 +12,7 @@ namespace EasyPack.Category
     /// </summary>
     /// <typeparam name="T">实体类型</typeparam>
     /// <typeparam name="TKey">键类型，用于唯一标识实体</typeparam>
-    public interface ICategoryManager<T, TKey> : ICategoryManager
-        where TKey : IEquatable<TKey>
+    public interface ICategoryManager<T, TKey> where TKey : IEquatable<TKey>
     {
         #region 实体注册
 
@@ -78,7 +77,6 @@ namespace EasyPack.Category
         /// <param name="entities">实体列表。</param>
         /// <param name="category">目标分类名称。</param>
         /// <returns>批量操作结果。</returns>
-        // TODO: 双泛型系统暂未完全支持批量操作的错误回滚机制，可能无法保证批量操作的原子性
         BatchOperationResult RegisterBatch(List<T> entities, string category);
 
         /// <summary>
@@ -106,6 +104,8 @@ namespace EasyPack.Category
         /// <param name="includeChildren">是否包含子分类中的实体。</param>
         /// <returns>匹配的实体列表。</returns>
         IReadOnlyList<T> GetByCategory(string pattern, bool includeChildren = false);
+
+        
 
         /// <summary>
         ///     根据键获取实体。
@@ -153,6 +153,11 @@ namespace EasyPack.Category
         /// <param name="includeChildren">是否检查子分类。</param>
         /// <returns>如果实体在该分类中返回 true。</returns>
         bool IsInCategory(T entity, string category, bool includeChildren = false);
+
+        /// <summary>
+        ///     获取所有已注册的分类名称
+        /// </summary>
+        IReadOnlyList<string> GetCategoriesNodes();
 
         #endregion
 
@@ -278,6 +283,31 @@ namespace EasyPack.Category
                                                                        Func<CustomDataCollection, string>
                                                                            metadataSerializer);
 
+        /// <summary>
+        ///     将Manager数据序列化为JSON字符串
+        ///     /// </summary>
+        string SerializeToJson();
+
         #endregion
+
+        #region 其他功能
+        /// <summary>
+        ///     获取实体类型
+        /// </summary>
+        Type EntityType { get; }
+
+        /// <summary>
+        ///     清除所有缓存
+        /// </summary>
+        void ClearCache();
+
+        /// <summary>
+        ///     获取统计信息
+        /// </summary>
+        Statistics GetStatistics();
+        
+        #endregion
+
+
     }
 }
