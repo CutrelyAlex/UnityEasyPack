@@ -33,17 +33,9 @@ namespace EasyPack.Category
         /// </summary>
         public OperationResult AddTag(TKey key, string tag)
         {
-            _entitiesLock.EnterReadLock();
-            try
+            if (!_entities.ContainsKey(key))
             {
-                if (!_entities.ContainsKey(key))
-                {
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-                }
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
+                return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
             }
 
             if (string.IsNullOrWhiteSpace(tag))
@@ -123,17 +115,9 @@ namespace EasyPack.Category
         /// </summary>
         public OperationResult AddTags(TKey key, params string[] tags)
         {
-            _entitiesLock.EnterReadLock();
-            try
+            if (!_entities.ContainsKey(key))
             {
-                if (!_entities.ContainsKey(key))
-                {
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-                }
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
+                return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
             }
 
             if (tags == null || tags.Length == 0)
@@ -161,17 +145,9 @@ namespace EasyPack.Category
         /// </summary>
         public OperationResult RemoveTag(TKey key, string tag)
         {
-            _entitiesLock.EnterReadLock();
-            try
+            if (!_entities.ContainsKey(key))
             {
-                if (!_entities.ContainsKey(key))
-                {
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-                }
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
+                return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
             }
 
             if (string.IsNullOrWhiteSpace(tag))
@@ -336,21 +312,17 @@ namespace EasyPack.Category
 
                 if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
                 {
-                    _entitiesLock.EnterReadLock();
-                    try
+                    var result = new List<T>(entityKeys.Count);
+                    foreach (TKey k in entityKeys)
                     {
-                        var result = entityKeys
-                            .Select(k => _entities.GetValueOrDefault(k))
-                            .Where(e => e != null)
-                            .ToList();
+                        if (_entities.TryGetValue(k, out T entity) && entity != null)
+                        {
+                            result.Add(entity);
+                        }
+                    }
 
-                        _tagCache[tagId] = result;
-                        return result;
-                    }
-                    finally
-                    {
-                        _entitiesLock.ExitReadLock();
-                    }
+                    _tagCache[tagId] = result;
+                    return result;
                 }
 
                 return new List<T>();
@@ -405,18 +377,45 @@ namespace EasyPack.Category
                 return new List<T>();
             }
 
-            _entitiesLock.EnterReadLock();
-            try
+            var result = new List<T>(resultKeys.Count);
+            foreach (TKey k in resultKeys)
             {
-                return resultKeys
-                    .Select(k => _entities.GetValueOrDefault(k))
-                    .Where(e => e != null)
-                    .ToList();
+                if (_entities.TryGetValue(k, out T entity) && entity != null)
+                {
+                    result.Add(entity);
+                }
             }
-            finally
+
+            return result;
+        }
+
+        /// <summary>
+        ///     在持有 <see cref="_tagSystemLock"/> 写锁的情况下，从标签系统中移除某个实体的所有关联。
+        ///     用于 DeleteEntity / DeleteCategoryRecursive 等批量清理，避免循环内反复加锁。
+        /// </summary>
+        private void RemoveEntityFromTagSystemLocked(TKey key)
+        {
+            if (!_entityToTagIds.TryGetValue(key, out var tagIds)) return;
+
+            // 复制一份，避免在遍历期间修改集合引发异常
+            //（HashSet 的枚举在集合被修改时会抛异常）
+            var tagIdSnapshot = tagIds.ToArray();
+            foreach (int tagId in tagIdSnapshot)
             {
-                _entitiesLock.ExitReadLock();
+                if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
+                {
+                    entityKeys.Remove(key);
+                    if (entityKeys.Count == 0)
+                    {
+                        _tagToEntityKeys.Remove(tagId);
+                    }
+                }
+
+                // 清除标签缓存
+                _tagCache.Remove(tagId);
             }
+
+            _entityToTagIds.Remove(key);
         }
 
         /// <summary>

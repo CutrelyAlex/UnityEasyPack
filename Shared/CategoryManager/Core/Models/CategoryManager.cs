@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -36,8 +37,8 @@ namespace EasyPack.Category
         // 键提取器
         private readonly Func<T, TKey> _keyExtractor;
 
-        // 实体存储
-        private readonly Dictionary<TKey, T> _entities;
+        // 实体存储（并发集合：减少显式锁的需求）
+        private readonly ConcurrentDictionary<TKey, T> _entities;
 
        
 
@@ -77,8 +78,6 @@ namespace EasyPack.Category
             _categoryTermMapper = new();
 
             _treeLock = new(LockRecursionPolicy.NoRecursion);
-            _entitiesLock = new(LockRecursionPolicy.NoRecursion);
-            _metadataLock = new(LockRecursionPolicy.NoRecursion);
             _tagSystemLock = new(LockRecursionPolicy.NoRecursion);
         }
 
@@ -92,16 +91,8 @@ namespace EasyPack.Category
         /// </summary>
         public IReadOnlyList<T> GetAllEntities()
         {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                // Values 集合在锁内复制为 List，避免外部枚举时与写入并发。
-                return _entities.Values.ToList();
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
+            // ConcurrentDictionary 的枚举是线程安全的（快照语义），这里直接拷贝为 List 即可。
+            return _entities.Values.ToList();
         }
 
         #endregion
@@ -157,34 +148,16 @@ namespace EasyPack.Category
                 return OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage);
             }
 
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (_entities.ContainsKey(key))
-                {
-                    return OperationResult.Failure(ErrorCode.DuplicateId, $"实体键 '{key}' 已存在");
-                }
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
             _treeLock.EnterWriteLock();
             try
             {
+                // 先写入实体存储，避免出现分类映射存在但实体不存在
+                if (!_entities.TryAdd(key, entity))
+                {
+                    return OperationResult.Failure(ErrorCode.DuplicateId, $"实体键 '{key}' 已存在");
+                }
+
                 CategoryNode node = GetOrCreateNode(category);
-
-                _entitiesLock.EnterWriteLock();
-                try
-                {
-                    _entities[key] = entity;
-                }
-                finally
-                {
-                    _entitiesLock.ExitWriteLock();
-                }
-
                 _entityKeyToNode[key] = node;
 
                 // 维护反向索引
@@ -238,15 +211,7 @@ namespace EasyPack.Category
 
             if (metadata != null)
             {
-                _metadataLock.EnterWriteLock();
-                try
-                {
-                    _metadataStore[key] = metadata;
-                }
-                finally
-                {
-                    _metadataLock.ExitWriteLock();
-                }
+                _metadataStore[key] = metadata;
             }
 
             return OperationResult.Success();
@@ -288,17 +253,9 @@ namespace EasyPack.Category
         /// </summary>
         public OperationResult<T> GetById(TKey key)
         {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                return _entities.TryGetValue(key, out T entity)
-                    ? OperationResult<T>.Success(entity)
-                    : OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
+            return _entities.TryGetValue(key, out T entity)
+                ? OperationResult<T>.Success(entity)
+                : OperationResult<T>.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
         }
         #endregion
 
@@ -309,23 +266,16 @@ namespace EasyPack.Category
         /// </summary>
         public OperationResult DeleteEntity(TKey key)
         {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entities.ContainsKey(key))
-                {
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-                }
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
-
-            // 使用确定的锁顺序：_treeLock -> _tagSystemLock -> _metadataLock -> _entitiesLock
+            // 使用确定的锁顺序：_treeLock -> _tagSystemLock
             _treeLock.EnterWriteLock();
             try
             {
+                // 并发情况下，实体/映射可能已经被其他线程部分清理；这里允许“补偿式清理”。
+                if (!_entities.ContainsKey(key) && !_entityKeyToNode.ContainsKey(key))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+                }
+
                 // 从反向索引移除
                 if (_entityKeyToNode.TryGetValue(key, out CategoryNode node))
                 {
@@ -343,49 +293,16 @@ namespace EasyPack.Category
                 _tagSystemLock.EnterWriteLock();
                 try
                 {
-                    if (_entityToTagIds.TryGetValue(key, out var tagIds))
-                    {
-                        foreach (int tagId in tagIds)
-                        {
-                            if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
-                            {
-                                entityKeys.Remove(key);
-                                if (entityKeys.Count == 0) _tagToEntityKeys.Remove(tagId);
-                            }
-
-                            // 清除标签缓存
-                            _tagCache.Remove(tagId);
-                        }
-
-                        _entityToTagIds.Remove(key);
-                    }
+                    RemoveEntityFromTagSystemLocked(key);
                 }
                 finally
                 {
                     _tagSystemLock.ExitWriteLock();
                 }
 
-                // 从元数据存储移除
-                _metadataLock.EnterWriteLock();
-                try
-                {
-                    _metadataStore.Remove(key);
-                }
-                finally
-                {
-                    _metadataLock.ExitWriteLock();
-                }
-
-                // 从实体存储移除
-                _entitiesLock.EnterWriteLock();
-                try
-                {
-                    _entities.Remove(key);
-                }
-                finally
-                {
-                    _entitiesLock.ExitWriteLock();
-                }
+                // 从元数据/实体存储移除（并发集合无需显式锁）
+                _metadataStore.TryRemove(key, out _);
+                _entities.TryRemove(key, out _);
 
 #if UNITY_EDITOR
                 _cachedStatistics = null;
@@ -415,21 +332,13 @@ namespace EasyPack.Category
                     "实体的键与提供的键不匹配");
             }
 
-            _entitiesLock.EnterWriteLock();
-            try
+            if (!_entities.ContainsKey(key))
             {
-                if (!_entities.ContainsKey(key))
-                {
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-                }
+                return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+            }
 
-                // 更新实体引用
-                _entities[key] = entity;
-            }
-            finally
-            {
-                _entitiesLock.ExitWriteLock();
-            }
+            // 更新实体引用（并发集合写入线程安全）
+            _entities[key] = entity;
 
             // 检查该实体是否有关联的标签，如果有，需要清理标签缓存
             _tagSystemLock.EnterWriteLock();
@@ -593,15 +502,8 @@ namespace EasyPack.Category
         /// </summary>
         public IReadOnlyDictionary<TKey, CustomDataCollection> GetMetadataStore()
         {
-            _metadataLock.EnterReadLock();
-            try
-            {
-                return new Dictionary<TKey, CustomDataCollection>(_metadataStore, _keyComparer);
-            }
-            finally
-            {
-                _metadataLock.ExitReadLock();
-            }
+            // 并发集合：直接快照拷贝即可
+            return new Dictionary<TKey, CustomDataCollection>(_metadataStore, _keyComparer);
         }
 
         /// <summary>
@@ -634,17 +536,9 @@ namespace EasyPack.Category
                 _treeLock.ExitReadLock();
             }
 
-            _metadataLock.EnterReadLock();
-            try
+            foreach (var kvp in _metadataStore)
             {
-                foreach (var kvp in _metadataStore)
-                {
-                    entityMetadataIndex[kvp.Key] = kvp.Value;
-                }
-            }
-            finally
-            {
-                _metadataLock.ExitReadLock();
+                entityMetadataIndex[kvp.Key] = kvp.Value;
             }
         }
 
@@ -727,7 +621,6 @@ namespace EasyPack.Category
             var categoryNames = new List<string>();
 
             _treeLock.EnterReadLock();
-            _entitiesLock.EnterReadLock();
             try
             {
                 categoryNames.AddRange(_categoryIdToName.Values);
@@ -751,7 +644,6 @@ namespace EasyPack.Category
             }
             finally
             {
-                _entitiesLock.ExitReadLock();
                 _treeLock.ExitReadLock();
             }
 
@@ -800,17 +692,9 @@ namespace EasyPack.Category
             }
 
             var metadataSnapshots = new List<(TKey Key, CustomDataCollection Metadata)>();
-            _metadataLock.EnterReadLock();
-            try
+            foreach (var kvp in _metadataStore)
             {
-                foreach (var kvp in _metadataStore)
-                {
-                    metadataSnapshots.Add((kvp.Key, kvp.Value));
-                }
-            }
-            finally
-            {
-                _metadataLock.ExitReadLock();
+                metadataSnapshots.Add((kvp.Key, kvp.Value));
             }
 
             foreach ((TKey Key, CustomDataCollection Metadata) metaSnap in metadataSnapshots)
@@ -1009,8 +893,6 @@ namespace EasyPack.Category
         public void Dispose()
         {
             _treeLock?.Dispose();
-            _entitiesLock?.Dispose();
-            _metadataLock?.Dispose();
 
             foreach (ReaderWriterLockSlim lockObj in _tagLocks.Values)
             {

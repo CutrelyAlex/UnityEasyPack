@@ -31,7 +31,6 @@ namespace EasyPack.Category
 
         // 锁
         private readonly ReaderWriterLockSlim _treeLock;
-        private readonly ReaderWriterLockSlim _entitiesLock;
 
         #region 增
 
@@ -128,56 +127,25 @@ namespace EasyPack.Category
                     _entityKeyToNode.Remove(key);
                 }
 
-                // 删除所有相关实体（从实体存储、标签系统、元数据存储中移除）
+                // 删除所有相关实体（从标签系统、元数据存储、实体存储中移除）
+                // 批量操作：对标签系统只获取一次写锁，避免在循环中反复 Enter/Exit。
+                _tagSystemLock.EnterWriteLock();
+                try
+                {
+                    foreach (TKey key in entityKeysToDelete)
+                    {
+                        RemoveEntityFromTagSystemLocked(key);
+                    }
+                }
+                finally
+                {
+                    _tagSystemLock.ExitWriteLock();
+                }
+
                 foreach (TKey key in entityKeysToDelete)
                 {
-                    // 从标签系统移除
-                    _tagSystemLock.EnterWriteLock();
-                    try
-                    {
-                        if (_entityToTagIds.TryGetValue(key, out var tagIds))
-                        {
-                            foreach (int tagId in tagIds)
-                            {
-                                if (_tagToEntityKeys.TryGetValue(tagId, out var entityKeys))
-                                {
-                                    entityKeys.Remove(key);
-                                    if (entityKeys.Count == 0) _tagToEntityKeys.Remove(tagId);
-                                }
-
-                                // 清除标签缓存
-                                _tagCache.Remove(tagId);
-                            }
-
-                            _entityToTagIds.Remove(key);
-                        }
-                    }
-                    finally
-                    {
-                        _tagSystemLock.ExitWriteLock();
-                    }
-
-                    // 从元数据存储移除
-                    _metadataLock.EnterWriteLock();
-                    try
-                    {
-                        _metadataStore.Remove(key);
-                    }
-                    finally
-                    {
-                        _metadataLock.ExitWriteLock();
-                    }
-
-                    // 从实体存储移除
-                    _entitiesLock.EnterWriteLock();
-                    try
-                    {
-                        _entities.Remove(key);
-                    }
-                    finally
-                    {
-                        _entitiesLock.ExitWriteLock();
-                    }
+                    _metadataStore.TryRemove(key, out _);
+                    _entities.TryRemove(key, out _);
                 }
 
                 // 删除所有收集的节点
@@ -261,17 +229,16 @@ namespace EasyPack.Category
                 _treeLock.ExitReadLock();
             }
 
-            _entitiesLock.EnterReadLock();
-            try
+            var result = new List<T>(entityKeys.Count);
+            foreach (TKey k in entityKeys)
             {
-                return entityKeys.Select(k => _entities.GetValueOrDefault(k))
-                    .Where(e => e != null)
-                    .ToList();
+                if (_entities.TryGetValue(k, out T entity) && entity != null)
+                {
+                    result.Add(entity);
+                }
             }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
+
+            return result;
         }
 
         private void CollectEntityKeysFromNode(CategoryNode node, HashSet<TKey> keys, bool includeChildren)
@@ -324,17 +291,16 @@ namespace EasyPack.Category
                 _treeLock.ExitReadLock();
             }
 
-            _entitiesLock.EnterReadLock();
-            try
+            var result = new List<T>(entityKeys.Count);
+            foreach (TKey k in entityKeys)
             {
-                return entityKeys.Select(k => _entities.GetValueOrDefault(k))
-                    .Where(e => e != null)
-                    .ToList();
+                if (_entities.TryGetValue(k, out T entity) && entity != null)
+                {
+                    result.Add(entity);
+                }
             }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
+
+            return result;
         }
 
         /// <summary>
@@ -508,17 +474,9 @@ namespace EasyPack.Category
         /// <returns>操作结果。</returns>
         public OperationResult MoveEntityToCategory(TKey key, string newCategory)
         {
-            _entitiesLock.EnterReadLock();
-            try
+            if (!_entities.ContainsKey(key))
             {
-                if (!_entities.ContainsKey(key))
-                {
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-                }
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
+                return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
             }
 
             _treeLock.EnterWriteLock();

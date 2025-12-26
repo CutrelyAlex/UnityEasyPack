@@ -58,31 +58,12 @@ namespace EasyPack.Category
                     return OperationResult.Failure(ErrorCode.InvalidCategory, errorMessage);
                 }
 
-                // 检查键是否已存在
-                _manager._entitiesLock.EnterReadLock();
                 try
                 {
-                    if (_manager._entities.ContainsKey(_entityKey))
+                    // 存储实体（并发集合：TryAdd 用于避免覆盖）
+                    if (!_manager._entities.TryAdd(_entityKey, _entity))
                     {
                         return OperationResult.Failure(ErrorCode.DuplicateId, $"实体键 '{_entityKey}' 已存在");
-                    }
-                }
-                finally
-                {
-                    _manager._entitiesLock.ExitReadLock();
-                }
-
-                try
-                {
-                    // 存储实体
-                    _manager._entitiesLock.EnterWriteLock();
-                    try
-                    {
-                        _manager._entities[_entityKey] = _entity;
-                    }
-                    finally
-                    {
-                        _manager._entitiesLock.ExitWriteLock();
                     }
 
                     // 创建分类节点并关联
@@ -123,15 +104,7 @@ namespace EasyPack.Category
                     // 添加元数据
                     if (_metadata != null)
                     {
-                        _manager._metadataLock.EnterWriteLock();
-                        try
-                        {
-                            _manager._metadataStore[_entityKey] = _metadata;
-                        }
-                        finally
-                        {
-                            _manager._metadataLock.ExitWriteLock();
-                        }
+                        _manager._metadataStore[_entityKey] = _metadata;
                     }
 
 #if UNITY_EDITOR

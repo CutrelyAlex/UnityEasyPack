@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -16,9 +17,8 @@ namespace EasyPack.Category
     public partial class CategoryManager<T, TKey> : ICategoryManager<T, TKey>
         where TKey : IEquatable<TKey>
     {
-        // 元数据存储
-        private readonly Dictionary<TKey, CustomDataCollection> _metadataStore;
-        private readonly ReaderWriterLockSlim _metadataLock;
+        // 元数据存储（并发集合：减少显式锁的需求）
+        private readonly ConcurrentDictionary<TKey, CustomDataCollection> _metadataStore;
         #region 查询
         
         /// <summary>
@@ -26,27 +26,11 @@ namespace EasyPack.Category
         /// </summary>
         public CustomDataCollection GetMetadata(TKey key)
         {
-            _entitiesLock.EnterReadLock();
-            try
-            {
-                if (!_entities.ContainsKey(key)) return new();
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
-            }
+            if (!_entities.ContainsKey(key)) return new();
 
-            _metadataLock.EnterReadLock();
-            try
-            {
-                return _metadataStore.TryGetValue(key, out CustomDataCollection metadata)
-                    ? metadata
-                    : new();
-            }
-            finally
-            {
-                _metadataLock.ExitReadLock();
-            }
+            return _metadataStore.TryGetValue(key, out CustomDataCollection metadata)
+                ? metadata
+                : new();
         }
 
         /// <summary>
@@ -56,32 +40,16 @@ namespace EasyPack.Category
         /// <returns>包含元数据的操作结果。</returns>
         public OperationResult<CustomDataCollection> GetMetadataResult(TKey key)
         {
-            _entitiesLock.EnterReadLock();
-            try
+            if (!_entities.ContainsKey(key))
             {
-                if (!_entities.ContainsKey(key))
-                {
-                    return OperationResult<CustomDataCollection>.Failure(
-                        ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-                }
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
+                return OperationResult<CustomDataCollection>.Failure(
+                    ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
             }
 
-            _metadataLock.EnterReadLock();
-            try
-            {
-                return OperationResult<CustomDataCollection>.Success(
-                    _metadataStore.TryGetValue(key, out CustomDataCollection metadata)
-                        ? metadata
-                        : new());
-            }
-            finally
-            {
-                _metadataLock.ExitReadLock();
-            }
+            return OperationResult<CustomDataCollection>.Success(
+                _metadataStore.TryGetValue(key, out CustomDataCollection metadata)
+                    ? metadata
+                    : new());
         }
 
         #endregion
@@ -92,56 +60,24 @@ namespace EasyPack.Category
         /// </summary>
         public OperationResult UpdateMetadata(TKey key, CustomDataCollection metadata)
         {
-            _entitiesLock.EnterReadLock();
-            try
+            if (!_entities.ContainsKey(key))
             {
-                if (!_entities.ContainsKey(key))
-                {
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-                }
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
+                return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
             }
 
-            _metadataLock.EnterWriteLock();
-            try
-            {
-                _metadataStore[key] = metadata;
-                return OperationResult.Success();
-            }
-            finally
-            {
-                _metadataLock.ExitWriteLock();
-            }
+            _metadataStore[key] = metadata;
+            return OperationResult.Success();
         }
 
         public OperationResult DeleteMetadata(TKey key)
         {
-            _entitiesLock.EnterReadLock();
-            try
+            if (!_entities.ContainsKey(key))
             {
-                if (!_entities.ContainsKey(key))
-                {
-                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-                }
-            }
-            finally
-            {
-                _entitiesLock.ExitReadLock();
+                return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
             }
 
-            _metadataLock.EnterWriteLock();
-            try
-            {
-                _metadataStore.Remove(key);
-                return OperationResult.Success();
-            }
-            finally
-            {
-                _metadataLock.ExitWriteLock();
-            }
+            _metadataStore.TryRemove(key, out _);
+            return OperationResult.Success();
         }
         #endregion
     }

@@ -58,32 +58,13 @@ namespace EasyPack.Category
 
                 string normalizedCategory = CategoryNameNormalizer.Normalize(_category);
 
-                // 检查实体是否已存在
-                _manager._entitiesLock.EnterReadLock();
-                try
-                {
-                    if (_manager._entities.ContainsKey(_entityKey))
-                    {
-                        return OperationResult.Failure(ErrorCode.DuplicateId,
-                            $"键为 '{_entityKey}' 的实体已存在");
-                    }
-                }
-                finally
-                {
-                    _manager._entitiesLock.ExitReadLock();
-                }
-
                 try
                 {
                     // 存储实体
-                    _manager._entitiesLock.EnterWriteLock();
-                    try
+                    if (!_manager._entities.TryAdd(_entityKey, _entity))
                     {
-                        _manager._entities[_entityKey] = _entity;
-                    }
-                    finally
-                    {
-                        _manager._entitiesLock.ExitWriteLock();
+                        return OperationResult.Failure(ErrorCode.DuplicateId,
+                            $"键为 '{_entityKey}' 的实体已存在");
                     }
 
                     // 创建分类节点并关联
@@ -108,15 +89,7 @@ namespace EasyPack.Category
                     // 存储元数据
                     if (_metadata != null)
                     {
-                        _manager._metadataLock.EnterWriteLock();
-                        try
-                        {
-                            _manager._metadataStore[_entityKey] = _metadata;
-                        }
-                        finally
-                        {
-                            _manager._metadataLock.ExitWriteLock();
-                        }
+                        _manager._metadataStore[_entityKey] = _metadata;
                     }
 
 #if UNITY_EDITOR
