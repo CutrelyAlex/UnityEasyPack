@@ -29,7 +29,10 @@ namespace EasyPack.Category
         /// <param name="categoryName">分类名称</param>
         /// <param name="errorMessage">错误消息（如果无效）</param>
         /// <returns>是否有效</returns>
-        public static bool IsValid(string categoryName, out string errorMessage,int maxCategoryDepth = int.MaxValue)
+        public static bool IsValid(
+            string categoryName,
+            out string errorMessage,
+            int maxCategoryDepth = CategoryConstants.DEFAULT_MAX_CATEGORY_DEPTH)
         {
             if (string.IsNullOrWhiteSpace(categoryName))
             {
