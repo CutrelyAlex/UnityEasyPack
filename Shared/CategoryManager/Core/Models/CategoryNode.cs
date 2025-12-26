@@ -26,19 +26,6 @@ namespace EasyPack.Category
         private readonly Dictionary<int, CategoryNode> _children;
 
         /// <summary>
-        ///     该节点下关联的实体 ID 列表
-        /// </summary>
-        private readonly List<string> _entityIds;
-
-        /// <summary>
-        ///     子树实体 ID 缓存
-        ///     当实体添加/删除或子节点变化时失效
-        /// </summary>
-        private List<string> _subtreeEntityIdsCache;
-
-        private bool _subtreeEntityIdsCacheValid;
-
-        /// <summary>
         ///     初始化根节点或叶子节点
         /// </summary>
         /// <param name="termId">词汇 ID，应从 IntegerMapper 获取</param>
@@ -53,9 +40,6 @@ namespace EasyPack.Category
             TermId = termId;
             ParentNode = parentNode;
             _children = new();
-            _entityIds = new();
-            _subtreeEntityIdsCache = new();
-            _subtreeEntityIdsCacheValid = false;
         }
 
         /// <summary>
@@ -98,121 +82,6 @@ namespace EasyPack.Category
         ///     获取所有子节点
         /// </summary>
         public IReadOnlyCollection<CategoryNode> Children => _children.Values;
-
-        /// <summary>
-        ///     删除指定的子节点
-        /// </summary>
-        /// <param name="childTermId">子节点词汇 ID</param>
-        /// <returns>是否成功删除</returns>
-        public bool RemoveChild(int childTermId)
-        {
-            if (_children.Remove(childTermId, out _))
-            {
-                InvalidateSubtreeCache();
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        ///     添加实体 ID 到该分类节点
-        /// </summary>
-        /// <param name="entityId">实体 ID</param>
-        public void AddEntity(string entityId)
-        {
-            if (!_entityIds.Contains(entityId))
-            {
-                _entityIds.Add(entityId);
-                InvalidateSubtreeCache();
-            }
-        }
-
-        /// <summary>
-        ///     移除实体 ID
-        /// </summary>
-        /// <param name="entityId">实体 ID</param>
-        /// <returns>是否成功移除</returns>
-        public bool RemoveEntity(string entityId)
-        {
-            if (_entityIds.Remove(entityId))
-            {
-                InvalidateSubtreeCache();
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        ///     检查实体是否属于该分类
-        /// </summary>
-        /// <param name="entityId">实体 ID</param>
-        /// <returns>是否存在</returns>
-        public bool ContainsEntity(string entityId) => _entityIds.Contains(entityId);
-
-        /// <summary>
-        ///     获取该节点直接关联的实体 ID 列表
-        /// </summary>
-        public IReadOnlyList<string> EntityIds => _entityIds.AsReadOnly();
-
-        /// <summary>
-        ///     获取该节点及其所有子孙节点关联的所有实体 ID
-        /// </summary>
-        /// <returns>所有实体 ID 的列表</returns>
-        public IReadOnlyList<string> GetSubtreeEntityIds()
-        {
-            // 如果缓存有效，直接返回
-            if (_subtreeEntityIdsCacheValid) return _subtreeEntityIdsCache.AsReadOnly();
-
-            var result = new List<string>(_entityIds);
-            var queue = new Queue<CategoryNode>();
-
-            // 初始化队列：将所有直接子节点加入
-            foreach (CategoryNode child in _children.Values)
-            {
-                queue.Enqueue(child);
-            }
-
-            // 广度优先遍历所有子孙节点
-            while (queue.Count > 0)
-            {
-                CategoryNode node = queue.Dequeue();
-
-                // 添加当前节点的实体
-                result.AddRange(node._entityIds);
-
-                // 将其子节点加入队列
-                foreach (CategoryNode child in node._children.Values)
-                {
-                    queue.Enqueue(child);
-                }
-            }
-
-            // 更新缓存
-            _subtreeEntityIdsCache = result;
-            _subtreeEntityIdsCacheValid = true;
-
-            return result.AsReadOnly();
-        }
-
-        /// <summary>
-        ///     失效子树实体 ID 缓存
-        ///     当该节点或子节点的实体关联发生变化时调用
-        ///     级联失效所有父节点的缓存
-        /// </summary>
-        private void InvalidateSubtreeCache()
-        {
-            _subtreeEntityIdsCacheValid = false;
-
-            // 级联失效父节点的缓存
-            CategoryNode parent = ParentNode;
-            while (parent != null)
-            {
-                parent._subtreeEntityIdsCacheValid = false;
-                parent = parent.ParentNode;
-            }
-        }
 
         /// <summary>
         ///     <para>获取从根节点到当前节点的完整路径（使用词汇 ID） </para>
@@ -280,33 +149,9 @@ namespace EasyPack.Category
         public int ChildCount => _children.Count;
 
         /// <summary>
-        ///     获取该节点直接关联的实体数量
-        /// </summary>
-        public int EntityCount => _entityIds.Count;
-
-        /// <summary>
-        ///     清除所有实体关联（不删除子节点）
-        /// </summary>
-        public void ClearEntities()
-        {
-            _entityIds.Clear();
-            InvalidateSubtreeCache();
-        }
-
-        /// <summary>
-        ///     清除所有子节点和实体
-        /// </summary>
-        public void Clear()
-        {
-            _children.Clear();
-            _entityIds.Clear();
-            InvalidateSubtreeCache();
-        }
-
-        /// <summary>
         ///     字符串表示调试
         /// </summary>
         public override string ToString() =>
-            $"CategoryNode(TermId={TermId}, Children={ChildCount}, Entities={EntityCount}, Path={GetFullIntPath()})";
+            $"CategoryNode(TermId={TermId}, Children={ChildCount}, Path={GetFullIntPath()})";
     }
 }

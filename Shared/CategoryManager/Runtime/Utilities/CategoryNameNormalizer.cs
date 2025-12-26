@@ -1,3 +1,5 @@
+using System;
+
 namespace EasyPack.Category
 {
     /// <summary>
@@ -6,9 +8,6 @@ namespace EasyPack.Category
     /// </summary>
     public static class CategoryNameNormalizer
     {
-        private const int MaxCategoryDepth = 5;
-        private const char Separator = '.';
-
         /// <summary>
         ///     规范化分类名称
         /// </summary>
@@ -30,7 +29,7 @@ namespace EasyPack.Category
         /// <param name="categoryName">分类名称</param>
         /// <param name="errorMessage">错误消息（如果无效）</param>
         /// <returns>是否有效</returns>
-        public static bool IsValid(string categoryName, out string errorMessage)
+        public static bool IsValid(string categoryName, out string errorMessage,int maxCategoryDepth = int.MaxValue)
         {
             if (string.IsNullOrWhiteSpace(categoryName))
             {
@@ -39,10 +38,10 @@ namespace EasyPack.Category
             }
 
             // 检查深度
-            string[] parts = categoryName.Split(Separator);
-            if (parts.Length > MaxCategoryDepth)
+            string[] parts = categoryName.Split(CategoryConstants.CATEGORY_SEPARATOR);
+            if (parts.Length > maxCategoryDepth)
             {
-                errorMessage = $"分类深度不能超过 {MaxCategoryDepth} 层";
+                errorMessage = $"分类深度不能超过 {maxCategoryDepth} 层";
                 return false;
             }
 
@@ -68,7 +67,7 @@ namespace EasyPack.Category
         {
             if (string.IsNullOrWhiteSpace(categoryName)) return null;
 
-            int lastDotIndex = categoryName.LastIndexOf(Separator);
+            int lastDotIndex = categoryName.LastIndexOf(CategoryConstants.CATEGORY_SEPARATOR, StringComparison.Ordinal);
             return lastDotIndex < 0 ? null : categoryName[..lastDotIndex];
         }
 
@@ -78,6 +77,6 @@ namespace EasyPack.Category
         /// <param name="categoryName">分类名称</param>
         /// <returns>层级深度</returns>
         public static int GetDepth(string categoryName) =>
-            string.IsNullOrWhiteSpace(categoryName) ? 0 : categoryName.Split(Separator).Length;
+            string.IsNullOrWhiteSpace(categoryName) ? 0 : categoryName.Split(CategoryConstants.CATEGORY_SEPARATOR).Length;
     }
 }
