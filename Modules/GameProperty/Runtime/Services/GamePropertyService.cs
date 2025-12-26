@@ -92,7 +92,7 @@ namespace EasyPack.GamePropertySystem
 
                 serializationService.RegisterSerializer(new GamePropertyJsonSerializer());
                 serializationService.RegisterSerializer(new PropertyManagerSerializer());
-                
+
                 // 注册 CategoryManager 序列化器
                 serializationService.RegisterSerializer(new CategoryManagerJsonSerializer<GameProperty, long>(p => p.UID));
 
@@ -232,7 +232,7 @@ namespace EasyPack.GamePropertySystem
             }
 
             // 4) 注册到分类系统
-            Category.OperationResult registerResult = _categoryManager.RegisterEntity(property.UID, property, effectiveCategory);
+            OperationResult registerResult = _categoryManager.RegisterEntity(property.UID, property, effectiveCategory);
             if (!registerResult.IsSuccess)
                 throw new InvalidOperationException($"CategoryManager 注册失败: {registerResult.ErrorMessage}");
 
@@ -241,14 +241,14 @@ namespace EasyPack.GamePropertySystem
             {
                 // 去重
                 string[] distinctTags = effectiveTags.Distinct().ToArray();
-                Category.OperationResult tagResult = _categoryManager.AddTags(property.UID, distinctTags);
+                OperationResult tagResult = _categoryManager.AddTags(property.UID, distinctTags);
                 if (!tagResult.IsSuccess)
                     throw new InvalidOperationException($"标签注册失败: {tagResult.ErrorMessage}");
             }
 
             // 6) 同步元数据（CustomData）
             CustomDataCollection finalCustomData = effectiveCustomData ?? new();
-            Category.OperationResult metadataResult = _categoryManager.UpdateMetadata(property.UID, finalCustomData);
+            OperationResult metadataResult = _categoryManager.UpdateMetadata(property.UID, finalCustomData);
             if (!metadataResult.IsSuccess)
                 throw new InvalidOperationException($"元数据写入失败: {metadataResult.ErrorMessage}");
         }
