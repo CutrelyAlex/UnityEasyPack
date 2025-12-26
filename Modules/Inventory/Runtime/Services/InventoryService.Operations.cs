@@ -70,7 +70,9 @@ namespace EasyPack.InventorySystem
         private static ItemLookupResult QuickFindItem(Container container, string itemId, int maxCount = int.MaxValue)
         {
             if (string.IsNullOrEmpty(itemId) || container == null)
+            {
                 return default;
+            }
 
             int totalCount = 0;
             int firstSlotIndex = -1;
@@ -91,7 +93,9 @@ namespace EasyPack.InventorySystem
                     totalCount += slot.ItemCount;
 
                     if (totalCount >= maxCount)
+                    {
                         break;
+                    }
                 }
             }
 
@@ -121,26 +125,36 @@ namespace EasyPack.InventorySystem
                 {
                     sourceContainer = GetContainer(fromContainerId);
                     if (sourceContainer == null)
+                    {
                         return MoveResult.SourceContainerNotFound;
+                    }
 
                     targetContainer = GetContainer(toContainerId);
                     if (targetContainer == null)
+                    {
                         return MoveResult.TargetContainerNotFound;
+                    }
                 }
 
                 if (fromSlot < 0 || fromSlot >= sourceContainer.Slots.Count)
+                {
                     return MoveResult.SourceSlotNotFound;
+                }
 
                 ISlot sourceSlot = sourceContainer.Slots[fromSlot];
                 if (!sourceSlot.IsOccupied || sourceSlot.Item == null)
+                {
                     return MoveResult.SourceSlotEmpty;
+                }
 
                 IItem item = sourceSlot.Item;
                 int itemCount = sourceSlot.ItemCount;
 
                 // 检查全局条件
                 if (!ValidateGlobalItemConditions(item))
+                {
                     return MoveResult.ItemConditionNotMet;
+                }
 
                 // 尝试添加到目标容器
                 (AddItemResult addResult, int addedCount) = targetContainer.AddItems(item, itemCount, toSlot);
@@ -188,7 +202,9 @@ namespace EasyPack.InventorySystem
             try
             {
                 if (string.IsNullOrEmpty(itemId))
+                {
                     return (MoveResult.ItemNotFound, 0);
+                }
 
                 Container sourceContainer;
                 Container targetContainer;
@@ -197,24 +213,34 @@ namespace EasyPack.InventorySystem
                 {
                     sourceContainer = GetContainer(fromContainerId);
                     if (sourceContainer == null)
+                    {
                         return (MoveResult.SourceContainerNotFound, 0);
+                    }
 
                     targetContainer = GetContainer(toContainerId);
                     if (targetContainer == null)
+                    {
                         return (MoveResult.TargetContainerNotFound, 0);
+                    }
                 }
 
                 ItemLookupResult lookupResult = QuickFindItem(sourceContainer, itemId, count);
 
                 if (!lookupResult.Found)
+                {
                     return (MoveResult.ItemNotFound, 0);
+                }
 
                 if (lookupResult.TotalCount < count)
+                {
                     return (MoveResult.InsufficientQuantity, 0);
+                }
 
                 // 检查全局条件
                 if (!ValidateGlobalItemConditions(lookupResult.Item))
+                {
                     return (MoveResult.ItemConditionNotMet, 0);
+                }
 
                 // 尝试添加到目标容器
                 (AddItemResult addResult, int addedCount) = targetContainer.AddItems(lookupResult.Item, count);
@@ -263,15 +289,21 @@ namespace EasyPack.InventorySystem
             {
                 sourceContainer = GetContainer(fromContainerId);
                 if (sourceContainer == null)
+                {
                     return (MoveResult.SourceContainerNotFound, 0);
+                }
 
                 Container targetContainer = GetContainer(toContainerId);
                 if (targetContainer == null)
+                {
                     return (MoveResult.TargetContainerNotFound, 0);
+                }
             }
 
             if (!sourceContainer.HasItem(itemId))
+            {
                 return (MoveResult.ItemNotFound, 0);
+            }
 
             int totalCount = sourceContainer.GetItemTotalCount(itemId);
             return TransferItems(itemId, totalCount, fromContainerId, toContainerId);
@@ -392,11 +424,15 @@ namespace EasyPack.InventorySystem
             try
             {
                 if (item == null || totalCount <= 0 || targetContainerIds?.Count == 0)
+                {
                     return results;
+                }
 
                 // 检查全局条件
                 if (!ValidateGlobalItemConditions(item))
+                {
                     return results;
+                }
 
                 int remainingCount = totalCount;
                 var sortedContainers = new List<(string id, Container container, int priority)>();

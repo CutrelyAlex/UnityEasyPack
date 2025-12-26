@@ -28,8 +28,9 @@ namespace EasyPack.EmeCardSystem
         // Pump 状态标志
         private bool _isPumping;
         private bool _isFlushingEffectPool;
+
         /// <summary>
-        /// 用来设置指定事件的泵入层级，不过目前End只能在Normal层级已有事件时才能延迟执行，如果泵入时Normal或Start内无事件则不会延迟
+        ///     用来设置指定事件的泵入层级，不过目前End只能在Normal层级已有事件时才能延迟执行，如果泵入时Normal或Start内无事件则不会延迟
         /// </summary>
         private EEventPumpType _currentPumpState;
 
@@ -58,11 +59,11 @@ namespace EasyPack.EmeCardSystem
             switch (evt.PumpType)
             {
                 case EEventPumpType.Start:
-                    if(_currentPumpState>EEventPumpType.Start) return;
+                    if (_currentPumpState > EEventPumpType.Start) return;
                     _startEventQueue.Enqueue((source, evt));
                     break;
                 case EEventPumpType.Normal:
-                    if(_currentPumpState>EEventPumpType.Normal) return;
+                    if (_currentPumpState > EEventPumpType.Normal) return;
                     _eventQueue.Enqueue((source, evt));
                     break;
                 case EEventPumpType.End:
@@ -71,10 +72,7 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 非分帧模式立即处理
-            if (!_isPumping && !Policy.EnableFrameDistribution)
-            {
-                Pump();
-            }
+            if (!_isPumping && !Policy.EnableFrameDistribution) Pump();
         }
 
         #endregion
@@ -103,19 +101,21 @@ namespace EasyPack.EmeCardSystem
                     while (_startEventQueue.Count > 0)
                     {
                         _currentPumpState = EEventPumpType.Start;
-                        var (source, evt) = _startEventQueue.Dequeue();
+                        (Card source, ICardEvent evt) = _startEventQueue.Dequeue();
                         Process(source, evt);
                     }
+
                     while (_eventQueue.Count > 0)
                     {
                         _currentPumpState = EEventPumpType.Normal;
-                        var (source, evt) = _eventQueue.Dequeue();
+                        (Card source, ICardEvent evt) = _eventQueue.Dequeue();
                         Process(source, evt);
                     }
+
                     while (_endEventQueue.Count > 0)
                     {
                         _currentPumpState = EEventPumpType.End;
-                        var (source, evt) = _endEventQueue.Dequeue();
+                        (Card source, ICardEvent evt) = _endEventQueue.Dequeue();
                         Process(source, evt);
                     }
 
@@ -129,10 +129,7 @@ namespace EasyPack.EmeCardSystem
                     iteration++;
                 }
 
-                if (iteration >= MaxIterations)
-                {
-                    Debug.LogWarning($"[CardEngine] Pump 达到最大迭代次数 {MaxIterations}");
-                }
+                if (iteration >= MaxIterations) Debug.LogWarning($"[CardEngine] Pump 达到最大迭代次数 {MaxIterations}");
 
                 _currentPumpState = EEventPumpType.End;
                 ProcessPumpLifecycleEvent(CardEventTypes.PUMP_END);
@@ -149,26 +146,17 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void ProcessPumpLifecycleEvent(string eventType)
         {
-            if (!_rules.TryGetValue(eventType, out var ruleList) || ruleList.Count == 0)
-            {
-                return;
-            }
+            if (!_rules.TryGetValue(eventType, out var ruleList) || ruleList.Count == 0) return;
 
             var lifecycleEvent = new CardEvent<object>(eventType, null, eventType);
             var cardSnapshot = new List<Card>(_cardsByUID.Values);
 
             foreach (Card card in cardSnapshot)
             {
-                if (_cardsByUID.ContainsKey(card.UID))
-                {
-                    ProcessCore(card, lifecycleEvent);
-                }
+                if (_cardsByUID.ContainsKey(card.UID)) ProcessCore(card, lifecycleEvent);
             }
 
-            if (Policy.EnableEffectPool)
-            {
-                FlushEffectPool();
-            }
+            if (Policy.EnableEffectPool) FlushEffectPool();
         }
 
         /// <summary>
@@ -197,7 +185,7 @@ namespace EasyPack.EmeCardSystem
                         if (elapsed >= frameBudget) break;
                     }
 
-                    var (source, evt) = _eventQueue.Dequeue();
+                    (Card source, ICardEvent evt) = _eventQueue.Dequeue();
                     Process(source, evt);
                     processed++;
                     _frameProcessedCount++;
@@ -209,8 +197,14 @@ namespace EasyPack.EmeCardSystem
 
                 if (Policy.EnableEffectPool && Policy.EffectPoolFlushMode == EffectPoolFlushMode.AfterFrame)
                 {
-                    try { FlushEffectPool(); }
-                    catch (Exception ex) { Debug.LogError($"[CardEngine] PumpFrameWithBudget 错误: {ex}"); }
+                    try
+                    {
+                        FlushEffectPool();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"[CardEngine] PumpFrameWithBudget 错误: {ex}");
+                    }
                 }
             }
         }
@@ -249,7 +243,7 @@ namespace EasyPack.EmeCardSystem
                        Time.realtimeSinceStartup - frameStart < frameBudgetSec &&
                        processedInFrame < maxEvents)
                 {
-                    var (source, evt) = _eventQueue.Dequeue();
+                    (Card source, ICardEvent evt) = _eventQueue.Dequeue();
                     Process(source, evt);
                     processedInFrame++;
                 }
@@ -269,7 +263,7 @@ namespace EasyPack.EmeCardSystem
                 // 超时：同步完成所有
                 while (_eventQueue.Count > 0)
                 {
-                    var (source, evt) = _eventQueue.Dequeue();
+                    (Card source, ICardEvent evt) = _eventQueue.Dequeue();
                     Process(source, evt);
                 }
 
@@ -277,7 +271,8 @@ namespace EasyPack.EmeCardSystem
                 batchCompleted = true;
             }
 
-            if (batchCompleted && Policy.EnableEffectPool && Policy.EffectPoolFlushMode == EffectPoolFlushMode.AfterPump)
+            if (batchCompleted && Policy.EnableEffectPool &&
+                Policy.EffectPoolFlushMode == EffectPoolFlushMode.AfterPump)
             {
                 FlushEffectPool();
             }
@@ -303,10 +298,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private void ProcessCore(Card source, ICardEvent evt)
         {
-            if (!_rules.TryGetValue(evt.EventType, out var typeRules) || typeRules.Count == 0)
-            {
-                return;
-            }
+            if (!_rules.TryGetValue(evt.EventType, out var typeRules) || typeRules.Count == 0) return;
 
             // 评估规则
             var evals = Policy.EnableParallelMatching && typeRules.Count >= Policy.ParallelThreshold
@@ -377,10 +369,12 @@ namespace EasyPack.EmeCardSystem
 
             int currentEventIndex = _globalOrderIndex;
 
-            foreach (var (rule, matched, ctx, orderIndex) in evals)
+            foreach ((CardRule rule, var matched, CardRuleContext ctx, int orderIndex) in evals)
             {
                 if (matched == null || rule.Effects == null || rule.Effects.Count == 0)
+                {
                     continue;
+                }
 
                 _globalEffectPool.AddRuleEffects(rule, ctx, matched, currentEventIndex, orderIndex);
             }
@@ -415,7 +409,9 @@ namespace EasyPack.EmeCardSystem
         private bool ExecuteOne((CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex) e)
         {
             if (e.matched == null || e.rule.Effects == null || e.rule.Effects.Count == 0)
+            {
                 return false;
+            }
 
             foreach (IRuleEffect eff in e.rule.Effects)
             {

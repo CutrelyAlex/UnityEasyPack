@@ -130,7 +130,9 @@ namespace EasyPack.ENekoFramework.Editor
                     foreach (ParameterInfo param in parameters)
                     {
                         if (typeof(IService).IsAssignableFrom(param.ParameterType))
+                        {
                             dependencies.Add(param.ParameterType);
+                        }
                     }
                 }
 
@@ -140,7 +142,9 @@ namespace EasyPack.ENekoFramework.Editor
                 foreach (FieldInfo field in fields)
                 {
                     if (typeof(IService).IsAssignableFrom(field.FieldType))
+                    {
                         dependencies.Add(field.FieldType);
+                    }
                 }
 
                 var properties = serviceType.GetProperties(
@@ -149,7 +153,9 @@ namespace EasyPack.ENekoFramework.Editor
                 foreach (PropertyInfo prop in properties)
                 {
                     if (typeof(IService).IsAssignableFrom(prop.PropertyType))
+                    {
                         dependencies.Add(prop.PropertyType);
+                    }
                 }
             }
             catch (Exception ex)
@@ -173,7 +179,9 @@ namespace EasyPack.ENekoFramework.Editor
             foreach (Type dependency in dependencies)
             {
                 if (HasCircularDependency(dependency, new(visited)))
+                {
                     return true;
+                }
             }
 
             return false;
@@ -200,10 +208,14 @@ namespace EasyPack.ENekoFramework.Editor
         private static bool IsArchitectureType(Type type)
         {
             if (type.BaseType == null)
+            {
                 return false;
+            }
 
             if (!type.BaseType.IsGenericType)
+            {
                 return false;
+            }
 
             string baseTypeName = type.BaseType.GetGenericTypeDefinition().Name;
             return baseTypeName.Contains("ENekoArchitecture");

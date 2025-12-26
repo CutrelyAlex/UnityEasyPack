@@ -21,7 +21,9 @@ namespace EasyPack.Modifiers
         public override bool Equals(object obj)
         {
             if (obj is RangeModifier other)
+            {
                 return Type == other.Type && Priority == other.Priority && Value.Equals(other.Value);
+            }
 
             return false;
         }

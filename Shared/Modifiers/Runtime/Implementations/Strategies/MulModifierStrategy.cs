@@ -17,7 +17,9 @@ namespace EasyPack.Modifiers
             foreach (IModifier mod in modifiers)
             {
                 if (mod is FloatModifier fm)
+                {
                     floatMul *= fm.Value;
+                }
                 else if (mod is RangeModifier rm) rangeMul *= Random.Range(rm.Value.x, rm.Value.y);
             }
 

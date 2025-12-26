@@ -34,11 +34,11 @@ namespace EasyPack.EmeCardSystem
         ///     </para>
         /// </summary>
         object DataObject { get; }
-        
+
         /// <summary>
         ///     泵类型
         /// </summary>
-        EEventPumpType PumpType { get;  }
+        EEventPumpType PumpType { get; }
     }
 
     /// <summary>
@@ -70,6 +70,8 @@ namespace EasyPack.EmeCardSystem
 
     public enum EEventPumpType
     {
-        Start,Normal,End
+        Start,
+        Normal,
+        End,
     }
 }

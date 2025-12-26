@@ -45,10 +45,10 @@ namespace EasyPack.InventorySystem
                                              int toSlot = -1);
 
         (InventoryService.MoveResult result, int transferredCount) TransferItems(string itemId, int count,
-                                                                string fromContainerId, string toContainerId);
+            string fromContainerId, string toContainerId);
 
         (InventoryService.MoveResult result, int transferredCount) AutoMoveItem(string itemId, string fromContainerId,
-                                                               string toContainerId);
+            string toContainerId);
 
         List<(InventoryService.MoveRequest request, InventoryService.MoveResult result, int movedCount)> BatchMoveItems(
             List<InventoryService.MoveRequest> requests);

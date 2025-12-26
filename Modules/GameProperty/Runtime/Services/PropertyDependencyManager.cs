@@ -52,10 +52,14 @@ namespace EasyPack.GamePropertySystem
         public bool AddDependency(GameProperty dependency, Func<GameProperty, float, float> calculator = null)
         {
             if (dependency == null)
+            {
                 throw new ArgumentNullException(nameof(dependency));
+            }
 
             if (!_dependencies.Add(dependency))
+            {
                 return false;
+            }
 
             if (WouldCreateCyclicDependency(dependency))
             {
@@ -90,7 +94,9 @@ namespace EasyPack.GamePropertySystem
         public bool RemoveDependency(GameProperty dependency)
         {
             if (!_dependencies.Remove(dependency))
+            {
                 return false;
+            }
 
             dependency.DependencyManager._dependents.Remove(_owner);
             _dependencyCalculators.Remove(dependency);
@@ -107,7 +113,9 @@ namespace EasyPack.GamePropertySystem
         {
             // 早返
             if (_dependents.Count == 0)
+            {
                 return;
+            }
 
             foreach (GameProperty dependent in _dependents)
             {
@@ -142,7 +150,9 @@ namespace EasyPack.GamePropertySystem
         {
             // 缓存有效，直接返回
             if (_hasDirtyDepsCacheValid)
+            {
                 return _hasDirtyDepsCache;
+            }
 
             // 计算并缓存结果
             bool result = false;
@@ -185,7 +195,9 @@ namespace EasyPack.GamePropertySystem
         public void UpdateDependencies()
         {
             if (_dependencies.Count == 0)
+            {
                 return;
+            }
 
             foreach (GameProperty dep in _dependencies)
             {
@@ -251,7 +263,9 @@ namespace EasyPack.GamePropertySystem
                 foreach (GameProperty dep in current.DependencyManager._dependencies)
                 {
                     if (!visited.Contains(dep))
+                    {
                         stack.Push(dep);
+                    }
                 }
             }
 
@@ -275,7 +289,9 @@ namespace EasyPack.GamePropertySystem
                 foreach (GameProperty dep in _dependencies)
                 {
                     if (dep.DependencyManager.DependencyDepth > maxDepth)
+                    {
                         maxDepth = dep.DependencyManager.DependencyDepth;
+                    }
                 }
 
                 DependencyDepth = maxDepth + 1;

@@ -35,7 +35,9 @@ namespace EasyPack.ENekoFramework
         public void Subscribe<TEvent>(Action<TEvent> handler) where TEvent : IEvent
         {
             if (handler == null)
+            {
                 throw new ArgumentNullException(nameof(handler));
+            }
 
             Type eventType = typeof(TEvent);
             if (!_subscriptions.ContainsKey(eventType)) _subscriptions[eventType] = new();
@@ -63,7 +65,9 @@ namespace EasyPack.ENekoFramework
 #endif
 
             if (!_subscriptions.TryGetValue(eventType, out var handlers))
+            {
                 return;
+            }
 
             var deadReferences = new List<WeakReference>();
 
@@ -114,16 +118,22 @@ namespace EasyPack.ENekoFramework
         public void Unsubscribe<TEvent>(Action<TEvent> handler) where TEvent : IEvent
         {
             if (handler == null)
+            {
                 return;
+            }
 
             Type eventType = typeof(TEvent);
             if (!_subscriptions.TryGetValue(eventType, out var handlers))
+            {
                 return;
+            }
 
             handlers.RemoveAll(weakRef =>
             {
                 if (!weakRef.IsAlive)
+                {
                     return true;
+                }
 
                 var target = weakRef.Target as Action<TEvent>;
                 return target == handler;
@@ -147,7 +157,9 @@ namespace EasyPack.ENekoFramework
         {
             Type eventType = typeof(TEvent);
             if (!_subscriptions.TryGetValue(eventType, out var handlers))
+            {
                 return 0;
+            }
 
             int aliveCount = handlers.FindAll(weakRef => weakRef.IsAlive).Count;
 

@@ -23,8 +23,8 @@ namespace EasyPack.GamePropertySystem
         public string ID { get; set; }
 
         /// <summary>
-        ///    属性的唯一UID
-        ///    -1 表示未分配
+        ///     属性的唯一UID
+        ///     -1 表示未分配
         /// </summary>
         public long UID { get; set; } = -1;
 
@@ -72,7 +72,9 @@ namespace EasyPack.GamePropertySystem
                                       || IsDirty;
 
             if (!needsRecalculation)
+            {
                 return _cacheValue;
+            }
 
             // 更新依赖项（如果有依赖项）
             if (DependencyManager.DependencyCount > 0) DependencyManager.UpdateDependencies();
@@ -86,7 +88,9 @@ namespace EasyPack.GamePropertySystem
 
             // 如果没有随机性依赖项则清理脏标记
             if (!(_hasNonClampRangeModifier || DependencyManager.HasRandomDependency))
+            {
                 IsDirty = false;
+            }
 
             if (Math.Abs(oldValue - _cacheValue) > EPSILON)
             {
@@ -211,7 +215,9 @@ namespace EasyPack.GamePropertySystem
 
             // 只有在第一次变脏时才传播到依赖者
             if (!wasAlreadyDirty && DependencyManager.DependentCount > 0)
+            {
                 DependencyManager.PropagateDirtyTowardsDependents();
+            }
         }
 
         /// <summary>
@@ -302,7 +308,9 @@ namespace EasyPack.GamePropertySystem
             foreach (IModifier modifier in modifiers)
             {
                 if (modifier == null)
+                {
                     throw new ArgumentNullException(nameof(modifier));
+                }
 
                 // 添加到总列表并记录索引
                 int index = Modifiers.Count;
@@ -327,7 +335,9 @@ namespace EasyPack.GamePropertySystem
             }
 
             if (needsRangeCheck)
+            {
                 _hasNonClampRangeModifier = true;
+            }
 
             MakeDirty();
             return this;
@@ -360,7 +370,9 @@ namespace EasyPack.GamePropertySystem
                     {
                         list.Remove(modifier);
                         if (list.Count == 0)
+                        {
                             _groupedModifiers.Remove(modifier.Type);
+                        }
                     }
                 }
             }
@@ -384,7 +396,9 @@ namespace EasyPack.GamePropertySystem
         public IModifiableProperty<float> RemoveModifier(IModifier modifier)
         {
             if (!_modifierIndexMap.TryGetValue(modifier, out int index))
+            {
                 return this;
+            }
 
             int lastIndex = Modifiers.Count - 1;
             if (index != lastIndex)
@@ -402,7 +416,9 @@ namespace EasyPack.GamePropertySystem
             {
                 list.Remove(modifier);
                 if (list.Count == 0)
+                {
                     _groupedModifiers.Remove(modifier.Type);
+                }
             }
 
             // 检查是否有随机性修饰符
@@ -443,7 +459,9 @@ namespace EasyPack.GamePropertySystem
         private void ApplyModifiers(ref float value)
         {
             if (_groupedModifiers.Count == 0)
+            {
                 return;
+            }
 
             // 使用预定义的顺序数组
             foreach (ModifierType type in ModifierStrategyManager.MODIFIER_TYPE_ORDER)

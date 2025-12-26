@@ -82,11 +82,17 @@ namespace EasyPack.GamePropertySystem.Editor
             if (!_initialized || _manager == null)
             {
                 if (!EasyPackArchitecture.Instance.IsServiceRegistered<IGamePropertyService>())
+                {
                     EditorGUILayout.HelpBox("GamePropertyManager 服务未注册到架构。", MessageType.Warning);
+                }
                 else if (!EasyPackArchitecture.Instance.HasInstance<IGamePropertyService>())
+                {
                     EditorGUILayout.HelpBox("GamePropertyManager 服务未实例化。请先初始化架构。", MessageType.Warning);
+                }
                 else
+                {
                     EditorGUILayout.HelpBox("GamePropertyManager 服务未就绪。", MessageType.Warning);
+                }
 
                 if (GUILayout.Button("重试解析")) TryResolveManager();
 
@@ -215,14 +221,20 @@ namespace EasyPack.GamePropertySystem.Editor
                     EditorGUI.indentLevel++;
 
                     if (!string.IsNullOrEmpty(metadata.DisplayName))
+                    {
                         EditorGUILayout.LabelField($"显示名: {metadata.DisplayName}");
+                    }
 
                     if (!string.IsNullOrEmpty(metadata.Description))
+                    {
                         EditorGUILayout.LabelField($"描述: {metadata.Description}");
+                    }
 
                     var propTags = _manager.GetTags(property.ID);
                     if (propTags != null && propTags.Any())
+                    {
                         EditorGUILayout.LabelField($"标签: {string.Join(", ", propTags)}");
+                    }
 
                     EditorGUI.indentLevel--;
                 }
@@ -237,9 +249,13 @@ namespace EasyPack.GamePropertySystem.Editor
                 {
                     string modifierInfo = "";
                     if (modifier is FloatModifier fm)
+                    {
                         modifierInfo = $"{fm.Type}: {fm.Value:F2} (优先级: {fm.Priority})";
+                    }
                     else if (modifier is RangeModifier rm)
+                    {
                         modifierInfo = $"{rm.Type}: [{rm.Value.x:F2}, {rm.Value.y:F2}] (优先级: {rm.Priority})";
+                    }
 
                     EditorGUILayout.LabelField($"  - {modifierInfo}");
                 }
@@ -256,9 +272,13 @@ namespace EasyPack.GamePropertySystem.Editor
             IEnumerable<GameProperty> properties;
 
             if (_selectedCategory == "All")
+            {
                 properties = _manager.GetAllPropertyIds().Select(id => _manager.Get(id));
+            }
             else
+            {
                 properties = _manager.GetByCategory(_selectedCategory);
+            }
 
             if (_selectedTag != "All")
             {
@@ -271,18 +291,24 @@ namespace EasyPack.GamePropertySystem.Editor
                 properties = properties.Where(p =>
                 {
                     if (p.ID.IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
                         return true;
+                    }
 
                     PropertyDisplayInfo metadata = _manager.GetPropertyDisplayInfo(p.ID);
                     if (metadata != null)
                     {
                         if (!string.IsNullOrEmpty(metadata.DisplayName) &&
                             metadata.DisplayName.IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
                             return true;
+                        }
 
                         if (!string.IsNullOrEmpty(metadata.Description) &&
                             metadata.Description.IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
                             return true;
+                        }
                     }
 
                     return false;

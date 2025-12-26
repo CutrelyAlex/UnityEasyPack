@@ -67,31 +67,38 @@ namespace EasyPack.EmeCardSystem
                 if (Filter != CardFilterMode.None && !string.IsNullOrEmpty(FilterValue))
                 {
                     var filtered = TargetSelector.ApplyFilter(matched, Filter, FilterValue);
-                    targets = new List<Card>(filtered);
+                    targets = new(filtered);
                 }
                 else
                 {
-                    targets = new List<Card>(matched);
+                    targets = new(matched);
                 }
 
                 // 应用 Take 限制
                 if (Take is > 0 && targets.Count > Take.Value)
+                {
                     targets = targets.Take(Take.Value).ToList();
+                }
             }
             else
             {
                 var selected = TargetSelector.SelectForEffect(this, ctx);
-                targets = new List<Card>(selected);
+                targets = new(selected);
             }
 
             if (targets == null || targets.Count == 0)
+            {
                 return;
+            }
 
             CardEngine engine = ctx.Engine;
             foreach (Card t in targets.ToArray())
             {
                 if (t?.Owner != null)
+                {
                     t.Owner.RemoveChild(t);
+                }
+
                 engine?.RemoveCard(t);
             }
         }

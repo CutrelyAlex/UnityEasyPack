@@ -44,6 +44,7 @@ namespace EasyPack.EmeCardSystem
             Priority = priority;
             EffectRoot = effectRoot ?? source;
         }
+
         public override string ToString() =>
             $"CardEventEntry[Source={SourceCard?.Id ?? "null"}, Event={Event.EventType}:{Event.EventId}, Priority={Priority}]";
     }

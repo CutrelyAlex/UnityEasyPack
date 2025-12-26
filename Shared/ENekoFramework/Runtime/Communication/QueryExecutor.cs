@@ -26,7 +26,9 @@ namespace EasyPack.ENekoFramework
         public TResult Execute<TResult>(IQuery<TResult> query)
         {
             if (query == null)
+            {
                 throw new ArgumentNullException(nameof(query));
+            }
 
             var descriptor = new QueryDescriptor
             {

@@ -215,8 +215,14 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
             if (playerAttributes.IsGameOver())
             {
                 string reason = "";
-                if (playerAttributes.Health.GetValue() <= 0) reason = "生命值";
-                else if (playerAttributes.Satiety.GetValue() <= 0) reason = "饱食度";
+                if (playerAttributes.Health.GetValue() <= 0)
+                {
+                    reason = "生命值";
+                }
+                else if (playerAttributes.Satiety.GetValue() <= 0)
+                {
+                    reason = "饱食度";
+                }
                 else if (playerAttributes.Sanity.GetValue() <= 0) reason = "SAN值";
 
                 Debug.Log($"❌ 游戏结束！{reason}降至0");
@@ -253,8 +259,14 @@ namespace EasyPack.GamePropertySystem.Example.EatGame
         private void GameOver()
         {
             string reason = "";
-            if (playerAttributes.Health.GetValue() <= 0) reason = "生命值";
-            else if (playerAttributes.Satiety.GetValue() <= 0) reason = "饱食度";
+            if (playerAttributes.Health.GetValue() <= 0)
+            {
+                reason = "生命值";
+            }
+            else if (playerAttributes.Satiety.GetValue() <= 0)
+            {
+                reason = "饱食度";
+            }
             else if (playerAttributes.Sanity.GetValue() <= 0) reason = "SAN值";
 
             Debug.Log($"\n🏁 游戏结束！{reason}降至0");

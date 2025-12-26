@@ -18,8 +18,8 @@ namespace EasyPack.EmeCardSystem
     /// </summary>
     public class Card : IEquatable<Card>
     {
+        #region 构造函数
 
-        #region  构造函数
         /// <summary>
         ///     构造函数：创建卡牌，可选单个属性
         /// </summary>
@@ -37,7 +37,7 @@ namespace EasyPack.EmeCardSystem
             // 临时收集额外标签，等待注册到Engine时同步
             if (extraTags is { Length: > 0 })
             {
-                PendingExtraTags = new List<string>(extraTags);
+                PendingExtraTags = new(extraTags);
             }
         }
 
@@ -55,7 +55,7 @@ namespace EasyPack.EmeCardSystem
             // 临时收集额外标签，等待注册到Engine时同步
             if (extraTags is { Length: > 0 })
             {
-                PendingExtraTags = new List<string>(extraTags);
+                PendingExtraTags = new(extraTags);
             }
         }
 
@@ -68,11 +68,10 @@ namespace EasyPack.EmeCardSystem
         public Card(CardData data, params string[] extraTags)
             : this(data, (IEnumerable<GameProperty>)null, extraTags) { }
 
-
         #endregion
 
         #region 基本数据
-        
+
         /// <summary>
         ///     卡牌所属的CardEngine
         /// </summary>
@@ -148,6 +147,7 @@ namespace EasyPack.EmeCardSystem
                 {
                     return RootCard._position;
                 }
+
                 // 否则返回自己的位置
                 return _position;
             }
@@ -182,7 +182,7 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     标签集合。标签由 CategoryManager 统一管理。
-        ///     <para>推荐使用 <see cref="HasTag"/>、<see cref="AddTag"/>、<see cref="RemoveTag"/> 方法操作标签。</para>
+        ///     <para>推荐使用 <see cref="HasTag" />、<see cref="AddTag" />、<see cref="RemoveTag" /> 方法操作标签。</para>
         /// </summary>
         /// <exception cref="InvalidOperationException">卡牌未注册到引擎时访问。</exception>
         public IReadOnlyCollection<string> Tags
@@ -190,7 +190,10 @@ namespace EasyPack.EmeCardSystem
             get
             {
                 if (Engine?.CategoryManager == null || Index < 0)
+                {
                     return Array.Empty<string>();
+                }
+
                 return Engine.CategoryManager.GetTags(this);
             }
         }
@@ -207,14 +210,14 @@ namespace EasyPack.EmeCardSystem
 
             return Engine.CategoryManager.HasTag(this, tag);
         }
-        
-        public bool ChildHasTag(string tag,out Card target)
+
+        public bool ChildHasTag(string tag, out Card target)
         {
             target = null;
             if (string.IsNullOrEmpty(tag)) return false;
             if (Engine?.CategoryManager == null || UID < 0) return false;
 
-            foreach (var child in Children)
+            foreach (Card child in Children)
             {
                 if (Engine.CategoryManager.HasTag(child, tag))
                 {
@@ -351,7 +354,9 @@ namespace EasyPack.EmeCardSystem
                 }
 
                 if (!visited.Add(current))
+                {
                     break;
+                }
 
                 current = current.Owner;
             }
@@ -410,15 +415,15 @@ namespace EasyPack.EmeCardSystem
         /// <param name="force">是否强制移除；当为 false 时，固有子卡不会被移除。</param>
         /// <returns>若移除成功返回 true；否则返回 false。</returns>
         /// <remarks>
-        ///     移除成功后，将向子卡派发 RemovedFromOwner 事件<br/>
-        ///     移除后的子卡牌会保留移除前的逻辑位置，可使用 <see cref="CardEngine.TryMoveRootCardToPosition"/> 重新定位
+        ///     移除成功后，将向子卡派发 RemovedFromOwner 事件<br />
+        ///     移除后的子卡牌会保留移除前的逻辑位置，可使用 <see cref="CardEngine.TryMoveRootCardToPosition" /> 重新定位
         ///     child的 Owner 和 RootCard 引用将被清除。
         /// </remarks>
         public bool RemoveChild(Card child, bool force = false)
         {
             if (child == null) return false;
             if (!force && _intrinsics.Contains(child)) return false; // 固有不可移除
-            
+
             bool removed = _children.Remove(child);
             if (!removed) return false;
 
@@ -471,9 +476,9 @@ namespace EasyPack.EmeCardSystem
         ///     触发无数据事件。
         /// </summary>
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
-        public void RaiseEvent(string eventType,EEventPumpType eventPumpType=EEventPumpType.Normal)
+        public void RaiseEvent(string eventType, EEventPumpType eventPumpType = EEventPumpType.Normal)
         {
-            RaiseEventInternal(new CardEvent<Unit>(eventType, Unit.Default,null,eventPumpType));
+            RaiseEventInternal(new CardEvent<Unit>(eventType, Unit.Default, null, eventPumpType));
         }
 
         /// <summary>
@@ -483,9 +488,9 @@ namespace EasyPack.EmeCardSystem
         /// <param name="eventType">自定义事件类型标识，用于规则过滤。</param>
         /// <param name="data">事件数据。</param>
         /// <param name="eventPumpType">泵入何处</param>
-        public void RaiseEvent<T>(string eventType, T data ,EEventPumpType eventPumpType=EEventPumpType.Normal)
+        public void RaiseEvent<T>(string eventType, T data, EEventPumpType eventPumpType = EEventPumpType.Normal)
         {
-            RaiseEventInternal(new CardEvent<T>(eventType, data,null,eventPumpType));
+            RaiseEventInternal(new CardEvent<T>(eventType, data, null, eventPumpType));
         }
 
         /// <summary>
@@ -501,7 +506,7 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     触发自定义事件（直接传递事件对象）。
-        ///     <para>适用于使用 <see cref="CardEventDefinition{T}.CreateEvent"/> 创建的事件。</para>
+        ///     <para>适用于使用 <see cref="CardEventDefinition{T}.CreateEvent" /> 创建的事件。</para>
         /// </summary>
         /// <typeparam name="T">事件数据类型。</typeparam>
         /// <param name="evt">已创建的事件对象。</param>
@@ -534,11 +539,9 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     获取卡牌的哈希码，基于 UID 计算。
         /// </summary>
-        public override int GetHashCode()
-        {
+        public override int GetHashCode() =>
             // ReSharper disable once NonReadonlyMemberInGetHashCode
-            return UID.GetHashCode();
-        }
+            UID.GetHashCode();
 
         /// <summary>
         ///     判断两个卡牌是否相等，基于 UID 进行比较。
@@ -546,10 +549,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="obj">要比较的对象。</param>
         /// <returns>如果两个卡牌的 UID 相同返回 true；否则返回 false。</returns>
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as Card);
-        }
+        public override bool Equals(object obj) => Equals(obj as Card);
 
         /// <summary>
         ///     判断两个卡牌是否相等，基于 UID 进行比较。

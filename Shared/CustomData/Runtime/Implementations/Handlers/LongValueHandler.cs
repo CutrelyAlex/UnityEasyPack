@@ -20,7 +20,9 @@ namespace EasyPack.CustomData
         public bool TryDeserialize(CustomDataEntry entry, string data, Type jsonClrType = null)
         {
             if (!long.TryParse(data, NumberStyles.Integer, CultureInfo.InvariantCulture, out long value))
+            {
                 return false;
+            }
 
             entry.LongValue = value;
             entry.Type = CustomDataType.Long;

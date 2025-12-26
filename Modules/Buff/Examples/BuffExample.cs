@@ -661,7 +661,9 @@ namespace EasyPack.BuffSystem.Example
 
             Buff safeBuffInstance = _buffManager.CreateBuff(safeBuff, _dummyCreator, _dummyTarget);
             if (safeBuffInstance == null)
+            {
                 Debug.Log("安全的Buff创建：传入null BuffData，未创建Buff实例");
+            }
 
             // 安全的查询
             bool safeQuery = _buffManager.ContainsBuff(null, "TestBuff");
@@ -866,7 +868,9 @@ namespace EasyPack.BuffSystem.Example
         {
             // 避免每帧都输出，只在特定条件下输出
             if (Mathf.Approximately(buff.DurationTimer % 1f, 0f))
+            {
                 Debug.Log($"[DEBUG] {buff.BuffData.Name} 更新 - 剩余时间: {buff.DurationTimer:F1}s");
+            }
         }
 
         private void OnRemove(Buff buff, object[] parameters)

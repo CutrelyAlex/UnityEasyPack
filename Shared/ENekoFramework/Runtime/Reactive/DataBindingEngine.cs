@@ -41,7 +41,9 @@ namespace EasyPack.ENekoFramework
         public void RegisterBinding(GameObject target, Action cleanup)
         {
             if (target == null || cleanup == null)
+            {
                 return;
+            }
 
             if (!_bindings.ContainsKey(target))
             {
@@ -66,7 +68,9 @@ namespace EasyPack.ENekoFramework
         public void CleanupBindings(GameObject target)
         {
             if (!target || !_bindings.TryGetValue(target, out var cleanups))
+            {
                 return;
+            }
 
             foreach (Action cleanup in cleanups)
             {

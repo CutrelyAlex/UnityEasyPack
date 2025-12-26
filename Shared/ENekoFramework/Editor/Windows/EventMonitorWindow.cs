@@ -122,7 +122,9 @@ namespace EasyPack.ENekoFramework.Editor
                 foreach (EventLogEntry entry in _eventLog)
                 {
                     if (entry.EventType != null)
+                    {
                         eventTypes.Add(entry.EventType);
+                    }
                 }
 
                 // 重新计算每个事件类型的订阅者数量
@@ -233,7 +235,9 @@ namespace EasyPack.ENekoFramework.Editor
             // 事件类型筛选
             _useEventTypeFilter = EditorGUILayout.ToggleLeft("按事件类型筛选", _useEventTypeFilter, GUILayout.Width(120));
             if (_useEventTypeFilter)
+            {
                 _selectedEventTypeFilter = EditorGUILayout.TextField(_selectedEventTypeFilter, GUILayout.Width(150));
+            }
 
             EditorGUILayout.EndHorizontal();
 
@@ -257,7 +261,9 @@ namespace EasyPack.ENekoFramework.Editor
                 float newInterval = EditorGUILayout.FloatField(_refreshInterval, EditorStyles.toolbarTextField,
                     GUILayout.Width(40));
                 if (!Mathf.Approximately(newInterval, _refreshInterval))
+                {
                     _refreshInterval = Mathf.Max(0.1f, newInterval); // 最小0.1秒
+                }
 
                 GUILayout.Label("秒", EditorStyles.toolbarButton, GUILayout.Width(20));
             }
@@ -288,9 +294,13 @@ namespace EasyPack.ENekoFramework.Editor
             if (filteredLogs.Count == 0)
             {
                 if (_eventLog.Count == 0)
+                {
                     EditorGUILayout.HelpBox("暂无事件记录。当应用运行时，事件将显示在这里。", MessageType.Info);
+                }
                 else
+                {
                     EditorGUILayout.HelpBox("筛选无匹配结果", MessageType.Info);
+                }
             }
             else
             {
@@ -327,7 +337,9 @@ namespace EasyPack.ENekoFramework.Editor
 
             // 展开/折叠按钮
             if (GUILayout.Button(entry.IsExpanded ? "▼" : "▶", EditorStyles.label, GUILayout.Width(20)))
+            {
                 entry.IsExpanded = !entry.IsExpanded;
+            }
 
             EditorGUILayout.EndHorizontal();
 
@@ -339,7 +351,9 @@ namespace EasyPack.ENekoFramework.Editor
                 EditorGUILayout.LabelField("完整类型:", entry.EventType.FullName, EditorStyles.wordWrappedLabel);
 
                 if (entry.EventData != null)
+                {
                     EditorGUILayout.LabelField("事件数据:", entry.DataSummary, EditorStyles.wordWrappedLabel);
+                }
 
                 EditorGUI.indentLevel--;
             }
@@ -352,7 +366,9 @@ namespace EasyPack.ENekoFramework.Editor
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
 
             if (_eventLog.Count >= MaxLogEntries)
+            {
                 EditorGUILayout.HelpBox($"已达到最大记录数 ({MaxLogEntries})，旧事件将被自动清除", MessageType.Warning);
+            }
 
             EditorGUILayout.EndHorizontal();
         }
@@ -364,7 +380,9 @@ namespace EasyPack.ENekoFramework.Editor
             for (int i = 0; i < _architectureNames.Count; i++)
             {
                 if (_architectureFilters[i])
+                {
                     currentSelectedArchitectures.Add(_architectureNames[i]);
+                }
             }
 
             bool filterChanged = !_filterCacheValid ||
@@ -478,7 +496,9 @@ namespace EasyPack.ENekoFramework.Editor
         private string GetEventDataSummary(object eventData)
         {
             if (eventData == null)
+            {
                 return "null";
+            }
 
             try
             {
@@ -560,10 +580,14 @@ namespace EasyPack.ENekoFramework.Editor
             {
                 string timestampStr = EditorPrefs.GetString(EventLogTimestampKey, "");
                 if (string.IsNullOrEmpty(timestampStr))
+                {
                     return;
+                }
 
                 if (!DateTime.TryParse(timestampStr, out DateTime saveTime))
+                {
                     return;
+                }
 
                 // 检查数据是否过期
                 if (DateTime.Now - saveTime > MaxDataAge)
@@ -576,11 +600,15 @@ namespace EasyPack.ENekoFramework.Editor
 
                 string jsonData = EditorPrefs.GetString(EventLogDataKey, "");
                 if (string.IsNullOrEmpty(jsonData))
+                {
                     return;
+                }
 
                 var serializableData = JsonUtility.FromJson<SerializableEventLogData>(jsonData);
                 if (serializableData?.Entries == null)
+                {
                     return;
+                }
 
                 // 反序列化事件日志
                 _eventLog.Clear();

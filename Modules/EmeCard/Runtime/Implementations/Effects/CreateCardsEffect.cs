@@ -33,17 +33,16 @@ namespace EasyPack.EmeCardSystem
             CardEngine engine = ctx.Engine;
             if (engine == null || ctx.MatchRoot == null || CardIds == null || CardIds.Count == 0 ||
                 CountPerId <= 0)
+            {
                 return;
+            }
 
             foreach (string id in CardIds)
             {
                 for (int i = 0; i < CountPerId; i++)
                 {
                     Card card = engine.CreateCard(id);
-                    if (card != null)
-                    {
-                        engine.AddChildToCard(ctx.MatchRoot, card);
-                    }
+                    if (card != null) engine.AddChildToCard(ctx.MatchRoot, card);
                 }
             }
         }

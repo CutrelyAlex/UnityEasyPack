@@ -81,13 +81,17 @@ namespace EasyPack.InventorySystem
                     {
                         ISlot slot = _slots[index];
                         if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
+                        {
                             totalCount += slot.ItemCount;
+                        }
                     }
                 }
 
                 // 更新缓存
                 if (totalCount > 0)
+                {
                     _cacheManager.UpdateItemCountCache(itemId, totalCount);
+                }
 
                 return totalCount;
             }
@@ -106,7 +110,9 @@ namespace EasyPack.InventorySystem
             }
 
             if (count > 0)
+            {
                 _cacheManager.UpdateItemCountCache(itemId, count);
+            }
 
             return count;
         }
@@ -132,9 +138,13 @@ namespace EasyPack.InventorySystem
                     {
                         ISlot slot = _slots[idx];
                         if (slot.IsOccupied && slot.Item != null && slot.Item.ID == itemId)
+                        {
                             validIndices.Add(idx);
+                        }
                         else
+                        {
                             needsUpdate = true;
+                        }
                     }
                     else
                     {
@@ -149,7 +159,9 @@ namespace EasyPack.InventorySystem
                     {
                         if (idx >= _slots.Count || !_slots[idx].IsOccupied ||
                             _slots[idx].Item == null || _slots[idx].Item.ID != itemId)
+                        {
                             _cacheManager.UpdateItemSlotIndexCache(itemId, idx, false);
+                        }
                     }
                 }
 
@@ -217,7 +229,9 @@ namespace EasyPack.InventorySystem
                     {
                         ISlot slot = _slots[index];
                         if (slot.IsOccupied && slot.Item != null && slot.Item.Type == itemType)
+                        {
                             result.Add((index, slot.Item, slot.ItemCount));
+                        }
                     }
                 }
 
@@ -253,12 +267,12 @@ namespace EasyPack.InventorySystem
                 {
                     ISlot slot = _slots[i];
                     if (!slot.IsOccupied || slot.Item == null) return;
-                    
+
                     CustomDataEntry entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
                     object value = entry?.GetValue();
 
                     if (value == null || (attributeValue != null && !value.Equals(attributeValue))) return;
-                        
+
                     lock (lockObject)
                     {
                         result.Add((i, slot.Item, slot.ItemCount));
@@ -272,10 +286,10 @@ namespace EasyPack.InventorySystem
                 {
                     ISlot slot = _slots[i];
                     if (!slot.IsOccupied || slot.Item == null) continue;
-                    
+
                     CustomDataEntry entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
                     object value = entry?.GetValue();
-                        
+
                     if (value != null && (attributeValue == null || value.Equals(attributeValue)))
                     {
                         result.Add((i, slot.Item, slot.ItemCount));
@@ -291,13 +305,17 @@ namespace EasyPack.InventorySystem
             var result = new List<(int slotIndex, IItem item, int count)>();
 
             if (string.IsNullOrEmpty(namePattern))
+            {
                 return result;
+            }
 
             for (int i = 0; i < _slots.Count; i++)
             {
                 ISlot slot = _slots[i];
                 if (slot.IsOccupied && slot.Item is { Name: not null } && slot.Item.Name.Contains(namePattern))
+                {
                     result.Add((i, slot.Item, slot.ItemCount));
+                }
             }
 
             return result;
@@ -331,7 +349,9 @@ namespace EasyPack.InventorySystem
                 {
                     ISlot slot = _slots[i];
                     if (slot.IsOccupied && slot.Item != null && condition(slot.Item))
+                    {
                         result.Add((i, slot.Item, slot.ItemCount));
+                    }
                 }
             }
 
@@ -365,7 +385,9 @@ namespace EasyPack.InventorySystem
                 }
 
                 if (cacheComplete)
+                {
                     return result;
+                }
             }
 
             var counts = new Dictionary<string, int>();
@@ -407,7 +429,9 @@ namespace EasyPack.InventorySystem
             foreach (ISlot slot in _slots)
             {
                 if (slot.IsOccupied && slot.Item != null)
+                {
                     totalWeight += slot.Item.Weight * slot.ItemCount;
+                }
             }
 
             return totalWeight;

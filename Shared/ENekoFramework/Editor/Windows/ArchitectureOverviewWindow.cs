@@ -109,9 +109,13 @@ namespace EasyPack.ENekoFramework.Editor
             if (GUILayout.Button("Refresh", EditorStyles.toolbarButton, GUILayout.Width(60))) RefreshArchitectures();
 
             if (_isRefreshing)
+            {
                 GUILayout.Label("Refreshing...", EditorStyles.toolbarButton, GUILayout.Width(80));
+            }
             else
+            {
                 GUILayout.Space(80);
+            }
 
             GUILayout.Space(10);
 
@@ -191,9 +195,13 @@ namespace EasyPack.ENekoFramework.Editor
             EditorGUILayout.LabelField("架构详情", _headerStyle);
 
             if (_selectedArchitecture == null)
+            {
                 EditorGUILayout.HelpBox("请从左侧列表选择一个架构查看详情。", MessageType.Info);
+            }
             else
+            {
                 DrawSelectedArchitectureDetails();
+            }
 
             EditorGUILayout.EndVertical();
         }
@@ -326,7 +334,9 @@ namespace EasyPack.ENekoFramework.Editor
                             // 如果当前选择的架构不在新列表中，清除选择
                             if (_selectedArchitecture != null &&
                                 _architectures.All(a => a.TypeName != _selectedArchitecture.TypeName))
+                            {
                                 _selectedArchitecture = null;
+                            }
                         }
 
                         _isRefreshing = false;
@@ -389,7 +399,9 @@ namespace EasyPack.ENekoFramework.Editor
                         {
                             object subscribers = subscribersField.GetValue(eventBus);
                             if (subscribers is IDictionary dict)
+                            {
                                 info.RegisteredEventCount = dict.Count;
+                            }
                         }
                     }
                 }

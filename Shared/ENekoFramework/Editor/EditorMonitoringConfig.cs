@@ -25,7 +25,9 @@ namespace EasyPack.ENekoFramework.Editor
             get
             {
                 if (!_enableEventMonitoring.HasValue)
+                {
                     _enableEventMonitoring = EditorPrefs.GetBool(EnableEventMonitoringKey, true);
+                }
 
                 return _enableEventMonitoring.Value;
             }
@@ -47,7 +49,9 @@ namespace EasyPack.ENekoFramework.Editor
             get
             {
                 if (!_enableServiceMonitoring.HasValue)
+                {
                     _enableServiceMonitoring = EditorPrefs.GetBool(EnableServiceMonitoringKey, true);
+                }
 
                 return _enableServiceMonitoring.Value;
             }
@@ -69,7 +73,9 @@ namespace EasyPack.ENekoFramework.Editor
             get
             {
                 if (!_enableCommandMonitoring.HasValue)
+                {
                     _enableCommandMonitoring = EditorPrefs.GetBool(EnableCommandMonitoringKey, true);
+                }
 
                 return _enableCommandMonitoring.Value;
             }

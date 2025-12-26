@@ -51,7 +51,7 @@ namespace EasyPack.InventorySystem
         {
             if (item == null) return null;
 
-            return new SerializedGridItem
+            return new()
             {
                 ID = item.ID,
                 Name = item.Name,
@@ -98,9 +98,13 @@ namespace EasyPack.InventorySystem
 
             // 反序列化 CustomData
             if (dto.CustomData is { Count: > 0 })
+            {
                 item.CustomData = new(dto.CustomData);
+            }
             else
+            {
                 item.CustomData = new();
+            }
 
             // 反序列化容器ID列表
             if (dto.ContainerIds is { Count: > 0 })

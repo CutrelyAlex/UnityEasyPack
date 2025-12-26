@@ -60,12 +60,9 @@ namespace EasyPack.GamePropertySystem
                 if (serMod != null) modifiersList.Add(serMod);
             }
 
-            return new SerializableGameProperty
+            return new()
             {
-                ID = obj.ID,
-                UID = obj.UID,
-                BaseValue = obj.GetBaseValue(),
-                Modifiers = modifiersList.ToArray(),
+                ID = obj.ID, UID = obj.UID, BaseValue = obj.GetBaseValue(), Modifiers = modifiersList.ToArray(),
             };
         }
 
@@ -82,7 +79,7 @@ namespace EasyPack.GamePropertySystem
             {
                 // UID 由 Service 统一分配与校验；
                 // 这里仅还原序列化值。
-                UID = dto.UID == 0 ? -1 : dto.UID
+                UID = dto.UID == 0 ? -1 : dto.UID,
             };
 
             // 使用 ModifierSerializer 还原所有修饰器

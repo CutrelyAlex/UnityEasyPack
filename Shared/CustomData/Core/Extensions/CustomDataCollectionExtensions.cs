@@ -83,7 +83,9 @@ namespace EasyPack.CustomData
             foreach (CustomDataEntry e in customDataEntries)
             {
                 if (e.Key != null && customDataEntries.TryGetValue(e.Key, out T value))
+                {
                     dict[e.Key] = value;
+                }
             }
 
             return dict;

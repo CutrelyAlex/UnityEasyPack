@@ -10,6 +10,7 @@ namespace EasyPack.BuffSystem
     public class BuffData
     {
         public const float InfiniteDuration = -1f;
+
         /// <summary>
         ///     Buff 的唯一标识符
         /// </summary>

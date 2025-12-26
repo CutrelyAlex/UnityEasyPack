@@ -41,7 +41,9 @@ namespace EasyPack.ENekoFramework
             CancellationToken cancellationToken = default)
         {
             if (command == null)
+            {
                 throw new ArgumentNullException(nameof(command));
+            }
 
             float timeout = timeoutSeconds ?? _defaultTimeoutSeconds;
 
@@ -108,7 +110,10 @@ namespace EasyPack.ENekoFramework
         public IReadOnlyList<CommandDescriptor> GetCommandHistory()
         {
             if (!_enableHistory || _commandHistory == null)
+            {
                 return new List<CommandDescriptor>().AsReadOnly();
+            }
+
             return _commandHistory.AsReadOnly();
         }
 
@@ -157,7 +162,10 @@ namespace EasyPack.ENekoFramework
             get
             {
                 if (!CompletedAt.HasValue)
+                {
                     return 0;
+                }
+
                 return (CompletedAt.Value - StartedAt).TotalMilliseconds;
             }
         }

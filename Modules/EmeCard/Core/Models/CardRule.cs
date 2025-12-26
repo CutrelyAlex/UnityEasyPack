@@ -28,9 +28,9 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     匹配根跳数：确定 Requirements 匹配的起始卡牌。
         ///     <para>
-        ///         0 = Self（持有此规则的卡牌）<br/>
-        ///         1 = Owner（持有者，默认）<br/>
-        ///         N &gt; 1 = 向上第 N 级 Owner<br/>
+        ///         0 = Self（持有此规则的卡牌）<br />
+        ///         1 = Owner（持有者，默认）<br />
+        ///         N &gt; 1 = 向上第 N 级 Owner<br />
         ///         -1 = Root（最顶层卡牌）
         ///     </para>
         /// </summary>
@@ -39,9 +39,9 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     效果根跳数：确定 Effects 执行的起始卡牌。
         ///     <para>
-        ///         0 = Self（持有此规则的卡牌）<br/>
-        ///         1 = Owner（持有者，默认）<br/>
-        ///         N &gt; 1 = 向上第 N 级 Owner<br/>
+        ///         0 = Self（持有此规则的卡牌）<br />
+        ///         1 = Owner（持有者，默认）<br />
+        ///         N &gt; 1 = 向上第 N 级 Owner<br />
         ///         -1 = Root（最顶层卡牌）
         ///     </para>
         /// </summary>
@@ -96,19 +96,20 @@ namespace EasyPack.EmeCardSystem
                     return sourceCard;
                 // Root (-1)
                 case < 0:
-                    {
-                        return sourceCard.RootCard ?? sourceCard;
-                    }
+                {
+                    return sourceCard.RootCard ?? sourceCard;
+                }
                 case >= 1:
+                {
+                    Card target = sourceCard;
+                    // N 级 Owner
+                    for (int i = 0; i < hops && target.Owner != null; i++)
                     {
-                        Card target = sourceCard;
-                        // N 级 Owner
-                        for (int i = 0; i < hops && target.Owner != null; i++)
-                        {
-                            target = target.Owner;
-                        }
-                        return target;
+                        target = target.Owner;
                     }
+
+                    return target;
+                }
             }
         }
 

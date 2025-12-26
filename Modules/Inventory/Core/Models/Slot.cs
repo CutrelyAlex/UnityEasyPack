@@ -36,11 +36,15 @@ namespace EasyPack.InventorySystem
         {
             // 物品不能为 null
             if (item == null)
+            {
                 return false;
+            }
 
             // 验证槽位条件
             if (!CheckSlotCondition(item))
+            {
                 return false;
+            }
 
             // 如果是相同物品，只更新数量
             if (IsOccupied && Item != null && Item.ID == item.ID)

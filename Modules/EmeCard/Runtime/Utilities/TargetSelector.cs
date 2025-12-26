@@ -37,10 +37,13 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="allCards">系统中所有已注册的卡牌</param>
         /// <param name="categoryManager">可选的 CategoryManager 引用</param>
-        public static void InitializeTagCache(IEnumerable<Card> allCards, ICategoryManager<Card, long> categoryManager = null)
+        public static void InitializeTagCache(IEnumerable<Card> allCards,
+                                              ICategoryManager<Card, long> categoryManager = null)
         {
             if (categoryManager != null)
+            {
                 _categoryManager = categoryManager;
+            }
 
             _cacheLock.EnterWriteLock();
             try
@@ -79,14 +82,16 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     获取卡牌的标签。
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         private static IEnumerable<string> GetCardTags(Card card)
         {
             if (card == null) return null;
 
             // 使用 CategoryManager 获取标签
-            return _categoryManager != null ? _categoryManager.GetTags(card) :
-                Array.Empty<string>(); // 没有 CategoryManager 时返回空集合
+            return _categoryManager != null
+                ? _categoryManager.GetTags(card)
+                : Array.Empty<string>(); // 没有 CategoryManager 时返回空集合
         }
 
         /// <summary>
@@ -94,7 +99,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private static void AddCardToTagCache(Card card, string tag)
         {
-            var cardSet = _tagCardCache.GetOrAdd(tag, _ => new HashSet<Card>());
+            var cardSet = _tagCardCache.GetOrAdd(tag, _ => new());
             lock (cardSet)
             {
                 cardSet.Add(card);
@@ -124,9 +129,11 @@ namespace EasyPack.EmeCardSystem
         internal static void OnCardTagAdded(Card card, string tag)
         {
             if (!_isCacheInitialized || card == null || string.IsNullOrEmpty(tag))
+            {
                 return;
+            }
 
-            var cardSet = _tagCardCache.GetOrAdd(tag, _ => new HashSet<Card>());
+            var cardSet = _tagCardCache.GetOrAdd(tag, _ => new());
             lock (cardSet)
             {
                 cardSet.Add(card);
@@ -139,7 +146,9 @@ namespace EasyPack.EmeCardSystem
         internal static void OnCardTagRemoved(Card card, string tag)
         {
             if (!_isCacheInitialized || card == null || string.IsNullOrEmpty(tag))
+            {
                 return;
+            }
 
             if (_tagCardCache.TryGetValue(tag, out var cardSet))
             {
@@ -149,21 +158,21 @@ namespace EasyPack.EmeCardSystem
                 }
 
                 // 如果集合为空，尝试移除
-                if (cardSet.Count == 0)
-                {
-                    _tagCardCache.TryRemove(tag, out _);
-                }
+                if (cardSet.Count == 0) _tagCardCache.TryRemove(tag, out _);
             }
         }
 
         /// <summary>
         ///     获取拥有指定Tag的所有卡牌
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         private static HashSet<Card> GetCardsByTagFromCache(string tag)
         {
             if (!_isCacheInitialized || string.IsNullOrEmpty(tag))
+            {
                 return null;
+            }
 
             _tagCardCache.TryGetValue(tag, out var cardSet);
             return cardSet;
@@ -183,13 +192,11 @@ namespace EasyPack.EmeCardSystem
             CardFilterMode filter,
             CardRuleContext ctx,
             string filterValue = null,
-            int? maxDepth = null)
-        {
-            return ctx?.MatchRoot == null
-                ? new HashSet<Card>()
+            int? maxDepth = null) =>
+            ctx?.MatchRoot == null
+                ? new()
                 : Select(scope, filter, ctx.MatchRoot, filterValue, maxDepth ?? ctx.MaxDepth,
                     ctx.Engine?.CategoryManager);
-        }
 
         /// <summary>
         ///     根据作用域和过滤条件选择目标卡牌。
@@ -203,10 +210,12 @@ namespace EasyPack.EmeCardSystem
             ICategoryManager<Card, long> categoryManager = null)
         {
             if (root == null)
-                return new HashSet<Card>();
+            {
+                return new();
+            }
 
             // 特殊处理：Matched 不应该在这里处理，由调用方直接使用匹配结果
-            if (scope == TargetScope.Matched) return new HashSet<Card>();
+            if (scope == TargetScope.Matched) return new();
 
             HashSet<Card> candidates;
 
@@ -215,20 +224,20 @@ namespace EasyPack.EmeCardSystem
             {
                 case TargetScope.Children:
                     // 创建副本以避免并发修改
-                    candidates = new HashSet<Card>(root.Children);
+                    candidates = new(root.Children);
                     break;
 
                 case TargetScope.Descendants:
-                    {
-                        int depth = maxDepth;
-                        if (depth <= 0) depth = int.MaxValue;
-                        var descendantsList = TraversalUtil.EnumerateDescendantsAsList(root, depth);
-                        candidates = new HashSet<Card>(descendantsList);
-                        break;
-                    }
+                {
+                    int depth = maxDepth;
+                    if (depth <= 0) depth = int.MaxValue;
+                    var descendantsList = TraversalUtil.EnumerateDescendantsAsList(root, depth);
+                    candidates = new(descendantsList);
+                    break;
+                }
 
                 default:
-                    return new HashSet<Card>();
+                    return new();
             }
 
             // 第二步：根据 FilterMode 过滤
@@ -244,16 +253,22 @@ namespace EasyPack.EmeCardSystem
         public static HashSet<Card> SelectForEffect(ITargetSelection selection, CardRuleContext ctx)
         {
             if (selection == null || ctx == null)
-                return new HashSet<Card>();
+            {
+                return new();
+            }
 
             // Matched 由调用方处理
             if (selection.Scope == TargetScope.Matched)
-                return new HashSet<Card>();
+            {
+                return new();
+            }
 
             // 确定根容器：效果使用 EffectRoot
             Card root = selection.Root == SelectionRoot.Source ? ctx.Source : ctx.EffectRoot;
             if (root == null)
-                return new HashSet<Card>();
+            {
+                return new();
+            }
 
             // 选择目标
             var targets = Select(
@@ -271,18 +286,18 @@ namespace EasyPack.EmeCardSystem
                 int takeCount = selection.Take.Value;
                 var limited = new HashSet<Card>();
                 int count = 0;
-                foreach (var card in targets)
+                foreach (Card card in targets)
                 {
                     if (count >= takeCount) break;
                     limited.Add(card);
                     count++;
                 }
+
                 return limited;
             }
 
             return targets;
         }
-
 
 
         /// <summary>
@@ -300,12 +315,14 @@ namespace EasyPack.EmeCardSystem
             ICategoryManager<Card, long> categoryManager = null)
         {
             if (cards == null || cards.Count == 0)
-                return new HashSet<Card>();
+            {
+                return new();
+            }
 
             switch (filter)
             {
                 case CardFilterMode.None:
-                    return new HashSet<Card>(cards);
+                    return new(cards);
 
                 case CardFilterMode.ByTag:
                     return FilterByTag(cards, filterValue, categoryManager);
@@ -317,7 +334,7 @@ namespace EasyPack.EmeCardSystem
                     return FilterByCategory(cards, filterValue, categoryManager);
 
                 default:
-                    return new HashSet<Card>();
+                    return new();
             }
         }
 
@@ -330,7 +347,9 @@ namespace EasyPack.EmeCardSystem
             ICategoryManager<Card, long> categoryManager)
         {
             if (string.IsNullOrEmpty(tag))
-                return new HashSet<Card>();
+            {
+                return new();
+            }
 
             var results = new HashSet<Card>();
 
@@ -340,8 +359,11 @@ namespace EasyPack.EmeCardSystem
                 foreach (Card card in cards)
                 {
                     if (categoryManager.HasTag(card, tag))
+                    {
                         results.Add(card);
+                    }
                 }
+
                 return results;
             }
 
@@ -355,9 +377,12 @@ namespace EasyPack.EmeCardSystem
                     foreach (Card card in cards)
                     {
                         if (cachedCardSet.Contains(card))
+                        {
                             results.Add(card);
+                        }
                     }
                 }
+
                 return results;
             }
 
@@ -365,8 +390,11 @@ namespace EasyPack.EmeCardSystem
             foreach (Card card in cards)
             {
                 if (card.HasTag(tag))
+                {
                     results.Add(card);
+                }
             }
+
             return results;
         }
 
@@ -376,14 +404,19 @@ namespace EasyPack.EmeCardSystem
         private static HashSet<Card> FilterById(HashSet<Card> cards, string id)
         {
             if (string.IsNullOrEmpty(id))
-                return new HashSet<Card>();
+            {
+                return new();
+            }
 
             var results = new HashSet<Card>();
             foreach (Card card in cards)
             {
                 if (string.Equals(card.Id, id, StringComparison.Ordinal))
+                {
                     results.Add(card);
+                }
             }
+
             return results;
         }
 
@@ -396,7 +429,9 @@ namespace EasyPack.EmeCardSystem
             ICategoryManager<Card, long> categoryManager)
         {
             if (string.IsNullOrEmpty(categoryStr))
-                return new HashSet<Card>();
+            {
+                return new();
+            }
 
             var results = new HashSet<Card>();
 
@@ -406,11 +441,9 @@ namespace EasyPack.EmeCardSystem
                 foreach (Card card in cards)
                 {
                     // 使用 IsInCategory 检查
-                    if (categoryManager.IsInCategory(card, categoryStr, includeChildren: true))
-                    {
-                        results.Add(card);
-                    }
+                    if (categoryManager.IsInCategory(card, categoryStr, true)) results.Add(card);
                 }
+
                 return results;
             }
 
@@ -418,10 +451,12 @@ namespace EasyPack.EmeCardSystem
             foreach (Card card in cards)
             {
                 if (string.Equals(card.Data?.Category, categoryStr, StringComparison.OrdinalIgnoreCase))
+                {
                     results.Add(card);
+                }
             }
+
             return results;
         }
-
     }
 }

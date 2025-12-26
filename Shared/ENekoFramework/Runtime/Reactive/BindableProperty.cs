@@ -62,9 +62,13 @@ namespace EasyPack.ENekoFramework
                 _value = value;
 
                 if (_batchDepth > 0)
+                {
                     _hasChangedDuringBatch = true;
+                }
                 else
+                {
                     NotifyListeners();
+                }
             }
         }
 

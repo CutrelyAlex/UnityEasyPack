@@ -120,7 +120,9 @@ namespace EasyPack.InventorySystem
         public void SetCustomData(string id, object value)
         {
             if (CustomData == null)
+            {
                 CustomData = new();
+            }
 
             CustomData.Set(id, value);
         }

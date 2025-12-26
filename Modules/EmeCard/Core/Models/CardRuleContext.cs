@@ -58,7 +58,10 @@ namespace EasyPack.EmeCardSystem
             get
             {
                 if (Event != null && CardEventTypes.IsTick(Event) && Event is ICardEvent<float> tickEvent)
+                {
                     return tickEvent.Data;
+                }
+
                 return 0f;
             }
         }
@@ -127,6 +130,7 @@ namespace EasyPack.EmeCardSystem
                 value = typedEvent.Data;
                 return true;
             }
+
             value = default;
             return false;
         }

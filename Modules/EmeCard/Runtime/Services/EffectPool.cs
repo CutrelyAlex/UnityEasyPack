@@ -86,7 +86,9 @@ namespace EasyPack.EmeCardSystem
             int ruleOrderIndex)
         {
             if (rule?.Effects == null || rule.Effects.Count == 0)
+            {
                 return;
+            }
 
             int priority = rule.Priority;
 
@@ -95,7 +97,7 @@ namespace EasyPack.EmeCardSystem
                 IRuleEffect effect = rule.Effects[i];
                 if (effect != null)
                 {
-                    _entries.Add(new EffectPoolEntry(
+                    _entries.Add(new(
                         effect, context, matched,
                         priority, eventIndex, ruleOrderIndex, i));
                 }
@@ -118,7 +120,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (effect == null) return;
 
-            _entries.Add(new EffectPoolEntry(
+            _entries.Add(new(
                 effect, context, matched,
                 priority, eventIndex, ruleOrderIndex, effectIndex));
 
@@ -134,7 +136,7 @@ namespace EasyPack.EmeCardSystem
 
             EnsureSorted();
 
-            foreach (var entry in _entries)
+            foreach (EffectPoolEntry entry in _entries)
             {
                 entry.Effect.Execute(entry.Context, entry.Matched);
             }
@@ -153,7 +155,7 @@ namespace EasyPack.EmeCardSystem
 
             // 快速路径：检查是否有任何规则使用了 StopEventOnSuccess
             bool hasStopEventOnSuccess = false;
-            foreach (var entry in _entries)
+            foreach (EffectPoolEntry entry in _entries)
             {
                 if (entry.Context.CurrentRule?.Policy?.StopEventOnSuccess == true)
                 {
@@ -165,10 +167,11 @@ namespace EasyPack.EmeCardSystem
             // 无 StopEventOnSuccess 规则，直接执行全部
             if (!hasStopEventOnSuccess)
             {
-                foreach (var entry in _entries)
+                foreach (EffectPoolEntry entry in _entries)
                 {
                     entry.Effect.Execute(entry.Context, entry.Matched);
                 }
+
                 return _entries.Count;
             }
 
@@ -186,18 +189,20 @@ namespace EasyPack.EmeCardSystem
 
             int executed = 0;
 
-            foreach (var entry in _entries)
+            foreach (EffectPoolEntry entry in _entries)
             {
                 // 跳过已停止的事件
                 if (stoppedEvents.Contains(entry.EventIndex))
+                {
                     continue;
+                }
 
                 // 执行效果
                 entry.Effect.Execute(entry.Context, entry.Matched);
                 executed++;
 
                 // 检查 StopEventOnSuccess
-                var rule = entry.Context.CurrentRule;
+                CardRule rule = entry.Context.CurrentRule;
                 if (rule?.Policy?.StopEventOnSuccess == true)
                 {
                     // 使用组合键追踪规则效果执行计数
@@ -209,10 +214,7 @@ namespace EasyPack.EmeCardSystem
 
                     // 当规则的所有效果都执行完毕后，停止该事件
                     int effectCount = rule.Effects?.Count ?? 0;
-                    if (count >= effectCount && effectCount > 0)
-                    {
-                        stoppedEvents.Add(entry.EventIndex);
-                    }
+                    if (count >= effectCount && effectCount > 0) stoppedEvents.Add(entry.EventIndex);
                 }
             }
 

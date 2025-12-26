@@ -66,7 +66,8 @@ namespace EasyPack.EmeCardSystem
 
         public CardsRequirement() { }
 
-        public CardsRequirement(SelectionRoot root, CardFilterMode filterMode, string filterValue, int minCount, TargetScope scope)
+        public CardsRequirement(SelectionRoot root, CardFilterMode filterMode, string filterValue, int minCount,
+                                TargetScope scope)
         {
             Root = root;
             FilterMode = filterMode;
@@ -75,7 +76,8 @@ namespace EasyPack.EmeCardSystem
             Scope = scope;
         }
 
-        public CardsRequirement(SelectionRoot root, TargetScope scope, CardFilterMode filterMode, string filterValue, int minCount, int maxMatched, int? maxDepth) : this()
+        public CardsRequirement(SelectionRoot root, TargetScope scope, CardFilterMode filterMode, string filterValue,
+                                int minCount, int maxMatched, int? maxDepth) : this()
         {
             Root = root;
             Scope = scope;
@@ -128,7 +130,7 @@ namespace EasyPack.EmeCardSystem
                 int takeCount = Math.Min(maxReturn, count);
                 if (takeCount == count && picks != null)
                 {
-                    foreach (var card in picks)
+                    foreach (Card card in picks)
                     {
                         matched.Add(card);
                     }
@@ -136,7 +138,7 @@ namespace EasyPack.EmeCardSystem
                 else if (picks != null)
                 {
                     int i = 0;
-                    foreach (var card in picks)
+                    foreach (Card card in picks)
                     {
                         if (i >= takeCount) break;
                         matched.Add(card);

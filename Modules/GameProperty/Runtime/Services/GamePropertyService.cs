@@ -23,6 +23,7 @@ namespace EasyPack.GamePropertySystem
     {
         private const int FirstUID = 1000;
         private const string DefaultCategory = "Default";
+
         #region 字段
 
         // 核心数据
@@ -94,7 +95,8 @@ namespace EasyPack.GamePropertySystem
                 serializationService.RegisterSerializer(new PropertyManagerSerializer());
 
                 // 注册 CategoryManager 序列化器
-                serializationService.RegisterSerializer(new CategoryManagerJsonSerializer<GameProperty, long>(p => p.UID));
+                serializationService.RegisterSerializer(
+                    new CategoryManagerJsonSerializer<GameProperty, long>(p => p.UID));
 
                 Debug.Log("[GamePropertyService] 序列化器注册完成");
             }
@@ -118,6 +120,7 @@ namespace EasyPack.GamePropertySystem
             {
                 disposable.Dispose();
             }
+
             _categoryManager = null;
 
             await base.OnDisposeAsync();
@@ -132,18 +135,26 @@ namespace EasyPack.GamePropertySystem
         /// <summary>
         ///     注册单个属性到指定分类
         /// </summary>
-        public void Register(GameProperty property, string category = DefaultCategory, PropertyDisplayInfo displayInfo = null, string[] tags = null, CustomDataCollection customData = null)
+        public void Register(GameProperty property, string category = DefaultCategory,
+                             PropertyDisplayInfo displayInfo = null, string[] tags = null,
+                             CustomDataCollection customData = null)
         {
             ThrowIfNotReady();
 
             if (property == null)
+            {
                 throw new ArgumentNullException(nameof(property));
+            }
 
             if (string.IsNullOrEmpty(property.ID))
+            {
                 throw new ArgumentException("属性ID不能为空");
+            }
 
             if (_properties.ContainsKey(property.ID))
+            {
                 throw new ArgumentException($"属性ID '{property.ID}' 已存在，不能重复注册");
+            }
 
             RegisterInternal(property, category, displayInfo, tags, customData);
         }
@@ -151,17 +162,24 @@ namespace EasyPack.GamePropertySystem
         /// <summary>
         ///     内部注册逻辑
         /// </summary>
-        private void RegisterInternal(GameProperty property, string category, PropertyDisplayInfo displayInfo, string[] tags, CustomDataCollection customData)
+        private void RegisterInternal(GameProperty property, string category, PropertyDisplayInfo displayInfo,
+                                      string[] tags, CustomDataCollection customData)
         {
             if (_categoryManager == null)
+            {
                 throw new InvalidOperationException("CategoryManager 未初始化");
+            }
 
             string normalizedCategory = CategoryNameNormalizer.Normalize(category);
             if (string.IsNullOrWhiteSpace(normalizedCategory))
+            {
                 normalizedCategory = "Default";
+            }
 
             if (!CategoryNameNormalizer.IsValid(normalizedCategory, out string errorMessage))
+            {
                 throw new ArgumentException(errorMessage ?? "分类名称无效", nameof(category));
+            }
 
             // 1) 处理 UID
             // 必须先处理，因为 CategoryManager 使用 UID 作为 key
@@ -173,7 +191,7 @@ namespace EasyPack.GamePropertySystem
             string[] effectiveTags = tags;
             CustomDataCollection effectiveCustomData = customData;
 
-            Category.OperationResult<GameProperty> existingInManager = _categoryManager.GetById(property.UID);
+            var existingInManager = _categoryManager.GetById(property.UID);
             if (existingInManager != null && existingInManager.IsSuccess)
             {
                 GameProperty managerEntity = existingInManager.Value;
@@ -203,19 +221,26 @@ namespace EasyPack.GamePropertySystem
                     }
 
                     // 如果更新失败（理论上不应该），则回退到旧的“删除并重新注册”逻辑
-                    Debug.LogWarning($"[GamePropertyService] UpdateEntityReference 失败: {updateResult.ErrorMessage}，将尝试重新注册。");
+                    Debug.LogWarning(
+                        $"[GamePropertyService] UpdateEntityReference 失败: {updateResult.ErrorMessage}，将尝试重新注册。");
 
                     string existingCategory = _categoryManager.GetReadableCategoryPath(property.UID);
                     if (!string.IsNullOrWhiteSpace(existingCategory))
+                    {
                         effectiveCategory = existingCategory;
+                    }
 
-                    IReadOnlyList<string> existingTags = _categoryManager.GetEntityTags(property.UID);
+                    var existingTags = _categoryManager.GetEntityTags(property.UID);
                     if (existingTags is { Count: > 0 })
+                    {
                         effectiveTags = existingTags.ToArray();
+                    }
 
                     CustomDataCollection existingMetadata = _categoryManager.GetMetadata(property.UID);
                     if (existingMetadata != null)
+                    {
                         effectiveCustomData = existingMetadata;
+                    }
 
                     _categoryManager.DeleteEntity(property.UID);
                 }
@@ -234,7 +259,9 @@ namespace EasyPack.GamePropertySystem
             // 4) 注册到分类系统
             OperationResult registerResult = _categoryManager.RegisterEntity(property.UID, property, effectiveCategory);
             if (!registerResult.IsSuccess)
+            {
                 throw new InvalidOperationException($"CategoryManager 注册失败: {registerResult.ErrorMessage}");
+            }
 
             // 5) 同步标签
             if (effectiveTags is { Length: > 0 })
@@ -243,14 +270,18 @@ namespace EasyPack.GamePropertySystem
                 string[] distinctTags = effectiveTags.Distinct().ToArray();
                 OperationResult tagResult = _categoryManager.AddTags(property.UID, distinctTags);
                 if (!tagResult.IsSuccess)
+                {
                     throw new InvalidOperationException($"标签注册失败: {tagResult.ErrorMessage}");
+                }
             }
 
             // 6) 同步元数据（CustomData）
             CustomDataCollection finalCustomData = effectiveCustomData ?? new();
             OperationResult metadataResult = _categoryManager.UpdateMetadata(property.UID, finalCustomData);
             if (!metadataResult.IsSuccess)
+            {
                 throw new InvalidOperationException($"元数据写入失败: {metadataResult.ErrorMessage}");
+            }
         }
 
         private long AllocateUid() => Interlocked.Increment(ref _nextUid);
@@ -302,7 +333,8 @@ namespace EasyPack.GamePropertySystem
                     newUid = AllocateUid();
                 } while (_uidToProperties.ContainsKey(newUid) || UidExistsInManager(newUid));
 
-                Debug.LogWarning($"[GamePropertyService] UID 冲突（本地缓存），已重新分配: OldUID={property.UID}, NewUID={newUid}, Id={property.ID}");
+                Debug.LogWarning(
+                    $"[GamePropertyService] UID 冲突（本地缓存），已重新分配: OldUID={property.UID}, NewUID={newUid}, Id={property.ID}");
                 property.UID = newUid;
                 return;
             }
@@ -322,7 +354,8 @@ namespace EasyPack.GamePropertySystem
                         newUid = AllocateUid();
                     } while (_uidToProperties.ContainsKey(newUid) || UidExistsInManager(newUid));
 
-                    Debug.LogWarning($"[GamePropertyService] UID 冲突（CategoryManager），已重新分配: OldUID={property.UID}, NewUID={newUid}, Id={property.ID}, ExistingId={managerEntity.ID}");
+                    Debug.LogWarning(
+                        $"[GamePropertyService] UID 冲突（CategoryManager），已重新分配: OldUID={property.UID}, NewUID={newUid}, Id={property.ID}, ExistingId={managerEntity.ID}");
                     property.UID = newUid;
                 }
             }
@@ -336,7 +369,9 @@ namespace EasyPack.GamePropertySystem
             ThrowIfNotReady();
 
             if (properties == null)
+            {
                 throw new ArgumentNullException(nameof(properties));
+            }
 
             foreach (GameProperty property in properties)
             {
@@ -354,7 +389,9 @@ namespace EasyPack.GamePropertySystem
         public GameProperty Get(string id)
         {
             if (string.IsNullOrEmpty(id))
+            {
                 return null;
+            }
 
             _properties.TryGetValue(id, out GameProperty property);
             return property;
@@ -366,7 +403,7 @@ namespace EasyPack.GamePropertySystem
         public GameProperty GetByUid(long uid)
         {
             if (uid < 0) return null;
-            return _uidToProperties != null && _uidToProperties.TryGetValue(uid, out var p) ? p : null;
+            return _uidToProperties != null && _uidToProperties.TryGetValue(uid, out GameProperty p) ? p : null;
         }
 
         /// <summary>
@@ -375,7 +412,9 @@ namespace EasyPack.GamePropertySystem
         public IEnumerable<GameProperty> GetByCategory(string category, bool includeChildren = false)
         {
             if (_categoryManager == null || string.IsNullOrEmpty(category))
+            {
                 return Enumerable.Empty<GameProperty>();
+            }
 
             return _categoryManager.GetByCategory(category, includeChildren);
         }
@@ -386,20 +425,22 @@ namespace EasyPack.GamePropertySystem
         public IEnumerable<GameProperty> GetByTag(string tag)
         {
             if (_categoryManager == null || string.IsNullOrEmpty(tag))
+            {
                 return Enumerable.Empty<GameProperty>();
+            }
 
             return _categoryManager.GetByTag(tag);
         }
 
         public bool HasTag(string id, string tag)
         {
-            var property = Get(id);
+            GameProperty property = Get(id);
             return property != null && _categoryManager.HasTag(property, tag);
         }
 
         public IEnumerable<string> GetTags(string id)
         {
-            var property = Get(id);
+            GameProperty property = Get(id);
             return property != null ? _categoryManager.GetTags(property) : Enumerable.Empty<string>();
         }
 
@@ -409,7 +450,7 @@ namespace EasyPack.GamePropertySystem
         public IEnumerable<GameProperty> GetByCategoryAndTag(string category, string tag)
         {
             if (_categoryManager == null) return Enumerable.Empty<GameProperty>();
-            return _categoryManager.GetByCategoryAndTag(category, tag, includeChildren: false);
+            return _categoryManager.GetByCategoryAndTag(category, tag, false);
         }
 
         /// <summary>
@@ -418,7 +459,9 @@ namespace EasyPack.GamePropertySystem
         public PropertyDisplayInfo GetPropertyDisplayInfo(string id)
         {
             if (string.IsNullOrEmpty(id))
+            {
                 return null;
+            }
 
             _propertyDisplayInfo.TryGetValue(id, out PropertyDisplayInfo propertyDisplayInfo);
             return propertyDisplayInfo;
@@ -430,7 +473,9 @@ namespace EasyPack.GamePropertySystem
         public CustomDataCollection GetCustomData(string id)
         {
             if (string.IsNullOrEmpty(id))
+            {
                 return null;
+            }
 
             _properties.TryGetValue(id, out GameProperty property);
             if (property == null) return null;
@@ -441,11 +486,12 @@ namespace EasyPack.GamePropertySystem
         internal bool TryGetCategoryOfProperty(string propertyId, out string category)
         {
             category = null;
-            if (_properties.TryGetValue(propertyId, out var property))
+            if (_properties.TryGetValue(propertyId, out GameProperty property))
             {
                 category = _categoryManager?.GetReadableCategoryPath(property.UID);
                 return !string.IsNullOrEmpty(category);
             }
+
             return false;
         }
 
@@ -457,7 +503,8 @@ namespace EasyPack.GamePropertySystem
         /// <summary>
         ///     获取所有分类名
         /// </summary>
-        public IEnumerable<string> GetAllCategories() => _categoryManager?.GetCategoriesNodes() ?? Array.Empty<string>();
+        public IEnumerable<string> GetAllCategories() =>
+            _categoryManager?.GetCategoriesNodes() ?? Array.Empty<string>();
 
         #endregion
 
@@ -469,11 +516,15 @@ namespace EasyPack.GamePropertySystem
         public bool Unregister(string id)
         {
             if (string.IsNullOrEmpty(id))
+            {
                 return false;
+            }
 
             // 从主表移除
             if (!_properties.TryRemove(id, out GameProperty property))
+            {
                 return false;
+            }
 
             if (property != null && property.UID >= 0)
             {
@@ -493,13 +544,18 @@ namespace EasyPack.GamePropertySystem
         public bool UnregisterByUid(long uid)
         {
             if (uid <= 0)
+            {
                 return false;
+            }
 
-            if (_uidToProperties != null && _uidToProperties.TryGetValue(uid, out GameProperty property) && property != null)
+            if (_uidToProperties != null && _uidToProperties.TryGetValue(uid, out GameProperty property) &&
+                property != null)
+            {
                 return Unregister(property.ID);
+            }
 
             // 本地不存在时，仍尝试从 CategoryManager 移除（避免留下脏数据）
-            Category.OperationResult result = _categoryManager?.DeleteEntity(uid);
+            OperationResult result = _categoryManager?.DeleteEntity(uid);
             return result != null && result.IsSuccess;
         }
 
@@ -519,7 +575,7 @@ namespace EasyPack.GamePropertySystem
                 return false;
             }
 
-            Category.OperationResult result = concrete.MoveEntityToCategorySafe(uid, newCategory);
+            OperationResult result = concrete.MoveEntityToCategorySafe(uid, newCategory);
             return result.IsSuccess;
         }
 
@@ -529,12 +585,14 @@ namespace EasyPack.GamePropertySystem
         public void UnregisterCategory(string category)
         {
             if (string.IsNullOrEmpty(category))
+            {
                 return;
+            }
 
             if (_categoryManager == null) return;
 
             // 仅移除该分类下的一级实体
-            var properties = _categoryManager.GetByCategory(category, includeChildren: false).ToList();
+            var properties = _categoryManager.GetByCategory(category, false).ToList();
             foreach (GameProperty p in properties)
             {
                 if (p != null) Unregister(p.ID);
@@ -591,7 +649,9 @@ namespace EasyPack.GamePropertySystem
             ThrowIfNotReady();
 
             if (modifier == null)
+            {
                 throw new ArgumentNullException(nameof(modifier));
+            }
 
             var successIds = new List<string>();
             var failures = new List<FailureRecord>();
@@ -632,10 +692,11 @@ namespace EasyPack.GamePropertySystem
         private void ThrowIfNotReady()
         {
             if (State != ServiceLifecycleState.Ready)
+            {
                 throw new InvalidOperationException($"服务未就绪，当前状态: {State}");
+            }
         }
 
         #endregion
     }
 }
-

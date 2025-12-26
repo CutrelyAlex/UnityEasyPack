@@ -228,7 +228,9 @@ namespace EasyPack.InventorySystem
                 // 按类型建立索引
                 string containerType = container.Type ?? "Unknown";
                 if (!_containersByType.ContainsKey(containerType))
+                {
                     _containersByType[containerType] = new();
+                }
 
                 _containersByType[containerType].Add(container.ID);
 
@@ -267,7 +269,9 @@ namespace EasyPack.InventorySystem
             try
             {
                 if (string.IsNullOrEmpty(containerId) || !_containers.TryGetValue(containerId, out Container container))
+                {
                     return false;
+                }
 
                 // 移除全局条件
                 if (_enableGlobalConditions) RemoveGlobalConditionsFromContainer(container);
@@ -281,7 +285,9 @@ namespace EasyPack.InventorySystem
                 {
                     typeSet.Remove(containerId);
                     if (typeSet.Count == 0)
+                    {
                         _containersByType.Remove(containerType);
+                    }
                 }
 
                 // 清理其他相关数据
@@ -340,13 +346,17 @@ namespace EasyPack.InventorySystem
             {
                 if (string.IsNullOrEmpty(containerType) ||
                     !_containersByType.TryGetValue(containerType, out var containerIds))
+                {
                     return new();
+                }
 
                 var result = new List<Container>();
                 foreach (string containerId in containerIds)
                 {
                     if (_containers.TryGetValue(containerId, out Container container))
+                    {
                         result.Add(container);
+                    }
                 }
 
                 return result;
@@ -365,13 +375,17 @@ namespace EasyPack.InventorySystem
             lock (_lock)
             {
                 if (string.IsNullOrEmpty(category))
+                {
                     return new();
+                }
 
                 var result = new List<Container>();
                 foreach (var kvp in _containerCategories)
                 {
                     if (kvp.Value == category && _containers.TryGetValue(kvp.Key, out Container container))
+                    {
                         result.Add(container);
+                    }
                 }
 
                 return result;
@@ -448,7 +462,9 @@ namespace EasyPack.InventorySystem
             lock (_lock)
             {
                 if (!IsContainerRegistered(containerId))
+                {
                     return false;
+                }
 
                 _containerPriorities[containerId] = priority;
             }
@@ -486,7 +502,9 @@ namespace EasyPack.InventorySystem
             lock (_lock)
             {
                 if (!IsContainerRegistered(containerId))
+                {
                     return false;
+                }
 
                 oldCategory = _containerCategories.GetValueOrDefault(containerId, "Default");
                 _containerCategories[containerId] = category ?? "Default";
@@ -529,7 +547,9 @@ namespace EasyPack.InventorySystem
             lock (_lock)
             {
                 if (!_enableGlobalConditions)
+                {
                     return true;
+                }
 
                 // 用户提供的条件检查可能抛异常，需要保护
                 try
@@ -537,7 +557,9 @@ namespace EasyPack.InventorySystem
                     foreach (IItemCondition condition in _globalItemConditions)
                     {
                         if (!condition.CheckCondition(item))
+                        {
                             return false;
+                        }
                     }
 
                     return true;
@@ -565,7 +587,9 @@ namespace EasyPack.InventorySystem
                 lock (_lock)
                 {
                     if (_globalItemConditions.Contains(condition))
+                    {
                         return;
+                    }
 
                     _globalItemConditions.Add(condition);
 
@@ -575,7 +599,9 @@ namespace EasyPack.InventorySystem
                         foreach (Container container in _containers.Values)
                         {
                             if (!container.ContainerCondition.Contains(condition))
+                            {
                                 container.ContainerCondition.Add(condition);
+                            }
                         }
                     }
                 }
@@ -672,7 +698,9 @@ namespace EasyPack.InventorySystem
             foreach (IItemCondition condition in _globalItemConditions)
             {
                 if (!container.ContainerCondition.Contains(condition))
+                {
                     container.ContainerCondition.Add(condition);
+                }
             }
         }
 

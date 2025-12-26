@@ -202,32 +202,47 @@ namespace EasyPack.Tools.PathFinding
         private void Start()
         {
             if (ispathFindingObjectSelf && pathfindingObject == null)
+            {
                 pathfindingObject = gameObject;
+            }
 
             // 1. 尝试使用共享服务
             if (useSharedService)
             {
                 if (sharedService == null)
+                {
                     sharedService = PathfindingService.Instance ?? FindFirstObjectByType<PathfindingService>();
+                }
+
                 if (sharedService != null)
                 {
                     // 若自己有配置 Grid，先收集再注册
                     if (gridObjects.Count > 0)
+                    {
                         GetTilemapsFromGrids();
+                    }
 
                     if (allTilemaps.Count > 0 || gridObjects.Count > 0)
+                    {
                         sharedService.RegisterTilemaps(allTilemaps, gridObjects);
+                    }
 
                     _unifiedMap = sharedService.GetUnifiedMap();
                     _conversionTilemap ??= allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap;
                     if (_usingSharedMap && allTilemaps.Count == 0 && _conversionTilemap != null)
                         // 确保本地也持有一个引用，避免 allTilemaps.Count==0 造成坐标恒为 (0,0,0)
+                    {
                         allTilemaps.Add(_conversionTilemap);
+                    }
 
                     if (_unifiedMap != null)
+                    {
                         _usingSharedMap = true;
+                    }
                     else
+                    {
                         Debug.LogWarning($"[{name}] 共享服务存在但尚未提供 UnifiedMap，回退到本地构建。");
+                    }
                 }
                 else
                 {
@@ -239,11 +254,16 @@ namespace EasyPack.Tools.PathFinding
             if (!_usingSharedMap)
             {
                 if (gridObjects.Count > 0)
+                {
                     GetTilemapsFromGrids();
+                }
+
                 BuildUnifiedMap();
                 localBuilt = true;
                 if (_conversionTilemap == null && allTilemaps.Count > 0)
+                {
                     _conversionTilemap = allTilemaps[0];
+                }
             }
 
             InitializeAutoRefresh();
@@ -270,7 +290,9 @@ namespace EasyPack.Tools.PathFinding
                 foreach (Tilemap tm in tilemaps)
                 {
                     if (tm != null && !allTilemaps.Contains(tm))
+                    {
                         allTilemaps.Add(tm);
+                    }
                 }
             }
         }
@@ -370,7 +392,9 @@ namespace EasyPack.Tools.PathFinding
             Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
             var path = FindPath(startPos, targetPos);
             if (path.Count > 0)
+            {
                 MoveAlongPath(path);
+            }
         }
 
         public void MoveAlongPath(List<Vector3Int> path)
@@ -410,7 +434,9 @@ namespace EasyPack.Tools.PathFinding
         public void AddDynamicObstacle(Transform obstacle)
         {
             if (!dynamicObstacles.Contains(obstacle))
+            {
                 dynamicObstacles.Add(obstacle);
+            }
         }
 
         public void RemoveDynamicObstacle(Transform obstacle)
@@ -434,16 +460,24 @@ namespace EasyPack.Tools.PathFinding
             if (!useSharedService) return;
             if (service != null) sharedService = service;
             if (sharedService == null)
+            {
                 sharedService = PathfindingService.Instance ?? FindFirstObjectByType<PathfindingService>();
+            }
+
             if (sharedService == null) return;
             sharedService.RegisterTilemaps(allTilemaps, gridObjects);
             UnifiedMap map = sharedService.GetUnifiedMap();
             if (_usingSharedMap)
             {
                 if (_conversionTilemap == null)
+                {
                     _conversionTilemap = allTilemaps.Count > 0 ? allTilemaps[0] : sharedService?.PrimaryTilemap;
+                }
+
                 if (allTilemaps.Count == 0 && _conversionTilemap != null)
+                {
                     allTilemaps.Add(_conversionTilemap);
+                }
             }
 
             if (map != null)
@@ -493,15 +527,21 @@ namespace EasyPack.Tools.PathFinding
 
             Vector3Int targetPos = GetTilePositionFromGameObject(targetObject);
             if (_currentPath.Count > 0 && targetPos == _currentPath[_currentPath.Count - 1])
+            {
                 return;
+            }
 
             var newPath = FindPath(startPos, targetPos);
             if (newPath.Count > 0 && ShouldUpdatePath(newPath))
             {
                 if (enableSmoothPathTransition)
+                {
                     SmoothTransitionToNewPath(newPath);
+                }
                 else
+                {
                     MoveAlongPath(newPath);
+                }
             }
         }
 
@@ -549,7 +589,10 @@ namespace EasyPack.Tools.PathFinding
         private float GetTileCost(TileBase tile)
         {
             if (useTerrainCosts && TileCostMap.TryGetValue(tile, out float cost))
+            {
                 return cost;
+            }
+
             return 1f;
         }
 
@@ -567,7 +610,9 @@ namespace EasyPack.Tools.PathFinding
             {
                 if (o == null) continue;
                 if (Vector3.Distance(worldPos, o.position) <= obstacleCheckRadius)
+                {
                     return true;
+                }
             }
 
             return false;
@@ -605,7 +650,9 @@ namespace EasyPack.Tools.PathFinding
                     if (closedSet.Contains(np) ||
                         !IsPositionValid(np) ||
                         HasDynamicObstacle(np))
+                    {
                         continue;
+                    }
 
                     if (d.x != 0 && d.y != 0)
                     {
@@ -613,7 +660,9 @@ namespace EasyPack.Tools.PathFinding
                         Vector3Int orth2 = new(currentNode.position.x, currentNode.position.y + d.y, 0);
                         if (!IsPositionValid(orth1) || !IsPositionValid(orth2) ||
                             HasDynamicObstacle(orth1) || HasDynamicObstacle(orth2))
+                        {
                             continue;
+                        }
                     }
 
                     float moveCost = GetMoveCost(d, currentNode.position, np);
@@ -647,7 +696,7 @@ namespace EasyPack.Tools.PathFinding
         {
             float baseCost = direction.x != 0 && direction.y != 0 ? diagonalMoveCost : straightMoveCost;
             if (!useTerrainCosts) return baseCost;
-            
+
             TileInfo info = _unifiedMap.GetTileInfo(to);
             if (info != null) baseCost *= info.cost;
 
@@ -705,8 +754,13 @@ namespace EasyPack.Tools.PathFinding
                 for (int i = currentIndex + 2; i < path.Count; i++)
                 {
                     if (HasLineOfSight(path[currentIndex], path[i]))
+                    {
                         farthest = i;
-                    else break;
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
 
                 smoothed.Add(path[farthest]);
@@ -739,12 +793,17 @@ namespace EasyPack.Tools.PathFinding
                     Vector3Int cell = allTilemaps[0].WorldToCell(wp);
                     if (!IsPositionValid(cell)) continue;
                     if (result[result.Count - 1] != cell)
+                    {
                         result.Add(cell);
+                    }
                 }
             }
 
             if (result[result.Count - 1] != path[^1])
+            {
                 result.Add(path[^1]);
+            }
+
             return result;
         }
 
@@ -754,7 +813,9 @@ namespace EasyPack.Tools.PathFinding
             foreach (Vector3Int p in pts)
             {
                 if (!IsPositionValid(p) || HasDynamicObstacle(p))
+                {
                     return false;
+                }
             }
 
             return true;
@@ -855,7 +916,9 @@ namespace EasyPack.Tools.PathFinding
             for (int i = 0; i < check; i++)
             {
                 if (_currentPath[i] != newPath[i])
+                {
                     return true;
+                }
             }
 
             return false;
@@ -903,7 +966,9 @@ namespace EasyPack.Tools.PathFinding
                             _jitterTimer = 0f;
                             _currentJitterOffset = GenerateJitterOffset(pathfindingObject.transform.position);
                             if (showJitterDebug && _jitterHistory.Count < 50)
+                            {
                                 _jitterHistory.Add(pathfindingObject.transform.position + _currentJitterOffset);
+                            }
                         }
                     }
 
@@ -930,7 +995,9 @@ namespace EasyPack.Tools.PathFinding
 
                 _currentPathIndex++;
                 if (_currentPathIndex < _currentPath.Count)
+                {
                     _currentJitterOffset = GenerateJitterOffset(pathfindingObject.transform.position);
+                }
             }
 
             Vector3 finalTarget = GetWorldPosition(_currentPath[^1]);
@@ -992,10 +1059,15 @@ namespace EasyPack.Tools.PathFinding
         public Vector3Int GetTilePositionFromGameObject(GameObject obj)
         {
             if (!obj)
+            {
                 return Vector3Int.zero;
+            }
 
             Tilemap refMap = null;
-            if (allTilemaps.Count > 0) refMap = allTilemaps[0];
+            if (allTilemaps.Count > 0)
+            {
+                refMap = allTilemaps[0];
+            }
             else if (_conversionTilemap != null) refMap = _conversionTilemap;
 
             if (refMap == null)
@@ -1010,11 +1082,16 @@ namespace EasyPack.Tools.PathFinding
         private Vector3 GetWorldPosition(Vector3Int cell)
         {
             Tilemap refMap = null;
-            if (allTilemaps.Count > 0) refMap = allTilemaps[0];
+            if (allTilemaps.Count > 0)
+            {
+                refMap = allTilemaps[0];
+            }
             else if (_conversionTilemap) refMap = _conversionTilemap;
 
             if (!refMap)
+            {
                 return Vector3.zero;
+            }
 
             Vector3 worldPos = refMap.CellToWorld(cell);
             if (useTileCenterOffset)
@@ -1099,7 +1176,9 @@ namespace EasyPack.Tools.PathFinding
                 foreach (Transform o in dynamicObstacles)
                 {
                     if (o != null)
+                    {
                         Gizmos.DrawWireSphere(o.position, obstacleCheckRadius);
+                    }
                 }
             }
 
@@ -1190,7 +1269,10 @@ namespace EasyPack.Tools.PathFinding
                     int right = left + 1;
                     int smallest = left;
                     if (right < count && Compare(_list[right], _list[left]) < 0)
+                    {
                         smallest = right;
+                    }
+
                     if (Compare(_list[smallest], _list[i]) < 0)
                     {
                         Swap(smallest, i);

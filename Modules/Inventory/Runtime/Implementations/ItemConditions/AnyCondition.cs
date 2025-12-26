@@ -17,7 +17,9 @@ namespace EasyPack.InventorySystem
         public AnyCondition(params IItemCondition[] children)
         {
             if (children != null)
+            {
                 Children.AddRange(children.Where(c => c != null));
+            }
         }
 
         /// <summary>
@@ -54,7 +56,9 @@ namespace EasyPack.InventorySystem
                 foreach (IItemCondition c in conditions)
                 {
                     if (c != null)
+                    {
                         Children.Add(c);
+                    }
                 }
             }
 
@@ -96,7 +100,9 @@ namespace EasyPack.InventorySystem
         public ISerializableCondition FromDto(SerializedCondition dto)
         {
             if (dto?.Params == null)
+            {
                 return this;
+            }
 
             // 清空现有子条件
             Children.Clear();

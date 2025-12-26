@@ -52,14 +52,18 @@ namespace EasyPack.Category
         public int GetOrAssignId(string term)
         {
             if (string.IsNullOrEmpty(term))
+            {
                 throw new ArgumentException("Term cannot be null or empty.", nameof(term));
+            }
 
             // 快路径：尝试读取，避免锁竞争
             _lock.EnterReadLock();
             try
             {
                 if (_stringToInt.TryGetValue(term, out int existingId))
+                {
                     return existingId;
+                }
             }
             finally
             {
@@ -72,7 +76,9 @@ namespace EasyPack.Category
             {
                 // 二次检查：防止其他线程已分配
                 if (_stringToInt.TryGetValue(term, out int existingId))
+                {
                     return existingId;
+                }
 
                 // 检查 ID 溢出
                 if (_nextId >= CategoryConstants.ID_OVERFLOW_THRESHOLD)
@@ -123,7 +129,9 @@ namespace EasyPack.Category
         {
             id = -1;
             if (string.IsNullOrEmpty(term))
+            {
                 return false;
+            }
 
             _lock.EnterReadLock();
             try
@@ -144,7 +152,9 @@ namespace EasyPack.Category
         public bool ContainsId(int id)
         {
             if (id < 0)
+            {
                 return false;
+            }
 
             _lock.EnterReadLock();
             try
@@ -204,18 +214,24 @@ namespace EasyPack.Category
         public bool RemapTerm(string oldTerm, string newTerm)
         {
             if (string.IsNullOrEmpty(oldTerm) || string.IsNullOrEmpty(newTerm))
+            {
                 throw new ArgumentException("Terms cannot be null or empty.");
+            }
 
             _lock.EnterWriteLock();
             try
             {
                 // 检查原词汇是否存在
                 if (!_stringToInt.TryGetValue(oldTerm, out int id))
+                {
                     return false;
+                }
 
                 // 检查新词汇是否已存在（防止冲突）
                 if (_stringToInt.ContainsKey(newTerm))
+                {
                     throw new InvalidOperationException($"New term '{newTerm}' already exists in the mapper.");
+                }
 
                 // 更新双向映射
                 _stringToInt.Remove(oldTerm);

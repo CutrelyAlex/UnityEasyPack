@@ -51,7 +51,9 @@ namespace EasyPack.CustomData
         public static IValueHandler GetHandlerForValue(object value)
         {
             if (value == null)
+            {
                 return Handlers[CustomDataType.None];
+            }
 
             Type valueType = value.GetType();
 

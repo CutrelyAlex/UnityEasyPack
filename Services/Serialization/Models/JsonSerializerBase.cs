@@ -24,10 +24,7 @@ namespace EasyPack.Serialization
         /// <summary>
         ///     将 DTO 序列化为 JSON 字符串（默认使用 JsonUtility）
         /// </summary>
-        public virtual string ToJson(TSerializable dto)
-        {
-            return dto == null ? null : JsonUtility.ToJson(dto);
-        }
+        public virtual string ToJson(TSerializable dto) => dto == null ? null : JsonUtility.ToJson(dto);
 
         /// <summary>
         ///     从 JSON 字符串反序列化为 DTO（默认使用 JsonUtility）
@@ -69,10 +66,7 @@ namespace EasyPack.Serialization
 
         public T FromSerializable(T dto) => dto;
 
-        public virtual string ToJson(T dto)
-        {
-            return dto == null ? null : JsonUtility.ToJson(dto);
-        }
+        public virtual string ToJson(T dto) => dto == null ? null : JsonUtility.ToJson(dto);
 
         public virtual T FromJson(string json)
         {

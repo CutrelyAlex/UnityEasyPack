@@ -17,22 +17,13 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>要求源卡牌为对象类别</summary>
-        public CardRuleBuilder WhenSourceIsObject()
-        {
-            return WhenSourceCategory("Card.Object");
-        }
+        public CardRuleBuilder WhenSourceIsObject() => WhenSourceCategory("Card.Object");
 
         /// <summary>要求源卡牌为动作类别</summary>
-        public CardRuleBuilder WhenSourceIsAction()
-        {
-            return WhenSourceCategory("Card.Action");
-        }
+        public CardRuleBuilder WhenSourceIsAction() => WhenSourceCategory("Card.Action");
 
         /// <summary>要求源卡牌为属性类别</summary>
-        public CardRuleBuilder WhenSourceIsAttribute()
-        {
-            return WhenSourceCategory("Card.Attribute");
-        }
+        public CardRuleBuilder WhenSourceIsAttribute() => WhenSourceCategory("Card.Attribute");
 
         /// <summary>要求源卡牌有指定标签</summary>
         public CardRuleBuilder WhenSourceHasTag(string tag)
@@ -55,26 +46,18 @@ namespace EasyPack.EmeCardSystem
         /// <summary>要求容器的默认分类为指定分类</summary>
         public CardRuleBuilder WhenMatchRootCategory(string category)
         {
-            return When(ctx => string.Equals(ctx.MatchRoot?.Data?.Category, category, StringComparison.OrdinalIgnoreCase));
+            return When(ctx =>
+                string.Equals(ctx.MatchRoot?.Data?.Category, category, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>要求容器为对象类别</summary>
-        public CardRuleBuilder WhenMatchRootIsObject()
-        {
-            return WhenMatchRootCategory("Card.Object");
-        }
+        public CardRuleBuilder WhenMatchRootIsObject() => WhenMatchRootCategory("Card.Object");
 
         /// <summary>要求容器为动作类别</summary>
-        public CardRuleBuilder WhenMatchRootIsAction()
-        {
-            return WhenMatchRootCategory("Card.Action");
-        }
+        public CardRuleBuilder WhenMatchRootIsAction() => WhenMatchRootCategory("Card.Action");
 
         /// <summary>要求容器为属性类别</summary>
-        public CardRuleBuilder WhenMatchRootIsAttribute()
-        {
-            return WhenMatchRootCategory("Card.Attribute");
-        }
+        public CardRuleBuilder WhenMatchRootIsAttribute() => WhenMatchRootCategory("Card.Attribute");
 
         /// <summary>要求容器有指定标签</summary>
         public CardRuleBuilder WhenMatchRootHasTag(string tag)
@@ -109,7 +92,8 @@ namespace EasyPack.EmeCardSystem
             SelectionRoot.MatchRoot, TargetScope.Children, CardFilterMode.ByTag, tag, minCount, maxMatched);
 
         /// <summary>需要容器的直接子卡中有指定ID的卡牌</summary>
-        public CardRuleBuilder NeedMatchRootId(string id, int minCount = 1, int maxMatched = -1) => Need(SelectionRoot.MatchRoot,
+        public CardRuleBuilder NeedMatchRootId(string id, int minCount = 1, int maxMatched = -1) => Need(
+            SelectionRoot.MatchRoot,
             TargetScope.Children, CardFilterMode.ById, id, minCount, maxMatched);
 
         /// <summary>需要容器的直接子卡中有指定类别的卡牌</summary>
@@ -119,7 +103,7 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>需要容器的所有后代中有指定标签的卡牌</summary>
         public CardRuleBuilder NeedMatchRootTagRecursive(string tag, int minCount = 1, int maxMatched = -1,
-                                                int? maxDepth = null) =>
+                                                         int? maxDepth = null) =>
             Need(SelectionRoot.MatchRoot, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount,
                 maxMatched, maxDepth);
 
@@ -141,8 +125,8 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>需要源卡的两层子卡中有指定标签的卡牌</summary>
         public CardRuleBuilder NeedSourceTagTwo(string tag, int minCount = 1, int maxMatched = -1) =>
-            Need(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount, maxMatched,2);
-        
+            Need(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount, maxMatched, 2);
+
         /// <summary>需要源卡的直接子卡中有指定ID的卡牌</summary>
         public CardRuleBuilder NeedSourceId(string id, int minCount = 1, int maxMatched = -1) =>
             Need(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ById, id, minCount, maxMatched);
@@ -154,41 +138,45 @@ namespace EasyPack.EmeCardSystem
                 maxDepth);
 
         /// <summary>需要源卡或直接子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceOrChildHasTag(string tag) => AddRequirement(new AnyRequirement()
+        public CardRuleBuilder NeedSourceOrChildHasTag(string tag) => AddRequirement(new AnyRequirement
         {
             Children =
             {
-                new ConditionRequirement((context =>
+                new ConditionRequirement(context =>
                 {
                     if (context.Source.HasTag(tag))
                     {
-                        return (true,new List<Card>{context.Source});
+                        return (true, new() { context.Source });
                     }
 
                     return (false, null);
-                })),
-                new CardsRequirement(root: SelectionRoot.Source, scope: TargetScope.Children, filterMode: CardFilterMode.ByTag, filterValue: tag,
-                    minCount: 1,maxMatched:0,maxDepth:1)
-            }
+                }),
+                new CardsRequirement(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ByTag, tag,
+                    1, 0, 1),
+            },
         });
-        /// <summary>需要源卡或直接子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceOrChildNotHasTag(string tag) => AddRequirement(new NotRequirement(){Inner = new AnyRequirement()
-        {
-            Children =
-            {
-                new ConditionRequirement((context =>
-                {
-                    if (context.Source.HasTag(tag))
-                    {
-                        return (true,new List<Card>{context.Source});
-                    }
 
-                    return (false, null);
-                })),
-                new CardsRequirement(root: SelectionRoot.Source, filterMode: CardFilterMode.ByTag, filterValue: tag,
-                    minCount: 1, scope: TargetScope.Children)
-            }
-        }});
+        /// <summary>需要源卡或直接子卡中有指定标签的卡牌</summary>
+        public CardRuleBuilder NeedSourceOrChildNotHasTag(string tag) => AddRequirement(new NotRequirement
+        {
+            Inner = new AnyRequirement
+            {
+                Children =
+                {
+                    new ConditionRequirement(context =>
+                    {
+                        if (context.Source.HasTag(tag))
+                        {
+                            return (true, new() { context.Source });
+                        }
+
+                        return (false, null);
+                    }),
+                    new CardsRequirement(SelectionRoot.Source, CardFilterMode.ByTag, tag,
+                        1, TargetScope.Children),
+                },
+            },
+        });
 
         #endregion
     }

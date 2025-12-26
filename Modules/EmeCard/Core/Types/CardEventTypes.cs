@@ -154,7 +154,7 @@ namespace EasyPack.EmeCardSystem
         ///     检查事件是否为 Pump 生命周期事件（PumpStart 或 PumpEnd）。
         ///     <para>Pump 生命周期事件仅在 Pump 边界处理，不应在普通事件队列中处理。</para>
         /// </summary>
-        public static bool IsPumpLifecycle(ICardEvent evt) => 
+        public static bool IsPumpLifecycle(ICardEvent evt) =>
             evt is { EventType: PUMP_START or PUMP_END };
 
         #endregion

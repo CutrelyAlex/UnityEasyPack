@@ -4,7 +4,6 @@ using EasyPack.ENekoFramework;
 
 namespace EasyPack.Serialization
 {
-
     /// <summary>
     ///     内部序列化器包装接口
     ///     用于在 SerializationService 内部统一管理不同类型的序列化器

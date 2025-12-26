@@ -35,7 +35,9 @@ namespace EasyPack.Modifiers
                     : Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);
             }
             else if (floatOverrideMod != null)
+            {
                 value = floatOverrideMod.Value;
+            }
             else if (rangeOverrideMod != null) value = Random.Range(rangeOverrideMod.Value.x, rangeOverrideMod.Value.y);
         }
     }

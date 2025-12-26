@@ -14,7 +14,9 @@ namespace EasyPack.Modifiers
             foreach (IModifier mod in modifiers)
             {
                 if (mod is FloatModifier fm)
+                {
                     floatAfterAdd += fm.Value;
+                }
                 else if (mod is RangeModifier rm) rangeAfterAdd += Random.Range(rm.Value.x, rm.Value.y);
             }
 

@@ -10,16 +10,22 @@ namespace EasyPack.CustomData
         public object GetValue(CustomDataEntry entry)
         {
             if (string.IsNullOrEmpty(entry.JsonValue))
+            {
                 return null;
+            }
 
             if (string.IsNullOrEmpty(entry.JsonClrType))
+            {
                 return entry.JsonValue;
+            }
 
             try
             {
                 var type = Type.GetType(entry.JsonClrType);
                 if (type != null)
+                {
                     return JsonUtility.FromJson(entry.JsonValue, type);
+                }
             }
             catch
             {
