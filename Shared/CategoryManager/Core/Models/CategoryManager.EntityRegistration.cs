@@ -80,10 +80,19 @@ namespace EasyPack.Category
                         _manager._treeLock.ExitWriteLock();
                     }
 
-                    // 添加标签
-                    foreach (string tag in _tags)
+                    // 添加标签（单次锁持有批量写入）
+                    if (_tags.Count > 0)
                     {
-                        if (!string.IsNullOrWhiteSpace(tag)) _manager.AddTagInternal(_entityKey, tag);
+                        _manager._tagSystemLock.EnterWriteLock();
+                        try
+                        {
+                            // 此时实体已写入 _entities；这里在同一把锁内批量写入标签。
+                            _manager.AddTagsInternalLocked(_entityKey, _tags);
+                        }
+                        finally
+                        {
+                            _manager._tagSystemLock.ExitWriteLock();
+                        }
                     }
 
                     // 存储元数据

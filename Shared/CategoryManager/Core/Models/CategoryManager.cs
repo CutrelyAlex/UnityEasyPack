@@ -70,8 +70,6 @@ namespace EasyPack.Category
             _categoryNodes = new();
             _categoryNameToId = new(StringComparer.Ordinal);
             _categoryIdToName = new();
-
-            _tagLocks = new();
             _tagCache = new();
 
             _tagMapper = new();
@@ -189,15 +187,9 @@ namespace EasyPack.Category
             OperationResult result = RegisterEntity(key, entity, category);
             if (!result.IsSuccess) return result;
 
-            if (tags != null && tags.Length > 0)
-            {
-                foreach (string tag in tags)
-                {
-                    if (!string.IsNullOrWhiteSpace(tag)) AddTagInternal(key, tag);
-                }
-            }
-
-            return OperationResult.Success();
+            return (tags == null || tags.Length == 0)
+                ? OperationResult.Success()
+                : AddTags(key, tags);
         }
 
         /// <summary>
@@ -294,15 +286,14 @@ namespace EasyPack.Category
                 try
                 {
                     RemoveEntityFromTagSystemLocked(key);
+
+                    _metadataStore.TryRemove(key, out _);
+                    _entities.TryRemove(key, out _);
                 }
                 finally
                 {
                     _tagSystemLock.ExitWriteLock();
                 }
-
-                // 从元数据/实体存储移除（并发集合无需显式锁）
-                _metadataStore.TryRemove(key, out _);
-                _entities.TryRemove(key, out _);
 
 #if UNITY_EDITOR
                 _cachedStatistics = null;
@@ -894,10 +885,7 @@ namespace EasyPack.Category
         {
             _treeLock?.Dispose();
 
-            foreach (ReaderWriterLockSlim lockObj in _tagLocks.Values)
-            {
-                lockObj?.Dispose();
-            }
+            _tagSystemLock?.Dispose();
         }
 
         #endregion

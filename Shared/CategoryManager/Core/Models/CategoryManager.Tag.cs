@@ -18,7 +18,6 @@ namespace EasyPack.Category
     {
         private readonly Dictionary<int, HashSet<TKey>> _tagToEntityKeys; // tagId → entityKeys
         private readonly Dictionary<TKey, HashSet<int>> _entityToTagIds; // entityKey → tagIds
-        private readonly Dictionary<int, ReaderWriterLockSlim> _tagLocks;
         private readonly Dictionary<int, List<T>> _tagCache;
 
         // 映射层
@@ -33,38 +32,28 @@ namespace EasyPack.Category
         /// </summary>
         public OperationResult AddTag(TKey key, string tag)
         {
-            if (!_entities.ContainsKey(key))
-            {
-                return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-            }
-
             if (string.IsNullOrWhiteSpace(tag))
             {
                 return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
             }
 
-            AddTagInternal(key, tag);
-            return OperationResult.Success();
-        }
-
-        /// <summary>
-        ///     内部方法：添加标签（跳过实体存在检查）。
-        ///     使用全局锁确保线程安全。
-        /// </summary>
-        private void AddTagInternal(TKey key, string tag)
-        {
-            if (string.IsNullOrWhiteSpace(tag)) return;
-
             _tagSystemLock.EnterWriteLock();
             try
             {
+                if (!_entities.ContainsKey(key))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+                }
+
                 AddTagInternalLocked(key, tag);
+                return OperationResult.Success();
             }
             finally
             {
                 _tagSystemLock.ExitWriteLock();
             }
         }
+
 
         /// <summary>
         ///     内部方法：在持有 _tagSystemLock 写锁的情况下添加标签。
@@ -115,11 +104,6 @@ namespace EasyPack.Category
         /// </summary>
         public OperationResult AddTags(TKey key, params string[] tags)
         {
-            if (!_entities.ContainsKey(key))
-            {
-                return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-            }
-
             if (tags == null || tags.Length == 0)
             {
                 return OperationResult.Success();
@@ -129,6 +113,11 @@ namespace EasyPack.Category
             _tagSystemLock.EnterWriteLock();
             try
             {
+                if (!_entities.ContainsKey(key))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+                }
+
                 AddTagsInternalLocked(key, tags);
             }
             finally
@@ -145,11 +134,6 @@ namespace EasyPack.Category
         /// </summary>
         public OperationResult RemoveTag(TKey key, string tag)
         {
-            if (!_entities.ContainsKey(key))
-            {
-                return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-            }
-
             if (string.IsNullOrWhiteSpace(tag))
             {
                 return OperationResult.Failure(ErrorCode.InvalidCategory, "标签名称不能为空");
@@ -158,6 +142,11 @@ namespace EasyPack.Category
             _tagSystemLock.EnterWriteLock();
             try
             {
+                if (!_entities.ContainsKey(key))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+                }
+
                 if (!_tagMapper.TryGetId(tag, out int tagId))
                 {
                     return OperationResult.Failure(ErrorCode.NotFound, $"标签 '{tag}' 不存在");
@@ -201,6 +190,11 @@ namespace EasyPack.Category
                 return false;
             }
 
+            if (!_entities.ContainsKey(key))
+            {
+                return false;
+            }
+
             _tagSystemLock.EnterReadLock();
             try
             {
@@ -232,6 +226,11 @@ namespace EasyPack.Category
         /// </summary>
         public IReadOnlyList<string> GetEntityTags(TKey key)
         {
+            if (!_entities.ContainsKey(key))
+            {
+                return Array.Empty<string>();
+            }
+
             _tagSystemLock.EnterReadLock();
             try
             {

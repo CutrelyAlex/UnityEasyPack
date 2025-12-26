@@ -135,17 +135,14 @@ namespace EasyPack.Category
                     foreach (TKey key in entityKeysToDelete)
                     {
                         RemoveEntityFromTagSystemLocked(key);
+
+                        _metadataStore.TryRemove(key, out _);
+                        _entities.TryRemove(key, out _);
                     }
                 }
                 finally
                 {
                     _tagSystemLock.ExitWriteLock();
-                }
-
-                foreach (TKey key in entityKeysToDelete)
-                {
-                    _metadataStore.TryRemove(key, out _);
-                    _entities.TryRemove(key, out _);
                 }
 
                 // 删除所有收集的节点
@@ -474,14 +471,14 @@ namespace EasyPack.Category
         /// <returns>操作结果。</returns>
         public OperationResult MoveEntityToCategory(TKey key, string newCategory)
         {
-            if (!_entities.ContainsKey(key))
-            {
-                return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
-            }
-
             _treeLock.EnterWriteLock();
             try
             {
+                if (!_entities.ContainsKey(key))
+                {
+                    return OperationResult.Failure(ErrorCode.NotFound, $"未找到键为 '{key}' 的实体");
+                }
+
                 // 从旧分类的反向索引移除
                 if (_entityKeyToNode.TryGetValue(key, out CategoryNode oldNode))
                 {
