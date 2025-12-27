@@ -87,6 +87,7 @@ namespace EasyPack.CustomData
             MarkDirty();
         }
 
+
         public bool Remove(CustomDataEntry item)
         {
             bool result = _list.Remove(item);
@@ -204,6 +205,31 @@ namespace EasyPack.CustomData
         ///     查找所有匹配项
         /// </summary>
         public List<CustomDataEntry> FindAll(Predicate<CustomDataEntry> match) => _list.FindAll(match);
+
+        /// <summary>转换为字典</summary>
+        public Dictionary<string, object> ToDictionary()
+        {
+            var dict = new Dictionary<string, object>();
+            foreach (CustomDataEntry e in _list)
+            {
+                dict[e.Key] = e.GetValue();
+            }
+            return dict;
+        }
+
+        /// <summary>转换为泛型字典</summary>
+        public Dictionary<string, T> ToDictionary<T>()
+        {
+            var dict = new Dictionary<string, T>();
+            foreach (CustomDataEntry e in _list)
+            {
+                if (e.Key != null && TryGetValue(e.Key, out T value))
+                {
+                    dict[e.Key] = value;
+                }
+            }
+            return dict;
+        }
 
         #endregion
 
@@ -593,7 +619,9 @@ namespace EasyPack.CustomData
 
             return cloned;
         }
-
+        #endregion
+        
+        #region 额外修改方法
         /// <summary>
         ///     增加 int 值
         /// </summary>
