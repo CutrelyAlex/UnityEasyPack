@@ -295,7 +295,7 @@ namespace EasyPack.EmeCardSystem
             CustomDataCollection defaultMetaData = card.Data?.DefaultMetaData;
             if (defaultMetaData != null)
             {
-                registration = registration.WithMetadata(defaultMetaData);
+                registration = registration.WithMetadata(defaultMetaData.Clone());
             }
 
             // 完成注册
