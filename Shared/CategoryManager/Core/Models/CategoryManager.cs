@@ -40,7 +40,7 @@ namespace EasyPack.Category
         // 实体存储（并发集合：减少显式锁的需求）
         private readonly ConcurrentDictionary<TKey, T> _entities;
 
-       
+
 
         // 键比较器
         private readonly IEqualityComparer<TKey> _keyComparer;
@@ -152,6 +152,9 @@ namespace EasyPack.Category
                 // 先写入实体存储，避免出现分类映射存在但实体不存在
                 if (!_entities.TryAdd(key, entity))
                 {
+#if UNITY_EDITOR || DEBUG
+                    UnityEngine.Debug.LogError($"[CategoryManager] RegisterEntity 失败: Key '{key}' 已经存在. Entity type: {typeof(T).Name}, Category: {category}");
+#endif
                     return OperationResult.Failure(ErrorCode.DuplicateId, $"实体键 '{key}' 已存在");
                 }
 
@@ -258,6 +261,9 @@ namespace EasyPack.Category
         /// </summary>
         public OperationResult DeleteEntity(TKey key)
         {
+#if UNITY_EDITOR || DEBUG
+            // UnityEngine.Debug.Log($"[CategoryManager] DeleteEntity key '{key}'");
+#endif
             // 使用确定的锁顺序：_treeLock -> _tagSystemLock
             _treeLock.EnterWriteLock();
             try
@@ -285,7 +291,16 @@ namespace EasyPack.Category
                 _tagSystemLock.EnterWriteLock();
                 try
                 {
-                    RemoveEntityFromTagSystemLocked(key);
+                    try
+                    {
+                        RemoveEntityFromTagSystemLocked(key);
+                    }
+                    catch (Exception ex)
+                    {
+#if UNITY_EDITOR || DEBUG
+                        UnityEngine.Debug.LogError($"[CategoryManager] RemoveEntityFromTagSystemLocked 失败 '{key}': {ex.Message}");
+#endif
+                    }
 
                     _metadataStore.TryRemove(key, out _);
                     _entities.TryRemove(key, out _);
@@ -590,7 +605,7 @@ namespace EasyPack.Category
             }
         }
 
-                /// <summary>
+        /// <summary>
         ///     获取可序列化的状态对象。
         /// </summary>
         public SerializableCategoryManagerState<T, TKey> GetSerializableState(

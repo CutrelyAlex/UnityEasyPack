@@ -53,15 +53,16 @@ namespace EasyPack.EmeCardSystem
             string id = card.Id;
 
             // 第一步: 处理 UID（必须先分配 UID，因为 CategoryManager 使用 UID 作为键）
-            if (card.UID < 0)
+            // 使用循环确保分配的 UID 在引擎和分类管理器中都是唯一的
+            while (card.UID < 0 || _cardsByUID.ContainsKey(card.UID) || CategoryManager.GetById(card.UID).IsSuccess)
             {
-                // 未分配 UID，分配新的
-                EmeCardSystem.CardFactory.AssignUID(card);
-            }
-            else if (_cardsByUID.ContainsKey(card.UID))
-            {
-                // UID 冲突，重新分配
-                card.UID = -1;
+                if (card.UID >= 0)
+                {
+#if UNITY_EDITOR || DEBUG
+                    Debug.LogWarning($"[CardEngine] UID 冲突: {card.UID} 已存在，重新分配");
+#endif
+                    card.UID = -1;
+                }
                 EmeCardSystem.CardFactory.AssignUID(card);
             }
 
@@ -314,6 +315,16 @@ namespace EasyPack.EmeCardSystem
         {
             if (c == null || !_cardsByUID.ContainsKey(c.UID)) return this;
 
+            // 递归移除所有子卡牌
+            if (c.Children is { Count: > 0 })
+            {
+                var childrenCopy = new List<Card>(c.Children);
+                foreach (Card child in childrenCopy)
+                {
+                    RemoveCard(child);
+                }
+            }
+
             c.OnEvent -= OnCardEvent;
 
             if (c.UID >= 0) _cardsByUID.Remove(c.UID);
@@ -379,10 +390,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public void ClearAllCards()
         {
-            foreach (long uid in _cardsByUID.Keys)
-            {
-                UnregisterFromCategoryManager(uid);
-            }
+            CategoryManager.Clear();
 
             _idIndexes.Clear();
             _idMaxIndexes.Clear();

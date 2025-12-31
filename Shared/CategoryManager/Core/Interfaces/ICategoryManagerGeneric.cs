@@ -86,6 +86,11 @@ namespace EasyPack.Category
         /// <returns>操作结果。</returns>
         OperationResult DeleteEntity(TKey key);
 
+        /// <summary>
+        ///     清空所有数据。
+        /// </summary>
+        void Clear();
+
         #endregion
 
         #region 分类查询
@@ -105,7 +110,7 @@ namespace EasyPack.Category
         /// <returns>匹配的实体列表。</returns>
         IReadOnlyList<T> GetByCategory(string pattern, bool includeChildren = false);
 
-        
+
 
         /// <summary>
         ///     根据键获取实体。
@@ -305,7 +310,7 @@ namespace EasyPack.Category
         ///     获取统计信息
         /// </summary>
         Statistics GetStatistics();
-        
+
         #endregion
 
 

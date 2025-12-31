@@ -29,6 +29,11 @@ namespace EasyPack.EmeCardSystem
         /// <param name="tweakAction">可选的微调操作，用于修改变体属性或元数据。</param>
         void RegisterVariant(string baseId, string newId, Action<Card> tweakAction = null);
 
+        /// <summary>
+        ///     同步 UID 计数器，确保后续分配的 UID 大于当前已知的最大值。
+        /// </summary>
+        void SyncUID(long maxUID);
+
         IReadOnlyCollection<string> GetAllCardIds();
     }
 
@@ -154,6 +159,22 @@ namespace EasyPack.EmeCardSystem
         ///     获取当前的 UID 计数器值。
         /// </summary>
         public static long GetCurrentUID() => _nextUID;
+
+        /// <summary>
+        ///     同步 UID 计数器，确保后续分配的 UID 大于当前已知的最大值。
+        /// </summary>
+        public static void SyncUID(long maxUID)
+        {
+            if (maxUID >= _nextUID)
+            {
+                _nextUID = maxUID;
+            }
+        }
+
+        /// <summary>
+        ///     同步 UID 计数器（ICardFactoryRegistry 接口实现）
+        /// </summary>
+        void ICardFactoryRegistry.SyncUID(long maxUID) => SyncUID(maxUID);
 
         public Card Create(string id) => Create<Card>(id);
 
