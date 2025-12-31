@@ -156,7 +156,7 @@ namespace EasyPack.EmeCardSystem
             },
         });
 
-        /// <summary>需要源卡或直接子卡中有指定标签的卡牌</summary>
+        /// <summary>需要源卡或直接子卡中没有指定标签的卡牌</summary>
         public CardRuleBuilder NeedSourceOrChildNotHasTag(string tag) => AddRequirement(new NotRequirement
         {
             Inner = new AnyRequirement
@@ -175,6 +175,25 @@ namespace EasyPack.EmeCardSystem
                     new CardsRequirement(SelectionRoot.Source, CardFilterMode.ByTag, tag,
                         1, TargetScope.Children),
                 },
+            },
+        });
+        
+        /// <summary>需要容器或直接子卡中有指定标签的卡牌</summary>
+        public CardRuleBuilder NeedContainerOrChildHasTag(string tag) => AddRequirement(new AnyRequirement
+        {
+            Children =
+            {
+                new ConditionRequirement(context =>
+                {
+                    if (context.MatchRoot.HasTag(tag))
+                    {
+                        return (true, new() { context.Source });
+                    }
+
+                    return (false, null);
+                }),
+                new CardsRequirement(SelectionRoot.MatchRoot, TargetScope.Children, CardFilterMode.ByTag, tag,
+                    1, 0, 1),
             },
         });
 
