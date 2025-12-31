@@ -37,6 +37,10 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     泵类型
+        /// <remarks>
+        /// 事件泵阶段的PumpType代表的是放到 Pump 的哪个队列里,它只影响调度顺序，而不是事件本身的含义</br>
+        /// 需要和CardEventType的PumpStart/PumpEnd区分开，后者代表事件本身的含义，且Pump 生命周期事件（CardEventTypes.PUMP_START / PUMP_END）始终是全量广播</br>
+        /// </remarks>
         /// </summary>
         EEventPumpType PumpType { get; }
     }

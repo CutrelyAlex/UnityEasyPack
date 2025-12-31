@@ -7,6 +7,10 @@ namespace EasyPack.EmeCardSystem
     ///         自定义事件可以通过 Custom&lt;T&gt;() 方法或直接创建 CardEventDefinition。
     ///     </para>
     /// </summary>
+    /// <remarks>
+    ///     事件类型是泵生命周期的事件，代表了正在广播的是什么事，在 RaiseEvent/规则中设置的字符串，负责路由到匹配的规则
+    ///     需要和EEventPumpType区分开，PumpType是事件处理的阶段，它只影响调度顺序（Start 队列、Normal 队列、End 队列），而不是事件本身的含义
+    /// </remarks>
     /// <example>
     ///     // 使用标准事件
     ///     var tickEvent = CardEventTypes.Tick.Create(deltaTime);
