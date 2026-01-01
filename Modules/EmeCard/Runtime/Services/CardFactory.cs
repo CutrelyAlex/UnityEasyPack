@@ -172,7 +172,7 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     同步 UID 计数器（ICardFactoryRegistry 接口实现）
+        ///     同步 UID 计数器
         /// </summary>
         void ICardFactoryRegistry.SyncUID(long maxUID) => SyncUID(maxUID);
 

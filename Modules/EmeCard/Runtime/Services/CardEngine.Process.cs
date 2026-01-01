@@ -207,6 +207,7 @@ namespace EasyPack.EmeCardSystem
         ///     <para>
         ///         注意：Requirements 实现必须是线程安全的才能使用此模式。
         ///         建议仅在 Requirements 不修改共享状态时启用。
+        ///         另外，并行的后果会导致规则评估顺序不定，如果不是效果池模式，可能影响效果执行顺序，或者产生竞态条件；
         ///     </para>
         /// </summary>
         private List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>
