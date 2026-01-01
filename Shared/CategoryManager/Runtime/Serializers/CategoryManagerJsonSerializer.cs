@@ -132,8 +132,35 @@ namespace EasyPack.Category
                     // 避免重复添加实体
                     if (data.Entities.Any(e => e.KeyJson == keyJson)) continue;
 
-                    // 直接使用实体对象 
-                    data.Entities.Add(new() { KeyJson = keyJson, Entity = entity, Category = category });
+                    // 使用 SerializationService 序列化实体为 JSON
+                    string entityJson = null;
+                    if (_serializationService != null && _serializationService.HasSerializer<T>())
+                    {
+                        try
+                        {
+                            entityJson = _serializationService.SerializeToJson(entity);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[使用 SerializationService 序列化实体失败] {typeof(T).Name}: {ex.Message}");
+                        }
+                    }
+                    
+                    // 回退到 Unity JsonUtility
+                    if (string.IsNullOrEmpty(entityJson))
+                    {
+                        try
+                        {
+                            entityJson = JsonUtility.ToJson(entity);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogError($"[序列化实体失败] {typeof(T).Name}: {ex.Message}");
+                            continue;
+                        }
+                    }
+
+                    data.Entities.Add(new() { KeyJson = keyJson, EntityJson = entityJson, Category = category });
                 }
             }
 
@@ -177,8 +204,42 @@ namespace EasyPack.Category
             {
                 try
                 {
-                    // 直接使用实体对象
-                    T entity = serializedEntity.Entity;
+                    // 使用 SerializationService 反序列化实体
+                    T entity = default;
+                    if (!string.IsNullOrEmpty(serializedEntity.EntityJson))
+                    {
+                        if (_serializationService != null && _serializationService.HasSerializer<T>())
+                        {
+                            try
+                            {
+                                entity = _serializationService.DeserializeFromJson<T>(serializedEntity.EntityJson);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.LogWarning($"[使用 SerializationService 反序列化实体失败] {typeof(T).Name}: {ex.Message}");
+                            }
+                        }
+                        
+                        // 回退到 Unity JsonUtility
+                        if (entity == null || entity.Equals(default(T)))
+                        {
+                            try
+                            {
+                                entity = JsonUtility.FromJson<T>(serializedEntity.EntityJson);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.LogError($"[反序列化实体失败] {typeof(T).Name}: {ex.Message}");
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    if (entity == null)
+                    {
+                        Debug.LogWarning($"实体反序列化结果为 null: KeyJson={serializedEntity.KeyJson}");
+                        continue;
+                    }
 
                     // TKey key = DeserializeKey(serializedEntity.KeyJson);
                     string keyJson = serializedEntity.KeyJson;

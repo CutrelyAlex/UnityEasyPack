@@ -29,7 +29,7 @@ namespace EasyPack.Category
         public class SerializedEntity
         {
             public string KeyJson; // TKey 序列化为 JSON
-            public T Entity;
+            public string EntityJson; // T 实体序列化为 JSON（通过 SerializationService）
             public string Category;
         }
 

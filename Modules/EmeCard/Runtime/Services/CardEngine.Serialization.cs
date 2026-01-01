@@ -41,19 +41,25 @@ namespace EasyPack.EmeCardSystem
                     Metadata = new()
                 };
 
-                // 转换 Entities：从 T (Card) 取 JSON，再解析为 SerializableCard 对象
+                // 转换 Entities：从 EntityJson (string) 解析为 SerializableCard 对象
                 if (genericState.Entities != null)
                 {
                     foreach (var entity in genericState.Entities)
                     {
-                        // 因为我们在 GetSerializableState 里传了 entitySerializer，
-                        // 它会把 Card 序列化为 JSON 字符串并存到通用类型的 Entity 字段中
-                        // 但 SerializableCategoryManagerState<Card, long>.SerializedEntity.Entity 是 Card 类型
-                        // 而我们传的序列化器返回的是 string
-                        // 所以这里有类型不匹配问题
+                        // EntityJson 现在包含 Card 的 JSON 序列化字符串
+                        // 先解析为 SerializableCard DTO
+                        if (string.IsNullOrEmpty(entity.EntityJson))
+                        {
+                            Debug.LogWarning($"[CardEngine] 实体 JSON 为空，跳过: KeyJson={entity.KeyJson}");
+                            continue;
+                        }
                         
-                        // 直接用 card.Entity (Card 对象) 重新序列化
-                        var cardDto = _cardSerializer.ToSerializable(entity.Entity);
+                        SerializableCard cardDto = _cardSerializer.FromJson(entity.EntityJson);
+                        if (cardDto == null)
+                        {
+                            Debug.LogWarning($"[CardEngine] 无法解析实体 JSON: KeyJson={entity.KeyJson}");
+                            continue;
+                        }
                         
                         dto.CategoryState.Entities.Add(new CardCategoryManagerState.SerializedEntity
                         {
