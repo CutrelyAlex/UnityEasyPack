@@ -111,7 +111,10 @@ namespace EasyPack.Category
 
             var data = new SerializableCategoryManagerState<T, TKey>
             {
-                Entities = new(), Categories = new(), Tags = new(), Metadata = new(),
+                Entities = new(),
+                Categories = new(),
+                Tags = new(),
+                Metadata = new(),
             };
 
             // 序列化实体和分类
@@ -129,12 +132,8 @@ namespace EasyPack.Category
                     // 避免重复添加实体
                     if (data.Entities.Any(e => e.KeyJson == keyJson)) continue;
 
-                    // 使用 SerializationService 序列化实体
-                    string entityJson = _serializationService != null
-                        ? _serializationService.SerializeToJson(entity)
-                        : JsonUtility.ToJson(entity);
-
-                    data.Entities.Add(new() { KeyJson = keyJson, EntityJson = entityJson, Category = category });
+                    // 直接使用实体对象 
+                    data.Entities.Add(new() { KeyJson = keyJson, Entity = entity, Category = category });
                 }
             }
 
@@ -178,10 +177,8 @@ namespace EasyPack.Category
             {
                 try
                 {
-                    // 使用 SerializationService 反序列化实体
-                    T entity = _serializationService != null
-                        ? _serializationService.DeserializeFromJson<T>(serializedEntity.EntityJson)
-                        : JsonUtility.FromJson<T>(serializedEntity.EntityJson);
+                    // 直接使用实体对象
+                    T entity = serializedEntity.Entity;
 
                     // TKey key = DeserializeKey(serializedEntity.KeyJson);
                     string keyJson = serializedEntity.KeyJson;

@@ -31,7 +31,7 @@ namespace EasyPack.EmeCardSystem
         public long UID = -1;
         public SerializableGameProperty[] Properties;
         // Tags 已删除：由 CategoryManager.Tags 保存和恢复
-        public string ChildrenJson;
+        public SerializableCard[] Children;
         public bool IsIntrinsic;
         // Category 已删除：由 CategoryManager.SerializedEntity.Category 保存
 
