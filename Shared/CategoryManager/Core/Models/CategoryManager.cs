@@ -661,8 +661,7 @@ namespace EasyPack.Category
             foreach ((TKey Key, T Entity, string CategoryName) snap in entitySnapshots)
             {
                 string keyJson = keySerializer(snap.Key);
-                string entityJson = entitySerializer != null ? entitySerializer(snap.Entity) : null;
-                data.Entities.Add(new() { KeyJson = keyJson, EntityJson = entityJson, Category = snap.CategoryName });
+                data.Entities.Add(new() { KeyJson = keyJson, Entity = snap.Entity, Category = snap.CategoryName });
             }
 
             var tagSnapshots = new List<(string TagName, List<TKey> Keys)>();
