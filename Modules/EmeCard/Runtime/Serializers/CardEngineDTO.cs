@@ -1,4 +1,5 @@
 using System;
+using EasyPack.Category;
 using EasyPack.Serialization;
 
 namespace EasyPack.EmeCardSystem
@@ -6,6 +7,6 @@ namespace EasyPack.EmeCardSystem
     [Serializable]
     public class CardEngineDTO : ISerializable
     {
-        public CardCategoryManagerState CategoryState;
+        public SerializableCategoryManagerState<Card, long> CategoryState;
     }
 }
