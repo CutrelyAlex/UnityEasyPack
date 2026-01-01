@@ -104,6 +104,63 @@ namespace EasyPack.EmeCardSystem
             // 同步 UID 计数器，防止后续分配冲突
             CardFactory.SyncUID(maxUID);
 
+            // 3.5. 建立父子关系（第二阶段）
+            // 首先建立 UID -> SerializableCard 的映射，以便获取 IsIntrinsic 标记
+            var dtoMap = new Dictionary<long, SerializableCard>();
+            if (state.Entities != null)
+            {
+                foreach (SerializableCategoryManagerState<Card, long>.SerializedEntity entityDto in state.Entities)
+                {
+                    if (string.IsNullOrEmpty(entityDto.EntityJson)) continue;
+                    SerializableCard cardDto = _cardSerializer.FromJson(entityDto.EntityJson);
+                    if (cardDto != null)
+                    {
+                        dtoMap[cardDto.UID] = cardDto;
+                    }
+                }
+            }
+
+            // 现在所有卡牌都已创建并缓存，可以安全地建立父子关系
+            if (state.Entities != null)
+            {
+                foreach (SerializableCategoryManagerState<Card, long>.SerializedEntity entityDto in state.Entities)
+                {
+                    if (string.IsNullOrEmpty(entityDto.EntityJson)) continue;
+
+                    SerializableCard cardDto = _cardSerializer.FromJson(entityDto.EntityJson);
+                    if (cardDto == null) continue;
+
+                    // 从缓存中获取父卡牌
+                    if (!identityMap.TryGetValue(cardDto.UID, out Card parentCard)) continue;
+
+                    // 建立父子关系
+                    if (cardDto.ChildrenUIDs != null && cardDto.ChildrenUIDs.Length > 0)
+                    {
+                        foreach (long childUID in cardDto.ChildrenUIDs)
+                        {
+                            // 从缓存中查找子卡牌
+                            if (identityMap.TryGetValue(childUID, out Card childCard))
+                            {
+                                // 避免重复添加
+                                if (!parentCard.Children.Contains(childCard))
+                                {
+                                    // 从子卡的 SerializableCard 中获取 IsIntrinsic 标记
+                                    bool isIntrinsic = dtoMap.TryGetValue(childUID, out SerializableCard childDto) 
+                                        ? childDto.IsIntrinsic 
+                                        : false;
+                                    
+                                    parentCard.AddChild(childCard, isIntrinsic);
+                                }
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"[CardEngine] 无法找到子卡牌 UID={childUID}，父卡牌 UID={parentCard.UID}");
+                            }
+                        }
+                    }
+                }
+            }
+
             // 4. Tags
             if (state.Tags != null)
             {

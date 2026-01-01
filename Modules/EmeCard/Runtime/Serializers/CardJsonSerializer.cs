@@ -136,7 +136,7 @@ namespace EasyPack.EmeCardSystem
             try
             {
                 var propertiesList = new List<SerializableGameProperty>();
-                var childrenList = new List<SerializableCard>();
+                var childrenUIDsList = new List<long>();
 
                 var dto = new SerializableCard
                 {
@@ -148,7 +148,7 @@ namespace EasyPack.EmeCardSystem
                     Index = card.Index,
                     UID = card.UID,
                     Properties = Array.Empty<SerializableGameProperty>(),
-                    ChildrenJson = null, // 默认为空，有子卡时才序列化
+                    ChildrenUIDs = Array.Empty<long>(), // 默认为空，有子类时填充
                     IsIntrinsic = false,
 
                     // 位置信息
@@ -179,22 +179,22 @@ namespace EasyPack.EmeCardSystem
                     }
                 }
 
-                // 递归序列化子卡
+                // 递归序列化子卡（收集 UID 引用）
                 if (card.Children is { Count: > 0 })
                 {
                     foreach (Card child in card.Children)
                     {
-                        SerializableCard childDto = SerializeCardRecursive(child, visited, path);
-                        // 标记固有子卡：使用公开的只读访问器
-                        childDto.IsIntrinsic = card.IsIntrinsic(child);
-                        childrenList.Add(childDto);
+                        // 先递归序列化子卡（确保子卡也被处理）
+                        SerializeCardRecursive(child, visited, path);
+
+                        // 记录子类的 UID
+                        childrenUIDsList.Add(child.UID);
                     }
 
-                    // 子卡数组序列化
-                    if (childrenList.Count > 0)
+                    // 转换为数组
+                    if (childrenUIDsList.Count > 0)
                     {
-                        var childrenArray = childrenList.ToArray();
-                        dto.ChildrenJson = JsonUtility.ToJson(new SerializableCardArray { Cards = childrenArray });
+                        dto.ChildrenUIDs = childrenUIDsList.ToArray();
                     }
                 }
 
@@ -306,27 +306,9 @@ namespace EasyPack.EmeCardSystem
             // 运行时标签通过 Card.Tags 属性从 Engine.CategoryManager 读取
             // 反序列化时由 CardEngine.LoadState() 从 CategoryManager.Tags 恢复
 
-            // 恢复子卡
-            if (!string.IsNullOrEmpty(data.ChildrenJson))
-            {
-                try
-                {
-                    var childrenArray = JsonUtility.FromJson<SerializableCardArray>(data.ChildrenJson);
-                    if (childrenArray is { Cards: not null })
-                    {
-                        foreach (SerializableCard childData in childrenArray.Cards)
-                        {
-                            Card child = DeserializeCardRecursive(childData, cache);
-                            bool intrinsic = childData is { IsIntrinsic: true };
-                            card.AddChild(child, intrinsic);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"[CardJsonSerializer] 跳过反序列化失败的 Children: {ex.Message}");
-                }
-            }
+            // 注意：子卡关系在两阶段反序列化中处理
+            // 第一阶段只创建卡牌对象，第二阶段建立父子关系
+            // ChildrenUIDs 的处理由外部调用者负责（如 CategoryManager）
 
             return card;
         }
