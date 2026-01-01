@@ -153,7 +153,7 @@ namespace EasyPack.Category
                 if (!_entities.TryAdd(key, entity))
                 {
 #if UNITY_EDITOR || DEBUG
-                    UnityEngine.Debug.LogError($"[CategoryManager] RegisterEntity 失败: Key '{key}' 已经存在. Entity type: {typeof(T).Name}, Category: {category}");
+                    UnityEngine.Debug.LogWarning($"[CategoryManager] RegisterEntity 失败: Key '{key}' 已经存在. Entity type: {typeof(T).Name}, Category: {category}");
 #endif
                     return OperationResult.Failure(ErrorCode.DuplicateId, $"实体键 '{key}' 已存在");
                 }

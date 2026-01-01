@@ -57,6 +57,7 @@ namespace EasyPack.EmeCardSystem
             // 3. Entities (同时恢复 CardEngine 内部状态)
             // 使用 Identity Map 确保同一 UID 只对应一个实例
             var identityMap = new Dictionary<long, Card>();
+            var restoredUids = new HashSet<long>();
             long maxUID = 0;
 
             if (state.Entities != null)
@@ -72,6 +73,12 @@ namespace EasyPack.EmeCardSystem
 
                     if (card != null)
                     {
+
+                        if (!restoredUids.Add(card.UID))
+                        {
+                            continue;
+                        }
+
                         if (card.UID > maxUID) maxUID = card.UID;
 
                         // 恢复 CardEngine 内部状态
