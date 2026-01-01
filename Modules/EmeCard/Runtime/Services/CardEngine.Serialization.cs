@@ -24,89 +24,11 @@ namespace EasyPack.EmeCardSystem
                 // 确保序列化器使用当前的工厂
                 CardJsonSerializer.Factory = _cardFactory;
 
-                // 获取通用的序列化状态（仍使用字符串序列化器）
-                var genericState = concreteManager.GetSerializableState(
-                    card => JsonUtility.ToJson(_cardSerializer.ToSerializable(card)),
+                dto.CategoryState = concreteManager.GetSerializableState(
+                    card => _cardSerializer.SerializeToJson(card),
                     uid => uid.ToString(),
                     metadata => JsonUtility.ToJson(new CustomDataCollectionWrapper { Entries = metadata.ToList() })
                 );
-
-                // 转换为 CardCategoryManagerState
-                dto.CategoryState = new CardCategoryManagerState
-                {
-                    IncludeEntities = genericState.IncludeEntities,
-                    Entities = new(),
-                    Categories = new(),
-                    Tags = new(),
-                    Metadata = new()
-                };
-
-                // 转换 Entities：从 EntityJson (string) 解析为 SerializableCard 对象
-                if (genericState.Entities != null)
-                {
-                    foreach (var entity in genericState.Entities)
-                    {
-                        // EntityJson 现在包含 Card 的 JSON 序列化字符串
-                        // 先解析为 SerializableCard DTO
-                        if (string.IsNullOrEmpty(entity.EntityJson))
-                        {
-                            Debug.LogWarning($"[CardEngine] 实体 JSON 为空，跳过: KeyJson={entity.KeyJson}");
-                            continue;
-                        }
-                        
-                        SerializableCard cardDto = _cardSerializer.FromJson(entity.EntityJson);
-                        if (cardDto == null)
-                        {
-                            Debug.LogWarning($"[CardEngine] 无法解析实体 JSON: KeyJson={entity.KeyJson}");
-                            continue;
-                        }
-                        
-                        dto.CategoryState.Entities.Add(new CardCategoryManagerState.SerializedEntity
-                        {
-                            KeyJson = entity.KeyJson,
-                            Entity = cardDto,
-                            Category = entity.Category
-                        });
-                    }
-                }
-
-                // 转换 Categories
-                if (genericState.Categories != null)
-                {
-                    foreach (var cat in genericState.Categories)
-                    {
-                        dto.CategoryState.Categories.Add(new CardCategoryManagerState.SerializedCategory
-                        {
-                            Name = cat.Name
-                        });
-                    }
-                }
-
-                // 转换 Tags
-                if (genericState.Tags != null)
-                {
-                    foreach (var tag in genericState.Tags)
-                    {
-                        dto.CategoryState.Tags.Add(new CardCategoryManagerState.SerializedTag
-                        {
-                            TagName = tag.TagName,
-                            EntityKeyJsons = tag.EntityKeyJsons
-                        });
-                    }
-                }
-
-                // 转换 Metadata
-                if (genericState.Metadata != null)
-                {
-                    foreach (var meta in genericState.Metadata)
-                    {
-                        dto.CategoryState.Metadata.Add(new CardCategoryManagerState.SerializedMetadata
-                        {
-                            EntityKeyJson = meta.EntityKeyJson,
-                            MetadataJson = meta.MetadataJson
-                        });
-                    }
-                }
             }
 
             return dto;
@@ -140,12 +62,14 @@ namespace EasyPack.EmeCardSystem
 
             if (state.Entities != null)
             {
-                foreach (CardCategoryManagerState.SerializedEntity entityDto in state.Entities)
+                foreach (SerializableCategoryManagerState<Card, long>.SerializedEntity entityDto in state.Entities)
                 {
-                    if (entityDto.Entity == null) continue;
+                    if (string.IsNullOrEmpty(entityDto.EntityJson)) continue;
 
-                    // 直接使用 SerializableCard 对象转换为 Card 实例
-                    Card card = _cardSerializer.FromSerializable(entityDto.Entity, identityMap);
+                    // 从 JSON 字符串解析为 SerializableCard DTO，然后转换为 Card 实例
+                    // 传入 identityMap，如果该 UID 已存在于 map 中，则直接返回现有实例
+                    SerializableCard cardDto = _cardSerializer.FromJson(entityDto.EntityJson);
+                    Card card = cardDto != null ? _cardSerializer.FromSerializable(cardDto, identityMap) : null;
 
                     if (card != null)
                     {
@@ -183,7 +107,7 @@ namespace EasyPack.EmeCardSystem
             // 4. Tags
             if (state.Tags != null)
             {
-                foreach (CardCategoryManagerState.SerializedTag tagDto in state.Tags)
+                foreach (SerializableCategoryManagerState<Card, long>.SerializedTag tagDto in state.Tags)
                 {
                     if (tagDto.EntityKeyJsons != null)
                     {
@@ -201,7 +125,7 @@ namespace EasyPack.EmeCardSystem
             // 5. Metadata
             if (state.Metadata != null)
             {
-                foreach (CardCategoryManagerState.SerializedMetadata metaDto in state.Metadata)
+                foreach (SerializableCategoryManagerState<Card, long>.SerializedMetadata metaDto in state.Metadata)
                 {
                     if (long.TryParse(metaDto.EntityKeyJson, out long uid))
                     {
@@ -282,11 +206,11 @@ namespace EasyPack.EmeCardSystem
         public string SerializeToJson(bool prettyPrint = true) => JsonUtility.ToJson(GetSerializableState(), prettyPrint);
 
         public void DeserializeFromJson(string json) => LoadState(JsonUtility.FromJson<CardEngineDTO>(json));
-    }
 
-    [Serializable]
-    internal class CustomDataCollectionWrapper
-    {
-        public List<CustomDataEntry> Entries;
+        [Serializable]
+        private class CustomDataCollectionWrapper
+        {
+            public List<CustomDataEntry> Entries;
+        }
     }
 }

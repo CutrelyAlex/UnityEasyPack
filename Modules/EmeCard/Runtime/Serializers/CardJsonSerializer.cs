@@ -148,7 +148,7 @@ namespace EasyPack.EmeCardSystem
                     Index = card.Index,
                     UID = card.UID,
                     Properties = Array.Empty<SerializableGameProperty>(),
-                    Children = null, // 默认为空，有子卡时才序列化
+                    ChildrenJson = null, // 默认为空，有子卡时才序列化
                     IsIntrinsic = false,
 
                     // 位置信息
@@ -193,7 +193,8 @@ namespace EasyPack.EmeCardSystem
                     // 子卡数组序列化
                     if (childrenList.Count > 0)
                     {
-                        dto.Children = childrenList.ToArray();
+                        var childrenArray = childrenList.ToArray();
+                        dto.ChildrenJson = JsonUtility.ToJson(new SerializableCardArray { Cards = childrenArray });
                     }
                 }
 
@@ -306,15 +307,19 @@ namespace EasyPack.EmeCardSystem
             // 反序列化时由 CardEngine.LoadState() 从 CategoryManager.Tags 恢复
 
             // 恢复子卡
-            if (data.Children != null && data.Children.Length > 0)
+            if (!string.IsNullOrEmpty(data.ChildrenJson))
             {
                 try
                 {
-                    foreach (SerializableCard childData in data.Children)
+                    var childrenArray = JsonUtility.FromJson<SerializableCardArray>(data.ChildrenJson);
+                    if (childrenArray is { Cards: not null })
                     {
-                        Card child = DeserializeCardRecursive(childData, cache);
-                        bool intrinsic = childData is { IsIntrinsic: true };
-                        card.AddChild(child, intrinsic);
+                        foreach (SerializableCard childData in childrenArray.Cards)
+                        {
+                            Card child = DeserializeCardRecursive(childData, cache);
+                            bool intrinsic = childData is { IsIntrinsic: true };
+                            card.AddChild(child, intrinsic);
+                        }
                     }
                 }
                 catch (Exception ex)
