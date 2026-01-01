@@ -143,17 +143,13 @@ namespace EasyPack.EmeCardSystem
                     ID = card.Data.ID,
                     Name = card.Data.Name,
                     Description = card.Data.Description,
-                    // 序列化时使用 CardData.Category，确保一致性
                     DefaultCategory = card.Data?.Category ?? CardData.DEFAULT_CATEGORY,
                     DefaultTags = card.Data.DefaultTags,
                     Index = card.Index,
                     UID = card.UID,
                     Properties = Array.Empty<SerializableGameProperty>(),
-                    Tags = card.Tags is { Count: > 0 } tags ? new List<string>(tags).ToArray() : Array.Empty<string>(),
                     ChildrenJson = null, // 默认为空，有子卡时才序列化
-
-                    // 运行时分类由 CategoryManager 的状态（SerializedEntity.Category）负责保存。
-                    Category = null,
+                    IsIntrinsic = false,
 
                     // 位置信息
                     HasPosition = card.Position.HasValue,
@@ -169,14 +165,10 @@ namespace EasyPack.EmeCardSystem
                     {
                         try
                         {
-                            string propJson = _propertySerializer.SerializeToJson(prop);
-                            if (!string.IsNullOrEmpty(propJson))
+                            var sProp = _propertySerializer.ToSerializable(prop);
+                            if (sProp != null)
                             {
-                                var sProp = JsonUtility.FromJson<SerializableGameProperty>(propJson);
-                                if (sProp != null)
-                                {
-                                    propertiesList.Add(sProp);
-                                }
+                                propertiesList.Add(sProp);
                             }
                         }
                         catch (Exception ex)
@@ -264,13 +256,8 @@ namespace EasyPack.EmeCardSystem
             }
             else
             {
-                // 回退
-                string category = data.Category;
-                if (string.IsNullOrEmpty(category))
-                {
-                    category = data.DefaultCategory;
-                }
-
+                // 回退：使用 DefaultCategory（运行时 Category 由 CategoryManager 提供）
+                string category = data.DefaultCategory;
                 if (string.IsNullOrEmpty(category))
                 {
                     category = CardData.DEFAULT_CATEGORY;
@@ -287,7 +274,9 @@ namespace EasyPack.EmeCardSystem
 
             var card = new Card(cardData)
             {
-                Index = data.Index, UID = data.UID, Position = data.HasPosition ? data.Position : null,
+                Index = data.Index,
+                UID = data.UID,
+                Position = data.HasPosition ? data.Position : null,
             };
 
             // 加入缓存
@@ -303,8 +292,7 @@ namespace EasyPack.EmeCardSystem
                 {
                     try
                     {
-                        string propJson = JsonUtility.ToJson(sProp);
-                        GameProperty prop = _propertySerializer.DeserializeFromJson(propJson);
+                        GameProperty prop = _propertySerializer.FromSerializable(sProp);
                         if (prop != null) card.Properties.Add(prop);
                     }
                     catch (Exception ex)
@@ -314,25 +302,9 @@ namespace EasyPack.EmeCardSystem
                 }
             }
 
-            // 恢复标签 - 直接保存序列化时的所有标签
-            // 注意：反序列化时不应用DefaultTags，这些标签完全由序列化数据决定
-
-            if (data.Tags is { Length: > 0 })
-            {
-                var allTags = new List<string>();
-                foreach (string tag in data.Tags)
-                {
-                    if (!string.IsNullOrEmpty(tag))
-                    {
-                        allTags.Add(tag);
-                    }
-                }
-
-                if (allTags.Count > 0)
-                {
-                    card.PendingExtraTags = allTags;
-                }
-            }
+            // 标签完全由 CategoryManager 管理，无需在卡牌层级处理
+            // 运行时标签通过 Card.Tags 属性从 Engine.CategoryManager 读取
+            // 反序列化时由 CardEngine.LoadState() 从 CategoryManager.Tags 恢复
 
             // 恢复子卡
             if (!string.IsNullOrEmpty(data.ChildrenJson))

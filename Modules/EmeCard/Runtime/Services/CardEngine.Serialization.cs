@@ -65,9 +65,10 @@ namespace EasyPack.EmeCardSystem
                 {
                     if (string.IsNullOrEmpty(entityDto.EntityJson)) continue;
 
+                    // 从 JSON 字符串解析为 SerializableCard DTO，然后转换为 Card 实例
                     // 传入 identityMap，如果该 UID 已存在于 map 中，则直接返回现有实例
-                    // 这样可以自动合并父子关系中的重复序列化数据
-                    Card card = _cardSerializer.DeserializeFromJson(entityDto.EntityJson, identityMap);
+                    SerializableCard cardDto = _cardSerializer.FromJson(entityDto.EntityJson);
+                    Card card = cardDto != null ? _cardSerializer.FromSerializable(cardDto, identityMap) : null;
 
                     if (card != null)
                     {
@@ -195,7 +196,7 @@ namespace EasyPack.EmeCardSystem
             card.OnEvent += OnCardEvent;
         }
 
-        public string SerializeToJson() => JsonUtility.ToJson(GetSerializableState());
+        public string SerializeToJson(bool prettyPrint = true) => JsonUtility.ToJson(GetSerializableState(), prettyPrint);
 
         public void DeserializeFromJson(string json) => LoadState(JsonUtility.FromJson<CardEngineDTO>(json));
 
