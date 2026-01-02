@@ -257,44 +257,11 @@ namespace EasyPack.GamePropertySystem
         /// <param name="modifier">要添加的修饰符</param>
         public IModifiableProperty<float> AddModifier(IModifier modifier)
         {
-            // 添加到总列表并记录索引
-            int index = Modifiers.Count;
-            Modifiers.Add(modifier);
-            _modifierIndexMap[modifier] = index;
-
-            // 按类型分组
-            if (!_groupedModifiers.TryGetValue(modifier.Type, out var list))
-            {
-                list = new();
-                _groupedModifiers[modifier.Type] = list;
-            }
-
-            list.Add(modifier);
-
-            // 检查是否有随机性修饰符
-            if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
-            {
-                _nonClampRangeModifierCount++;
-                _hasNonClampRangeModifier = true;
-            }
-
+            AddModifierInternal(modifier);
             MakeDirty();
             return this;
         }
 
-        /// <summary>
-        ///     清除所有修饰符，属性值将回到基础值
-        /// </summary>
-        public IModifiableProperty<float> ClearModifiers()
-        {
-            Modifiers.Clear();
-            _groupedModifiers.Clear(); // 清理分组缓存
-            _modifierIndexMap.Clear(); // 清理索引映射
-            _hasNonClampRangeModifier = false; // 重置RangeModifier标记
-            _nonClampRangeModifierCount = 0; // 重置计数器
-            MakeDirty();
-            return this;
-        }
 
         /// <summary>
         ///     批量添加多个修饰符到属性
@@ -302,8 +269,6 @@ namespace EasyPack.GamePropertySystem
         /// <param name="modifiers">要添加的修饰符集合</param>
         public IModifiableProperty<float> AddModifiers(IEnumerable<IModifier> modifiers)
         {
-            bool needsRangeCheck = false;
-
             foreach (IModifier modifier in modifiers)
             {
                 if (modifier == null)
@@ -311,31 +276,7 @@ namespace EasyPack.GamePropertySystem
                     throw new ArgumentNullException(nameof(modifier));
                 }
 
-                // 添加到总列表并记录索引
-                int index = Modifiers.Count;
-                Modifiers.Add(modifier);
-                _modifierIndexMap[modifier] = index;
-
-                // 按类型分组
-                if (!_groupedModifiers.TryGetValue(modifier.Type, out var list))
-                {
-                    list = new();
-                    _groupedModifiers[modifier.Type] = list;
-                }
-
-                list.Add(modifier);
-
-                // 延迟检查随机性修饰符
-                if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
-                {
-                    needsRangeCheck = true;
-                    _nonClampRangeModifierCount++;
-                }
-            }
-
-            if (needsRangeCheck)
-            {
-                _hasNonClampRangeModifier = true;
+                AddModifierInternal(modifier);
             }
 
             MakeDirty();
@@ -361,28 +302,12 @@ namespace EasyPack.GamePropertySystem
             {
                 if (_modifierIndexMap.ContainsKey(modifier))
                 {
-                    Modifiers.Remove(modifier);
-                    _modifierIndexMap.Remove(modifier);
-
-                    // 分组处理
-                    if (_groupedModifiers.TryGetValue(modifier.Type, out var list))
-                    {
-                        list.Remove(modifier);
-                        if (list.Count == 0)
-                        {
-                            _groupedModifiers.Remove(modifier.Type);
-                        }
-                    }
+                    RemoveModifierInternal(modifier);
                 }
             }
 
             // 重建索引映射
-            _modifierIndexMap.Clear();
-            for (int i = 0; i < Modifiers.Count; i++)
-            {
-                _modifierIndexMap[Modifiers[i]] = i;
-            }
-
+            RebuildModifierIndexMap();
             _hasNonClampRangeModifier = HasNonClampRangeModifiers();
             MakeDirty();
             return this;
@@ -399,7 +324,49 @@ namespace EasyPack.GamePropertySystem
                 return this;
             }
 
+            RemoveModifierInternal(modifier);
+            RebuildModifierIndexMap();
+            _hasNonClampRangeModifier = _nonClampRangeModifierCount > 0;
+            MakeDirty();
+            return this;
+        }
+
+        /// <summary>
+        ///     内部方法：添加单个修饰符（不触发MakeDirty）
+        /// </summary>
+        private void AddModifierInternal(IModifier modifier)
+        {
+            // 添加到总列表并记录索引
+            int index = Modifiers.Count;
+            Modifiers.Add(modifier);
+            _modifierIndexMap[modifier] = index;
+
+            // 按类型分组
+            if (!_groupedModifiers.TryGetValue(modifier.Type, out var list))
+            {
+                list = new();
+                _groupedModifiers[modifier.Type] = list;
+            }
+
+            list.Add(modifier);
+
+            // 检查是否有随机性修饰符
+            if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
+            {
+                _nonClampRangeModifierCount++;
+                _hasNonClampRangeModifier = true;
+            }
+        }
+
+        /// <summary>
+        ///     内部方法：移除单个修饰符（不触发MakeDirty和索引重建）
+        /// </summary>
+        private void RemoveModifierInternal(IModifier modifier)
+        {
             int lastIndex = Modifiers.Count - 1;
+            int index = _modifierIndexMap[modifier];
+
+            // 使用末尾元素交换以保持列表连续性
             if (index != lastIndex)
             {
                 IModifier lastModifier = Modifiers[lastIndex];
@@ -424,11 +391,19 @@ namespace EasyPack.GamePropertySystem
             if (modifier is RangeModifier rm && rm.Type != ModifierType.Clamp)
             {
                 _nonClampRangeModifierCount--;
-                _hasNonClampRangeModifier = _nonClampRangeModifierCount > 0;
             }
+        }
 
-            MakeDirty();
-            return this;
+        /// <summary>
+        ///     内部方法：重建修饰符索引映射
+        /// </summary>
+        private void RebuildModifierIndexMap()
+        {
+            _modifierIndexMap.Clear();
+            for (int i = 0; i < Modifiers.Count; i++)
+            {
+                _modifierIndexMap[Modifiers[i]] = i;
+            }
         }
 
         /// <summary>
@@ -438,6 +413,20 @@ namespace EasyPack.GamePropertySystem
         internal bool HasNonClampRangeModifiers()
         {
             return Modifiers.OfType<RangeModifier>().Any(m => m.Type != ModifierType.Clamp);
+        }
+
+        /// <summary>
+        ///     清除所有修饰符，属性值将回到基础值
+        /// </summary>
+        public IModifiableProperty<float> ClearModifiers()
+        {
+            Modifiers.Clear();
+            _groupedModifiers.Clear(); // 清理分组缓存
+            _modifierIndexMap.Clear(); // 清理索引映射
+            _hasNonClampRangeModifier = false; // 重置RangeModifier标记
+            _nonClampRangeModifierCount = 0; // 重置计数器
+            MakeDirty();
+            return this;
         }
 
         // 策略缓存
