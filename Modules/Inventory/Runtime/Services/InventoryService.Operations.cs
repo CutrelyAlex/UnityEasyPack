@@ -494,22 +494,55 @@ namespace EasyPack.InventorySystem
 
         /// <summary>
         ///     物品移动事件
+        ///     当物品从一个容器的某个槽位移动到另一个容器时触发
         /// </summary>
+        /// <remarks>
+        ///     参数说明：
+        ///     - fromContainerId: 源容器ID <br/>
+        ///     - fromSlot: 源槽位索引 <br/>
+        ///     - toContainerId: 目标容器ID <br/>
+        ///     - item: 移动的物品对象 <br/>
+        ///     - movedCount: 移动的数量 <br/>
+        /// </remarks>
         public event Action<string, int, string, IItem, int> OnItemMoved;
 
         /// <summary>
         ///     物品转移事件
+        ///     当指定数量的物品从一个容器转移到另一个容器时触发
         /// </summary>
+        /// <remarks>
+        ///     参数说明：
+        ///     - fromContainerId: 源容器ID <br/>
+        ///     - toContainerId: 目标容器ID <br/>
+        ///     - itemId: 物品ID <br/>
+        ///     - transferredCount: 实际转移的数量 <br/>
+        /// </remarks>
         public event Action<string, string, string, int> OnItemsTransferred;
 
         /// <summary>
         ///     批量移动完成事件
+        ///     当批量移动操作（BatchMoveItems）全部完成时触发，无论成功失败
         /// </summary>
+        /// <remarks>
+        ///     参数说明：
+        ///     - List&lt;(MoveRequest request, MoveResult result, int movedCount)&gt;: 移动结果列表 <br/>
+        ///       - request: 原始的移动请求，包含源容器、目标容器、槽位等信息 <br/>
+        ///       - result: 此次移动的执行结果枚举值 <br/>
+        ///       - movedCount: 此次移动实际转移的物品数量 <br/>
+        /// </remarks>
         public event Action<List<(MoveRequest request, MoveResult result, int movedCount)>> OnBatchMoveCompleted;
 
         /// <summary>
         ///     物品分配事件
+        ///     当物品被分配到多个容器时触发，用于通知分配的完成情况
         /// </summary>
+        /// <remarks>
+        ///     参数说明：
+        ///     - item: 被分配的物品对象，包含物品的所有属性信息 <br/>
+        ///     - totalCount: 待分配的总数量，表示原计划分配的物品总数 <br/>
+        ///     - distributionResults: 分配结果字典，键为容器ID，值为该容器实际接收的数量 <br/>
+        ///     - remainingCount: 剩余未分配的数量，表示无法分配到任何容器的物品数量 <br/>
+        /// </remarks>
         public event Action<IItem, int, Dictionary<string, int>, int> OnItemsDistributed;
 
         #endregion
