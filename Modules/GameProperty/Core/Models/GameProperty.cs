@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using EasyPack.Modifiers;
+using UnityEngine;
 
 namespace EasyPack.GamePropertySystem
 {
@@ -12,8 +13,6 @@ namespace EasyPack.GamePropertySystem
     /// </summary>
     public class GameProperty : IModifiableProperty<float>, IDirtyTrackable
     {
-        // 比较大小的静态常量
-        private const float EPSILON = 0.0001f;
 
         #region 基础属性值
 
@@ -92,7 +91,7 @@ namespace EasyPack.GamePropertySystem
                 IsDirty = false;
             }
 
-            if (Math.Abs(oldValue - _cacheValue) > EPSILON)
+            if (!Mathf.Approximately(oldValue, _cacheValue))
             {
                 OnValueChanged?.Invoke(oldValue, _cacheValue);
 
@@ -110,7 +109,7 @@ namespace EasyPack.GamePropertySystem
         /// <param name="value">新的基础值</param>
         public IModifiableProperty<float> SetBaseValue(float value)
         {
-            if (Math.Abs(_baseValue - value) > EPSILON)
+            if (!Mathf.Approximately(_baseValue, value))
             {
                 float oldBaseValue = _baseValue;
                 _baseValue = value;
@@ -174,7 +173,7 @@ namespace EasyPack.GamePropertySystem
             {
                 float oldValue = _cacheValue;
                 float newValue = GetValue();
-                if (Math.Abs(oldValue - newValue) > EPSILON) callback(oldValue, newValue);
+                if (!Mathf.Approximately(oldValue, newValue)) callback(oldValue, newValue);
             });
         }
 
