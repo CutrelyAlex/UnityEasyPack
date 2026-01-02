@@ -197,6 +197,89 @@ namespace EasyPack.InventorySystem
 
         #endregion
 
+        #region ItemUID 管理
+
+        /// <summary>
+        ///     ItemUID生成器，自增长ID
+        /// </summary>
+        private long _nextItemUID = 1;
+
+        /// <summary>
+        ///     ItemUID到物品实例的映射（可选，用于快速查找）
+        /// </summary>
+        private readonly Dictionary<long, IItem> _itemsByUID = new();
+
+        /// <summary>
+        ///     为物品分配唯一UID
+        /// </summary>
+        /// <param name="item">要分配UID的物品</param>
+        /// <returns>分配的UID</returns>
+        public long AssignItemUID(IItem item)
+        {
+            if (item == null) return -1;
+
+            lock (_lock)
+            {
+                // 如果已经有UID，不重复分配
+                if (item.ItemUID != -1)
+                {
+                    return item.ItemUID;
+                }
+
+                long uid = _nextItemUID++;
+                item.ItemUID = uid;
+
+                // 注册到全局映射
+                _itemsByUID[uid] = item;
+
+                return uid;
+            }
+        }
+
+        /// <summary>
+        ///     通过UID查找物品实例
+        /// </summary>
+        /// <param name="uid">物品UID</param>
+        /// <returns>物品实例，未找到返回null</returns>
+        public IItem GetItemByUID(long uid)
+        {
+            if (uid == -1) return null;
+
+            lock (_lock)
+            {
+                return _itemsByUID.GetValueOrDefault(uid);
+            }
+        }
+
+        /// <summary>
+        ///     注销物品UID
+        /// </summary>
+        /// <param name="uid">要注销的UID</param>
+        public void UnregisterItemUID(long uid)
+        {
+            if (uid == -1) return;
+
+            lock (_lock)
+            {
+                _itemsByUID.Remove(uid);
+            }
+        }
+
+        /// <summary>
+        ///     检查UID是否已被使用
+        /// </summary>
+        public bool IsUIDRegistered(long uid)
+        {
+            if (uid == -1) return false;
+
+            lock (_lock)
+            {
+                return _itemsByUID.ContainsKey(uid);
+            }
+        }
+
+        #endregion
+
         #region 容器注册与查询
 
         /// <summary>
@@ -219,6 +302,9 @@ namespace EasyPack.InventorySystem
             lock (_lock)
             {
                 if (_containers.ContainsKey(container.ID)) UnregisterContainerInternal(container.ID);
+
+                // 设置容器的InventoryService引用
+                container.InventoryService = this;
 
                 // 注册容器
                 _containers[container.ID] = container;

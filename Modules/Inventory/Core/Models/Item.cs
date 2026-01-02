@@ -11,6 +11,13 @@ namespace EasyPack.InventorySystem
         string Description { get; }
         bool IsStackable { get; }
 
+        /// <summary>
+        ///     物品的全局唯一标识符
+        ///     由InventoryService统一分配和管理
+        ///     -1 表示未分配
+        /// </summary>
+        long ItemUID { get; set; }
+
         float Weight { get; set; }
         int MaxStackCount { get; }
 
@@ -69,6 +76,13 @@ namespace EasyPack.InventorySystem
         public string Type { get; set; } = "Default";
         public string Description { get; set; } = "";
 
+        /// <summary>
+        ///     物品的全局唯一标识符
+        ///     由InventoryService统一分配和管理
+        ///     -1 表示未分配
+        /// </summary>
+        public long ItemUID { get; set; } = -1;
+
         public float Weight { get; set; } = 1;
 
         public bool IsStackable { get; set; } = true;
@@ -96,13 +110,13 @@ namespace EasyPack.InventorySystem
                 Name = Name,
                 Type = Type,
                 Description = Description,
+                ItemUID = -1, // 克隆的物品需要重新分配UID
                 Weight = Weight,
                 IsStackable = IsStackable,
                 MaxStackCount = MaxStackCount,
                 IsContainerItem = IsContainerItem,
+                CustomData = CustomData.Clone()
             };
-
-            clone.CustomData = CustomData.Clone();
 
             if (ContainerIds is { Count: > 0 }) clone.ContainerIds = new(ContainerIds);
 

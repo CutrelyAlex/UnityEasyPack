@@ -4,6 +4,13 @@ namespace EasyPack.InventorySystem
     {
         int Index { get; }
         IItem Item { get; }
+        
+        /// <summary>
+        ///     当前槽位中物品的UID
+        ///     -1 表示槽位为空或物品未分配UID
+        /// </summary>
+        long ItemUID { get; }
+        
         int ItemCount { get; }
         bool IsOccupied { get; } // 是否被占用
         public Container Container { get; set; } // 所属容器
@@ -18,6 +25,12 @@ namespace EasyPack.InventorySystem
         public int Index { get; set; }
 
         public IItem Item { get; set; }
+
+        /// <summary>
+        ///     当前槽位中物品的UID
+        ///     通过Item.ItemUID同步，-1表示空槽位
+        /// </summary>
+        public long ItemUID => Item?.ItemUID ?? -1;
 
         public int ItemCount { get; set; }
 

@@ -37,6 +37,12 @@ namespace EasyPack.InventorySystem
         void RefreshGlobalCache();
         void ValidateGlobalCache();
 
+        // ItemUID 管理
+        long AssignItemUID(IItem item);
+        IItem GetItemByUID(long uid);
+        void UnregisterItemUID(long uid);
+        bool IsUIDRegistered(long uid);
+
         // 服务管理
         void Reset();
 

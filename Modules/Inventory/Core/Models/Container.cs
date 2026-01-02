@@ -39,6 +39,11 @@ namespace EasyPack.InventorySystem
         // 查询服务
         private readonly IItemQueryService _queryService;
 
+        /// <summary>
+        ///     关联的库存服务
+        /// </summary>
+        public IInventoryService InventoryService { get; set; }
+
         protected Container(string id, string name, string type, int capacity = -1)
         {
             ID = id;
@@ -611,6 +616,12 @@ namespace EasyPack.InventorySystem
             if (count <= 0)
             {
                 return (false, AddItemResult.AddNothingLOL);
+            }
+
+            // 确保物品有UID
+            if (item.ItemUID == -1 && InventoryService != null)
+            {
+                InventoryService.AssignItemUID(item);
             }
 
             if (!ValidateItemCondition(item))

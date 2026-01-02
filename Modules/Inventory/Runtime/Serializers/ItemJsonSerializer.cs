@@ -24,6 +24,7 @@ namespace EasyPack.InventorySystem
                 Weight = obj.Weight,
                 IsStackable = obj.IsStackable,
                 MaxStackCount = obj.MaxStackCount,
+                ItemUID = obj.ItemUID,
                 isContanierItem = obj.IsContainerItem,
                 CustomData = obj.CustomData is { Count: > 0 }
                     ? new List<CustomDataEntry>(obj.CustomData)
@@ -46,6 +47,7 @@ namespace EasyPack.InventorySystem
                 Weight = dto.Weight,
                 IsStackable = dto.IsStackable,
                 MaxStackCount = dto.MaxStackCount,
+                ItemUID = dto.ItemUID,
                 IsContainerItem = dto.isContanierItem,
             };
             if (dto.CustomData is { Count: > 0 })
