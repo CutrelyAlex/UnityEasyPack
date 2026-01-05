@@ -229,6 +229,18 @@ namespace EasyPack.EmeCardSystem
 
             return false;
         }
+        
+        public bool ChildHasTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return false;
+            if (Engine?.CategoryManager == null || UID < 0) return false;
+
+            foreach (Card child in Children)
+            {
+                if (Engine.CategoryManager.HasTag(child, tag)) return true;
+            }
+            return false;
+        }
 
         /// <summary>
         ///     添加标签到卡牌。
