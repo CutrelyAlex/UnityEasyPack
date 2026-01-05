@@ -144,10 +144,9 @@ namespace EasyPack.EmeCardSystem
                                 // 避免重复添加
                                 if (!parentCard.Children.Contains(childCard))
                                 {
-                                    // 从子卡的 SerializableCard 中获取 IsIntrinsic 标记
-                                    bool isIntrinsic = dtoMap.TryGetValue(childUID, out SerializableCard childDto) 
-                                        ? childDto.IsIntrinsic 
-                                        : false;
+                                    // 检查是否是固有子卡
+                                    bool isIntrinsic = cardDto.IntrinsicChildrenUIDs != null 
+                                        && Array.IndexOf(cardDto.IntrinsicChildrenUIDs, childUID) >= 0;
                                     
                                     parentCard.AddChild(childCard, isIntrinsic);
                                 }

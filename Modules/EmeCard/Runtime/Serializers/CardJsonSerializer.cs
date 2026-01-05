@@ -137,6 +137,7 @@ namespace EasyPack.EmeCardSystem
             {
                 var propertiesList = new List<SerializableGameProperty>();
                 var childrenUIDsList = new List<long>();
+                var intrinsicChildrenUIDsList = new List<long>();
 
                 var dto = new SerializableCard
                 {
@@ -149,7 +150,7 @@ namespace EasyPack.EmeCardSystem
                     UID = card.UID,
                     Properties = Array.Empty<SerializableGameProperty>(),
                     ChildrenUIDs = Array.Empty<long>(), // 默认为空，有子类时填充
-                    IsIntrinsic = false,
+                    IntrinsicChildrenUIDs = Array.Empty<long>(), // 固有子卡 UID 列表
 
                     // 位置信息
                     HasPosition = card.Position.HasValue,
@@ -187,14 +188,25 @@ namespace EasyPack.EmeCardSystem
                         // 先递归序列化子卡（确保子卡也被处理）
                         SerializeCardRecursive(child, visited, path);
 
-                        // 记录子类的 UID
+                        // 记录子卡的 UID
                         childrenUIDsList.Add(child.UID);
+                        
+                        // 如果是固有子卡，也记录到固有列表中
+                        if (card.IsIntrinsic(child))
+                        {
+                            intrinsicChildrenUIDsList.Add(child.UID);
+                        }
                     }
 
                     // 转换为数组
                     if (childrenUIDsList.Count > 0)
                     {
                         dto.ChildrenUIDs = childrenUIDsList.ToArray();
+                    }
+                    
+                    if (intrinsicChildrenUIDsList.Count > 0)
+                    {
+                        dto.IntrinsicChildrenUIDs = intrinsicChildrenUIDsList.ToArray();
                     }
                 }
 
