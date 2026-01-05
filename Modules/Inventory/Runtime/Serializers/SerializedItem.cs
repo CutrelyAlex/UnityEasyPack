@@ -16,12 +16,6 @@ namespace EasyPack.InventorySystem
         public bool IsStackable;
         public int MaxStackCount;
         public bool isContanierItem;
-
-        /// <summary>
-        ///     物品的全局唯一标识符
-        ///     由InventoryService统一分配和管理
-        ///     -1 表示未分配
-        /// </summary>
         public long ItemUID;
 
         /// <summary>

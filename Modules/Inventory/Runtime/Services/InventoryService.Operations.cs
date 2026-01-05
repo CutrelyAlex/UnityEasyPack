@@ -9,18 +9,8 @@ namespace EasyPack.InventorySystem
     /// </summary>
     public partial class InventoryService
     {
-        #region 跨容器物品操作
 
-        /// <summary>
-        ///     物品查找缓存结果
-        /// </summary>
-        public struct ItemLookupResult
-        {
-            public IItem Item;
-            public int FirstSlotIndex;
-            public int TotalCount;
-            public bool Found => Item != null;
-        }
+        #region 跨容器物品操作
 
         /// <summary>
         ///     移动操作请求结构
