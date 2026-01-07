@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EasyPack.Category;
 using EasyPack.ENekoFramework;
 
 namespace EasyPack.InventorySystem
@@ -9,6 +10,17 @@ namespace EasyPack.InventorySystem
     /// </summary>
     public interface IInventoryService : IService
     {
+        // CategoryManager 和 ItemFactory 集成
+        /// <summary>
+        ///     物品分类管理器，管理Item的Category、Tags和RuntimeMetadata
+        /// </summary>
+        ICategoryManager<IItem, long> CategoryManager { get; }
+
+        /// <summary>
+        ///     物品工厂，负责ItemData注册和Item实例创建
+        /// </summary>
+        IItemFactory ItemFactory { get; }
+
         // 基础容器管理
         bool RegisterContainer(Container container, int priority = 0, string category = "Default");
         bool UnregisterContainer(string containerId);

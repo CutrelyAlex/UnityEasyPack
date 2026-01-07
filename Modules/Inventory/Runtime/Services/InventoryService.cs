@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using EasyPack.Architecture;
+using EasyPack.Category;
 using EasyPack.ENekoFramework;
 using EasyPack.Serialization;
 using UnityEngine;
@@ -34,6 +35,12 @@ namespace EasyPack.InventorySystem
             {
                 lock (_lock)
                 {
+                    // 初始化CategoryManager
+                    CategoryManager = new CategoryManager<IItem, long>(item => item.ItemUID);
+                    
+                    // 初始化ItemFactory
+                    ItemFactory = new ItemFactory(this);
+                    
                     // 初始化内部数据结构（已在字段声明时初始化）
                     _enableGlobalConditions = false;
                 }
@@ -161,6 +168,16 @@ namespace EasyPack.InventorySystem
         #endregion
 
         #region 存储
+
+        /// <summary>
+        ///     物品分类管理器，管理Item的Category、Tags和RuntimeMetadata
+        /// </summary>
+        public ICategoryManager<IItem, long> CategoryManager { get; private set; }
+
+        /// <summary>
+        ///     物品工厂，负责ItemData注册和Item实例创建
+        /// </summary>
+        public IItemFactory ItemFactory { get; private set; }
 
         /// <summary>
         ///     按ID索引的容器字典
