@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace EasyPack.CustomData
@@ -28,6 +29,8 @@ namespace EasyPack.CustomData
         [NonSerialized] public Color ColorValue;
 
         [NonSerialized] public string JsonValue;
+
+        [NonSerialized] public CustomDataCollection CustomDataListValue;
 
         public string JsonClrType;
 
@@ -80,6 +83,11 @@ namespace EasyPack.CustomData
 
             return entry;
         }
+
+        public static CustomDataEntry CreateCustomDataList(string key, CustomDataCollection list) => new()
+        {
+            Key = key, Type = CustomDataType.CustomDataList, CustomDataListValue = list ?? new(),
+        };
 
         #endregion
 

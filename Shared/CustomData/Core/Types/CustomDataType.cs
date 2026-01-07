@@ -17,5 +17,10 @@ namespace EasyPack.CustomData
         ///     64位整数
         /// </summary>
         Long,
+
+        /// <summary>
+        ///     自定义数据列表
+        /// </summary>
+        CustomDataList,
     }
 }
