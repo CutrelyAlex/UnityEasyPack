@@ -87,6 +87,24 @@ namespace EasyPack.CustomData
 
         public bool IsReadOnly => false;
 
+        public override bool Equals(object obj)
+        {
+            if (obj is not CustomDataCollection other) return false;
+            if (Count != other.Count) return false;
+
+            for (int i = 0; i < _list.Count; i++)
+            {
+                if (!_list[i].Equals(other._list[i])) return false;
+            }
+
+            return true;
+        }
+
+        public override int GetHashCode()
+        {
+            return _list.Count;
+        }
+
         public void Add(CustomDataEntry item)
         {
             _list.Add(item);

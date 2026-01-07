@@ -99,6 +99,33 @@ namespace EasyPack.CustomData
             return handler.GetValue(this);
         }
 
+        public override bool Equals(object obj)
+        {
+            if (obj is not CustomDataEntry other) return false;
+            if (Key != other.Key || Type != other.Type) return false;
+
+            return Type switch
+            {
+                CustomDataType.String => StringValue == other.StringValue,
+                CustomDataType.Int => IntValue == other.IntValue,
+                CustomDataType.Long => LongValue == other.LongValue,
+                CustomDataType.Float => Mathf.Approximately(FloatValue, other.FloatValue),
+                CustomDataType.Bool => BoolValue == other.BoolValue,
+                CustomDataType.Vector2 => Vector2Value == other.Vector2Value,
+                CustomDataType.Vector3 => Vector3Value == other.Vector3Value,
+                CustomDataType.Color => ColorValue == other.ColorValue,
+                CustomDataType.Json => JsonValue == other.JsonValue && JsonClrType == other.JsonClrType,
+                CustomDataType.CustomDataList => (CustomDataListValue == null && other.CustomDataListValue == null) || 
+                                                 (CustomDataListValue != null && CustomDataListValue.Equals(other.CustomDataListValue)),
+                _ => true
+            };
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Key, Type);
+        }
+
         public void SetValue(object value, CustomDataType? forceType = null)
         {
             if (forceType.HasValue)
