@@ -1239,9 +1239,9 @@ namespace EasyPack.InventorySystem
             int oldCount = slot.ItemCount;
             long itemUID = item.ItemUID;
 
-            if (_service?.CategoryManager != null && itemUID >= 0)
+            if (InventoryService?.CategoryManager != null && itemUID >= 0)
             {
-                _service.CategoryManager.DeleteEntity(itemUID);
+                InventoryService.CategoryManager.DeleteEntity(itemUID);
             }
 
             slot.ClearSlot();
