@@ -157,6 +157,15 @@ namespace EasyPack.InventorySystem
                 _containerCategories.Clear();
                 _globalItemConditions.Clear();
                 _enableGlobalConditions = false;
+
+                // 重置UID分配器
+                _nextItemUID = 1;
+                _itemsByUID.Clear();
+
+                // 重置CategoryManager
+                CategoryManager?.Clear();
+
+                Debug.Log("[InventoryService] 服务状态已重置");
             }
         }
 
