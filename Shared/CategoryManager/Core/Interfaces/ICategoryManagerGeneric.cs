@@ -251,11 +251,25 @@ namespace EasyPack.Category
         #region 元数据
 
         /// <summary>
+        ///     检查实体是否拥有元数据。
+        /// </summary>
+        /// <param name="key">实体键。</param>
+        /// <returns>如果拥有元数据返回 true。</returns>
+        bool HasMetadata(TKey key);
+
+        /// <summary>
         ///     获取实体的元数据。
         /// </summary>
         /// <param name="key">实体键。</param>
-        /// <returns>元数据集合。</returns>
+        /// <returns>元数据集合，如果键不存在或未设置则返回空集合。</returns>
         CustomDataCollection GetMetadata(TKey key);
+
+        /// <summary>
+        ///     获取或创建实体的元数据集合。
+        /// </summary>
+        /// <param name="key">实体键。</param>
+        /// <returns>元数据集合，如果实体不存在则返回 null。</returns>
+        CustomDataCollection GetOrAddMetadata(TKey key);
 
         /// <summary>
         ///     更新实体的元数据。

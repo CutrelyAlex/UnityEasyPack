@@ -17,20 +17,44 @@ namespace EasyPack.Category
     public partial class CategoryManager<T, TKey> : ICategoryManager<T, TKey>
         where TKey : IEquatable<TKey>
     {
-        // 元数据存储（并发集合：减少显式锁的需求）
+        // 元数据存储的并发集合
         private readonly ConcurrentDictionary<TKey, CustomDataCollection> _metadataStore;
+
         #region 查询
-        
+
+        /// <summary>
+        ///     检查实体是否拥有元数据。
+        /// </summary>
+        public bool HasMetadata(TKey key)
+        {
+            return _entities.ContainsKey(key) && _metadataStore.ContainsKey(key);
+        }
+
         /// <summary>
         ///     获取实体的元数据。
         /// </summary>
         public CustomDataCollection GetMetadata(TKey key)
         {
-            if (!_entities.ContainsKey(key)) return new();
+            // 如果实体不存在，返回空集合
+            if (!_entities.ContainsKey(key)) return new CustomDataCollection();
 
             return _metadataStore.TryGetValue(key, out CustomDataCollection metadata)
                 ? metadata
-                : new();
+                : new CustomDataCollection();
+        }
+
+        /// <summary>
+        ///     获取或创建实体的元数据。
+        /// </summary>
+        public CustomDataCollection GetOrAddMetadata(TKey key)
+        {
+            if (!_entities.ContainsKey(key))
+            {
+                UnityEngine.Debug.LogWarning($"[CategoryManager] 尝试为不存在的实体获取/创建元数据: {key}");
+                return null;
+            }
+
+            return _metadataStore.GetOrAdd(key, _ => new CustomDataCollection());
         }
 
         /// <summary>
@@ -49,11 +73,11 @@ namespace EasyPack.Category
             return OperationResult<CustomDataCollection>.Success(
                 _metadataStore.TryGetValue(key, out CustomDataCollection metadata)
                     ? metadata
-                    : new());
+                    : new CustomDataCollection());
         }
-
-        #endregion
         
+        #endregion
+
         #region 修改
         /// <summary>
         ///     更新实体的元数据。
