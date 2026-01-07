@@ -54,6 +54,35 @@ namespace EasyPack.CustomData
             }
         }
 
+        /// <summary>
+        ///     通过键名获取或设置条目
+        /// </summary>
+        public CustomDataEntry this[string key]
+        {
+            get
+            {
+                EnsureCache();
+                if (_keyIndexMap.TryGetValue(key, out int index))
+                {
+                    return _list[index];
+                }
+                throw new KeyNotFoundException($"键 '{key}' 不存在于 CustomDataCollection 中");
+            }
+            set
+            {
+                EnsureCache();
+                if (_keyIndexMap.TryGetValue(key, out int index))
+                {
+                    _list[index] = value;
+                    MarkDirty();
+                }
+                else
+                {
+                    throw new KeyNotFoundException($"键 '{key}' 不存在于 CustomDataCollection 中");
+                }
+            }
+        }
+
         public int Count => _list.Count;
 
         public bool IsReadOnly => false;
