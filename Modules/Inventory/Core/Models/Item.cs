@@ -146,18 +146,33 @@ namespace EasyPack.InventorySystem
         /// </summary>
         public int Count { get; set; } = 1;
 
+        private CustomDataCollection _localCustomData = new();
+
         /// <summary>
         ///     自定义数据列表
-        ///     由 CategoryManager 管理。
+        ///     优先从 CategoryManager 获取受管数据，否则返回本地数据
         /// </summary>
         public CustomDataCollection CustomData
         {
-            get => RuntimeMetadata ?? new CustomDataCollection();
+            get
+            {
+                // 如果有 CategoryManager 且 ItemUID 有效，返回受管元数据
+                if (InventoryService?.CategoryManager != null && ItemUID >= 0)
+                {
+                    return InventoryService.CategoryManager.GetMetadata(ItemUID) ?? _localCustomData;
+                }
+                // 否则返回本地数据
+                return _localCustomData;
+            }
             set
             {
                 if (InventoryService?.CategoryManager != null && ItemUID >= 0)
                 {
                     InventoryService.CategoryManager.UpdateMetadata(ItemUID, value);
+                }
+                else
+                {
+                    _localCustomData = value;
                 }
             }
         }
@@ -315,11 +330,24 @@ namespace EasyPack.InventorySystem
             {
                 var metadata = InventoryService.CategoryManager.GetOrAddMetadata(ItemUID);
                 metadata.Set(id, value);
+                return;
             }
+            // 本地存储
+            _localCustomData ??= new();
+            _localCustomData.Set(id, value);
         }
 
         /// <summary>移除自定义数据</summary>
-        public bool RemoveCustomData(string id) => CustomData.Remove(id);
+        public bool RemoveCustomData(string id)
+        {
+            if (InventoryService?.CategoryManager != null && ItemUID >= 0)
+            {
+                if (!InventoryService.CategoryManager.HasMetadata(ItemUID)) return false;
+                var metadata = InventoryService.CategoryManager.GetMetadata(ItemUID);
+                return metadata != null && metadata.Remove(id);
+            }
+            return _localCustomData.Remove(id);
+        }
 
         /// <summary>检查是否存在自定义数据</summary>
         public bool HasCustomData(string id) => CustomData.HasValue(id);
