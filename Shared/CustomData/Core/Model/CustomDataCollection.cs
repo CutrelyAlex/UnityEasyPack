@@ -94,7 +94,19 @@ namespace EasyPack.CustomData
 
             for (int i = 0; i < _list.Count; i++)
             {
-                if (!_list[i].Equals(other._list[i])) return false;
+                CustomDataEntry entry = _list[i];
+                if (!other.HasValue(entry.Key))
+                {
+                    return false;
+                }
+                else
+                {
+                    CustomDataEntry otherEntry = other[entry.Key];
+                    if (!entry.Equals(otherEntry))
+                    {
+                        return false;
+                    }
+                }
             }
 
             return true;

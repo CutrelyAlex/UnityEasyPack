@@ -22,5 +22,5 @@ namespace EasyPack.CustomData
         ///     自定义数据列表
         /// </summary>
         CustomDataList,
-    }
+        }
 }
