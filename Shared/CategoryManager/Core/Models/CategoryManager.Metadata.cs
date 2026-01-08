@@ -75,6 +75,14 @@ namespace EasyPack.Category
                     ? metadata
                     : new CustomDataCollection());
         }
+
+        /// <summary>
+        ///     获取元数据存储。
+        /// </summary>
+        public IReadOnlyDictionary<TKey, CustomDataCollection> GetMetadataStore()
+        {
+            return new Dictionary<TKey, CustomDataCollection>(_metadataStore, _keyComparer);
+        }
         
         #endregion
 
