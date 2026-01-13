@@ -96,20 +96,20 @@ namespace EasyPack.EmeCardSystem
                     return sourceCard;
                 // Root (-1)
                 case < 0:
-                {
-                    return sourceCard.RootCard ?? sourceCard;
-                }
-                case >= 1:
-                {
-                    Card target = sourceCard;
-                    // N 级 Owner
-                    for (int i = 0; i < hops && target.Owner != null; i++)
                     {
-                        target = target.Owner;
+                        return sourceCard.RootCard ?? sourceCard;
                     }
+                case >= 1:
+                    {
+                        Card target = sourceCard;
+                        // N 级 Owner
+                        for (int i = 0; i < hops && target.Owner != null; i++)
+                        {
+                            target = target.Owner;
+                        }
 
-                    return target;
-                }
+                        return target;
+                    }
             }
         }
 

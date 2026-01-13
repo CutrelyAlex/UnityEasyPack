@@ -44,7 +44,9 @@ namespace EasyPack.CustomData
 
         public static CustomDataEntry CreateString(string key, string value) => new()
         {
-            Key = key, Type = CustomDataType.String, StringValue = value ?? "",
+            Key = key,
+            Type = CustomDataType.String,
+            StringValue = value ?? "",
         };
 
         public static CustomDataEntry CreateInt(string key, int value) =>
@@ -61,12 +63,16 @@ namespace EasyPack.CustomData
 
         public static CustomDataEntry CreateVector2(string key, Vector2 value) => new()
         {
-            Key = key, Type = CustomDataType.Vector2, Vector2Value = value,
+            Key = key,
+            Type = CustomDataType.Vector2,
+            Vector2Value = value,
         };
 
         public static CustomDataEntry CreateVector3(string key, Vector3 value) => new()
         {
-            Key = key, Type = CustomDataType.Vector3, Vector3Value = value,
+            Key = key,
+            Type = CustomDataType.Vector3,
+            Vector3Value = value,
         };
 
         public static CustomDataEntry CreateColor(string key, Color value) =>
@@ -86,8 +92,74 @@ namespace EasyPack.CustomData
 
         public static CustomDataEntry CreateCollection(string key, CustomDataCollection list) => new()
         {
-            Key = key, Type = CustomDataType.CustomDataCollection, CustomDataCollectionValue = list ?? new(),
+            Key = key,
+            Type = CustomDataType.CustomDataCollection,
+            CustomDataCollectionValue = list ?? new(),
         };
+
+        #endregion
+
+        #region 无 Key 的工厂方法
+
+        /// <summary>
+        /// 创建无 Key 的 Int 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// </summary>
+        public static CustomDataEntry CreateValue(int value) =>
+            new() { Key = "", Type = CustomDataType.Int, IntValue = value };
+
+        /// <summary>
+        /// 创建无 Key 的 Long 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// </summary>
+        public static CustomDataEntry CreateValue(long value) =>
+            new() { Key = "", Type = CustomDataType.Long, LongValue = value };
+
+        /// <summary>
+        /// 创建无 Key 的 Float 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// </summary>
+        public static CustomDataEntry CreateValue(float value) =>
+            new() { Key = "", Type = CustomDataType.Float, FloatValue = value };
+
+        /// <summary>
+        /// 创建无 Key 的 Bool 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// </summary>
+        public static CustomDataEntry CreateValue(bool value) =>
+            new() { Key = "", Type = CustomDataType.Bool, BoolValue = value };
+
+        /// <summary>
+        /// 创建无 Key 的 String 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// </summary>
+        public static CustomDataEntry CreateValue(string value) => new()
+        {
+            Key = "",
+            Type = CustomDataType.String,
+            StringValue = value ?? "",
+        };
+
+        /// <summary>
+        /// 创建无 Key 的 Vector2 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// </summary>
+        public static CustomDataEntry CreateValue(Vector2 value) => new()
+        {
+            Key = "",
+            Type = CustomDataType.Vector2,
+            Vector2Value = value,
+        };
+
+        /// <summary>
+        /// 创建无 Key 的 Vector3 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// </summary>
+        public static CustomDataEntry CreateValue(Vector3 value) => new()
+        {
+            Key = "",
+            Type = CustomDataType.Vector3,
+            Vector3Value = value,
+        };
+
+        /// <summary>
+        /// 创建无 Key 的 Color 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// </summary>
+        public static CustomDataEntry CreateValue(Color value) =>
+            new() { Key = "", Type = CustomDataType.Color, ColorValue = value };
 
         #endregion
 
@@ -115,7 +187,7 @@ namespace EasyPack.CustomData
                 CustomDataType.Vector3 => Vector3Value == other.Vector3Value,
                 CustomDataType.Color => ColorValue == other.ColorValue,
                 CustomDataType.Json => JsonValue == other.JsonValue && JsonClrType == other.JsonClrType,
-                CustomDataType.CustomDataCollection => (CustomDataCollectionValue == null && other.CustomDataCollectionValue == null) || 
+                CustomDataType.CustomDataCollection => (CustomDataCollectionValue == null && other.CustomDataCollectionValue == null) ||
                                                  (CustomDataCollectionValue != null && CustomDataCollectionValue.Equals(other.CustomDataCollectionValue)),
                 _ => true
             };

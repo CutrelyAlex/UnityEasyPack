@@ -29,6 +29,11 @@ namespace EasyPack.CustomData
 
         [NonSerialized] private bool _cacheDirty = true;
 
+        /// <summary>
+        ///     是否启用 Key 索引缓存
+        /// </summary>
+        [NonSerialized] private bool _enableKeyIndexCache = true;
+
         public CustomDataCollection() { }
 
         public CustomDataCollection(int capacity) => _list = new(capacity);
@@ -37,6 +42,24 @@ namespace EasyPack.CustomData
         {
             _list = new(collection);
             _cacheDirty = true;
+        }
+
+        /// <summary>
+        ///     创建不启用 Key 索引缓存的 CustomDataCollection。
+        /// </summary>
+        public static CustomDataCollection CreateListOnly()
+        {
+            var collection = new CustomDataCollection { _enableKeyIndexCache = false };
+            return collection;
+        }
+
+        /// <summary>
+        ///     创建不启用 Key 索引缓存的 CustomDataCollection
+        /// </summary>
+        public static CustomDataCollection CreateListOnly(int capacity)
+        {
+            var collection = new CustomDataCollection(capacity) { _enableKeyIndexCache = false };
+            return collection;
         }
 
         #region IList<CustomDataEntry> 实现
@@ -126,9 +149,11 @@ namespace EasyPack.CustomData
         public void Clear()
         {
             _list.Clear();
-            _keyIndexMap?.Clear();
-            _entryCache?.Clear();
-            _cacheDirty = false;
+            if (_enableKeyIndexCache)
+            {
+                _keyIndexMap?.Clear();
+                _entryCache?.Clear();
+            }
         }
 
         public bool Contains(CustomDataEntry item) => _list.Contains(item);
@@ -336,6 +361,7 @@ namespace EasyPack.CustomData
         /// </summary>
         private void EnsureCache()
         {
+            if (!_enableKeyIndexCache) return;
             if (_cacheDirty || _keyIndexMap == null) RebuildCache();
         }
 
@@ -679,7 +705,7 @@ namespace EasyPack.CustomData
             return cloned;
         }
         #endregion
-        
+
         #region 额外修改方法
         /// <summary>
         ///     增加 int 值
