@@ -30,7 +30,7 @@ namespace EasyPack.CustomData
 
         [NonSerialized] public string JsonValue;
 
-        [NonSerialized] public CustomDataCollection CustomDataCollectionValue;
+        [NonSerialized] public IList<CustomDataEntry> EntryListValue;
 
         public string JsonClrType;
 
@@ -90,11 +90,11 @@ namespace EasyPack.CustomData
             return entry;
         }
 
-        public static CustomDataEntry CreateCollection(string key, CustomDataCollection list) => new()
+        public static CustomDataEntry CreateCollection(string key, IList<CustomDataEntry> list) => new()
         {
             Key = key,
-            Type = CustomDataType.CustomDataCollection,
-            CustomDataCollectionValue = list ?? new(),
+            Type = CustomDataType.EntryList,
+            EntryListValue = list ?? new CustomDataCollection(),
         };
 
         #endregion
@@ -102,31 +102,31 @@ namespace EasyPack.CustomData
         #region 无 Key 的工厂方法
 
         /// <summary>
-        /// 创建无 Key 的 Int 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// 创建无 Key 的 Int 条目（适用于 CustomDataList）
         /// </summary>
         public static CustomDataEntry CreateValue(int value) =>
             new() { Key = "", Type = CustomDataType.Int, IntValue = value };
 
         /// <summary>
-        /// 创建无 Key 的 Long 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// 创建无 Key 的 Long 条目（适用于 CustomDataList）
         /// </summary>
         public static CustomDataEntry CreateValue(long value) =>
             new() { Key = "", Type = CustomDataType.Long, LongValue = value };
 
         /// <summary>
-        /// 创建无 Key 的 Float 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// 创建无 Key 的 Float 条目（适用于 CustomDataList）
         /// </summary>
         public static CustomDataEntry CreateValue(float value) =>
             new() { Key = "", Type = CustomDataType.Float, FloatValue = value };
 
         /// <summary>
-        /// 创建无 Key 的 Bool 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// 创建无 Key 的 Bool 条目（适用于 CustomDataList）
         /// </summary>
         public static CustomDataEntry CreateValue(bool value) =>
             new() { Key = "", Type = CustomDataType.Bool, BoolValue = value };
 
         /// <summary>
-        /// 创建无 Key 的 String 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// 创建无 Key 的 String 条目（适用于 CustomDataList）
         /// </summary>
         public static CustomDataEntry CreateValue(string value) => new()
         {
@@ -136,7 +136,7 @@ namespace EasyPack.CustomData
         };
 
         /// <summary>
-        /// 创建无 Key 的 Vector2 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// 创建无 Key 的 Vector2 条目（适用于 CustomDataList）
         /// </summary>
         public static CustomDataEntry CreateValue(Vector2 value) => new()
         {
@@ -146,7 +146,7 @@ namespace EasyPack.CustomData
         };
 
         /// <summary>
-        /// 创建无 Key 的 Vector3 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// 创建无 Key 的 Vector3 条目（适用于 CustomDataList）
         /// </summary>
         public static CustomDataEntry CreateValue(Vector3 value) => new()
         {
@@ -156,7 +156,7 @@ namespace EasyPack.CustomData
         };
 
         /// <summary>
-        /// 创建无 Key 的 Color 条目（适用于 ListOnly 模式的 CustomDataCollection）
+        /// 创建无 Key 的 Color 条目（适用于 CustomDataList）
         /// </summary>
         public static CustomDataEntry CreateValue(Color value) =>
             new() { Key = "", Type = CustomDataType.Color, ColorValue = value };
@@ -187,10 +187,22 @@ namespace EasyPack.CustomData
                 CustomDataType.Vector3 => Vector3Value == other.Vector3Value,
                 CustomDataType.Color => ColorValue == other.ColorValue,
                 CustomDataType.Json => JsonValue == other.JsonValue && JsonClrType == other.JsonClrType,
-                CustomDataType.CustomDataCollection => (CustomDataCollectionValue == null && other.CustomDataCollectionValue == null) ||
-                                                 (CustomDataCollectionValue != null && CustomDataCollectionValue.Equals(other.CustomDataCollectionValue)),
+                CustomDataType.EntryList => CompareCollections(EntryListValue, other.EntryListValue),
                 _ => true
             };
+        }
+
+        private static bool CompareCollections(IList<CustomDataEntry> a, IList<CustomDataEntry> b)
+        {
+            if (a == null && b == null) return true;
+            if (a == null || b == null) return false;
+            if (a.Count != b.Count) return false;
+            
+            for (int i = 0; i < a.Count; i++)
+            {
+                if (!a[i].Equals(b[i])) return false;
+            }
+            return true;
         }
 
         public override int GetHashCode()
