@@ -30,7 +30,7 @@ namespace EasyPack.CustomData
 
         [NonSerialized] public string JsonValue;
 
-        [NonSerialized] public CustomDataCollection CustomDataListValue;
+        [NonSerialized] public CustomDataCollection CustomDataCollectionValue;
 
         public string JsonClrType;
 
@@ -84,9 +84,9 @@ namespace EasyPack.CustomData
             return entry;
         }
 
-        public static CustomDataEntry CreateCustomDataList(string key, CustomDataCollection list) => new()
+        public static CustomDataEntry CreateCollection(string key, CustomDataCollection list) => new()
         {
-            Key = key, Type = CustomDataType.CustomDataList, CustomDataListValue = list ?? new(),
+            Key = key, Type = CustomDataType.CustomDataCollection, CustomDataCollectionValue = list ?? new(),
         };
 
         #endregion
@@ -115,8 +115,8 @@ namespace EasyPack.CustomData
                 CustomDataType.Vector3 => Vector3Value == other.Vector3Value,
                 CustomDataType.Color => ColorValue == other.ColorValue,
                 CustomDataType.Json => JsonValue == other.JsonValue && JsonClrType == other.JsonClrType,
-                CustomDataType.CustomDataList => (CustomDataListValue == null && other.CustomDataListValue == null) || 
-                                                 (CustomDataListValue != null && CustomDataListValue.Equals(other.CustomDataListValue)),
+                CustomDataType.CustomDataCollection => (CustomDataCollectionValue == null && other.CustomDataCollectionValue == null) || 
+                                                 (CustomDataCollectionValue != null && CustomDataCollectionValue.Equals(other.CustomDataCollectionValue)),
                 _ => true
             };
         }

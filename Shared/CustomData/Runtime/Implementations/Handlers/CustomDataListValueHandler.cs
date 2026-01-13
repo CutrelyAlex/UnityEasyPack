@@ -5,39 +5,39 @@ using UnityEngine;
 namespace EasyPack.CustomData
 {
     /// <summary>
-    ///     CustomDataList 值处理器
+    ///     CustomDataCollection 值处理器
     ///     处理 CustomDataCollection 类型的序列化和反序列化
     /// </summary>
-    public class CustomDataListValueHandler : IValueHandler
+    public class CustomDataCollectionValueHandler : IValueHandler
     {
-        public CustomDataType SupportedType => CustomDataType.CustomDataList;
+        public CustomDataType SupportedType => CustomDataType.CustomDataCollection;
 
         public object GetValue(CustomDataEntry entry)
         {
-            return entry.CustomDataListValue ?? new CustomDataCollection();
+            return entry.CustomDataCollectionValue ?? new CustomDataCollection();
         }
 
         public void SetValue(CustomDataEntry entry, object value)
         {
             if (value == null)
             {
-                entry.CustomDataListValue = new CustomDataCollection();
+                entry.CustomDataCollectionValue = new CustomDataCollection();
             }
             else if (value is CustomDataCollection collection)
             {
-                entry.CustomDataListValue = collection;
+                entry.CustomDataCollectionValue = collection;
             }
             else if (value is List<CustomDataEntry> list)
             {
-                entry.CustomDataListValue = new CustomDataCollection(list);
+                entry.CustomDataCollectionValue = new CustomDataCollection(list);
             }
             else
             {
-                Debug.LogWarning($"无法将 {value.GetType()} 类型的值设置为 CustomDataList");
-                entry.CustomDataListValue = new CustomDataCollection();
+                Debug.LogWarning($"无法将 {value.GetType()} 类型的值设置为 CustomDataCollection");
+                entry.CustomDataCollectionValue = new CustomDataCollection();
             }
 
-            entry.Type = CustomDataType.CustomDataList;
+            entry.Type = CustomDataType.CustomDataCollection;
             ClearOtherValues(entry);
         }
 
@@ -45,23 +45,23 @@ namespace EasyPack.CustomData
         {
             try
             {
-                entry.Type = CustomDataType.CustomDataList;
+                entry.Type = CustomDataType.CustomDataCollection;
                 
                 if (string.IsNullOrEmpty(data))
                 {
-                    entry.CustomDataListValue = new CustomDataCollection();
+                    entry.CustomDataCollectionValue = new CustomDataCollection();
                 }
                 else
                 {
                     // 反序列化为列表
-                    var listWrapper = JsonUtility.FromJson<CustomDataListWrapper>(data);
+                    var listWrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(data);
                     if (listWrapper?.items != null)
                     {
-                        entry.CustomDataListValue = new CustomDataCollection(listWrapper.items);
+                        entry.CustomDataCollectionValue = new CustomDataCollection(listWrapper.items);
                     }
                     else
                     {
-                        entry.CustomDataListValue = new CustomDataCollection();
+                        entry.CustomDataCollectionValue = new CustomDataCollection();
                     }
                 }
 
@@ -70,27 +70,27 @@ namespace EasyPack.CustomData
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"反序列化 CustomDataList 失败: {ex.Message}");
-                entry.CustomDataListValue = new CustomDataCollection();
+                Debug.LogWarning($"反序列化 CustomDataCollection 失败: {ex.Message}");
+                entry.CustomDataCollectionValue = new CustomDataCollection();
                 return false;
             }
         }
 
         public string Serialize(CustomDataEntry entry)
         {
-            if (entry.CustomDataListValue == null || entry.CustomDataListValue.Count == 0)
+            if (entry.CustomDataCollectionValue == null || entry.CustomDataCollectionValue.Count == 0)
             {
-                return JsonUtility.ToJson(new CustomDataListWrapper { items = new List<CustomDataEntry>() });
+                return JsonUtility.ToJson(new CustomDataCollectionWrapper { items = new List<CustomDataEntry>() });
             }
 
-            var wrapper = new CustomDataListWrapper
+            var wrapper = new CustomDataCollectionWrapper
             {
                 items = new List<CustomDataEntry>()
             };
 
-            for (int i = 0; i < entry.CustomDataListValue.Count; i++)
+            for (int i = 0; i < entry.CustomDataCollectionValue.Count; i++)
             {
-                wrapper.items.Add(entry.CustomDataListValue[i]);
+                wrapper.items.Add(entry.CustomDataCollectionValue[i]);
             }
 
             return JsonUtility.ToJson(wrapper);
@@ -98,7 +98,7 @@ namespace EasyPack.CustomData
 
         public void Clear(CustomDataEntry entry)
         {
-            entry.CustomDataListValue = null;
+            entry.CustomDataCollectionValue = null;
         }
 
         private static void ClearOtherValues(CustomDataEntry entry)
@@ -119,7 +119,7 @@ namespace EasyPack.CustomData
         ///     用于序列化的包装器类
         /// </summary>
         [Serializable]
-        private class CustomDataListWrapper
+        private class CustomDataCollectionWrapper
         {
             public List<CustomDataEntry> items = new();
         }
