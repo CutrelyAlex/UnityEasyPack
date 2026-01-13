@@ -29,11 +29,6 @@ namespace EasyPack.CustomData
 
         [NonSerialized] private bool _cacheDirty = true;
 
-        /// <summary>
-        ///     是否启用 Key 索引缓存
-        /// </summary>
-        [NonSerialized] private bool _enableKeyIndexCache = true;
-
         public CustomDataCollection() { }
 
         public CustomDataCollection(int capacity) => _list = new(capacity);
@@ -42,24 +37,6 @@ namespace EasyPack.CustomData
         {
             _list = new(collection);
             _cacheDirty = true;
-        }
-
-        /// <summary>
-        ///     创建不启用 Key 索引缓存的 CustomDataCollection。
-        /// </summary>
-        public static CustomDataCollection CreateListOnly()
-        {
-            var collection = new CustomDataCollection { _enableKeyIndexCache = false };
-            return collection;
-        }
-
-        /// <summary>
-        ///     创建不启用 Key 索引缓存的 CustomDataCollection
-        /// </summary>
-        public static CustomDataCollection CreateListOnly(int capacity)
-        {
-            var collection = new CustomDataCollection(capacity) { _enableKeyIndexCache = false };
-            return collection;
         }
 
         #region IList<CustomDataEntry> 实现
@@ -149,11 +126,8 @@ namespace EasyPack.CustomData
         public void Clear()
         {
             _list.Clear();
-            if (_enableKeyIndexCache)
-            {
-                _keyIndexMap?.Clear();
-                _entryCache?.Clear();
-            }
+            _keyIndexMap?.Clear();
+            _entryCache?.Clear();
         }
 
         public bool Contains(CustomDataEntry item) => _list.Contains(item);
@@ -361,7 +335,6 @@ namespace EasyPack.CustomData
         /// </summary>
         private void EnsureCache()
         {
-            if (!_enableKeyIndexCache) return;
             if (_cacheDirty || _keyIndexMap == null) RebuildCache();
         }
 
@@ -433,16 +406,6 @@ namespace EasyPack.CustomData
         public string GetToString(string key) => TryGetValue(key, out object value) ? value.ToString() : "null";
 
         /// <summary>
-        ///     获取指定键的值，如果不存在则返回默认值
-        /// </summary>
-        /// <typeparam name="T">值的类型</typeparam>
-        /// <param name="key">要查找的键</param>
-        /// <param name="defaultValue">如果键不存在时返回的默认值</param>
-        /// <returns>键对应的值或默认值</returns>
-        [Obsolete("建议使用 Get 方法代替")]
-        public T GetValue<T>(string key, T defaultValue = default) => Get(key, defaultValue);
-
-        /// <summary>
         ///     设置指定键的值
         /// </summary>
         public void Set(string key, object value)
@@ -469,29 +432,9 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        ///     设置指定键的值，如果键不存在则添加新条目
-        /// </summary>
-        /// <param name="key">要设置的键</param>
-        /// <param name="value">要设置的值</param>
-        [Obsolete("建议使用 Set 方法代替")]
-        public void SetValue(string key, object value) => Set(key, value);
-
-        /// <summary>
         ///     移除指定键的值，如果存在则返回true
         ///     时间复杂度：O(1) 平均情况
         /// </summary>
-        /// <param name="key">要移除的键</param>
-        /// <returns>如果键存在并成功移除则返回true，否则返回false</returns>
-        [Obsolete("建议使用 Remove 方法代替")]
-        public bool RemoveValue(string key) => Remove(key);
-
-
-        /// <summary>
-        ///     移除指定键的值，如果存在则返回true
-        ///     时间复杂度：O(1) 平均情况
-        /// </summary>
-        /// <param name="key">要移除的键</param>
-        /// <returns>如果键存在并成功移除则返回true，否则返回false</returns>
         public bool Remove(string key)
         {
             if (string.IsNullOrEmpty(key)) return false;
@@ -706,113 +649,7 @@ namespace EasyPack.CustomData
         }
         #endregion
 
-        #region 额外修改方法
-        /// <summary>
-        ///     增加 int 值
-        /// </summary>
-        public int AddInt(string id, int delta = 1)
-        {
-            int current = Get(id, 0);
-            int newValue = current + delta;
-            Set(id, newValue);
-            return newValue;
-        }
-
-        /// <summary>
-        ///     增加 long 值
-        /// </summary>
-        public long AddLong(string id, long delta = 1L)
-        {
-            long current = Get(id, 0L);
-            long newValue = current + delta;
-            Set(id, newValue);
-            return newValue;
-        }
-
-        /// <summary>
-        ///     增加 float 值
-        /// </summary>
-        public float AddFloat(string id, float delta = 1f)
-        {
-            float current = Get(id, 0f);
-            float newValue = current + delta;
-            Set(id, newValue);
-            return newValue;
-        }
-
-        /// <summary>快速设置 int 值</summary>
-        public void SetInt(string id, int value)
-        {
-            Set(id, value);
-        }
-
-        /// <summary>快速设置 long 值</summary>
-        public void SetLong(string id, long value)
-        {
-            Set(id, value);
-        }
-
-        /// <summary>快速设置 float 值</summary>
-        public void SetFloat(string id, float value)
-        {
-            Set(id, value);
-        }
-
-        /// <summary>快速设置 bool 值</summary>
-        public void SetBool(string id, bool value)
-        {
-            Set(id, value);
-        }
-
-        /// <summary>快速设置 string 值</summary>
-        public void SetString(string id, string value)
-        {
-            Set(id, value);
-        }
-
-        /// <summary>快速设置 Vector2 值</summary>
-        public void SetVector2(string id, Vector2 value)
-        {
-            Set(id, value);
-        }
-
-        /// <summary>快速设置 Vector3 值</summary>
-        public void SetVector3(string id, Vector3 value)
-        {
-            Set(id, value);
-        }
-
-        /// <summary>快速设置 Color 值</summary>
-        public void SetColor(string id, Color value)
-        {
-            Set(id, value);
-        }
-
-        /// <summary>快速获取 int 值</summary>
-        public int GetInt(string id, int defaultValue = 0) => Get(id, defaultValue);
-
-        /// <summary>快速获取 long 值</summary>
-        public long GetLong(string id, long defaultValue = 0L) => Get(id, defaultValue);
-
-        /// <summary>快速获取 float 值</summary>
-        public float GetFloat(string id, float defaultValue = 0f) => Get(id, defaultValue);
-
-        /// <summary>快速获取 bool 值</summary>
-        public bool GetBool(string id, bool defaultValue = false) => Get(id, defaultValue);
-
-        /// <summary>快速获取 string 值</summary>
-        public string GetString(string id, string defaultValue = "") => Get(id, defaultValue);
-
-        /// <summary>快速获取 Vector2 值</summary>
-        public Vector2 GetVector2(string id, Vector2? defaultValue = null) =>
-            Get(id, defaultValue ?? Vector2.zero);
-
-        /// <summary>快速获取 Vector3 值</summary>
-        public Vector3 GetVector3(string id, Vector3? defaultValue = null) =>
-            Get(id, defaultValue ?? Vector3.zero);
-
-        /// <summary>快速获取 Color 值</summary>
-        public Color GetColor(string id, Color? defaultValue = null) => Get(id, defaultValue ?? Color.white);
+        #region 条件操作
 
         /// <summary>如果数据存在则执行操作</summary>
         public bool IfHasValue<T>(string id, Action<T> action)
