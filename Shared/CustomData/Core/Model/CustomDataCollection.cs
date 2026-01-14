@@ -30,7 +30,7 @@ namespace EasyPack.CustomData
         [NonSerialized] private bool _cacheDirty = true;
 
         public CustomDataCollection() { }
-
+ 
         public CustomDataCollection(int capacity) => _list = new(capacity);
 
         public CustomDataCollection(IEnumerable<CustomDataEntry> collection)

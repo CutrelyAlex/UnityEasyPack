@@ -171,6 +171,29 @@ namespace EasyPack.CustomData
             return handler.GetValue(this);
         }
 
+        /// <summary>
+        /// 获取指定类型的值
+        /// </summary>
+        public T Get<T>()
+        {
+            var value = GetValue();
+            if (value == null) return default;
+            
+            if (value is T typedValue)
+            {
+                return typedValue;
+            }
+
+            try
+            {
+                return (T)Convert.ChangeType(value, typeof(T));
+            }
+            catch
+            {
+                return default;
+            }
+        }
+
         public override bool Equals(object obj)
         {
             if (obj is not CustomDataEntry other) return false;
@@ -197,7 +220,7 @@ namespace EasyPack.CustomData
             if (a == null && b == null) return true;
             if (a == null || b == null) return false;
             if (a.Count != b.Count) return false;
-            
+
             for (int i = 0; i < a.Count; i++)
             {
                 if (!a[i].Equals(b[i])) return false;
