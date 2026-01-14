@@ -180,11 +180,11 @@ namespace EasyPack.CustomData
         /// <summary>
         /// 获取指定类型的值
         /// </summary>
-        public T Get<T>()
+        public T As<T>()
         {
             var value = GetValue();
             if (value == null) return default;
-            
+
             if (value is T typedValue)
             {
                 return typedValue;
