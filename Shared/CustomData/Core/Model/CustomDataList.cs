@@ -93,21 +93,21 @@ namespace EasyPack.CustomData
         /// <summary>
         ///     添加值到列表末尾
         /// </summary>
-        public void AddValue(object value)
+        public void Add(object value)
         {
             var entry = new CustomDataEntry { Key = "" };
             entry.SetValue(value);
-            Add(entry);
+            base.Add(entry);
         }
 
         /// <summary>
         ///     在指定位置插入值
         /// </summary>
-        public void InsertValue(int index, object value)
+        public void Insert(int index, object value)
         {
             var entry = new CustomDataEntry { Key = "" };
             entry.SetValue(value);
-            Insert(index, entry);
+            base.Insert(index, entry);
         }
 
         #endregion
