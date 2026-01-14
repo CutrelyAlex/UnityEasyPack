@@ -49,7 +49,7 @@ namespace EasyPack.CustomData
         /// <summary>
         ///     获取指定索引的值
         /// </summary>
-        public T GetValue<T>(int index, T defaultValue = default)
+        public T Get<T>(int index, T defaultValue = default)
         {
             if (index < 0 || index >= Count) return defaultValue;
             
@@ -79,7 +79,7 @@ namespace EasyPack.CustomData
         /// <summary>
         ///     设置指定索引的值
         /// </summary>
-        public void SetValue(int index, object value)
+        public void Set(int index, object value)
         {
             if (index < 0 || index >= Count)
             {
@@ -122,7 +122,7 @@ namespace EasyPack.CustomData
             var result = new List<T>(Count);
             for (int i = 0; i < Count; i++)
             {
-                result.Add(GetValue<T>(i));
+                result.Add(Get<T>(i));
             }
             return result;
         }
