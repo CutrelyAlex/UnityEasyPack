@@ -184,7 +184,7 @@ namespace EasyPack.CustomData
         {
             var value = GetValue();
             if (value == null) return default;
-            
+
             if (value is T typedValue)
             {
                 return typedValue;
