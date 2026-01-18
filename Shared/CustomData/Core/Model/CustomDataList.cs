@@ -91,7 +91,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        ///     添加值到列表末尾
+        ///     创建Entry并添加值到列表末尾
         /// </summary>
         public void AddValue(object value)
         {
@@ -101,7 +101,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        ///     在指定位置插入值
+        ///     创建Entry并在指定位置插入值
         /// </summary>
         public void InsertValue(int index, object value)
         {
