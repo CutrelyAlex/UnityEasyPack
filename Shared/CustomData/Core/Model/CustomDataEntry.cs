@@ -90,12 +90,6 @@ namespace EasyPack.CustomData
             return entry;
         }
 
-        [Obsolete("请使用 CreateEntryList 方法")]
-        public static CustomDataEntry CreateCollection(string key, IList<CustomDataEntry> list)
-        {
-            return CreateEntryList(key, list);
-        }
-
         public static CustomDataEntry CreateEntryList(string key, IList<CustomDataEntry> list) => new()
         {
             Key = key,
