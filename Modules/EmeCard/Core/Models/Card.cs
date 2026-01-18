@@ -229,7 +229,7 @@ namespace EasyPack.EmeCardSystem
 
             return false;
         }
-        
+
         public bool ChildHasTag(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return false;

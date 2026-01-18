@@ -30,7 +30,7 @@ namespace EasyPack.CustomData
         [NonSerialized] private bool _cacheDirty = true;
 
         public CustomDataCollection() { }
- 
+
         public CustomDataCollection(int capacity) => _list = new(capacity);
 
         public CustomDataCollection(IEnumerable<CustomDataEntry> collection)
@@ -78,7 +78,8 @@ namespace EasyPack.CustomData
                 }
                 else
                 {
-                    throw new KeyNotFoundException($"键 '{key}' 不存在于 CustomDataCollection 中");
+                    Debug.LogWarning($"键 '{key}' 不存在，添加新条目");
+                    Set(key, value.GetValue());
                 }
             }
         }
