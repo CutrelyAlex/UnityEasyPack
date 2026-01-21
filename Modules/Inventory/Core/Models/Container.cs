@@ -1224,7 +1224,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        ///     添加物品到容器（带数量参数，已废弃）
+        ///     添加物品到容器（TODO: 带数量参数，已废弃）
         /// </summary>
         /// <param name="item">要添加的物品</param>
         /// <param name="count">添加数量</param>
@@ -1449,6 +1449,37 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
+        ///     准备用于槽位的物品实例
+        ///     始终克隆物品
+        /// </summary>
+        /// <param name="item">原物品</param>
+        /// <param name="addCount">要添加到槽位的数量</param>
+        /// <param name="remainingCount">剩余要添加的总数量</param>
+        /// <returns>用于槽位的物品实例</returns>
+        protected virtual IItem PrepareItemForSlot(IItem item, int addCount, int remainingCount)
+        {
+            IItem itemToAdd = ItemFactory?.CloneItem(item, addCount) ?? item.Clone();
+            if (ItemFactory == null)
+            {
+                // 如果没有ItemFactory，需要手动设置Count、InventoryService并分配UID
+                itemToAdd.Count = addCount;
+                if (InventoryService != null)
+                {
+                    if (itemToAdd is Item concreteItem)
+                    {
+                        concreteItem.InventoryService = InventoryService;
+                    }
+                    if (itemToAdd.ItemUID == -1)
+                    {
+                        InventoryService.AssignItemUID(itemToAdd);
+                    }
+                }
+            }
+            
+            return itemToAdd;
+        }
+
+        /// <summary>
         ///     尝试将物品添加到指定槽位
         /// </summary>
         protected virtual (bool success, int addedCount, int remainingCount)
@@ -1492,16 +1523,8 @@ namespace EasyPack.InventorySystem
                     ? Mathf.Min(remainingCount, item.MaxStackCount)
                     : remainingCount;
 
-                IItem itemToAdd = ItemFactory?.CloneItem(item, addCount) ?? item.Clone();
-                if (ItemFactory == null)
-                {
-                    // 如果没有ItemFactory，需要手动设置Count并分配UID
-                    itemToAdd.Count = addCount;
-                    if (itemToAdd.ItemUID == -1 && InventoryService != null)
-                    {
-                        InventoryService.AssignItemUID(itemToAdd);
-                    }
-                }
+                // 根据情况决定是使用原物品引用还是克隆
+                IItem itemToAdd = PrepareItemForSlot(item, addCount, remainingCount);
                 
                 if (targetSlot.SetItem(itemToAdd))
                 {
@@ -1540,16 +1563,8 @@ namespace EasyPack.InventorySystem
 
                 if (!slot.CheckSlotCondition(item)) continue;
 
-                IItem itemToAdd = ItemFactory?.CloneItem(item, addCount) ?? item.Clone();
-                if (ItemFactory == null)
-                {
-                    // 如果没有ItemFactory，需要手动设置Count并分配UID
-                    itemToAdd.Count = addCount;
-                    if (itemToAdd.ItemUID == -1 && InventoryService != null)
-                    {
-                        InventoryService.AssignItemUID(itemToAdd);
-                    }
-                }
+                // 根据情况决定是使用原物品引用还是克隆
+                IItem itemToAdd = PrepareItemForSlot(item, addCount, remainingCount);
                 
                 if (slot.SetItem(itemToAdd))
                 {
@@ -1573,16 +1588,8 @@ namespace EasyPack.InventorySystem
                 ISlot slot = _slots[i];
                 if (slot.IsOccupied || !slot.CheckSlotCondition(item)) continue;
 
-                IItem itemToAdd = ItemFactory?.CloneItem(item, addCount) ?? item.Clone();
-                if (ItemFactory == null)
-                {
-                    // 如果没有ItemFactory，需要手动设置Count并分配UID
-                    itemToAdd.Count = addCount;
-                    if (itemToAdd.ItemUID == -1 && InventoryService != null)
-                    {
-                        InventoryService.AssignItemUID(itemToAdd);
-                    }
-                }
+                // 根据情况决定是使用原物品引用还是克隆
+                IItem itemToAdd = PrepareItemForSlot(item, addCount, remainingCount);
                 
                 if (slot.SetItem(itemToAdd))
                 {
@@ -1614,16 +1621,8 @@ namespace EasyPack.InventorySystem
                     ? Mathf.Min(remainingCount, item.MaxStackCount)
                     : 1; // 不可堆叠物品
 
-                IItem itemToAdd = ItemFactory?.CloneItem(item, addCount) ?? item.Clone();
-                if (ItemFactory == null)
-                {
-                    // 如果没有ItemFactory，需要手动设置Count并分配UID
-                    itemToAdd.Count = addCount;
-                    if (itemToAdd.ItemUID == -1 && InventoryService != null)
-                    {
-                        InventoryService.AssignItemUID(itemToAdd);
-                    }
-                }
+                // 根据情况决定是使用原物品引用还是克隆
+                IItem itemToAdd = PrepareItemForSlot(item, addCount, remainingCount);
                 
                 if (newSlot.CheckSlotCondition(itemToAdd) && newSlot.SetItem(itemToAdd))
                 {
@@ -1767,6 +1766,51 @@ namespace EasyPack.InventorySystem
             }
 
             return ContainerCondition.All(c => c.CheckCondition(item));
+        }
+
+        /// <summary>
+        ///     设置物品到指定槽位
+        /// </summary>
+        /// <param name="item">要设置的物品</param>
+        /// <param name="slotIndex">目标槽位索引</param>
+        /// <returns>是否设置成功</returns>
+        public virtual bool SetSlot(IItem item, int slotIndex)
+        {
+            if (item == null || slotIndex < 0) return false;
+            
+            // 确保物品有InventoryService引用
+            if (item is Item concreteItem && concreteItem.InventoryService == null)
+            {
+                concreteItem.InventoryService = InventoryService;
+            }
+            
+            // 确保槽位存在
+            while (_slots.Count <= slotIndex)
+            {
+                var newSlot = new Slot { Index = _slots.Count, Container = this };
+                _slots.Add(newSlot);
+            }
+            
+            ISlot targetSlot = _slots[slotIndex];
+            if (targetSlot.IsOccupied)
+            {
+                return false; // 槽位已被占用
+            }
+            
+            // 设置物品
+            if (targetSlot.SetItem(item))
+            {
+                // 更新缓存
+                _cacheService.UpdateEmptySlotCache(slotIndex, false);
+                _cacheService.UpdateItemSlotIndexCache(item.ID, slotIndex, true);
+                _cacheService.UpdateItemTypeCache(item.Type, slotIndex, true);
+                
+                // 触发槽位数量变更事件
+                OnSlotQuantityChanged(slotIndex, item, 0, item.Count);
+                return true;
+            }
+            
+            return false;
         }
 
         #endregion

@@ -152,11 +152,20 @@ namespace EasyPack.InventorySystem
                 //  自动分配UID并注册到CategoryManager
                 if (_inventoryService != null)
                 {
+                    // 设置克隆物品的InventoryService引用
+                    clonedItem.InventoryService = _inventoryService;
+                    
                     // 分配新的UID
                     _inventoryService.AssignItemUID(clonedItem);
                     
-                    // 如果原Item有Category，注册到CategoryManager
+                    // 如果原Item有Category或Type，注册到CategoryManager
                     var category = sourceItem.Category;
+                    if (string.IsNullOrEmpty(category) && !string.IsNullOrEmpty(sourceItem.Type))
+                    {
+                        // 如果没有明确Category，使用Type作为默认分类
+                        category = sourceItem.Type;
+                    }
+                    
                     if (_inventoryService.CategoryManager != null && !string.IsNullOrEmpty(category))
                     {
                         _inventoryService.CategoryManager.RegisterEntity(clonedItem.ItemUID, clonedItem, category);

@@ -352,6 +352,7 @@ namespace EasyPack.InventorySystem
             int maxStackCount = item.MaxStackCount;
             int remainingCount = totalCount;
             int targetIndex = 0;
+            bool firstSlot = true;
 
             while (remainingCount > 0 && targetIndex < targetSlots.Count)
             {
@@ -360,11 +361,23 @@ namespace EasyPack.InventorySystem
                     ? remainingCount
                     : Math.Min(remainingCount, maxStackCount);
 
-                IItem itemToSet = ItemFactory?.CloneItem(item, countForSlot) ?? item.Clone();
-                if (ItemFactory == null)
+                IItem itemToSet;
+                if (firstSlot && item.ItemUID != -1)
                 {
-                    // 如果没有ItemFactory，需要手动设置Count
+                    // 第一个槽位使用原物品引用，保留UID
+                    itemToSet = item;
                     itemToSet.Count = countForSlot;
+                    firstSlot = false;
+                }
+                else
+                {
+                    // 后续槽位使用克隆
+                    itemToSet = ItemFactory?.CloneItem(item, countForSlot) ?? item.Clone();
+                    if (ItemFactory == null)
+                    {
+                        // 如果没有ItemFactory，需要手动设置Count
+                        itemToSet.Count = countForSlot;
+                    }
                 }
                 _slots[slotIndex].SetItem(itemToSet);
                 remainingCount -= countForSlot;

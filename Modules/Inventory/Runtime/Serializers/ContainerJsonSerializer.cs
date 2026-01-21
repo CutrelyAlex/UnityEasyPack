@@ -113,11 +113,12 @@ namespace EasyPack.InventorySystem
                     if (item == null) continue;
 
                     item.Count = s.ItemCount;
-                    (AddItemResult res, int added) = container.AddItems(item, slotIndex: s.Index >= 0 ? s.Index : -1);
-                    if (res != AddItemResult.Success || added <= 0)
+                    
+                    bool success = container.SetSlot(item, s.Index >= 0 ? s.Index : -1);
+                    if (!success)
                     {
                         Debug.LogWarning(
-                            $"反序列化槽位失败: idx={s.Index}, item={item.ID ?? "null"}, count={s.ItemCount}, res={res}, added={added}");
+                            $"反序列化槽位失败: idx={s.Index}, item={item.ID ?? "null"}, count={s.ItemCount}");
                     }
                 }
             }

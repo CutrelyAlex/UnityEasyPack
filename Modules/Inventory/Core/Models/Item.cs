@@ -87,10 +87,15 @@ namespace EasyPack.InventorySystem
             if (item is Item concreteItem && concreteItem.InventoryService?.CategoryManager != null && concreteItem.ItemUID >= 0)
             {
                 var metadata = concreteItem.InventoryService.CategoryManager.GetOrAddMetadata(concreteItem.ItemUID);
-                metadata.Set(id, value);
-                return;
+                if (metadata != null)
+                {
+                    metadata.Set(id, value);
+                    return;
+                }
             }
-
+            
+            // 回退到本地存储
+            item.CustomData.Set(id, value);
         }
 
         /// <summary>移除自定义数据</summary>
@@ -334,7 +339,6 @@ namespace EasyPack.InventorySystem
                     metadata.Set(id, value);
                     return;
                 }
-                // 物品有UID但未注册到CategoryManager._entities，回退到本地存储
             }
             // 本地存储
             _localCustomData ??= new();

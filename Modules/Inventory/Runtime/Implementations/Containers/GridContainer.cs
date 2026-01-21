@@ -285,7 +285,12 @@ namespace EasyPack.InventorySystem
                                 if (remaining > 0)
                                 {
                                     // 创建新的物品实例处理剩余部分
-                                    var remainingItem = gridItem.Clone() as GridItem;
+                                    var remainingItem = ((IItem)gridItem).Clone() as GridItem;
+                                    if (remainingItem == null)
+                                    {
+                                        Debug.LogError("GridItem.Clone() 发生未知错误");
+                                        return (AddItemResult.ItemConditionNotMet, canAdd);
+                                    }
                                     remainingItem.Count = remaining;
                                     var (remainResult, remainAdded) = AddGridItem(remainingItem, -1);
                                     
