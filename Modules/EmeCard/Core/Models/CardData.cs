@@ -99,4 +99,10 @@ namespace EasyPack.EmeCardSystem
             return clone;
         }
     }
+    public static class CardCategory
+    {   
+        public static string Object = "Card.Object";
+        public static string Attribute = "Card.Attribute";
+        public static string Environment = "Card.Environment";
+    }
 }
