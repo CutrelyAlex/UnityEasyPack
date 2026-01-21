@@ -10,5 +10,6 @@ namespace EasyPack.InventorySystem
         ItemConditionNotMet,
         NoSuitableSlotFound,
         AddNothingLOL,
+        InvalidCount,
     }
 }
