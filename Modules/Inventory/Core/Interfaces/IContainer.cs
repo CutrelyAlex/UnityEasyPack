@@ -62,11 +62,41 @@ namespace EasyPack.InventorySystem
         /// <summary>
         ///     添加物品到容器
         /// </summary>
+        /// <param name="item">要添加的物品（需预设item.Count）</param>
+        /// <param name="slotIndex">指定槽位索引，-1 表示自动查找</param>
+        /// <param name="autoStack">是否自动堆叠到现有相同物品槽位</param>
+        /// <returns>操作结果和实际添加数量</returns>
+        (AddItemResult result, int actualCount) AddItems(IItem item, int slotIndex = -1, bool autoStack = true);
+
+        /// <summary>
+        ///     添加物品到容器（带数量参数，已废弃）
+        /// </summary>
         /// <param name="item">要添加的物品</param>
         /// <param name="count">添加数量</param>
         /// <param name="slotIndex">指定槽位索引，-1 表示自动查找</param>
         /// <returns>操作结果和实际添加数量</returns>
-        (AddItemResult result, int actualCount) AddItems(IItem item, int count = 1, int slotIndex = -1);
+        [Obsolete("请使用 AddItems(IItem item, int slotIndex, bool autoStack) 并预设 item.Count。此重载将在接下来的版本移除。")]
+        (AddItemResult result, int actualCount) AddItems(IItem item, int count, int slotIndex);
+
+        /// <summary>
+        ///     通过ItemData模板添加物品到容器
+        /// </summary>
+        /// <param name="itemData">物品模板数据</param>
+        /// <param name="count">添加数量</param>
+        /// <param name="slotIndex">指定槽位索引，-1 表示自动查找</param>
+        /// <param name="autoStack">是否自动堆叠到现有相同物品槽位</param>
+        /// <returns>操作结果和实际添加数量</returns>
+        (AddItemResult result, int actualCount) AddItems(ItemData itemData, int count = 1, int slotIndex = -1, bool autoStack = true);
+
+        /// <summary>
+        ///     通过物品ID添加物品到容器（从注册的ItemData创建）
+        /// </summary>
+        /// <param name="itemId">物品ID</param>
+        /// <param name="count">添加数量</param>
+        /// <param name="slotIndex">指定槽位索引，-1 表示自动查找</param>
+        /// <param name="autoStack">是否自动堆叠到现有相同物品槽位</param>
+        /// <returns>操作结果和实际添加数量</returns>
+        (AddItemResult result, int actualCount) AddItems(string itemId, int count = 1, int slotIndex = -1, bool autoStack = true);
 
         /// <summary>
         ///     从容器移除物品
@@ -75,6 +105,14 @@ namespace EasyPack.InventorySystem
         /// <param name="count">移除数量</param>
         /// <returns>操作结果和实际移除数量</returns>
         (RemoveItemResult result, int actualCount) RemoveItems(string itemId, int count = 1);
+
+        /// <summary>
+        ///     拆分物品堆，返回新的Item实例
+        /// </summary>
+        /// <param name="slotIndex">要拆分的槽位索引</param>
+        /// <param name="splitCount">拆分数量</param>
+        /// <returns>拆分出的新Item实例（拥有新UID和独立RuntimeMetadata），若失败返回null</returns>
+        IItem SplitItem(int slotIndex, int splitCount);
 
         /// <summary>
         ///     检查容器是否包含指定物品
@@ -131,6 +169,16 @@ namespace EasyPack.InventorySystem
         ///     清空所有槽位
         /// </summary>
         void ClearAllSlots();
+
+        /// <summary>
+        ///     将物品从一个槽位移动到目标容器
+        /// </summary>
+        /// <param name="fromSlot">源槽位索引</param>
+        /// <param name="toContainer">目标容器</param>
+        /// <param name="toSlot">目标槽位索引，-1表示自动查找</param>
+        /// <param name="autoStack">是否自动堆叠到目标容器中的相同物品</param>
+        /// <returns>操作结果</returns>
+        MoveItemResult MoveItem(int fromSlot, IContainer toContainer, int toSlot = -1, bool autoStack = true);
 
         #endregion
 

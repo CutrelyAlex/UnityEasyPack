@@ -43,6 +43,11 @@ namespace EasyPack.InventorySystem
         ///     关联的库存服务
         /// </summary>
         public IInventoryService InventoryService { get; set; }
+        
+        /// <summary>
+        ///     物品工厂引用，用于通过ItemData/itemId创建物品
+        /// </summary>
+        public IItemFactory ItemFactory => InventoryService?.ItemFactory;
 
         protected Container(string id, string name, string type, int capacity = -1)
         {
@@ -105,7 +110,7 @@ namespace EasyPack.InventorySystem
         /// <summary>
         ///     触发槽位物品数量变更事件
         /// </summary>
-        protected virtual void OnSlotQuantityChanged(int slotIndex, IItem item, int oldCount, int newCount)
+        public virtual void OnSlotQuantityChanged(int slotIndex, IItem item, int oldCount, int newCount)
         {
             // 维护可继续堆叠占用槽位计数
             if (item is { IsStackable: true })
@@ -137,7 +142,7 @@ namespace EasyPack.InventorySystem
         /// <summary>
         ///     触发物品总数变更
         /// </summary>
-        protected void TriggerItemTotalCountChanged(string itemId, IItem itemRef = null)
+        public void TriggerItemTotalCountChanged(string itemId, IItem itemRef = null)
         {
             int newTotal = GetItemTotalCount(itemId);
 
@@ -300,7 +305,7 @@ namespace EasyPack.InventorySystem
                                 ISlot slot = _slots[slotIndex];
                                 if (slot.IsOccupied && slot.Item.ID == item.ID &&
                                     slot.Item.IsStackable && (slot.Item.MaxStackCount <= 0 ||
-                                                              slot.ItemCount < slot.Item.MaxStackCount))
+                                                              slot.Item.Count < slot.Item.MaxStackCount))
                                 {
                                     return AddItemResult.Success;
                                 }
@@ -333,7 +338,7 @@ namespace EasyPack.InventorySystem
             foreach (ISlot s in _slots)
             {
                 if (!s.IsOccupied || s.Item is not { IsStackable: true }) continue;
-                if (s.Item.MaxStackCount <= 0 || s.ItemCount < s.Item.MaxStackCount)
+                if (s.Item.MaxStackCount <= 0 || s.Item.Count < s.Item.MaxStackCount)
                 {
                     _notFullStackSlotsCount++;
                 }
@@ -469,7 +474,7 @@ namespace EasyPack.InventorySystem
                     ISlot slot = _slots[i];
                     if (!slot.IsOccupied || slot.Item == null || slot.Item.ID != itemId) continue;
 
-                    int removeAmount = Mathf.Min(slot.ItemCount, remainingCount);
+                    int removeAmount = Mathf.Min(slot.Item.Count, remainingCount);
                     if (removeAmount <= 0) continue;
 
                     removals.Add((slot, removeAmount, i));
@@ -485,11 +490,11 @@ namespace EasyPack.InventorySystem
 
                 foreach ((ISlot slot, int removeAmount, int slotIndex) in removals)
                 {
-                    int oldCount = slot.ItemCount;
+                    int oldCount = slot.Item.Count;
                     IItem item = slot.Item;
                     string itemType = item.Type;
 
-                    if (removeAmount == slot.ItemCount)
+                    if (removeAmount == slot.Item.Count)
                     {
                         slot.ClearSlot();
                         _cacheService.UpdateEmptySlotCache(slotIndex, true);
@@ -499,7 +504,7 @@ namespace EasyPack.InventorySystem
                     }
                     else
                     {
-                        slot.SetItem(slot.Item, slot.ItemCount - removeAmount);
+                        slot.Item.Count -= removeAmount;
                     }
 
                     // 更新数量缓存
@@ -508,7 +513,7 @@ namespace EasyPack.InventorySystem
                     affectedSlots.Add(slotIndex);
 
                     // 槽位物品数量变更事件
-                    OnSlotQuantityChanged(slotIndex, item, oldCount, slot.ItemCount);
+                    OnSlotQuantityChanged(slotIndex, item, oldCount, slot.Item?.Count ?? 0);
                 }
 
                 // 移除成功事件
@@ -563,17 +568,17 @@ namespace EasyPack.InventorySystem
             }
 
             // 检查物品数量是否足够
-            if (slot.ItemCount < count)
+            if (slot.Item.Count < count)
             {
                 OnItemRemoveResult?.Invoke(itemId, count, 0, RemoveItemResult.InsufficientQuantity, emptySlots);
                 return RemoveItemResult.InsufficientQuantity;
             }
 
             // 记录旧数量
-            int oldCount = slot.ItemCount;
+            int oldCount = slot.Item.Count;
 
             // 所有检查都通过，执行移除操作
-            if (slot.ItemCount - count <= 0)
+            if (slot.Item.Count - count <= 0)
             {
                 slot.ClearSlot();
                 _cacheService.UpdateEmptySlotCache(index, true);
@@ -582,14 +587,14 @@ namespace EasyPack.InventorySystem
             }
             else
             {
-                slot.SetItem(item, slot.ItemCount - count);
+                slot.Item.Count -= count;
             }
 
             // 更新数量缓存
             _cacheService.UpdateItemCountCache(itemId, -count);
 
             // 触发物品数量变更事件
-            OnSlotQuantityChanged(index, item, oldCount, slot.ItemCount);
+            OnSlotQuantityChanged(index, item, oldCount, slot.Item?.Count ?? 0);
 
             // 触发物品移除事件
             var affectedSlots = new List<int> { index };
@@ -597,6 +602,317 @@ namespace EasyPack.InventorySystem
             TriggerItemTotalCountChanged(itemId, item);
 
             return RemoveItemResult.Success;
+        }
+
+        #endregion
+
+        #region 物品拆分
+
+        /// <summary>
+        ///     拆分物品堆，返回新的Item实例
+        /// </summary>
+        /// <param name="slotIndex">要拆分的槽位索引</param>
+        /// <param name="splitCount">拆分数量</param>
+        /// <returns>拆分出的新Item实例（拥有新UID和独立RuntimeMetadata），若失败返回null</returns>
+        public virtual IItem SplitItem(int slotIndex, int splitCount)
+        {
+            // 验证槽位索引
+            if (slotIndex < 0 || slotIndex >= _slots.Count)
+            {
+                Debug.LogWarning($"SplitItem: 槽位索引无效 {slotIndex}");
+                return null;
+            }
+
+            ISlot slot = _slots[slotIndex];
+
+            // 验证槽位有物品
+            if (!slot.IsOccupied || slot.Item == null)
+            {
+                Debug.LogWarning($"SplitItem: 槽位 {slotIndex} 为空");
+                return null;
+            }
+
+            IItem sourceItem = slot.Item;
+
+            // 验证拆分数量
+            if (splitCount <= 0)
+            {
+                Debug.LogWarning($"SplitItem: 拆分数量必须大于0，当前: {splitCount}");
+                return null;
+            }
+
+            if (splitCount > sourceItem.Count)
+            {
+                Debug.LogWarning($"SplitItem: 拆分数量 {splitCount} 超出物品数量 {sourceItem.Count}");
+                return null;
+            }
+
+            // 创建克隆物品
+            IItem splitItem;
+            if (ItemFactory != null)
+            {
+                splitItem = ItemFactory.CloneItem(sourceItem, splitCount);
+            }
+            else
+            {
+                // 降级使用Item.Clone()
+                splitItem = sourceItem.Clone();
+                splitItem.Count = splitCount;
+                
+                // 分配新UID
+                if (splitItem.ItemUID == -1 && InventoryService != null)
+                {
+                    InventoryService.AssignItemUID(splitItem);
+                }
+            }
+
+            if (splitItem == null)
+            {
+                Debug.LogError($"SplitItem: 克隆物品失败");
+                return null;
+            }
+
+            // 记录旧数量
+            int oldCount = sourceItem.Count;
+            string itemId = sourceItem.ID;
+
+            // 减少原物品数量
+            sourceItem.Count -= splitCount;
+
+            // 如果原物品数量为0，清空槽位
+            if (sourceItem.Count <= 0)
+            {
+                slot.ClearSlot();
+                _cacheService.UpdateEmptySlotCache(slotIndex, true);
+                _cacheService.UpdateItemSlotIndexCache(itemId, slotIndex, false);
+                _cacheService.UpdateItemTypeCache(sourceItem.Type, slotIndex, false);
+            }
+
+            // 更新缓存（拆分不改变总数，因为返回的item未添加到容器）
+            // 注意：此处不更新_itemCountCache，因为返回的物品未加入任何容器
+
+            // 触发槽位数量变更事件
+            OnSlotQuantityChanged(slotIndex, sourceItem, oldCount, sourceItem.Count);
+
+            // 触发物品总数变更（仅当槽位还有物品时）
+            TriggerItemTotalCountChanged(itemId, sourceItem);
+
+            return splitItem;
+        }
+
+        #endregion
+
+        #region 物品转移
+
+        /// <summary>
+        ///     将物品从一个槽位移动到目标容器
+        /// </summary>
+        /// <param name="fromSlot">源槽位索引</param>
+        /// <param name="toContainer">目标容器</param>
+        /// <param name="toSlot">目标槽位索引，-1表示自动查找</param>
+        /// <param name="autoStack">是否自动堆叠到目标容器中的相同物品</param>
+        /// <returns>操作结果</returns>
+        public virtual MoveItemResult MoveItem(int fromSlot, IContainer toContainer, int toSlot = -1, bool autoStack = true)
+        {
+            // 验证源槽位
+            if (fromSlot < 0 || fromSlot >= _slots.Count)
+            {
+                Debug.LogWarning($"MoveItem: 源槽位索引无效 {fromSlot}");
+                return MoveItemResult.SourceSlotNotFound;
+            }
+
+            ISlot sourceSlot = _slots[fromSlot];
+            if (!sourceSlot.IsOccupied || sourceSlot.Item == null)
+            {
+                Debug.LogWarning($"MoveItem: 源槽位 {fromSlot} 为空");
+                return MoveItemResult.SourceSlotEmpty;
+            }
+
+            // 验证目标容器
+            if (toContainer == null)
+            {
+                Debug.LogWarning("MoveItem: 目标容器为null");
+                return MoveItemResult.TargetContainerNull;
+            }
+
+            IItem itemToMove = sourceSlot.Item;
+            string itemId = itemToMove.ID;
+            string itemType = itemToMove.Type;
+            int itemCount = itemToMove.Count;
+            int oldCount = itemCount;
+
+            // 检查目标容器条件
+            if (toContainer is Container targetContainer)
+            {
+                if (!targetContainer.ValidateItemCondition(itemToMove))
+                {
+                    Debug.LogWarning($"MoveItem: 物品不满足目标容器条件");
+                    return MoveItemResult.ConditionNotMet;
+                }
+            }
+
+            // 如果指定了目标槽位，检查是否有效
+            if (toSlot >= 0 && toSlot >= toContainer.Slots.Count)
+            {
+                Debug.LogWarning($"MoveItem: 目标槽位索引无效 {toSlot}");
+                return MoveItemResult.TargetSlotNotFound;
+            }
+
+            // 同一容器内移动的特殊处理
+            if (ReferenceEquals(this, toContainer))
+            {
+                return MoveItemWithinContainer(fromSlot, toSlot, autoStack);
+            }
+
+            // 尝试添加到目标容器（直接传递引用，保持UID）
+            (AddItemResult addResult, int addedCount) = toContainer.AddItems(itemToMove, toSlot, autoStack);
+
+            if (addResult == AddItemResult.Success && addedCount == itemCount)
+            {
+                // 完全移动成功，清空源槽位
+                sourceSlot.ClearSlot();
+                _cacheService.UpdateEmptySlotCache(fromSlot, true);
+                _cacheService.UpdateItemSlotIndexCache(itemId, fromSlot, false);
+                _cacheService.UpdateItemTypeCache(itemType, fromSlot, false);
+                _cacheService.UpdateItemCountCache(itemId, -itemCount);
+
+                // 触发事件
+                OnSlotQuantityChanged(fromSlot, itemToMove, oldCount, 0);
+                TriggerItemTotalCountChanged(itemId);
+
+                return MoveItemResult.Success;
+            }
+            else if (addedCount > 0)
+            {
+                // 部分成功
+                sourceSlot.Item.Count -= addedCount;
+                _cacheService.UpdateItemCountCache(itemId, -addedCount);
+
+                OnSlotQuantityChanged(fromSlot, itemToMove, oldCount, sourceSlot.Item.Count);
+                TriggerItemTotalCountChanged(itemId, itemToMove);
+
+                return MoveItemResult.PartialSuccess;
+            }
+            else if (addResult == AddItemResult.ContainerIsFull)
+            {
+                return MoveItemResult.TargetContainerFull;
+            }
+
+            return MoveItemResult.Failed;
+        }
+
+        /// <summary>
+        ///     在同一容器内移动物品
+        /// </summary>
+        private MoveItemResult MoveItemWithinContainer(int fromSlot, int toSlot, bool autoStack)
+        {
+            if (toSlot < 0)
+            {
+                // 自动查找槽位时，对于同容器内移动没有意义
+                return MoveItemResult.Success;
+            }
+
+            if (fromSlot == toSlot)
+            {
+                return MoveItemResult.Success;
+            }
+
+            if (toSlot >= _slots.Count)
+            {
+                return MoveItemResult.TargetSlotNotFound;
+            }
+
+            ISlot sourceSlot = _slots[fromSlot];
+            ISlot targetSlot = _slots[toSlot];
+            IItem sourceItem = sourceSlot.Item;
+            string itemId = sourceItem.ID;
+            string itemType = sourceItem.Type;
+            int sourceCount = sourceItem.Count;
+
+            if (targetSlot.IsOccupied)
+            {
+                if (autoStack && sourceItem.CanStack(targetSlot.Item))
+                {
+                    // 堆叠到目标槽位
+                    int targetOldCount = targetSlot.Item.Count;
+                    int canStack = sourceItem.MaxStackCount > 0
+                        ? Math.Min(sourceCount, sourceItem.MaxStackCount - targetSlot.Item.Count)
+                        : sourceCount;
+
+                    if (canStack <= 0)
+                    {
+                        return MoveItemResult.TargetSlotOccupied;
+                    }
+
+                    targetSlot.Item.Count += canStack;
+                    sourceSlot.Item.Count -= canStack;
+
+                    OnSlotQuantityChanged(toSlot, targetSlot.Item, targetOldCount, targetSlot.Item.Count);
+                    OnSlotQuantityChanged(fromSlot, sourceItem, sourceCount, sourceSlot.Item.Count);
+
+                    if (sourceSlot.Item.Count <= 0)
+                    {
+                        sourceSlot.ClearSlot();
+                        _cacheService.UpdateEmptySlotCache(fromSlot, true);
+                        _cacheService.UpdateItemSlotIndexCache(itemId, fromSlot, false);
+                        _cacheService.UpdateItemTypeCache(itemType, fromSlot, false);
+                    }
+
+                    return canStack == sourceCount ? MoveItemResult.Success : MoveItemResult.PartialSuccess;
+                }
+                else
+                {
+                    // 交换物品
+                    IItem targetItem = targetSlot.Item;
+                    int targetCount = targetItem.Count;
+                    string targetItemId = targetItem.ID;
+                    string targetItemType = targetItem.Type;
+
+                    // 交换
+                    targetSlot.SetItem(sourceItem);
+                    sourceSlot.SetItem(targetItem);
+
+                    // 更新缓存
+                    _cacheService.UpdateItemSlotIndexCache(itemId, fromSlot, false);
+                    _cacheService.UpdateItemSlotIndexCache(itemId, toSlot, true);
+                    _cacheService.UpdateItemSlotIndexCache(targetItemId, toSlot, false);
+                    _cacheService.UpdateItemSlotIndexCache(targetItemId, fromSlot, true);
+
+                    _cacheService.UpdateItemTypeCache(itemType, fromSlot, false);
+                    _cacheService.UpdateItemTypeCache(itemType, toSlot, true);
+                    _cacheService.UpdateItemTypeCache(targetItemType, toSlot, false);
+                    _cacheService.UpdateItemTypeCache(targetItemType, fromSlot, true);
+
+                    OnSlotQuantityChanged(fromSlot, targetItem, 0, targetCount);
+                    OnSlotQuantityChanged(toSlot, sourceItem, 0, sourceCount);
+
+                    return MoveItemResult.Success;
+                }
+            }
+            else
+            {
+                // 目标槽位为空，直接移动
+                if (!targetSlot.CheckSlotCondition(sourceItem))
+                {
+                    return MoveItemResult.ConditionNotMet;
+                }
+
+                targetSlot.SetItem(sourceItem);
+                sourceSlot.ClearSlot();
+
+                // 更新缓存
+                _cacheService.UpdateEmptySlotCache(fromSlot, true);
+                _cacheService.UpdateEmptySlotCache(toSlot, false);
+                _cacheService.UpdateItemSlotIndexCache(itemId, fromSlot, false);
+                _cacheService.UpdateItemSlotIndexCache(itemId, toSlot, true);
+                _cacheService.UpdateItemTypeCache(itemType, fromSlot, false);
+                _cacheService.UpdateItemTypeCache(itemType, toSlot, true);
+
+                OnSlotQuantityChanged(fromSlot, sourceItem, sourceCount, 0);
+                OnSlotQuantityChanged(toSlot, sourceItem, 0, sourceCount);
+
+                return MoveItemResult.Success;
+            }
         }
 
         #endregion
@@ -760,7 +1076,7 @@ namespace EasyPack.InventorySystem
         ///     添加指定数量的物品到容器（内部实现，带超出数量返回）
         /// </summary>
         private (AddItemResult result, int actualCount)
-            AddItemsWithCount(IItem item, out int exceededCount, int count = 1, int slotIndex = -1)
+            AddItemsWithCount(IItem item, out int exceededCount, int count = 1, int slotIndex = -1, bool autoStack = true)
         {
             exceededCount = 0;
             var emptySlots = new List<int>();
@@ -787,8 +1103,8 @@ namespace EasyPack.InventorySystem
                 _pendingTotalCountUpdates.Add(item.ID);
                 _itemRefCache[item.ID] = item;
 
-                // 2. 堆叠处理（仅在未指定槽位时）
-                if (slotIndex == -1)
+                // 2. 堆叠处理（仅在未指定槽位且启用自动堆叠时）
+                if (slotIndex == -1 && autoStack)
                 {
                     (int stackedCount, var stackedSlots, BatchCacheUpdates stackCacheUpdates) =
                         ProcessStackableItems(item, remainingCount);
@@ -880,14 +1196,129 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        ///     添加指定数量的物品到容器
+        ///     添加物品到容器
         /// </summary>
         /// <param name="item">要添加的物品</param>
-        /// <param name="count">要添加的数量</param>
         /// <param name="slotIndex">指定的槽位索引，-1表示自动寻找合适的槽位</param>
+        /// <param name="autoStack">是否自动堆叠到现有相同物品槽位</param>
         /// <returns>添加结果和成功添加的数量</returns>
         public virtual (AddItemResult result, int actualCount)
-            AddItems(IItem item, int count = 1, int slotIndex = -1) => AddItemsWithCount(item, out _, count, slotIndex);
+            AddItems(IItem item, int slotIndex = -1, bool autoStack = true)
+        {
+            var emptySlots = new List<int>();
+            
+            if (item == null)
+            {
+                OnItemAddResult?.Invoke(null, 0, 0, AddItemResult.ItemIsNull, emptySlots);
+                return (AddItemResult.ItemIsNull, 0);
+            }
+            
+            if (item.Count <= 0)
+            {
+                OnItemAddResult?.Invoke(item, item.Count, 0, AddItemResult.InvalidCount, emptySlots);
+                return (AddItemResult.InvalidCount, 0);
+            }
+            
+            // 使用item.Count作为数量，传递给内部实现
+            return AddItemsWithCount(item, out _, item.Count, slotIndex, autoStack);
+        }
+
+        /// <summary>
+        ///     添加物品到容器（带数量参数，已废弃）
+        /// </summary>
+        /// <param name="item">要添加的物品</param>
+        /// <param name="count">添加数量</param>
+        /// <param name="slotIndex">指定的槽位索引，-1表示自动寻找合适的槽位</param>
+        /// <returns>添加结果和成功添加的数量</returns>
+        [Obsolete("请使用 AddItems(IItem item, int slotIndex, bool autoStack) 并预设 item.Count。此重载将在下一个版本移除。")]
+        public virtual (AddItemResult result, int actualCount)
+            AddItems(IItem item, int count, int slotIndex) 
+        {
+            if (item != null) item.Count = count;
+            return AddItemsWithCount(item, out _, count, slotIndex, true);
+        }
+
+        /// <summary>
+        ///     添加指定数量的物品到容器（已废弃）
+        /// </summary>
+        /// <param name="item">要添加的物品</param>
+        /// <param name="count">添加数量</param>
+        /// <returns>添加结果和成功添加的数量</returns>
+        /// <remarks>
+        ///     请迁移到新API：设置 item.Count 后调用 AddItems(item)
+        /// </remarks>
+        [Obsolete("请使用 item.Count = count; AddItems(item) 替代。此重载将在下一个版本移除。")]
+        public virtual (AddItemResult result, int actualCount)
+            AddItems(IItem item, int count) 
+        {
+            if (item != null) item.Count = count;
+            return AddItemsWithCount(item, out _, count, -1, true);
+        }
+
+        /// <summary>
+        ///     通过ItemData模板添加物品到容器
+        /// </summary>
+        /// <param name="itemData">物品模板数据</param>
+        /// <param name="count">添加数量</param>
+        /// <param name="slotIndex">指定槽位索引，-1 表示自动查找</param>
+        /// <param name="autoStack">是否自动堆叠到现有相同物品槽位</param>
+        /// <returns>操作结果和实际添加数量</returns>
+        public virtual (AddItemResult result, int actualCount)
+            AddItems(ItemData itemData, int count = 1, int slotIndex = -1, bool autoStack = true)
+        {
+            if (itemData == null)
+            {
+                return (AddItemResult.ItemIsNull, 0);
+            }
+
+            if (ItemFactory == null)
+            {
+                Debug.LogError("Container未关联ItemFactory，无法通过ItemData创建物品");
+                return (AddItemResult.FactoryNotAvailable, 0);
+            }
+
+            IItem item = ItemFactory.CreateItem(itemData, count);
+            if (item == null)
+            {
+                return (AddItemResult.FactoryCreateFailed, 0);
+            }
+
+            return AddItems(item, slotIndex, autoStack);
+        }
+
+        /// <summary>
+        ///     通过物品ID添加物品到容器（从注册的ItemData创建）
+        /// </summary>
+        /// <param name="itemId">物品ID</param>
+        /// <param name="count">添加数量</param>
+        /// <param name="slotIndex">指定槽位索引，-1 表示自动查找</param>
+        /// <param name="autoStack">是否自动堆叠到现有相同物品槽位</param>
+        /// <returns>操作结果和实际添加数量</returns>
+        public virtual (AddItemResult result, int actualCount)
+            AddItems(string itemId, int count = 1, int slotIndex = -1, bool autoStack = true)
+        {
+            // 注意：这里的itemId是用于通过ItemFactory创建物品的，而不是移除物品的itemId
+            // RemoveItem使用的是物品的ID属性，而不是ItemData的itemId
+            if (string.IsNullOrEmpty(itemId))
+            {
+                return (AddItemResult.ItemIsNull, 0);
+            }
+
+            if (ItemFactory == null)
+            {
+                Debug.LogError("Container未关联ItemFactory，无法通过itemId创建物品");
+                return (AddItemResult.FactoryNotAvailable, 0);
+            }
+
+            IItem item = ItemFactory.CreateItem(itemId, count);
+            if (item == null)
+            {
+                Debug.LogWarning($"物品未注册: {itemId}");
+                return (AddItemResult.ItemNotFound, 0);
+            }
+
+            return AddItems(item, slotIndex, autoStack);
+        }
 
         /// <summary>
         ///     异步添加物品
@@ -895,12 +1326,13 @@ namespace EasyPack.InventorySystem
         public async Task<(AddItemResult result, int addedCount)> AddItemsAsync(
             IItem item, int count, CancellationToken cancellationToken = default)
         {
+            if (item != null) item.Count = count;
             if (count > 10000 || _slots.Count > 100000)
             {
-                return await Task.Run(() => AddItems(item, count), cancellationToken);
+                return await Task.Run(() => AddItems(item), cancellationToken);
             }
 
-            return AddItems(item, count);
+            return AddItems(item);
         }
 
         /// <summary>
@@ -944,6 +1376,7 @@ namespace EasyPack.InventorySystem
 
         /// <summary>
         ///     尝试将物品堆叠到已有相同物品的槽位中
+        ///     使用 item.CanStack() 进行比较（ID+Type+RuntimeMetadata）
         /// </summary>
         protected virtual (int stackedCount, List<int> affectedSlots, Dictionary<int, (int oldCount, int newCount)>
             changes)
@@ -976,8 +1409,11 @@ namespace EasyPack.InventorySystem
 
                 ISlot slot = _slots[idx];
                 if (!slot.IsOccupied || slot.Item == null) continue;
+                
+                // 深度比较
+                if (!item.CanStack(slot.Item)) continue;
 
-                int availSpace = maxStack - slot.ItemCount;
+                int availSpace = maxStack - slot.Item.Count;
                 if (availSpace <= 0) continue;
 
                 stackableSlots.Add((idx, availSpace));
@@ -998,16 +1434,15 @@ namespace EasyPack.InventorySystem
                 (int slotIndex, int availSpace) = stackableSlots[i];
                 ISlot slot = _slots[slotIndex];
 
-                int oldCount = slot.ItemCount;
+                int oldCount = slot.Item.Count;
                 int actualAdd = Math.Min(availSpace, currentRemaining);
 
-                if (slot.SetItem(slot.Item, oldCount + actualAdd))
-                {
-                    currentRemaining -= actualAdd;
-                    stackedCount += actualAdd;
-                    affectedSlots.Add(slotIndex);
-                    slotChanges[slotIndex] = (oldCount, slot.ItemCount);
-                }
+                // 使用新API：直接修改item.Count
+                slot.Item.Count = oldCount + actualAdd;
+                currentRemaining -= actualAdd;
+                stackedCount += actualAdd;
+                affectedSlots.Add(slotIndex);
+                slotChanges[slotIndex] = (oldCount, slot.Item.Count);
             }
 
             return (stackedCount, affectedSlots, slotChanges);
@@ -1029,7 +1464,7 @@ namespace EasyPack.InventorySystem
                 if (targetSlot.Item.ID != item.ID || !item.IsStackable) return (false, 0, remainingCount);
 
                 // 计算可添加数量
-                int oldCount = targetSlot.ItemCount;
+                int oldCount = targetSlot.Item.Count;
                 int canAddCount;
 
                 if (item.MaxStackCount <= 0)
@@ -1039,17 +1474,14 @@ namespace EasyPack.InventorySystem
                 else
                 {
                     // 考虑槽位已有数量，确保不超过最大堆叠数
-                    canAddCount = Mathf.Min(remainingCount, item.MaxStackCount - targetSlot.ItemCount);
+                    canAddCount = Mathf.Min(remainingCount, item.MaxStackCount - targetSlot.Item.Count);
                     if (canAddCount <= 0) return (false, 0, remainingCount); // 已达到最大堆叠数
                 }
 
-                // 设置物品
-                if (targetSlot.SetItem(targetSlot.Item, targetSlot.ItemCount + canAddCount))
-                {
-                    // 触发数量变更
-                    OnSlotQuantityChanged(slotIndex, targetSlot.Item, oldCount, targetSlot.ItemCount);
-                    return (true, canAddCount, remainingCount - canAddCount);
-                }
+                targetSlot.Item.Count = oldCount + canAddCount;
+                // 触发数量变更
+                OnSlotQuantityChanged(slotIndex, targetSlot.Item, oldCount, targetSlot.Item.Count);
+                return (true, canAddCount, remainingCount - canAddCount);
             }
             else
             {
@@ -1060,10 +1492,20 @@ namespace EasyPack.InventorySystem
                     ? Mathf.Min(remainingCount, item.MaxStackCount)
                     : remainingCount;
 
-                if (targetSlot.SetItem(item, addCount))
+                // 克隆物品
+                IItem itemToAdd = item.Clone();
+                itemToAdd.Count = addCount;
+                
+                // 分配UID给新克隆的物品
+                if (itemToAdd.ItemUID == -1 && InventoryService != null)
                 {
-                    // 触发数量变更
-                    OnSlotQuantityChanged(slotIndex, targetSlot.Item, 0, targetSlot.ItemCount);
+                    InventoryService.AssignItemUID(itemToAdd);
+                }
+                
+                if (targetSlot.SetItem(itemToAdd))
+                {
+                    // 触发槽位数量变更事件
+                    OnSlotQuantityChanged(slotIndex, itemToAdd, 0, addCount);
                     return (true, addCount, remainingCount - addCount);
                 }
             }
@@ -1097,14 +1539,25 @@ namespace EasyPack.InventorySystem
 
                 if (!slot.CheckSlotCondition(item)) continue;
 
-                if (slot.SetItem(item, addCount))
+                // 克隆物品
+                IItem itemToAdd = item.Clone();
+                itemToAdd.Count = addCount;
+                
+                // 分配UID给新克隆的物品
+                if (itemToAdd.ItemUID == -1 && InventoryService != null)
+                {
+                    InventoryService.AssignItemUID(itemToAdd);
+                }
+                
+                if (slot.SetItem(itemToAdd))
                 {
                     // 批量更新缓存
                     _cacheService.UpdateEmptySlotCache(i, false);
-                    _cacheService.UpdateItemSlotIndexCache(item.ID, i, true);
-                    _cacheService.UpdateItemTypeCache(item.Type, i, true);
+                    _cacheService.UpdateItemSlotIndexCache(itemToAdd.ID, i, true);
+                    _cacheService.UpdateItemTypeCache(itemToAdd.Type, i, true);
 
-                    OnSlotQuantityChanged(i, slot.Item, 0, slot.ItemCount);
+                    // 触发槽位数量变更事件（从0到addCount）
+                    OnSlotQuantityChanged(i, itemToAdd, 0, addCount);
                     return (true, addCount, remainingCount - addCount, i);
                 }
             }
@@ -1118,13 +1571,24 @@ namespace EasyPack.InventorySystem
                 ISlot slot = _slots[i];
                 if (slot.IsOccupied || !slot.CheckSlotCondition(item)) continue;
 
-                if (slot.SetItem(item, addCount))
+                // 克隆物品
+                IItem itemToAdd = item.Clone();
+                itemToAdd.Count = addCount;
+                
+                // 分配UID给新克隆的物品
+                if (itemToAdd.ItemUID == -1 && InventoryService != null)
+                {
+                    InventoryService.AssignItemUID(itemToAdd);
+                }
+                
+                if (slot.SetItem(itemToAdd))
                 {
                     // 更新缓存状态
-                    _cacheService.UpdateItemSlotIndexCache(item.ID, i, true);
-                    _cacheService.UpdateItemTypeCache(item.Type, i, true);
+                    _cacheService.UpdateItemSlotIndexCache(itemToAdd.ID, i, true);
+                    _cacheService.UpdateItemTypeCache(itemToAdd.Type, i, true);
 
-                    OnSlotQuantityChanged(i, slot.Item, 0, slot.ItemCount);
+                    // 触发槽位数量变更事件
+                    OnSlotQuantityChanged(i, itemToAdd, 0, addCount);
                     return (true, addCount, remainingCount - addCount, i);
                 }
             }
@@ -1147,16 +1611,26 @@ namespace EasyPack.InventorySystem
                     ? Mathf.Min(remainingCount, item.MaxStackCount)
                     : 1; // 不可堆叠物品
 
-                if (newSlot.CheckSlotCondition(item) && newSlot.SetItem(item, addCount))
+                // 克隆物品
+                IItem itemToAdd = item.Clone();
+                itemToAdd.Count = addCount;
+                
+                // 分配UID给新克隆的物品
+                if (itemToAdd.ItemUID == -1 && InventoryService != null)
+                {
+                    InventoryService.AssignItemUID(itemToAdd);
+                }
+                
+                if (newSlot.CheckSlotCondition(itemToAdd) && newSlot.SetItem(itemToAdd))
                 {
                     _slots.Add(newSlot);
 
                     // 更新缓存
-                    _cacheService.UpdateItemSlotIndexCache(item.ID, newSlotIndex, true);
-                    _cacheService.UpdateItemTypeCache(item.Type, newSlotIndex, true);
+                    _cacheService.UpdateItemSlotIndexCache(itemToAdd.ID, newSlotIndex, true);
+                    _cacheService.UpdateItemTypeCache(itemToAdd.Type, newSlotIndex, true);
 
-                    // 触发数量变更
-                    OnSlotQuantityChanged(newSlotIndex, newSlot.Item, 0, newSlot.ItemCount);
+                    // 触发槽位数量变更事件
+                    OnSlotQuantityChanged(newSlotIndex, itemToAdd, 0, addCount);
                     return (true, addCount, remainingCount - addCount, newSlotIndex);
                 }
             }
@@ -1236,7 +1710,7 @@ namespace EasyPack.InventorySystem
             }
 
             IItem item = slot.Item;
-            int oldCount = slot.ItemCount;
+            int oldCount = slot.Item.Count;
             long itemUID = item.ItemUID;
 
             if (InventoryService?.CategoryManager != null && itemUID >= 0)
