@@ -17,6 +17,26 @@ namespace EasyPack.InventorySystem
         public int MaxStackCount;
         public bool isContanierItem;
         public long ItemUID;
+        
+        /// <summary>
+        ///     物品数量（从Item.Count序列化）
+        /// </summary>
+        public int Count = 1;
+        
+        /// <summary>
+        ///     物品分类
+        /// </summary>
+        public string Category;
+        
+        /// <summary>
+        ///     物品标签
+        /// </summary>
+        public string[] Tags;
+        
+        /// <summary>
+        ///     运行时元数据
+        /// </summary>
+        public List<CustomDataEntry> RuntimeMetadata;
 
         /// <summary>
         ///     自定义数据列表

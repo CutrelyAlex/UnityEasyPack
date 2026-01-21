@@ -99,7 +99,11 @@ namespace EasyPack.InventorySystem
 
                     // 使用注入的序列化服务反序列化
                     var item = _serializationService.DeserializeFromJson<Item>(slotDto.ItemJson);
-                    if (item != null) container.AddItems(item, slotDto.ItemCount, slotDto.Index);
+                    if (item != null)
+                    {
+                        item.Count = slotDto.ItemCount;
+                        container.AddItems(item, slotIndex: slotDto.Index);
+                    }
                 }
             }
 

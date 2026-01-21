@@ -112,7 +112,8 @@ namespace EasyPack.InventorySystem
                     var item = _serializationService.DeserializeFromJson<Item>(s.ItemJson);
                     if (item == null) continue;
 
-                    (AddItemResult res, int added) = container.AddItems(item, s.ItemCount, s.Index >= 0 ? s.Index : -1);
+                    item.Count = s.ItemCount;
+                    (AddItemResult res, int added) = container.AddItems(item, slotIndex: s.Index >= 0 ? s.Index : -1);
                     if (res != AddItemResult.Success || added <= 0)
                     {
                         Debug.LogWarning(

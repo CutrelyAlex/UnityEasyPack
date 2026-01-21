@@ -25,6 +25,12 @@ namespace EasyPack.InventorySystem
                 IsStackable = obj.IsStackable,
                 MaxStackCount = obj.MaxStackCount,
                 ItemUID = obj.ItemUID,
+                Count = obj.Count,
+                Category = obj.Category,
+                Tags = obj.Tags,
+                RuntimeMetadata = obj.RuntimeMetadata is { Count: > 0 }
+                    ? new List<CustomDataEntry>(obj.RuntimeMetadata)
+                    : null,
                 isContanierItem = obj.IsContainerItem,
                 CustomData = obj.CustomData is { Count: > 0 }
                     ? new List<CustomDataEntry>(obj.CustomData)
@@ -38,6 +44,10 @@ namespace EasyPack.InventorySystem
         public Item FromSerializable(SerializedItem dto)
         {
             if (dto == null) return null;
+            
+            // 验证Count不为0
+            int count = dto.Count > 0 ? dto.Count : 1;
+            
             var item = new Item
             {
                 ID = dto.ID,
@@ -48,6 +58,7 @@ namespace EasyPack.InventorySystem
                 IsStackable = dto.IsStackable,
                 MaxStackCount = dto.MaxStackCount,
                 ItemUID = dto.ItemUID,
+                Count = count,
                 IsContainerItem = dto.isContanierItem,
             };
             if (dto.CustomData is { Count: > 0 })
@@ -64,6 +75,9 @@ namespace EasyPack.InventorySystem
                 item.IsContainerItem = true;
                 item.ContainerIds = new(dto.ContainerIds);
             }
+            
+            // 注意：Category、Tags、RuntimeMetadata 需要在恢复时通过 CategoryManager 重新注册
+            // 这里只存储序列化的值，实际恢复在 InventoryService.RestoreItem 中处理
 
             return item;
         }
