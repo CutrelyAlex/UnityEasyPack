@@ -127,7 +127,7 @@ namespace EasyPack.InventorySystem
             }
 
             sourceItem = sourceSlot.Item;
-            sourceCount = sourceSlot.ItemCount;
+            sourceCount = sourceSlot.Item.Count;
             return true;
         }
 
@@ -138,7 +138,8 @@ namespace EasyPack.InventorySystem
         private bool ExecuteItemMove(ISlot sourceSlot, int sourceSlotIndex, IItem sourceItem,
                                      int sourceCount, Container targetContainer)
         {
-            (AddItemResult result, int addedCount) = targetContainer.AddItems(sourceItem, sourceCount);
+            sourceItem.Count = sourceCount;
+            (AddItemResult result, int addedCount) = targetContainer.AddItems(sourceItem);
 
             if (result != AddItemResult.Success || addedCount <= 0)
             {
@@ -173,7 +174,8 @@ namespace EasyPack.InventorySystem
                                        int sourceCount, int addedCount)
         {
             int remainingCount = sourceCount - addedCount;
-            sourceSlot.SetItem(sourceItem, remainingCount);
+            sourceItem.Count = remainingCount;
+            sourceSlot.SetItem(sourceItem);
             UpdateCacheAfterMove(sourceSlotIndex, sourceItem, addedCount, false);
             TriggerItemTotalCountChanged(sourceItem.ID, sourceItem);
             OnSlotQuantityChanged(sourceSlotIndex, sourceItem, sourceCount, remainingCount);
@@ -198,7 +200,7 @@ namespace EasyPack.InventorySystem
             for (int i = 0; i < _slots.Count; i++)
             {
                 ISlot slot = _slots[i];
-                if (slot.IsOccupied && slot.Item != null) occupiedSlots.Add((i, slot.Item, slot.ItemCount));
+                if (slot.IsOccupied && slot.Item != null) occupiedSlots.Add((i, slot.Item, slot.Item.Count));
             }
 
             return occupiedSlots;
@@ -231,7 +233,7 @@ namespace EasyPack.InventorySystem
             for (int i = 0; i < _slots.Count; i++)
             {
                 ISlot slot = _slots[i];
-                backup[i] = (slot.Item, slot.ItemCount);
+                backup[i] = (slot.Item, slot.Item?.Count ?? 0);
             }
 
             return backup;
@@ -246,7 +248,8 @@ namespace EasyPack.InventorySystem
 
                 if (item != null)
                 {
-                    slot.SetItem(item, count);
+                    item.Count = count;
+                    slot.SetItem(item);
                 }
                 else
                 {
@@ -270,7 +273,8 @@ namespace EasyPack.InventorySystem
             for (int i = 0; i < sortedItems.Count && i < _slots.Count; i++)
             {
                 (_, IItem item, int count) = sortedItems[i];
-                _slots[i].SetItem(item, count);
+                item.Count = count;
+                _slots[i].SetItem(item);
             }
         }
 
@@ -301,7 +305,7 @@ namespace EasyPack.InventorySystem
                 itemGroups[itemId] = new List<(int, IItem, int)>();
             }
 
-            itemGroups[itemId].Add((slotIndex, slot.Item, slot.ItemCount));
+            itemGroups[itemId].Add((slotIndex, slot.Item, slot.Item.Count));
         }
 
         private void ConsolidateItemGroups(Dictionary<string, List<(int slotIndex, IItem item, int count)>> itemGroups)
@@ -356,7 +360,8 @@ namespace EasyPack.InventorySystem
                     ? remainingCount
                     : Math.Min(remainingCount, maxStackCount);
 
-                _slots[slotIndex].SetItem(item, countForSlot);
+                item.Count = countForSlot;
+                _slots[slotIndex].SetItem(item);
                 remainingCount -= countForSlot;
                 targetIndex++;
             }
