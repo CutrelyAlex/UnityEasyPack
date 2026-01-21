@@ -75,10 +75,10 @@ namespace EasyPack.InventorySystem
             // 自动分配UID并注册到CategoryManager
             if (_inventoryService != null)
             {
-                // 分配唯一UID
-                _inventoryService.AssignItemUID(item);
+                // 分配UID
+                long uid = _inventoryService.AssignItemUID(item);
                 
-                // 注册到CategoryManager
+                // 注册到CategoryManager（使用 ItemData.Category）
                 if (_inventoryService.CategoryManager != null && !string.IsNullOrEmpty(itemData.Category))
                 {
                     // 准备Metadata
@@ -94,11 +94,11 @@ namespace EasyPack.InventorySystem
 
                     if (runtimeMetadata != null)
                     {
-                        _inventoryService.CategoryManager.RegisterEntityWithMetadata(item.ItemUID, item, itemData.Category, runtimeMetadata);
+                        _inventoryService.CategoryManager.RegisterEntityWithMetadata(uid, item, itemData.Category, runtimeMetadata);
                     }
                     else
                     {
-                        _inventoryService.CategoryManager.RegisterEntity(item.ItemUID, item, itemData.Category);
+                        _inventoryService.CategoryManager.RegisterEntity(uid, item, itemData.Category);
                     }
                     
                     // 添加默认Tags
@@ -106,7 +106,7 @@ namespace EasyPack.InventorySystem
                     {
                         foreach (var tag in itemData.DefaultTags)
                         {
-                            _inventoryService.CategoryManager.AddTag(item.ItemUID, tag);
+                            _inventoryService.CategoryManager.AddTag(uid, tag);
                         }
                     }
                 }

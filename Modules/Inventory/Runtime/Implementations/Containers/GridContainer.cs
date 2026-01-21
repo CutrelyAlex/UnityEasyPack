@@ -279,6 +279,8 @@ namespace EasyPack.InventorySystem
                             if (canAdd > 0)
                             {
                                 existingGridItem.Count = gridItem.MaxStackCount;
+                                // 更新数量缓存
+                                _cacheService.UpdateItemCountCache(gridItem.ID, canAdd);
                                 OnSlotQuantityChanged(existingSlotIndex, existingGridItem, oldCount, gridItem.MaxStackCount);
                                 
                                 int remaining = gridItem.Count - canAdd;
@@ -306,6 +308,8 @@ namespace EasyPack.InventorySystem
                         
                         // 没有超过最大堆叠数，直接合并
                         existingGridItem.Count = newCount;
+                        // 更新数量缓存
+                        _cacheService.UpdateItemCountCache(gridItem.ID, gridItem.Count);
                         OnSlotQuantityChanged(existingSlotIndex, existingGridItem, oldCount, newCount);
                         TriggerItemTotalCountChanged(gridItem.ID, gridItem);
                         return (AddItemResult.Success, gridItem.Count);

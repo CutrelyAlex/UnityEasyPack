@@ -231,7 +231,7 @@ namespace EasyPack.InventorySystem
         private long _nextItemUID = 1;
 
         /// <summary>
-        ///     ItemUID到物品实例的映射（可选，用于快速查找）
+        ///     ItemUID到物品实例的映射
         /// </summary>
         private readonly Dictionary<long, IItem> _itemsByUID = new();
 
