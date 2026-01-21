@@ -329,8 +329,12 @@ namespace EasyPack.InventorySystem
             if (InventoryService?.CategoryManager != null && ItemUID >= 0)
             {
                 var metadata = InventoryService.CategoryManager.GetOrAddMetadata(ItemUID);
-                metadata.Set(id, value);
-                return;
+                if (metadata != null)
+                {
+                    metadata.Set(id, value);
+                    return;
+                }
+                // 物品有UID但未注册到CategoryManager._entities，回退到本地存储
             }
             // 本地存储
             _localCustomData ??= new();

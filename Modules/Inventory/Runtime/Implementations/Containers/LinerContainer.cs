@@ -360,8 +360,13 @@ namespace EasyPack.InventorySystem
                     ? remainingCount
                     : Math.Min(remainingCount, maxStackCount);
 
-                item.Count = countForSlot;
-                _slots[slotIndex].SetItem(item);
+                IItem itemToSet = ItemFactory?.CloneItem(item, countForSlot) ?? item.Clone();
+                if (ItemFactory == null)
+                {
+                    // 如果没有ItemFactory，需要手动设置Count
+                    itemToSet.Count = countForSlot;
+                }
+                _slots[slotIndex].SetItem(itemToSet);
                 remainingCount -= countForSlot;
                 targetIndex++;
             }

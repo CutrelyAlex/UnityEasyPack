@@ -250,7 +250,7 @@ namespace EasyPack.InventorySystem
                     return (MoveResult.ItemConditionNotMet, 0);
                 }
 
-                // 克隆物品用于转移，避免修改源容器中的物品
+                // 克隆物品用于转移
                 IItem transferItem = ItemFactory?.CloneItem(lookupResult.Item) ?? lookupResult.Item.Clone();
                 transferItem.Count = count;
                 (AddItemResult addResult, int addedCount) = targetContainer.AddItems(transferItem);

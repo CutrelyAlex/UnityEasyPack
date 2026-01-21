@@ -1492,14 +1492,15 @@ namespace EasyPack.InventorySystem
                     ? Mathf.Min(remainingCount, item.MaxStackCount)
                     : remainingCount;
 
-                // 克隆物品
-                IItem itemToAdd = item.Clone();
-                itemToAdd.Count = addCount;
-                
-                // 分配UID给新克隆的物品
-                if (itemToAdd.ItemUID == -1 && InventoryService != null)
+                IItem itemToAdd = ItemFactory?.CloneItem(item, addCount) ?? item.Clone();
+                if (ItemFactory == null)
                 {
-                    InventoryService.AssignItemUID(itemToAdd);
+                    // 如果没有ItemFactory，需要手动设置Count并分配UID
+                    itemToAdd.Count = addCount;
+                    if (itemToAdd.ItemUID == -1 && InventoryService != null)
+                    {
+                        InventoryService.AssignItemUID(itemToAdd);
+                    }
                 }
                 
                 if (targetSlot.SetItem(itemToAdd))
@@ -1539,14 +1540,15 @@ namespace EasyPack.InventorySystem
 
                 if (!slot.CheckSlotCondition(item)) continue;
 
-                // 克隆物品
-                IItem itemToAdd = item.Clone();
-                itemToAdd.Count = addCount;
-                
-                // 分配UID给新克隆的物品
-                if (itemToAdd.ItemUID == -1 && InventoryService != null)
+                IItem itemToAdd = ItemFactory?.CloneItem(item, addCount) ?? item.Clone();
+                if (ItemFactory == null)
                 {
-                    InventoryService.AssignItemUID(itemToAdd);
+                    // 如果没有ItemFactory，需要手动设置Count并分配UID
+                    itemToAdd.Count = addCount;
+                    if (itemToAdd.ItemUID == -1 && InventoryService != null)
+                    {
+                        InventoryService.AssignItemUID(itemToAdd);
+                    }
                 }
                 
                 if (slot.SetItem(itemToAdd))
@@ -1571,14 +1573,15 @@ namespace EasyPack.InventorySystem
                 ISlot slot = _slots[i];
                 if (slot.IsOccupied || !slot.CheckSlotCondition(item)) continue;
 
-                // 克隆物品
-                IItem itemToAdd = item.Clone();
-                itemToAdd.Count = addCount;
-                
-                // 分配UID给新克隆的物品
-                if (itemToAdd.ItemUID == -1 && InventoryService != null)
+                IItem itemToAdd = ItemFactory?.CloneItem(item, addCount) ?? item.Clone();
+                if (ItemFactory == null)
                 {
-                    InventoryService.AssignItemUID(itemToAdd);
+                    // 如果没有ItemFactory，需要手动设置Count并分配UID
+                    itemToAdd.Count = addCount;
+                    if (itemToAdd.ItemUID == -1 && InventoryService != null)
+                    {
+                        InventoryService.AssignItemUID(itemToAdd);
+                    }
                 }
                 
                 if (slot.SetItem(itemToAdd))
@@ -1611,14 +1614,15 @@ namespace EasyPack.InventorySystem
                     ? Mathf.Min(remainingCount, item.MaxStackCount)
                     : 1; // 不可堆叠物品
 
-                // 克隆物品
-                IItem itemToAdd = item.Clone();
-                itemToAdd.Count = addCount;
-                
-                // 分配UID给新克隆的物品
-                if (itemToAdd.ItemUID == -1 && InventoryService != null)
+                IItem itemToAdd = ItemFactory?.CloneItem(item, addCount) ?? item.Clone();
+                if (ItemFactory == null)
                 {
-                    InventoryService.AssignItemUID(itemToAdd);
+                    // 如果没有ItemFactory，需要手动设置Count并分配UID
+                    itemToAdd.Count = addCount;
+                    if (itemToAdd.ItemUID == -1 && InventoryService != null)
+                    {
+                        InventoryService.AssignItemUID(itemToAdd);
+                    }
                 }
                 
                 if (newSlot.CheckSlotCondition(itemToAdd) && newSlot.SetItem(itemToAdd))

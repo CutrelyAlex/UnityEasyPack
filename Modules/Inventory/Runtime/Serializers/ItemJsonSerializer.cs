@@ -76,9 +76,6 @@ namespace EasyPack.InventorySystem
                 item.ContainerIds = new(dto.ContainerIds);
             }
             
-            // 注意：Category、Tags、RuntimeMetadata 需要在恢复时通过 CategoryManager 重新注册
-            // 这里只存储序列化的值，实际恢复在 InventoryService.RestoreItem 中处理
-
             return item;
         }
 
