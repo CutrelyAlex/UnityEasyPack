@@ -139,6 +139,7 @@ namespace EasyPack.InventorySystem
 
                 IItem item = sourceSlot.Item;
                 int itemCount = sourceSlot.ItemCount;
+                long originalUID = item.ItemUID; // 保存原始UID
 
                 // 检查全局条件
                 if (!ValidateGlobalItemConditions(item))
@@ -147,7 +148,8 @@ namespace EasyPack.InventorySystem
                 }
 
                 // 尝试添加到目标容器
-                (AddItemResult addResult, int addedCount) = targetContainer.AddItems(item, itemCount, toSlot);
+                item.Count = itemCount;
+                (AddItemResult addResult, int addedCount) = targetContainer.AddItems(item, slotIndex: toSlot);
 
                 if (addResult == AddItemResult.Success && addedCount > 0)
                 {
@@ -156,6 +158,22 @@ namespace EasyPack.InventorySystem
 
                     if (removeResult == RemoveItemResult.Success)
                     {
+                        // 如果是完整移动单个非堆叠物品，恢复原始UID到目标容器的物品
+                        if (toSlot >= 0 && toSlot < targetContainer.Slots.Count)
+                        {
+                            var targetSlotItem = targetContainer.Slots[toSlot].Item;
+                            if (targetSlotItem != null && targetSlotItem.ItemUID != originalUID && originalUID != -1)
+                            {
+                                // 注销新分配的UID，恢复原始UID
+                                UnregisterItemUID(targetSlotItem.ItemUID);
+                                targetSlotItem.ItemUID = originalUID;
+                                lock (_lock)
+                                {
+                                    _itemsByUID[originalUID] = targetSlotItem;
+                                }
+                            }
+                        }
+                        
                         OnItemMoved?.Invoke(fromContainerId, fromSlot, toContainerId, item, addedCount);
                         return MoveResult.Success;
                     }
@@ -232,8 +250,10 @@ namespace EasyPack.InventorySystem
                     return (MoveResult.ItemConditionNotMet, 0);
                 }
 
-                // 尝试添加到目标容器
-                (AddItemResult addResult, int addedCount) = targetContainer.AddItems(lookupResult.Item, count);
+                // 克隆物品用于转移，避免修改源容器中的物品
+                IItem transferItem = ItemFactory?.CloneItem(lookupResult.Item) ?? lookupResult.Item.Clone();
+                transferItem.Count = count;
+                (AddItemResult addResult, int addedCount) = targetContainer.AddItems(transferItem);
 
                 if (addResult == AddItemResult.Success && addedCount > 0)
                 {
@@ -452,7 +472,8 @@ namespace EasyPack.InventorySystem
                 {
                     if (remainingCount <= 0) break;
 
-                    (AddItemResult addResult, int addedCount) = container.AddItems(item, remainingCount);
+                    item.Count = remainingCount;
+                    (AddItemResult addResult, int addedCount) = container.AddItems(item);
 
                     switch (addResult)
                     {

@@ -304,6 +304,58 @@ namespace EasyPack.InventorySystem
             }
         }
 
+        /// <summary>
+        ///     分配或恢复物品UID（用于反序列化场景）
+        /// </summary>
+        /// <param name="item">要处理的物品</param>
+        /// <param name="preserveUID">是否尝试保留原UID，若为false则总是分配新UID</param>
+        /// <returns>最终分配的UID</returns>
+        public long AssignOrRestoreItemUID(IItem item, bool preserveUID = false)
+        {
+            if (item == null) return -1;
+
+            lock (_lock)
+            {
+                long requestedUID = item.ItemUID;
+
+                // 如果不保留UID或UID为-1，直接分配新UID
+                if (!preserveUID || requestedUID == -1)
+                {
+                    long newUID = _nextItemUID++;
+                    item.ItemUID = newUID;
+                    _itemsByUID[newUID] = item;
+                    return newUID;
+                }
+
+                // 尝试恢复原UID
+                if (_itemsByUID.TryGetValue(requestedUID, out IItem existingItem))
+                {
+                    // UID冲突
+                    if (!ReferenceEquals(existingItem, item))
+                    {
+                        // 分配新UID
+                        long newUID = _nextItemUID++;
+                        item.ItemUID = newUID;
+                        _itemsByUID[newUID] = item;
+                        return newUID;
+                    }
+                    // 同一个对象，保持原UID
+                    return requestedUID;
+                }
+
+                // 无冲突，使用原UID
+                _itemsByUID[requestedUID] = item;
+
+                // 更新_nextItemUID以避免将来冲突
+                if (requestedUID >= _nextItemUID)
+                {
+                    _nextItemUID = requestedUID + 1;
+                }
+
+                return requestedUID;
+            }
+        }
+
         #endregion
 
         #region 容器注册与查询

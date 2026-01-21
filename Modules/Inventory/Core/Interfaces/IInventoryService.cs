@@ -54,6 +54,14 @@ namespace EasyPack.InventorySystem
         IItem GetItemByUID(long uid);
         void UnregisterItemUID(long uid);
         bool IsUIDRegistered(long uid);
+        
+        /// <summary>
+        /// 分配或恢复物品UID（用于反序列化场景）
+        /// </summary>
+        /// <param name="item">要处理的物品</param>
+        /// <param name="preserveUID">是否尝试保留原UID，若为false则总是分配新UID</param>
+        /// <returns>最终分配的UID</returns>
+        long AssignOrRestoreItemUID(IItem item, bool preserveUID = false);
 
         // 服务管理
         void Reset();
