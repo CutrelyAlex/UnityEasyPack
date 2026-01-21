@@ -92,7 +92,8 @@ namespace EasyPack.InventorySystem.Example
 
             // 创建物品并添加到容器
             Item testItem = CreateGameItem("test_item", "测试物品", true, 10, "Item");
-            testBackpack.AddItems(testItem, 5);
+            testItem.Count = 5;
+            testBackpack.AddItems(testItem);
             Debug.Log("已向容器添加物品");
 
             // 全局搜索测试
@@ -140,13 +141,15 @@ namespace EasyPack.InventorySystem.Example
             Item goldCoin = CreateGameItem("gold_coin", "金币", true, 999, "Currency");
 
             // 向背包中添加物品
-            (AddItemResult result, _) = playerBackpack.AddItems(healthPotion, 5);
+            healthPotion.Count = 5;
+            (AddItemResult result, _) = playerBackpack.AddItems(healthPotion);
             Debug.Log($"添加5瓶生命药水: {(result == AddItemResult.Success ? "成功" : "失败")}");
 
             (AddItemResult result, int actualCount) swordResult = playerBackpack.AddItems(woodSword);
             Debug.Log($"添加木剑: {(swordResult.result == AddItemResult.Success ? "成功" : "失败")}");
 
-            (AddItemResult result, int actualCount) coinResult = playerBackpack.AddItems(goldCoin, 100);
+            goldCoin.Count = 100;
+            (AddItemResult result, int actualCount) coinResult = playerBackpack.AddItems(goldCoin);
             Debug.Log($"添加100金币: {(coinResult.result == AddItemResult.Success ? "成功" : "失败")}");
 
             // 显示背包内容
@@ -165,12 +168,14 @@ namespace EasyPack.InventorySystem.Example
             Item arrow = CreateGameItem("arrow", "箭矢", true, 99, "Ammunition");
 
             // 第一次添加50支箭矢
-            playerBackpack.AddItems(arrow, 50);
+            arrow.Count = 50;
+            playerBackpack.AddItems(arrow);
             Debug.Log("添加了50支箭矢到背包中");
             DisplayInventoryContents(playerBackpack);
 
             // 再添加60支箭矢 (会自动堆叠到99上限，剩余的放入新格子)
-            playerBackpack.AddItems(arrow, 60);
+            arrow.Count = 60;
+            playerBackpack.AddItems(arrow);
             Debug.Log("又添加了60支箭矢到背包中");
             Debug.Log("由于单格堆叠上限为99，系统自动将箭矢分配到多个格子中");
             DisplayInventoryContents(playerBackpack);
@@ -200,8 +205,10 @@ namespace EasyPack.InventorySystem.Example
             Item gem = CreateGameItem("ruby", "红宝石", true, 10, "Gem");
             Item helmet = CreateGameItem("leather_helmet", "皮革头盔", false, 1, "Equipment");
 
-            playerBackpack.AddItems(ore, 40);
-            playerBackpack.AddItems(gem, 5);
+            ore.Count = 40;
+            playerBackpack.AddItems(ore);
+            gem.Count = 5;
+            playerBackpack.AddItems(gem);
             playerBackpack.AddItems(helmet);
 
             Debug.Log("背包初始内容:");
@@ -237,9 +244,12 @@ namespace EasyPack.InventorySystem.Example
             Item manaPotion = CreateGameItem("mana_potion", "魔法药水", true, 20, "Consumable");
             Item bread = CreateGameItem("bread", "面包", true, 10, "Food");
 
-            playerBackpack.AddItems(healthPotion, 5);
-            playerBackpack.AddItems(manaPotion, 3);
-            playerBackpack.AddItems(bread, 7);
+            healthPotion.Count = 5;
+            playerBackpack.AddItems(healthPotion);
+            manaPotion.Count = 3;
+            playerBackpack.AddItems(manaPotion);
+            bread.Count = 7;
+            playerBackpack.AddItems(bread);
 
             Debug.Log("初始背包内容:");
             DisplayInventoryContents(playerBackpack);
@@ -278,12 +288,22 @@ namespace EasyPack.InventorySystem.Example
 
             // 添加各种类型的物品，故意打乱顺序
             playerBackpack.AddItems(CreateGameItem("iron_sword", "铁剑", false, 1, "B武器"));
-            playerBackpack.AddItems(CreateGameItem("apple", "苹果", true, 10, "D食物"), 3);
+            var apple6 = CreateGameItem("apple", "苹果", true, 10, "D食物");
+            apple6.Count = 3;
+            playerBackpack.AddItems(apple6);
             playerBackpack.AddItems(CreateGameItem("leather_shield", "皮盾", false, 1, "C防具"));
-            playerBackpack.AddItems(CreateGameItem("health_potion", "生命药水", true, 10, "A消耗品"), 5);
-            playerBackpack.AddItems(CreateGameItem("mana_potion", "魔法药水", true, 10, "A消耗品"), 2);
-            playerBackpack.AddItems(CreateGameItem("gold_coin", "金币", true, 100, "E货币"), 65);
-            playerBackpack.AddItems(CreateGameItem("silver_coin", "银币", true, 100, "E货币"), 32);
+            var hp6 = CreateGameItem("health_potion", "生命药水", true, 10, "A消耗品");
+            hp6.Count = 5;
+            playerBackpack.AddItems(hp6);
+            var mp6 = CreateGameItem("mana_potion", "魔法药水", true, 10, "A消耗品");
+            mp6.Count = 2;
+            playerBackpack.AddItems(mp6);
+            var gold6 = CreateGameItem("gold_coin", "金币", true, 100, "E货币");
+            gold6.Count = 65;
+            playerBackpack.AddItems(gold6);
+            var silver6 = CreateGameItem("silver_coin", "银币", true, 100, "E货币");
+            silver6.Count = 32;
+            playerBackpack.AddItems(silver6);
 
             Debug.Log("整理前的背包内容(随机顺序):");
             DisplayInventoryContents(playerBackpack);
@@ -312,9 +332,11 @@ namespace EasyPack.InventorySystem.Example
             gem.SetCustomData("Quality", "Rare");
             gem.SetCustomData("Power", 12.5f);
 
-            bag.AddItems(potion, 15);
+            potion.Count = 15;
+            bag.AddItems(potion);
             bag.AddItems(sword);
-            bag.AddItems(gem, 7, 3);
+            gem.Count = 7;
+            bag.AddItems(gem, slotIndex: 3);
 
             Debug.Log("原始背包内容：");
             DisplayInventoryContents(bag);
@@ -351,11 +373,17 @@ namespace EasyPack.InventorySystem.Example
             Item potion = CreateGameItem("potion", "药水", true, 20, "Consumable");
             Item sword = CreateGameItem("iron_sword", "铁剑", false, 1, "Weapon");
 
-            bag.AddItems(apple, 7, 0); // 0: 7
-            bag.AddItems(apple, 9, 3); // 3: 9 -> 会与0合并成 10 + 6
-            bag.AddItems(potion, 15, 6); // 6: 15
-            bag.AddItems(potion, 8, 8); // 8: 8 -> 合并 20 + 3
-            bag.AddItems(sword, 5); // 若不可堆叠多把占多个槽
+            apple.Count = 7;
+            bag.AddItems(apple, slotIndex: 0); // 0: 7
+            var apple2 = apple.Clone();
+            apple2.Count = 9;
+            bag.AddItems(apple2, slotIndex: 3); // 3: 9 -> 会与0合并成 10 + 6
+            potion.Count = 15;
+            bag.AddItems(potion, slotIndex: 6); // 6: 15
+            var potion2 = potion.Clone();
+            potion2.Count = 8;
+            bag.AddItems(potion2, slotIndex: 8); // 8: 8 -> 合并 20 + 3
+            for (int i = 0; i < 5; i++) bag.AddItems(sword.Clone()); // 若不可堆叠多把占多个槽
 
             Debug.Log("整理前：");
             DisplayInventoryContents(bag);
@@ -388,8 +416,10 @@ namespace EasyPack.InventorySystem.Example
 
             bag.AddItems(ironSword);
             bag.AddItems(steelSword);
-            bag.AddItems(hp, 7);
-            bag.AddItems(mp, 5);
+            hp.Count = 7;
+            bag.AddItems(hp);
+            mp.Count = 5;
+            bag.AddItems(mp);
 
             Debug.Log($"HasItem(iron_sword) = {bag.HasItem("iron_sword")}");
             Debug.Log($"生命药水总数 = {bag.GetItemTotalCount("health_potion")}");
@@ -485,7 +515,8 @@ namespace EasyPack.InventorySystem.Example
             _inventoryService.RegisterContainer(extra);
 
             Item apple = CreateGameItem("apple", "苹果", true, 10, "Food");
-            src.AddItems(apple, 23); // 10 + 10 + 3
+            apple.Count = 23;
+            src.AddItems(apple); // 10 + 10 + 3
 
             // Transfer 指定数量
             (InventoryService.MoveResult trRes, int movedCount) =
@@ -528,9 +559,12 @@ namespace EasyPack.InventorySystem.Example
             sword.SetCustomData("Material", "Iron");
             Item potion = CreateGameItem("potion", "药水", true, 20, "Consumable");
 
-            b1.AddItems(apple, 7);
-            b2.AddItems(apple, 11);
-            b1.AddItems(potion, 5);
+            apple.Count = 7;
+            b1.AddItems(apple);
+            apple.Count = 11;
+            b2.AddItems(apple);
+            potion.Count = 5;
+            b1.AddItems(potion);
             eq.AddItems(sword);
 
             var applePositions = _inventoryService.FindItemGlobally("apple");
@@ -561,7 +595,8 @@ namespace EasyPack.InventorySystem.Example
             Item gem = CreateGameItem("mystic_gem", "秘法宝石", true, 30, "Gem");
             gem.SetCustomData("Level", 8);
             gem.SetCustomData("Quality", "Epic");
-            chest.AddItems(gem, 12);
+            gem.Count = 12;
+            chest.AddItems(gem);
 
             // 从架构获取序列化服务
             var serializationService = await EasyPackArchitecture.Instance.ResolveAsync<ISerializationService>();
@@ -597,12 +632,14 @@ namespace EasyPack.InventorySystem.Example
             Item itemB = CreateGameItem("b_item", "物品B", false, 1, "Misc");
 
             // 指定槽位
-            limited.AddItems(itemA, 1, 2);
+            itemA.Count = 1;
+            limited.AddItems(itemA, slotIndex: 2);
             Debug.Log("指定槽位2放入物品A");
             DisplayInventoryContents(limited);
 
             // 再放不同物品到同槽 -> 应失败
-            (AddItemResult resFail, _) = limited.AddItems(itemB, 1, 2);
+            itemB.Count = 1;
+            (AddItemResult resFail, _) = limited.AddItems(itemB, slotIndex: 2);
             Debug.Log($"尝试在已占用不同物品槽添加 => {resFail}");
 
             // 填满
