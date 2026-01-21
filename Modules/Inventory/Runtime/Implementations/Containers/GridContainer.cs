@@ -211,9 +211,8 @@ namespace EasyPack.InventorySystem
         /// <param name="item">物品</param>
         /// <param name="x">X坐标</param>
         /// <param name="y">Y坐标</param>
-        /// <param name="count">数量（对于网格物品通常为1）</param>
         /// <returns>添加结果和实际添加数量</returns>
-        public (AddItemResult result, int actualCount) AddItemAt(IItem item, int x, int y, int count = 1)
+        public (AddItemResult result, int actualCount) AddItemAt(IItem item, int x, int y)
         {
             if (item == null)
             {
@@ -221,22 +220,22 @@ namespace EasyPack.InventorySystem
             }
 
             int slotIndex = CoordToIndex(x, y);
-            return slotIndex < 0 ? (AddItemResult.SlotNotFound, 0) : AddItems(item, count, slotIndex);
+            return slotIndex < 0 ? (AddItemResult.SlotNotFound, 0) : AddItems(item, slotIndex: slotIndex);
         }
 
         /// <summary>
         ///     重写添加物品方法以支持网格物品
         /// </summary>
-        public override (AddItemResult result, int actualCount) AddItems(IItem item, int count = 1, int slotIndex = -1)
+        public override (AddItemResult result, int actualCount) AddItems(IItem item, int slotIndex = -1, bool autoStack = true)
         {
             if (item == null)
             {
                 return (AddItemResult.ItemIsNull, 0);
             }
 
-            if (count <= 0)
+            if (item.Count <= 0)
             {
-                return (AddItemResult.AddNothingLOL, 0);
+                return (AddItemResult.InvalidCount, 0);
             }
 
             // 检查容器条件
@@ -246,23 +245,70 @@ namespace EasyPack.InventorySystem
             }
 
             // 如果是网格物品，使用特殊逻辑
-            if (item is GridItem gridItem) return AddGridItem(gridItem, count, slotIndex);
+            if (item is GridItem gridItem) return AddGridItem(gridItem, slotIndex);
 
             // 普通物品使用基类逻辑
-            return base.AddItems(item, count, slotIndex);
+            return base.AddItems(item, slotIndex, autoStack);
         }
 
         /// <summary>
         ///     添加网格物品的专用方法
         /// </summary>
-        private (AddItemResult result, int actualCount) AddGridItem(GridItem gridItem, int count, int slotIndex)
+        private (AddItemResult result, int actualCount) AddGridItem(GridItem gridItem, int slotIndex)
         {
-            // 网格物品通常不可堆叠
-            if (count != 1)
+            // 如果是可堆叠的网格物品，尝试堆叠
+            if (gridItem.IsStackable && slotIndex < 0)
             {
-                return (AddItemResult.AddNothingLOL, 0);
+                // 尝试找到相同的可堆叠网格物品
+                var existingSlots = FindSlotIndices(gridItem.ID);
+                foreach (var existingSlotIndex in existingSlots)
+                {
+                    var existingSlot = _slots[existingSlotIndex];
+                    if (existingSlot.Item is GridItem existingGridItem && 
+                        gridItem.CanStack(existingGridItem))
+                    {
+                        // 堆叠到现有槽位
+                        int oldCount = existingGridItem.Count;
+                        int newCount = oldCount + gridItem.Count;
+                        
+                        // 检查最大堆叠数量
+                        if (gridItem.MaxStackCount > 0 && newCount > gridItem.MaxStackCount)
+                        {
+                            // 如果超过最大堆叠数，填满当前槽位，剩余部分继续寻找或创建新槽位
+                            int canAdd = gridItem.MaxStackCount - oldCount;
+                            if (canAdd > 0)
+                            {
+                                existingGridItem.Count = gridItem.MaxStackCount;
+                                OnSlotQuantityChanged(existingSlotIndex, existingGridItem, oldCount, gridItem.MaxStackCount);
+                                
+                                int remaining = gridItem.Count - canAdd;
+                                if (remaining > 0)
+                                {
+                                    // 创建新的物品实例处理剩余部分
+                                    var remainingItem = gridItem.Clone() as GridItem;
+                                    remainingItem.Count = remaining;
+                                    var (remainResult, remainAdded) = AddGridItem(remainingItem, -1);
+                                    
+                                    TriggerItemTotalCountChanged(gridItem.ID, gridItem);
+                                    return (remainResult, canAdd + remainAdded);
+                                }
+                                
+                                TriggerItemTotalCountChanged(gridItem.ID, gridItem);
+                                return (AddItemResult.Success, canAdd);
+                            }
+                            continue; // 当前槽位已满，继续查找
+                        }
+                        
+                        // 没有超过最大堆叠数，直接合并
+                        existingGridItem.Count = newCount;
+                        OnSlotQuantityChanged(existingSlotIndex, existingGridItem, oldCount, newCount);
+                        TriggerItemTotalCountChanged(gridItem.ID, gridItem);
+                        return (AddItemResult.Success, gridItem.Count);
+                    }
+                }
             }
 
+            // 无法堆叠或不可堆叠，创建新槽位
             // 如果指定了槽位，检查该位置是否可以放置
             if (slotIndex >= 0)
             {
@@ -273,7 +319,7 @@ namespace EasyPack.InventorySystem
 
                 // 放置物品并占用空间
                 PlaceGridItem(gridItem, slotIndex);
-                return (AddItemResult.Success, 1);
+                return (AddItemResult.Success, gridItem.Count);
             }
 
             // 自动寻找可放置位置
@@ -284,7 +330,7 @@ namespace EasyPack.InventorySystem
             }
 
             PlaceGridItem(gridItem, targetIndex);
-            return (AddItemResult.Success, 1);
+            return (AddItemResult.Success, gridItem.Count);
         }
 
         /// <summary>
@@ -341,7 +387,7 @@ namespace EasyPack.InventorySystem
                     _cacheService.UpdateEmptySlotCache(currentIndex, false);
                     _cacheService.UpdateItemSlotIndexCache(gridItem.ID, currentIndex, true);
                     _cacheService.UpdateItemTypeCache(gridItem.Type, currentIndex, true);
-                    _cacheService.UpdateItemCountCache(gridItem.ID, 1);
+                    _cacheService.UpdateItemCountCache(gridItem.ID, gridItem.Count);
 
                     isFirst = false;
                 }
@@ -357,7 +403,7 @@ namespace EasyPack.InventorySystem
             }
 
             // 触发槽位变更事件
-            OnSlotQuantityChanged(mainSlotIndex, gridItem, 0, 1);
+            OnSlotQuantityChanged(mainSlotIndex, gridItem, 0, gridItem.Count);
 
             // 触发总数变更事件
             TriggerItemTotalCountChanged(gridItem.ID, gridItem);
