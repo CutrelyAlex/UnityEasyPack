@@ -1308,16 +1308,15 @@ namespace EasyPack.InventorySystem
         /// <summary>
         ///     异步添加物品
         /// </summary>
+        /// <param name="item">要添加的物品</param>
+        /// <param name="slotIndex">指定槽位索引，-1表示自动寻找</param>
+        /// <param name="autoStack">是否自动堆叠</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>添加结果和实际添加数量</returns>
         public async Task<(AddItemResult result, int addedCount)> AddItemsAsync(
-            IItem item, int count, CancellationToken cancellationToken = default)
+            IItem item, int slotIndex = -1, bool autoStack = true, CancellationToken cancellationToken = default)
         {
-            if (item != null) item.Count = count;
-            if (count > 10000 || _slots.Count > 100000)
-            {
-                return await Task.Run(() => AddItems(item), cancellationToken);
-            }
-
-            return AddItems(item);
+            return await Task.Run(() => AddItems(item, slotIndex, autoStack), cancellationToken);
         }
 
         /// <summary>
