@@ -124,7 +124,7 @@ namespace EasyPack.InventorySystem
                 }
             }
         }
-
+        
         /// <summary>
         ///     关联的InventoryService（用于访问CategoryManager）
         ///     可选引用，在ItemFactory创建时设置

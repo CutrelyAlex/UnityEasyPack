@@ -37,24 +37,6 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        ///     移动操作结果
-        /// </summary>
-        public enum MoveResult
-        {
-            Success,
-            SourceContainerNotFound,
-            TargetContainerNotFound,
-            SourceSlotEmpty,
-            SourceSlotNotFound,
-            TargetSlotNotFound,
-            ItemNotFound,
-            InsufficientQuantity,
-            TargetContainerFull,
-            ItemConditionNotMet,
-            Failed,
-        }
-
-        /// <summary>
         ///     快速物品查找
         /// </summary>
         private static ItemLookupResult QuickFindItem(Container container, string itemId, int maxCount = int.MaxValue)

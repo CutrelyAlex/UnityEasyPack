@@ -67,16 +67,16 @@ namespace EasyPack.InventorySystem
         void Reset();
 
         // 跨容器操作
-        InventoryService.MoveResult MoveItem(string fromContainerId, int fromSlot, string toContainerId,
+        MoveResult MoveItem(string fromContainerId, int fromSlot, string toContainerId,
                                              int toSlot = -1);
 
-        (InventoryService.MoveResult result, int transferredCount) TransferItems(string itemId, int count,
+        (MoveResult result, int transferredCount) TransferItems(string itemId, int count,
             string fromContainerId, string toContainerId);
 
-        (InventoryService.MoveResult result, int transferredCount) AutoMoveItem(string itemId, string fromContainerId,
+        (MoveResult result, int transferredCount) AutoMoveItem(string itemId, string fromContainerId,
             string toContainerId);
 
-        List<(InventoryService.MoveRequest request, InventoryService.MoveResult result, int movedCount)> BatchMoveItems(
+        List<(InventoryService.MoveRequest request, MoveResult result, int movedCount)> BatchMoveItems(
             List<InventoryService.MoveRequest> requests);
 
         Dictionary<string, int> DistributeItems(IItem item, int totalCount, List<string> targetContainerIds);
@@ -102,7 +102,7 @@ namespace EasyPack.InventorySystem
         event Action<string, int, string, IItem, int> OnItemMoved;
         event Action<string, string, string, int> OnItemsTransferred;
 
-        event Action<List<(InventoryService.MoveRequest request, InventoryService.MoveResult result, int
+        event Action<List<(InventoryService.MoveRequest request, MoveResult result, int
             movedCount)>> OnBatchMoveCompleted;
 
         event Action<IItem, int, Dictionary<string, int>, int> OnItemsDistributed;
