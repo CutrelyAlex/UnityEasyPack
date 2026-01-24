@@ -61,6 +61,36 @@ namespace EasyPack.InventorySystem
         /// <summary>自定义数据列表，支持多种类型的键值对存储</summary>
         CustomDataCollection CustomData { get; set; }
 
+        /// <summary>
+        ///     获取自定义数据值
+        /// </summary>
+        /// <typeparam name="T">数据类型</typeparam>
+        /// <param name="id">数据键</param>
+        /// <param name="defaultValue">默认值</param>
+        /// <returns>数据值或默认值</returns>
+        T GetCustomData<T>(string id, T defaultValue = default);
+
+        /// <summary>
+        ///     设置自定义数据值
+        /// </summary>
+        /// <param name="id">数据键</param>
+        /// <param name="value">数据值</param>
+        void SetCustomData(string id, object value);
+
+        /// <summary>
+        ///     移除自定义数据
+        /// </summary>
+        /// <param name="id">数据键</param>
+        /// <returns>是否成功移除</returns>
+        bool RemoveCustomData(string id);
+
+        /// <summary>
+        ///     检查是否存在自定义数据
+        /// </summary>
+        /// <param name="id">数据键</param>
+        /// <returns>是否存在</returns>
+        bool HasCustomData(string id);
+
         IItem Clone();
     }
 
@@ -124,7 +154,7 @@ namespace EasyPack.InventorySystem
                 }
             }
         }
-        
+
         /// <summary>
         ///     关联的InventoryService（用于访问CategoryManager）
         ///     可选引用，在ItemFactory创建时设置
