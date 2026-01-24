@@ -15,7 +15,7 @@ namespace EasyPack.InventorySystem
         public float Weight;
         public bool IsStackable;
         public int MaxStackCount;
-        public bool isContanierItem;
+        public bool isContainerItem;
         public long ItemUID;
         
         /// <summary>

@@ -31,7 +31,7 @@ namespace EasyPack.InventorySystem
                 RuntimeMetadata = obj.RuntimeMetadata is { Count: > 0 }
                     ? new List<CustomDataEntry>(obj.RuntimeMetadata)
                     : null,
-                isContanierItem = obj.IsContainerItem,
+                isContainerItem = obj.IsContainerItem,
                 CustomData = obj.CustomData is { Count: > 0 }
                     ? new List<CustomDataEntry>(obj.CustomData)
                     : null,
@@ -59,7 +59,7 @@ namespace EasyPack.InventorySystem
                 MaxStackCount = dto.MaxStackCount,
                 ItemUID = dto.ItemUID,
                 Count = count,
-                IsContainerItem = dto.isContanierItem,
+                IsContainerItem = dto.isContainerItem,
             };
             if (dto.CustomData is { Count: > 0 })
             {
