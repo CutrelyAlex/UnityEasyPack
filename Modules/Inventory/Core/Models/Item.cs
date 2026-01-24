@@ -64,63 +64,6 @@ namespace EasyPack.InventorySystem
         IItem Clone();
     }
 
-    /// <summary>
-    ///     IItem 接口的扩展方法，提供 CustomData 操作的便利方法
-    /// </summary>
-    public static class IItemExtensions
-    {
-        /// <summary>获取自定义数据值</summary>
-        /// <typeparam name="T">期望的值类型</typeparam>
-        /// <param name="item">物品实例</param>
-        /// <param name="id">数据键</param>
-        /// <param name="defaultValue">默认值</param>
-        /// <returns>找到的值或默认值</returns>
-        public static T GetCustomData<T>(this IItem item, string id, T defaultValue = default) =>
-            item.CustomData.Get(id, defaultValue);
-
-        /// <summary>设置自定义数据值</summary>
-        /// <param name="item">物品实例</param>
-        /// <param name="id">数据键</param>
-        /// <param name="value">要设置的值</param>
-        public static void SetCustomData(this IItem item, string id, object value)
-        {
-            if (item is Item concreteItem && concreteItem.InventoryService?.CategoryManager != null && concreteItem.ItemUID >= 0)
-            {
-                var metadata = concreteItem.InventoryService.CategoryManager.GetOrAddMetadata(concreteItem.ItemUID);
-                if (metadata != null)
-                {
-                    metadata.Set(id, value);
-                    return;
-                }
-            }
-            
-            // 回退到本地存储
-            item.CustomData.Set(id, value);
-        }
-
-        /// <summary>移除自定义数据</summary>
-        /// <param name="item">物品实例</param>
-        /// <param name="id">数据键</param>
-        /// <returns>是否成功移除</returns>
-        public static bool RemoveCustomData(this IItem item, string id)
-        {
-            if (item is Item concreteItem && concreteItem.InventoryService?.CategoryManager != null && concreteItem.ItemUID >= 0)
-            {
-                if (!concreteItem.InventoryService.CategoryManager.HasMetadata(concreteItem.ItemUID)) return false;
-                var metadata = concreteItem.InventoryService.CategoryManager.GetMetadata(concreteItem.ItemUID);
-                return metadata.Remove(id);
-            }
-
-            return item.CustomData.Remove(id);
-        }
-
-        /// <summary>检查是否存在自定义数据</summary>
-        /// <param name="item">物品实例</param>
-        /// <param name="id">数据键</param>
-        /// <returns>是否存在</returns>
-        public static bool HasCustomData(this IItem item, string id) => item.CustomData.HasValue(id);
-    }
-
     public class Item : IItem
     {
         #region 基本属性
