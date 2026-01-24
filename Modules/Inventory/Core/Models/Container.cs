@@ -1224,21 +1224,6 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        ///     添加物品到容器（TODO: 带数量参数，已废弃）
-        /// </summary>
-        /// <param name="item">要添加的物品</param>
-        /// <param name="count">添加数量</param>
-        /// <param name="slotIndex">指定的槽位索引，-1表示自动寻找合适的槽位</param>
-        /// <returns>添加结果和成功添加的数量</returns>
-        [Obsolete("请使用 AddItems(IItem item, int slotIndex, bool autoStack) 并预设 item.Count。此重载将在下一个版本移除。")]
-        public virtual (AddItemResult result, int actualCount)
-            AddItems(IItem item, int count, int slotIndex) 
-        {
-            if (item != null) item.Count = count;
-            return AddItemsWithCount(item, out _, count, slotIndex, true);
-        }
-
-        /// <summary>
         ///     添加指定数量的物品到容器（已废弃）
         /// </summary>
         /// <param name="item">要添加的物品</param>
@@ -1734,7 +1719,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>
-        ///     清��所有槽位
+        ///     清空所有槽位
         /// </summary>
         public virtual void ClearAllSlots()
         {

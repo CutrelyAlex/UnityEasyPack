@@ -69,16 +69,6 @@ namespace EasyPack.InventorySystem
         (AddItemResult result, int actualCount) AddItems(IItem item, int slotIndex = -1, bool autoStack = true);
 
         /// <summary>
-        ///     添加物品到容器（带数量参数，已废弃）
-        /// </summary>
-        /// <param name="item">要添加的物品</param>
-        /// <param name="count">添加数量</param>
-        /// <param name="slotIndex">指定槽位索引，-1 表示自动查找</param>
-        /// <returns>操作结果和实际添加数量</returns>
-        [Obsolete("请使用 AddItems(IItem item, int slotIndex, bool autoStack) 并预设 item.Count。此重载将在接下来的版本移除。")]
-        (AddItemResult result, int actualCount) AddItems(IItem item, int count, int slotIndex);
-
-        /// <summary>
         ///     通过ItemData模板添加物品到容器
         /// </summary>
         /// <param name="itemData">物品模板数据</param>
