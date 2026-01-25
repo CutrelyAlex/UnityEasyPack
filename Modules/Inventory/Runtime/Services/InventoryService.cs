@@ -12,6 +12,8 @@ namespace EasyPack.InventorySystem
 {
     /// <summary>
     ///     多个容器管理的系统，实现 IService 接口以支持 ENekoFramework
+    /// TODO: 考虑BatchCacheUpdata的必要性
+    /// TODO: 考虑独立缓存设置的必要性
     /// </summary>
     public partial class InventoryService : BaseService, IInventoryService
     {
@@ -19,6 +21,7 @@ namespace EasyPack.InventorySystem
 
         /// <summary>
         ///     线程锁，用于保证线程安全
+        /// TODO: 考虑简化Inventory的锁逻辑
         /// </summary>
         private readonly object _lock = new();
 
