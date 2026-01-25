@@ -76,16 +76,7 @@ namespace EasyPack.CustomData
                     }
                     catch
                     {
-                        // TODO: 向后兼容，之后删除
-                        var oldWrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(data);
-                        if (oldWrapper?.items != null)
-                        {
-                            entry.EntryListValue = new CustomDataCollection(oldWrapper.items);
-                        }
-                        else
-                        {
-                            entry.EntryListValue = new CustomDataCollection();
-                        }
+                        entry.EntryListValue = new CustomDataCollection();
                     }
                 }
 
@@ -155,16 +146,6 @@ namespace EasyPack.CustomData
         {
             public List<CustomDataEntry> items = new();
             public string collectionType = "CustomDataCollection";
-        }
-
-        /// <summary>
-        ///     用于序列化的包装器类
-        ///     TODO: 向后兼容，之后删除
-        /// </summary>
-        [Serializable]
-        private class CustomDataCollectionWrapper
-        {
-            public List<CustomDataEntry> items = new();
         }
     }
 }
