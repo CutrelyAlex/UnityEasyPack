@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Reflection;
 using System.Threading.Tasks;
 using EasyPack.ENekoFramework;
 using UnityEngine;
@@ -25,22 +24,6 @@ namespace EasyPack.ObjectPool
         }
 
         /// <summary>
-        ///     服务暂停时调用。
-        /// </summary>
-        protected override void OnPause()
-        {
-            Debug.Log("[ObjectPoolService] 对象池服务已暂停");
-        }
-
-        /// <summary>
-        ///     服务恢复时调用。
-        /// </summary>
-        protected override void OnResume()
-        {
-            Debug.Log("[ObjectPoolService] 对象池服务已恢复");
-        }
-
-        /// <summary>
         ///     服务释放时调用，清空所有对象池。
         /// </summary>
         protected override Task OnDisposeAsync()
@@ -49,16 +32,13 @@ namespace EasyPack.ObjectPool
 
             foreach (var kvp in _pools)
             {
-                if (kvp.Value is IDisposable disposable)
+                if (kvp.Value is IClearable clearable)
+                {
+                    clearable.Clear();
+                }
+                else if (kvp.Value is IDisposable disposable)
                 {
                     disposable.Dispose();
-                }
-                else
-                {
-                    // 尝试调用 Clear 方法
-                    Type poolType = kvp.Value.GetType();
-                    MethodInfo clearMethod = poolType.GetMethod("Clear");
-                    clearMethod?.Invoke(kvp.Value, null);
                 }
             }
 
