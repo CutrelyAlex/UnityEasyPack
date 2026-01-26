@@ -25,24 +25,6 @@ namespace EasyPack.Architecture
             // Services
             Container.Register<ISerializationService, SerializationService>();
             Container.Register<IObjectPoolService, ObjectPoolService>();
-
-            // 异步预热专用对象池（防止首次使用时的阻塞初始化）
-            _ = InitializePoolsAsync();
-        }
-
-        /// <summary>
-        ///     异步预热常用集合池
-        /// </summary>
-        private async Task InitializePoolsAsync()
-        {
-            // 预热常用类型的专用池
-            await ListPool<int>.InitializeAsync(1024 * 16);
-            await ListPool<string>.InitializeAsync(1024 * 16);
-            await ListPool<double>.InitializeAsync(1024 * 16);
-            await HashSetPool<int>.InitializeAsync(1024 * 16);
-            await HashSetPool<string>.InitializeAsync(1024 * 16);
-            await HashSetPool<double>.InitializeAsync(1024 * 16);
-            await StackPool<int>.InitializeAsync(1024 * 16);
         }
 
         public static async Task<ISerializationService> GetSerializationServiceAsync() =>
