@@ -32,8 +32,8 @@ namespace EasyPack.InventorySystem
                     ? new List<CustomDataEntry>(obj.RuntimeMetadata)
                     : null,
                 isContainerItem = obj.IsContainerItem,
-                CustomData = obj.CustomData is { Count: > 0 }
-                    ? new List<CustomDataEntry>(obj.CustomData)
+                CustomData = obj.RuntimeMetadata is { Count: > 0 }
+                    ? new List<CustomDataEntry>(obj.RuntimeMetadata)
                     : null,
                 ContainerIds = obj.IsContainerItem && obj.ContainerIds is { Count: > 0 }
                     ? new List<string>(obj.ContainerIds)
@@ -63,11 +63,11 @@ namespace EasyPack.InventorySystem
             };
             if (dto.CustomData is { Count: > 0 })
             {
-                item.CustomData = new(dto.CustomData);
+                item.RuntimeMetadata = new(dto.CustomData);
             }
             else
             {
-                item.CustomData = new();
+                item.RuntimeMetadata = new();
             }
 
             if (dto.ContainerIds is { Count: > 0 })

@@ -61,8 +61,8 @@ namespace EasyPack.InventorySystem
                 IsStackable = item.IsStackable,
                 Weight = item.Weight,
                 isContanierItem = item.IsContainerItem,
-                CustomData = item.CustomData is { Count: > 0 }
-                    ? new List<CustomDataEntry>(item.CustomData)
+                CustomData = item.RuntimeMetadata is { Count: > 0 }
+                    ? new List<CustomDataEntry>(item.RuntimeMetadata)
                     : null,
                 ContainerIds = item.IsContainerItem && item.ContainerIds is { Count: > 0 }
                     ? new List<string>(item.ContainerIds)
@@ -99,11 +99,11 @@ namespace EasyPack.InventorySystem
             // 反序列化 CustomData
             if (dto.CustomData is { Count: > 0 })
             {
-                item.CustomData = new(dto.CustomData);
+                item.RuntimeMetadata = new(dto.CustomData);
             }
             else
             {
-                item.CustomData = new();
+                item.RuntimeMetadata = new();
             }
 
             // 反序列化容器ID列表

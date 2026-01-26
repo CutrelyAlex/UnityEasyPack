@@ -68,7 +68,7 @@ namespace EasyPack.InventorySystem
                 MaxStackCount = itemData.MaxStackCount,
                 Count = count,
                 ItemUID = -1, // 未分配，由InventoryService分配
-                CustomData = new CustomDataCollection(),
+                RuntimeMetadata = new CustomDataCollection(),
                 InventoryService = _inventoryService
             };
 

@@ -436,7 +436,7 @@ namespace EasyPack.InventorySystem.Example
             var nameLike = bag.GetItemsByName("药水");
             Debug.Log($"名称包含 '药水' 的条目数={nameLike.Count}");
 
-            var highDamage = bag.GetItemsWhere(i => i.Type == "Weapon" && i.CustomData.Get<int>("Damage", 0) >= 15);
+            var highDamage = bag.GetItemsWhere(i => i.Type == "Weapon" && i.RuntimeMetadata.Get<int>("Damage", 0) >= 15);
             Debug.Log($"高伤害武器条目数(>=15)={highDamage.Count}");
         }
 
@@ -620,7 +620,7 @@ namespace EasyPack.InventorySystem.Example
             {
                 ISlot slot = restored.Slots[idx];
                 Debug.Log(
-                    $"宝石属性: Level={slot.Item.CustomData.Get<int>("Level", 0)}, Quality={slot.Item.CustomData.Get<string>("Quality", "")}");
+                    $"宝石属性: Level={slot.Item.RuntimeMetadata.Get<int>("Level", 0)}, Quality={slot.Item.RuntimeMetadata.Get<string>("Quality", "")}");
             }
         }
 

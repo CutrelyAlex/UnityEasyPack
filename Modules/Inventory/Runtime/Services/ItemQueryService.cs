@@ -240,12 +240,12 @@ namespace EasyPack.InventorySystem
             if (slotCount > 100)
             {
                 object lockObject = new();
-                Parallel.For(0, slotCount, i =>
+                Parallel.For(0, slotCount, (Action<int>)(i =>
                 {
                     ISlot slot = _slots[i];
                     if (!slot.IsOccupied || slot.Item == null) return;
 
-                    CustomDataEntry entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
+                    CustomDataEntry entry = slot.Item.RuntimeMetadata?.FirstOrDefault<CustomDataEntry>((Func<CustomDataEntry, bool>)(e => e.Key == attributeName));
                     object value = entry?.GetValue();
 
                     if (value == null || (attributeValue != null && !value.Equals(attributeValue))) return;
@@ -254,7 +254,7 @@ namespace EasyPack.InventorySystem
                     {
                         result.Add((i, slot.Item, slot.ItemCount));
                     }
-                });
+                }));
             }
             else
             {
@@ -264,7 +264,7 @@ namespace EasyPack.InventorySystem
                     ISlot slot = _slots[i];
                     if (!slot.IsOccupied || slot.Item == null) continue;
 
-                    CustomDataEntry entry = slot.Item.CustomData?.FirstOrDefault(e => e.Key == attributeName);
+                    CustomDataEntry entry = slot.Item.RuntimeMetadata?.FirstOrDefault(e => e.Key == attributeName);
                     object value = entry?.GetValue();
 
                     if (value != null && (attributeValue == null || value.Equals(attributeValue)))

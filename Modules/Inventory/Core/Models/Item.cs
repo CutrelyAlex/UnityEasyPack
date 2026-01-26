@@ -57,10 +57,7 @@ namespace EasyPack.InventorySystem
         /// <param name="other">要判断堆叠的另一个物品</param>
         /// <returns>是否可以堆叠</returns>
         bool CanStack(IItem other);
-
-        /// <summary>自定义数据列表，支持多种类型的键值对存储</summary>
-        CustomDataCollection CustomData { get; set; }
-
+        
         /// <summary>
         ///     获取自定义数据值
         /// </summary>
@@ -130,7 +127,7 @@ namespace EasyPack.InventorySystem
         ///     自定义数据列表
         ///     优先从 CategoryManager 获取受管数据，否则返回本地数据
         /// </summary>
-        public CustomDataCollection CustomData
+        public CustomDataCollection RuntimeMetadata
         {
             get
             {
@@ -200,23 +197,6 @@ namespace EasyPack.InventorySystem
             }
         }
 
-        /// <summary>
-        ///     运行时元数据（由InventoryService的CategoryManager管理）
-        /// </summary>
-        public CustomDataCollection RuntimeMetadata
-        {
-            get
-            {
-                if (InventoryService?.CategoryManager == null || ItemUID < 0)
-                {
-                    return null;
-                }
-
-                return InventoryService.CategoryManager.HasMetadata(ItemUID) 
-                    ? InventoryService.CategoryManager.GetMetadata(ItemUID) 
-                    : null;
-            }
-        }
 
         /// <summary>
         ///     是否拥有运行时元数据
@@ -285,7 +265,7 @@ namespace EasyPack.InventorySystem
                 MaxStackCount = MaxStackCount,
                 Count = Count, // 克隆时保留Count
                 IsContainerItem = IsContainerItem,
-                CustomData = CustomData.Clone(),
+                RuntimeMetadata = RuntimeMetadata.Clone(),
                 InventoryService = InventoryService // 保持对InventoryService的引用（浅引用）
             };
 
@@ -299,7 +279,7 @@ namespace EasyPack.InventorySystem
         #region CustomData 辅助方法
 
         /// <summary>获取自定义数据值</summary>
-        public T GetCustomData<T>(string id, T defaultValue = default) => CustomData.Get(id, defaultValue);
+        public T GetCustomData<T>(string id, T defaultValue = default) => RuntimeMetadata.Get(id, defaultValue);
 
         /// <summary>设置自定义数据值</summary>
         public void SetCustomData(string id, object value)
@@ -331,7 +311,7 @@ namespace EasyPack.InventorySystem
         }
 
         /// <summary>检查是否存在自定义数据</summary>
-        public bool HasCustomData(string id) => CustomData.HasValue(id);
+        public bool HasCustomData(string id) => RuntimeMetadata.HasValue(id);
 
         #endregion
     }

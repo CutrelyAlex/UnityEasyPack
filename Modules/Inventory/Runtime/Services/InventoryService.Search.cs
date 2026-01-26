@@ -265,8 +265,8 @@ namespace EasyPack.InventorySystem
                 results.Clear();
                 results = SearchItemsByCondition(item =>
                 {
-                    if (item.CustomData == null) return false;
-                    CustomDataEntry entry = item.CustomData.FirstOrDefault(e => e.Key == attributeName);
+                    if (item.RuntimeMetadata == null) return false;
+                    CustomDataEntry entry = item.RuntimeMetadata.FirstOrDefault(e => e.Key == attributeName);
                     if (entry == null) return false;
                     object value = entry.GetValue();
                     return attributeValue == null || value?.Equals(attributeValue) == true;

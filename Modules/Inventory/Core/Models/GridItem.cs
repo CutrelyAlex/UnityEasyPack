@@ -206,7 +206,7 @@ namespace EasyPack.InventorySystem
                 MaxStackCount = MaxStackCount,
                 IsContainerItem = IsContainerItem,
                 ContainerIds = ContainerIds != null ? new List<string>(ContainerIds) : null,
-                CustomData = CustomData.Clone(),
+                RuntimeMetadata = RuntimeMetadata.Clone(),
                 Shape = Shape != null ? new(Shape) : new List<(int x, int y)> { (0, 0) },
                 CanRotate = CanRotate,
                 Rotation = Rotation,

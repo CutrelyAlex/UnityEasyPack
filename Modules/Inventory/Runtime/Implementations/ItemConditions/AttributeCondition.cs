@@ -55,12 +55,12 @@ namespace EasyPack.InventorySystem
 
         public bool CheckCondition(IItem item)
         {
-            if (item?.CustomData == null)
+            if (item?.RuntimeMetadata == null)
             {
                 return false;
             }
 
-            CustomDataEntry entry = item.CustomData.FirstOrDefault(e => e.Key == AttributeName);
+            CustomDataEntry entry = item.RuntimeMetadata.FirstOrDefault(e => e.Key == AttributeName);
             if (ComparisonType == AttributeComparisonType.Exists)
             {
                 return entry != null;
