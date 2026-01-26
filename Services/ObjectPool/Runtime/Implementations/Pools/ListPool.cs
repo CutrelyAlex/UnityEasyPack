@@ -11,7 +11,7 @@ namespace EasyPack.ObjectPool
     {
         private static readonly Stack<List<T>> _stack = new(8);
         private const int DefaultCapacity = 8;
-        private const int MaxPoolSize = 128;
+
 
         /// <summary>
         ///     获取当前池中的对象数量。
@@ -51,11 +51,7 @@ namespace EasyPack.ObjectPool
             if (list == null) return;
 
             list.Clear();
-
-            if (_stack.Count < MaxPoolSize)
-            {
-                _stack.Push(list);
-            }
+            _stack.Push(list);
         }
 
         /// <summary>

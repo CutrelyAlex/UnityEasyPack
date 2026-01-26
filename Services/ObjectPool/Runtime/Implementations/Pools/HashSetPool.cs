@@ -11,7 +11,7 @@ namespace EasyPack.ObjectPool
     {
         private static readonly Stack<HashSet<T>> _stack = new(8);
         private const int DefaultCapacity = 8;
-        private const int MaxPoolSize = 128;
+
 
         /// <summary>
         ///     获取当前池中的对象数量。
@@ -54,11 +54,7 @@ namespace EasyPack.ObjectPool
             if (hashSet == null) return;
 
             hashSet.Clear();
-
-            if (_stack.Count < MaxPoolSize)
-            {
-                _stack.Push(hashSet);
-            }
+            _stack.Push(hashSet);
         }
 
         /// <summary>
