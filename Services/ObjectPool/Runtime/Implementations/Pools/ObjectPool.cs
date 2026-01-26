@@ -3,12 +3,13 @@ using System;
 namespace EasyPack.ObjectPool
 {
     /// <summary>
-    ///     对象池包装器，基于 UnityEngine.Pool.ObjectPool 实现。
+    ///     对象池包装器。
     /// </summary>
     /// <typeparam name="T">对象类型，必须是引用类型。</typeparam>
-    public class ObjectPool<T> where T : class
+    public class ObjectPool<T> : IClearable where T : class
     {
         private readonly UnityEngine.Pool.ObjectPool<T> _pool;
+        private readonly bool _isPoolable;
 
         /// <summary>
         ///     获取当前池中的对象数量。
@@ -19,12 +20,6 @@ namespace EasyPack.ObjectPool
         ///     获取池的最大容量。
         /// </summary>
         public int MaxCapacity { get; }
-
-        /// <summary>
-        ///     该池的标记。用于区分同类型不同配置的池。
-        ///     默认值为 <see cref="PoolTag.Default" />。
-        /// </summary>
-        public PoolTag PoolTag { get; internal set; } = PoolTag.Default;
 
         /// <summary>
         ///     创建对象池实例。
@@ -45,17 +40,44 @@ namespace EasyPack.ObjectPool
             }
 
             MaxCapacity = maxCapacity;
+            _isPoolable = typeof(IPoolable).IsAssignableFrom(typeof(T));
 
-            // 使用 Unity 官方 ObjectPool，传入清理方法
+            // 使用 Unity 官方 ObjectPool，传入生命周期回调
             _pool = new(
                 factory,
-                null,
-                cleanup,
-                cleanup,
+                OnGet,
+                obj => OnRelease(obj, cleanup),
+                obj => OnRelease(obj, cleanup),
                 false,
                 Math.Min(maxCapacity, 16),
                 maxCapacity
             );
+        }
+
+        /// <summary>
+        ///     对象从池中获取时的回调。
+        /// </summary>
+        private void OnGet(T obj)
+        {
+            if (_isPoolable && obj is IPoolable poolable)
+            {
+                poolable.IsRecycled = false;
+                poolable.OnAllocate();
+            }
+        }
+
+        /// <summary>
+        ///     对象归还到池中时的回调。
+        /// </summary>
+        private void OnRelease(T obj, Action<T> cleanup)
+        {
+            if (_isPoolable && obj is IPoolable poolable)
+            {
+                poolable.OnRecycle();
+                poolable.IsRecycled = true;
+            }
+
+            cleanup?.Invoke(obj);
         }
 
         /// <summary>
@@ -66,11 +88,18 @@ namespace EasyPack.ObjectPool
 
         /// <summary>
         ///     将对象归还到池中。如果池已满，对象将被丢弃。
+        ///     对于实现了 IPoolable 的对象，会检查是否已被回收。
         /// </summary>
         /// <param name="obj">要归还的对象。</param>
         public void Return(T obj)
         {
             if (obj == null)
+            {
+                return;
+            }
+
+            // 防止重复回收
+            if (_isPoolable && obj is IPoolable poolable && poolable.IsRecycled)
             {
                 return;
             }

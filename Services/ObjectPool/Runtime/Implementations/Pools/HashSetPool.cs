@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using EasyPack.Architecture;
-using UnityEngine;
 
 namespace EasyPack.ObjectPool
 {
@@ -12,78 +9,89 @@ namespace EasyPack.ObjectPool
     /// <typeparam name="T">集合中元素的类型。</typeparam>
     public static class HashSetPool<T>
     {
-        private static ObjectPool<HashSet<T>> _pool;
-        private static bool _isInitialized;
-        private static readonly object _lockObj = new();
+        private static readonly Stack<HashSet<T>> _stack = new(8);
+        private const int DefaultCapacity = 8;
+        private const int MaxPoolSize = 128;
 
         /// <summary>
-        ///     初始化哈希集合池。
+        ///     获取当前池中的对象数量。
         /// </summary>
-        /// <param name="poolService">对象池服务实例。</param>
-        /// <param name="maxCapacity">池的最大容量，默认为32。</param>
-        public static void Initialize(IObjectPoolService poolService, int maxCapacity = 32)
-        {
-            if (_isInitialized)
-            {
-                Debug.LogWarning("[HashSetPool] 已初始化，跳过重复初始化");
-                return;
-            }
-
-            lock (_lockObj)
-            {
-                if (_isInitialized) return;
-
-                _pool = poolService.CreatePool(
-                    () => new HashSet<T>(),
-                    hashSet => hashSet.Clear(),
-                    maxCapacity
-                );
-                _isInitialized = true;
-            }
-        }
+        public static int Count => _stack.Count;
 
         /// <summary>
-        ///     异步初始化哈希集合池。在 EasyPackArchitecture 启动时集中调用。
-        /// </summary>
-        /// <param name="maxCapacity">池的最大容量，默认为32。</param>
-        public static async Task InitializeAsync(int maxCapacity = 32)
-        {
-            if (_isInitialized) return;
-
-            IObjectPoolService poolService = await EasyPackArchitecture.GetObjectPoolServiceAsync();
-            Initialize(poolService, maxCapacity);
-        }
-
-        /// <summary>
-        ///     确保池已初始化，否则抛出异常。
-        /// </summary>
-        private static void EnsureInitialized()
-        {
-            if (_isInitialized) return;
-
-            throw new InvalidOperationException(
-                $"HashSetPool<{typeof(T).Name}> 尚未初始化。请在 EasyPackArchitecture.OnInit() 或启动阶段调用 HashSetPool<T>.InitializeAsync()");
-        }
-
-        /// <summary>
-        ///     从池中租用一个哈希集合。
+        ///     从池中获取一个哈希集合。如果池为空，则创建新集合。
         /// </summary>
         /// <returns>清洁的哈希集合实例。</returns>
-        public static HashSet<T> Rent()
+        public static HashSet<T> Get()
         {
-            EnsureInitialized();
-            return _pool.Rent();
+            return _stack.Count > 0 ? _stack.Pop() : new HashSet<T>(DefaultCapacity);
+        }
+
+        /// <summary>
+        ///     从池中获取一个哈希集合，并指定初始容量。。
+        /// </summary>
+        /// <param name="capacity">集合的初始容量。</param>
+        /// <returns>清洁的哈希集合实例。</returns>
+        public static HashSet<T> Get(int capacity)
+        {
+            if (_stack.Count > 0)
+            {
+                var hashSet = _stack.Pop();
+#if NET5_0_OR_GREATER || UNITY_2021_2_OR_NEWER
+                hashSet.EnsureCapacity(capacity);
+#endif
+                return hashSet;
+            }
+            return new HashSet<T>(capacity);
         }
 
         /// <summary>
         ///     将哈希集合归还到池中。集合将自动清空。
         /// </summary>
         /// <param name="hashSet">要归还的哈希集合。</param>
-        public static void Return(HashSet<T> hashSet)
+        public static void Release(HashSet<T> hashSet)
         {
-            if (!_isInitialized) return;
+            if (hashSet == null) return;
 
-            _pool.Return(hashSet);
+            hashSet.Clear();
+
+            if (_stack.Count < MaxPoolSize)
+            {
+                _stack.Push(hashSet);
+            }
+        }
+
+        /// <summary>
+        ///     清空池中的所有哈希集合。
+        /// </summary>
+        /// <param name="onClearItem">可选的清理回调，用于处理每个集合。</param>
+        public static void Clear(Action<HashSet<T>> onClearItem = null)
+        {
+            if (onClearItem != null)
+            {
+                while (_stack.Count > 0)
+                {
+                    onClearItem(_stack.Pop());
+                }
+            }
+            else
+            {
+                _stack.Clear();
+            }
+        }
+    }
+
+    /// <summary>
+    ///     HashSet&lt;T&gt; 的扩展方法，提供便捷的归还方式。
+    /// </summary>
+    public static class HashSetPoolExtensions
+    {
+        /// <summary>
+        ///     将哈希集合归还到池中。
+        /// </summary>
+        public static void Release2Pool<T>(this HashSet<T> hashSet)
+        {
+            HashSetPool<T>.Release(hashSet);
         }
     }
 }

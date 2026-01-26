@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using EasyPack.Architecture;
-using UnityEngine;
 
 namespace EasyPack.ObjectPool
 {
@@ -12,78 +9,84 @@ namespace EasyPack.ObjectPool
     /// <typeparam name="T">栈中元素的类型。</typeparam>
     public static class StackPool<T>
     {
-        private static ObjectPool<Stack<T>> _pool;
-        private static bool _isInitialized;
-        private static readonly object _lockObj = new();
+        private static readonly Stack<Stack<T>> _stack = new(8);
+        private const int DefaultCapacity = 8;
+        private const int MaxPoolSize = 128;
 
         /// <summary>
-        ///     初始化栈池。
+        ///     获取当前池中的对象数量。
         /// </summary>
-        /// <param name="poolService">对象池服务实例。</param>
-        /// <param name="maxCapacity">池的最大容量，默认为32。</param>
-        public static void Initialize(IObjectPoolService poolService, int maxCapacity = 32)
-        {
-            if (_isInitialized)
-            {
-                Debug.LogWarning("[StackPool] 已初始化，跳过重复初始化");
-                return;
-            }
-
-            lock (_lockObj)
-            {
-                if (_isInitialized) return;
-
-                _pool = poolService.CreatePool(
-                    () => new Stack<T>(),
-                    stack => stack.Clear(),
-                    maxCapacity
-                );
-                _isInitialized = true;
-            }
-        }
+        public static int Count => _stack.Count;
 
         /// <summary>
-        ///     异步初始化栈池。在 EasyPackArchitecture 启动时集中调用。
-        /// </summary>
-        /// <param name="maxCapacity">池的最大容量，默认为32。</param>
-        public static async Task InitializeAsync(int maxCapacity = 32)
-        {
-            if (_isInitialized) return;
-
-            IObjectPoolService poolService = await EasyPackArchitecture.GetObjectPoolServiceAsync();
-            Initialize(poolService, maxCapacity);
-        }
-
-        /// <summary>
-        ///     确保池已初始化，否则抛出异常。
-        /// </summary>
-        private static void EnsureInitialized()
-        {
-            if (_isInitialized) return;
-
-            throw new InvalidOperationException(
-                $"StackPool<{typeof(T).Name}> 尚未初始化。请在 EasyPackArchitecture.OnInit() 或启动阶段调用 StackPool<T>.InitializeAsync()");
-        }
-
-        /// <summary>
-        ///     从池中租用一个栈。
+        ///     从池中获取一个栈。如果池为空，则创建新栈。
         /// </summary>
         /// <returns>清洁的栈实例。</returns>
-        public static Stack<T> Rent()
+        public static Stack<T> Get()
         {
-            EnsureInitialized();
-            return _pool.Rent();
+            return _stack.Count > 0 ? _stack.Pop() : new Stack<T>(DefaultCapacity);
+        }
+
+        /// <summary>
+        ///     从池中获取一个栈，并指定初始容量。
+        ///     注意：Stack 无法动态扩容，此方法仅返回池化对象。
+        /// </summary>
+        /// <param name="capacity">栈的初始容量（仅作为参考，实际不生效）。</param>
+        /// <returns>清洁的栈实例。</returns>
+        public static Stack<T> Get(int capacity)
+        {
+            // Stack<T> 没有 EnsureCapacity 方法，也无法动态设置容量
+            // 这里仅提供 API 一致性，实际返回标准池对象
+            return Get();
         }
 
         /// <summary>
         ///     将栈归还到池中。栈将自动清空。
         /// </summary>
         /// <param name="stack">要归还的栈。</param>
-        public static void Return(Stack<T> stack)
+        public static void Release(Stack<T> stack)
         {
-            if (!_isInitialized) return;
+            if (stack == null) return;
 
-            _pool.Return(stack);
+            stack.Clear();
+
+            if (_stack.Count < MaxPoolSize)
+            {
+                _stack.Push(stack);
+            }
+        }
+
+        /// <summary>
+        ///     清空池中的所有栈。
+        /// </summary>
+        /// <param name="onClearItem">可选的清理回调，用于处理每个栈。</param>
+        public static void Clear(Action<Stack<T>> onClearItem = null)
+        {
+            if (onClearItem != null)
+            {
+                while (_stack.Count > 0)
+                {
+                    onClearItem(_stack.Pop());
+                }
+            }
+            else
+            {
+                _stack.Clear();
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Stack&lt;T&gt; 的扩展方法，提供便捷的归还方式。
+    /// </summary>
+    public static class StackPoolExtensions
+    {
+        /// <summary>
+        ///     将栈归还到池中。
+        /// </summary>
+        public static void Release2Pool<T>(this Stack<T> stack)
+        {
+            StackPool<T>.Release(stack);
         }
     }
 }

@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using EasyPack.Architecture;
-using UnityEngine;
 
 namespace EasyPack.ObjectPool
 {
@@ -12,78 +9,86 @@ namespace EasyPack.ObjectPool
     /// <typeparam name="T">列表中元素的类型。</typeparam>
     public static class ListPool<T>
     {
-        private static ObjectPool<List<T>> _pool;
-        private static bool _isInitialized;
-        private static readonly object _lockObj = new();
+        private static readonly Stack<List<T>> _stack = new(8);
+        private const int DefaultCapacity = 8;
+        private const int MaxPoolSize = 128;
 
         /// <summary>
-        ///     初始化列表池。
+        ///     获取当前池中的对象数量。
         /// </summary>
-        /// <param name="poolService">对象池服务实例。</param>
-        /// <param name="maxCapacity">池的最大容量，默认为32。</param>
-        public static void Initialize(IObjectPoolService poolService, int maxCapacity = 32)
-        {
-            if (_isInitialized)
-            {
-                Debug.LogWarning("[ListPool] 已初始化，跳过重复初始化");
-                return;
-            }
-
-            lock (_lockObj)
-            {
-                if (_isInitialized) return;
-
-                _pool = poolService.CreatePool(
-                    () => new List<T>(),
-                    list => list.Clear(),
-                    maxCapacity
-                );
-                _isInitialized = true;
-            }
-        }
+        public static int Count => _stack.Count;
 
         /// <summary>
-        ///     异步初始化列表池。在 EasyPackArchitecture 启动时集中调用。
-        /// </summary>
-        /// <param name="maxCapacity">池的最大容量，默认为32。</param>
-        public static async Task InitializeAsync(int maxCapacity = 32)
-        {
-            if (_isInitialized) return;
-
-            IObjectPoolService poolService = await EasyPackArchitecture.GetObjectPoolServiceAsync();
-            Initialize(poolService, maxCapacity);
-        }
-
-        /// <summary>
-        ///     确保池已初始化，否则抛出异常。
-        /// </summary>
-        private static void EnsureInitialized()
-        {
-            if (_isInitialized) return;
-
-            throw new InvalidOperationException(
-                $"ListPool<{typeof(T).Name}> 尚未初始化。请在 EasyPackArchitecture.OnInit() 或启动阶段调用 ListPool<T>.InitializeAsync()");
-        }
-
-        /// <summary>
-        ///     从池中租用一个列表。
+        ///     从池中获取一个列表。如果池为空，则创建新列表。
         /// </summary>
         /// <returns>清洁的列表实例。</returns>
-        public static List<T> Rent()
+        public static List<T> Get()
         {
-            EnsureInitialized();
-            return _pool.Rent();
+            return _stack.Count > 0 ? _stack.Pop() : new List<T>(DefaultCapacity);
+        }
+
+        /// <summary>
+        ///     从池中获取一个列表，并指定初始容量。
+        /// </summary>
+        /// <param name="capacity">列表的初始容量。</param>
+        /// <returns>清洁的列表实例。</returns>
+        public static List<T> Get(int capacity)
+        {
+            var list = Get();
+            if (list.Capacity < capacity)
+            {
+                list.Capacity = capacity;
+            }
+            return list;
         }
 
         /// <summary>
         ///     将列表归还到池中。列表将自动清空。
         /// </summary>
         /// <param name="list">要归还的列表。</param>
-        public static void Return(List<T> list)
+        public static void Release(List<T> list)
         {
-            if (!_isInitialized) return;
+            if (list == null) return;
 
-            _pool.Return(list);
+            list.Clear();
+
+            if (_stack.Count < MaxPoolSize)
+            {
+                _stack.Push(list);
+            }
+        }
+
+        /// <summary>
+        ///     清空池中的所有列表。
+        /// </summary>
+        /// <param name="onClearItem">可选的清理回调，用于处理每个列表。</param>
+        public static void Clear(Action<List<T>> onClearItem = null)
+        {
+            if (onClearItem != null)
+            {
+                while (_stack.Count > 0)
+                {
+                    onClearItem(_stack.Pop());
+                }
+            }
+            else
+            {
+                _stack.Clear();
+            }
+        }
+    }
+
+    /// <summary>
+    ///     List&lt;T&gt; 的扩展方法，提供便捷的归还方式。
+    /// </summary>
+    public static class ListPoolExtensions
+    {
+        /// <summary>
+        ///     将列表归还到池中。
+        /// </summary>
+        public static void Release2Pool<T>(this List<T> list)
+        {
+            ListPool<T>.Release(list);
         }
     }
 }
