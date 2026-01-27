@@ -235,6 +235,70 @@ namespace EasyPack.GamePropertySystem.Example
             Debug.Log($"提升力量后伤害: {finalDamage.GetValue()}"); // 50 + 20*2 = 90
         }
 
+        /// <summary>
+        ///     示例6: 多依赖复杂表达式
+        /// </summary>
+        public async Task DemoMultiDependencyExpressions()
+        {
+            Debug.Log("=== 示例6: 多依赖复杂表达式 ===");
+
+            _manager = new GamePropertyService();
+            await _manager.InitializeAsync();
+
+            // 创建基础属性
+            var baseAtk = new GameProperty("baseAtk", 100);
+            var critRate = new GameProperty("critRate", 0.5f);
+            var critMultiplier = new GameProperty("critMultiplier", 2f);
+
+            // 示例1: 复杂表达式 - damage = baseAtk * (1 + critRate) ^ critMultiplier
+            var damage = new GameProperty("damage", 0);
+            damage.AddDependencies(
+                new[] { baseAtk, critRate, critMultiplier },
+                () => baseAtk.GetValue() * Mathf.Pow(1 + critRate.GetValue(), critMultiplier.GetValue())
+            );
+
+            _manager.Register(baseAtk, "Character.Combat");
+            _manager.Register(critRate, "Character.Combat");
+            _manager.Register(critMultiplier, "Character.Combat");
+            _manager.Register(damage, "Character.Derived");
+
+            Debug.Log($"复杂伤害计算: {damage.GetValue()}"); // 100 * (1 + 0.5)^2 = 225
+
+            // 修改暴击率
+            critRate.SetBaseValue(1.0f);
+            Debug.Log($"暴击率提升后: {damage.GetValue()}"); // 100 * (1 + 1.0)^2 = 400
+
+            // 示例2: 指数衰减 - value = base * e^(-decay * time)
+            var baseValue = new GameProperty("baseValue", 100);
+            var decayRate = new GameProperty("decayRate", 0.1f);
+            var timeProperty = new GameProperty("timeProperty", 5f);
+            var decayedValue = new GameProperty("decayedValue", 0);
+
+            decayedValue.AddDependencies(
+                new[] { baseValue, decayRate, timeProperty },
+                () => baseValue.GetValue() * Mathf.Exp(-decayRate.GetValue() * timeProperty.GetValue())
+            );
+
+            Debug.Log($"指数衰减值: {decayedValue.GetValue()}"); // 100 * e^(-0.1 * 5) ≈ 60.65
+
+            // 示例3: 多属性加权求和
+            var str = new GameProperty("str", 10);
+            var agi = new GameProperty("agi", 15);
+            var intel = new GameProperty("intel", 20);
+            var totalPower = new GameProperty("totalPower", 0);
+
+            totalPower.AddDependencies(
+                new[] { str, agi, intel },
+                () => str.GetValue() * 2.0f + agi.GetValue() * 1.5f + intel.GetValue() * 1.0f
+            );
+
+            Debug.Log($"总战力: {totalPower.GetValue()}"); // 10*2 + 15*1.5 + 20*1 = 62.5
+
+            // 修改力量
+            str.SetBaseValue(20);
+            Debug.Log($"力量提升后战力: {totalPower.GetValue()}"); // 20*2 + 15*1.5 + 20*1 = 82.5
+        }
+
         private void OnDestroy()
         {
             _manager?.Dispose();
