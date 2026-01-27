@@ -33,7 +33,7 @@ namespace EasyPack.GamePropertySystem
         /// <summary>
         ///     依赖管理器
         /// </summary>
-        internal PropertyDependencyManager DependencyManager { get; private set; }
+        public PropertyDependencyManager DependencyManager { get; private set; }
 
         /// <summary>
         ///     创建一个 <see cref="GameProperty" /> 的新实例
