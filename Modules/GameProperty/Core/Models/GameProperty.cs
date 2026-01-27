@@ -154,6 +154,18 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
+        ///     添加多个依赖项
+        /// </summary>
+        /// <param name="dependencies">依赖的属性列表</param>
+        /// <param name="calculator">计算函数，可在闭包中访问所有依赖属性</param>
+        /// <returns>当前实例</returns>
+        public IModifiableProperty<float> AddDependencies(IEnumerable<GameProperty> dependencies, Func<float> calculator)
+        {
+            DependencyManager.AddDependencies(dependencies, calculator);
+            return this;
+        }
+
+        /// <summary>
         ///     移除依赖关系
         /// </summary>
         public IModifiableProperty<float> RemoveDependency(GameProperty dependency)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace EasyPack.GamePropertySystem
@@ -9,7 +10,6 @@ namespace EasyPack.GamePropertySystem
     /// </summary>
     public class PropertyDependencyManager
     {
-        private const float EPSILON = 0.0001f;
         private const int MAX_DEPENDENCY_DEPTH = 100;
 
         private readonly GameProperty _owner;
@@ -17,9 +17,17 @@ namespace EasyPack.GamePropertySystem
         private readonly HashSet<GameProperty> _dependents = new();
         private readonly Dictionary<GameProperty, Func<GameProperty, float, float>> _dependencyCalculators = new();
 
+        // 多依赖计算函数
+        private Func<float> _multiDependencyCalculator;
+
         // HasDirtyDependencies缓存
         private bool _hasDirtyDepsCache;
         private bool _hasDirtyDepsCacheValid;
+
+        /// <summary>
+        ///     是否使用多依赖计算模式
+        /// </summary>
+        public bool UsesMultiDependencyCalculator => _multiDependencyCalculator != null;
 
         /// <summary>
         ///     依赖深度
@@ -89,6 +97,68 @@ namespace EasyPack.GamePropertySystem
         }
 
         /// <summary>
+        ///     添加多个依赖项，并添加计算函数
+        /// </summary>
+        /// <param name="dependencies">依赖的属性列表</param>
+        /// <param name="calculator">计算函数，可在闭包中访问所有依赖属性</param>
+        /// <returns>是否添加成功</returns>
+        public bool AddDependencies(IEnumerable<GameProperty> dependencies, Func<float> calculator)
+        {
+            if (dependencies == null)
+            {
+                throw new ArgumentNullException(nameof(dependencies));
+            }
+
+            if (calculator == null)
+            {
+                throw new ArgumentNullException(nameof(calculator));
+            }
+
+            var depList = dependencies.ToList();
+            if (depList.Count == 0)
+            {
+                return false;
+            }
+
+            // 验证所有依赖项
+            foreach (GameProperty dep in depList)
+            {
+                if (dep == null)
+                {
+                    throw new ArgumentNullException(nameof(dependencies), "依赖列表中包含null元素");
+                }
+
+                if (WouldCreateCyclicDependency(dep))
+                {
+                    Debug.LogWarning($"检测到循环依赖，取消添加依赖关系: {_owner.ID} -> {dep.ID}");
+                    return false;
+                }
+            }
+
+            // 添加所有依赖项
+            foreach (GameProperty dep in depList)
+            {
+                if (_dependencies.Add(dep))
+                {
+                    dep.DependencyManager._dependents.Add(_owner);
+                }
+            }
+
+            // 设置多依赖计算函数
+            _multiDependencyCalculator = calculator;
+
+            // 更新依赖深度
+            UpdateDependencyDepth();
+
+            // 立即应用计算结果
+            float newValue = calculator();
+            _owner.SetBaseValue(newValue);
+
+            UpdateRandomDependencyState();
+            return true;
+        }
+
+        /// <summary>
         ///     移除依赖关系
         /// </summary>
         public bool RemoveDependency(GameProperty dependency)
@@ -100,6 +170,13 @@ namespace EasyPack.GamePropertySystem
 
             dependency.DependencyManager._dependents.Remove(_owner);
             _dependencyCalculators.Remove(dependency);
+
+            // 如果移除后没有依赖了，清除多依赖计算函数
+            if (_dependencies.Count == 0)
+            {
+                _multiDependencyCalculator = null;
+            }
+
             UpdateDependencyDepth();
 
             UpdateRandomDependencyState();
@@ -119,10 +196,22 @@ namespace EasyPack.GamePropertySystem
 
             foreach (GameProperty dependent in _dependents)
             {
-                if (dependent.DependencyManager._dependencyCalculators.TryGetValue(_owner, out var calculator))
+                // 使用多依赖计算函数
+                if (dependent.DependencyManager._multiDependencyCalculator != null)
+                {
+                    float newValue = dependent.DependencyManager._multiDependencyCalculator();
+                    if (!Mathf.Approximately(dependent.GetBaseValue(), newValue))
+                    {
+                        dependent.SetBaseValue(newValue);
+                    }
+                }
+                else if (dependent.DependencyManager._dependencyCalculators.TryGetValue(_owner, out var calculator))
                 {
                     float newValue = calculator(_owner, currentValue);
-                    if (Math.Abs(dependent.GetBaseValue() - newValue) > EPSILON) dependent.SetBaseValue(newValue);
+                    if (!Mathf.Approximately(dependent.GetBaseValue(), newValue))
+                    {
+                        dependent.SetBaseValue(newValue);
+                    }
                 }
                 else
                 {
@@ -328,6 +417,7 @@ namespace EasyPack.GamePropertySystem
             _dependents.Clear();
 
             _dependencyCalculators.Clear();
+            _multiDependencyCalculator = null;
             DependencyDepth = 0;
             HasRandomDependency = false;
         }
