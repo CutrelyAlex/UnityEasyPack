@@ -137,7 +137,7 @@ public class CharacterStats : MonoBehaviour
         
         // 模拟受到伤害
         float damage = 30f;
-        health.SetBaseValue(health.GetBaseValue() - damage);
+        health.SetBaseValue(health.GetValue() - damage);
         // 输出: 生命值变化: 100 -> 70
     }
 }
@@ -210,7 +210,7 @@ public class EquipmentSystem : MonoBehaviour
         
         equippedItems.Remove(slot);
         Debug.Log($"卸下装备 [{equipment.Name}]: 攻击力 {oldValue} -> {attack.GetValue()}");
-    }
+    }     
 }
 ```
 

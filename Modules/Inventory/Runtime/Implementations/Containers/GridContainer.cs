@@ -7,6 +7,7 @@ namespace EasyPack.InventorySystem
 {
     /// <summary>
     ///     网格容器 - 支持二维网格布局和网格物品放置
+    /// TODO: 考虑优化占位符系统，用bool[,]标记占用状态
     /// </summary>
     public class GridContainer : Container
     {
