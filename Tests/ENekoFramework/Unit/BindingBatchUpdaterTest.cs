@@ -10,7 +10,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 测试 BindingBatchUpdater 的帧末批处理功能
     /// </summary>
     [TestFixture]
-    public class BindingBatchUpdaterTests
+    public class BindingBatchUpdaterTest
     {
         private GameObject _updaterObject;
         private BindingBatchUpdater _updater;

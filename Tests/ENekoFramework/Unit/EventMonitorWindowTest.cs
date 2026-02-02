@@ -11,7 +11,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 测试事件监控窗口功能
     /// </summary>
     [TestFixture]
-    public class EventMonitorWindowTests
+    public class EventMonitorWindowTest
     {
         private TestArchitecture _architecture;
         private List<IEvent> _capturedEvents;

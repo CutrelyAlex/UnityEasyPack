@@ -37,7 +37,7 @@ namespace EasyPack.ENekoFrameworkTest.Integration
     ///     • 发现集成层面的问题
     ///     • 为重构提供安全网
     /// </summary>
-    public class ArchitectureIntegrationTests
+    public class ArchitectureIntegrationTest
     {
         private IntegrationTestArchitecture _architecture;
 

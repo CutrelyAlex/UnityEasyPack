@@ -7,7 +7,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 测试 EventBridge 的跨架构事件转发功能
     /// </summary>
     [TestFixture]
-    public class EventBridgeTests
+    public class EventBridgeTest
     {
         private EventBridge _bridge;
 

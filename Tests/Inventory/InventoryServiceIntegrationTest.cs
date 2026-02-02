@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using EasyPack.Architecture;
 
-namespace EasyPack.Tests
+namespace EasyPack.InventoryTests
 {
     /// <summary>
     /// InventoryService 架构集成快速测试

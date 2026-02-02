@@ -9,7 +9,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 测试服务总览窗口功能
     /// </summary>
     [TestFixture]
-    public class ServiceOverviewWindowTests
+    public class ServiceOverviewWindowTest
     {
         private TestArchitecture _architecture;
 

@@ -10,7 +10,7 @@ namespace EasyPack.ENekoFrameworkTest.Integration
     ///     验证当绑定属性变更时，UI元素是否自动更新。
     /// </summary>
     [TestFixture]
-    public class UIBindingIntegrationTests
+    public class UIBindingIntegrationTest
     {
         private GameObject _testObject;
         private BindableProperty<string> _textProperty;

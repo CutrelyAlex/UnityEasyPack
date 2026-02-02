@@ -7,7 +7,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 测试 ServiceContainer 的循环依赖检测
     /// </summary>
     [TestFixture]
-    public class CircularDependencyTests
+    public class CircularDependencyTest
     {
         private ServiceContainer _container;
 

@@ -9,7 +9,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 测试 ServiceProxy 的跨架构服务代理功能
     /// </summary>
     [TestFixture]
-    public class ServiceProxyTests
+    public class ServiceProxyTest
     {
         private ServiceContainer _sourceContainer;
         private ServiceProxy<ITestService> _proxy;

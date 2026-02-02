@@ -9,7 +9,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 验证Add/Remove/Clear事件和集合同步是否正确工作。
     /// </summary>
     [TestFixture]
-    public class BindableCollectionTests
+    public class BindableCollectionTest
     {
         private BindableCollection<string> _collection;
         private List<string> _addedItems;

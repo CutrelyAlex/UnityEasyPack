@@ -32,7 +32,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 4. 查询历史 - 验证执行统计和诊断信息
     /// </summary>
     [TestFixture]
-    public class QueryExecutorTests
+    public class QueryExecutorTest
     {
         private QueryExecutor _executor;
 

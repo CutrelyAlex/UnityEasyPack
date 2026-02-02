@@ -8,7 +8,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 验证BeginBatch/EndBatch是否正确合并多次属性变更并只触发一次通知。
     /// </summary>
     [TestFixture]
-    public class BatchUpdateTests
+    public class BatchUpdateTest
     {
         private BindableProperty<int> _intProperty;
         private int _changeCount;

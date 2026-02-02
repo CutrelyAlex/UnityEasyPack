@@ -8,7 +8,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 测试代码生成功能
     /// </summary>
     [TestFixture]
-    public class CodeGenTests
+    public class CodeGenTest
     {
         private string _testOutputPath;
 

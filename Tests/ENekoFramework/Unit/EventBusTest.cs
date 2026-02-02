@@ -34,7 +34,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 5. WeakReference - 验证内存管理机制
     /// </summary>
     [TestFixture]
-    public class EventBusTests
+    public class EventBusTest
     {
         private EventBus _eventBus;
 

@@ -36,7 +36,7 @@ namespace EasyPack.ENekoFrameworkTest.Unit
     /// 3. 生命周期 - 验证初始化和清理过程
     /// 4. 错误处理 - 测试异常情况的处理
     /// </summary>
-    public class ServiceContainerTests
+    public class ServiceContainerTest
     {
         private ServiceContainer _container;
 
