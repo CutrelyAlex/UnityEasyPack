@@ -120,6 +120,8 @@ namespace EasyPack.EmeCardSystem
         /// <summary>将 MatchRoot 转换为指定类型。</summary>
         public T GetContainer<T>() where T : Card => MatchRoot as T;
 
+        public bool EventDataIs<T>() => Event is ICardEvent<T>;
+        
         /// <summary>
         ///     尝试获取强类型事件数据。
         /// </summary>
