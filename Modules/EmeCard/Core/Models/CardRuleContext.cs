@@ -137,9 +137,6 @@ namespace EasyPack.EmeCardSystem
             return false;
         }
 
-        /// <summary>检查事件类型是否匹配。</summary>
-        public bool IsEventType(string eventType) => Event?.EventType == eventType;
-
         /// <summary>检查事件是否匹配指定定义。</summary>
         public bool IsEventType<T>(CardEventDefinition<T> eventDef) => eventDef?.Matches(Event) ?? false;
 

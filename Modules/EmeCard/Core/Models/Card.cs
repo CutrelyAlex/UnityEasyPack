@@ -141,17 +141,8 @@ namespace EasyPack.EmeCardSystem
 
         public Vector3Int? Position
         {
-            get
-            {
-                // 如果当前卡牌有持有者，返回根卡牌的位置
-                if (Owner != null && RootCard != null && !RootCard.Equals(this))
-                {
-                    return RootCard._position;
-                }
-
-                // 否则返回自己的位置
-                return _position;
-            }
+            //如果有根卡牌则返回跟卡牌位置，否则返回自己的位置
+            get => RootCard==null?_position:RootCard._position;
             set
             {
                 if (RootCard == null || RootCard.Equals(this))
@@ -310,7 +301,7 @@ namespace EasyPack.EmeCardSystem
         public Card Owner { get; private set; }
 
         /// <summary>
-        ///     根卡牌引用。对于根卡牌，RootCard 指向自身；对于子卡牌，RootCard 指向最顶层的根卡牌。
+        ///     根卡牌引用。对于根卡牌，RootCard 为空；对于子卡牌，RootCard 指向最顶层的根卡牌。
         /// </summary>
         public Card RootCard { get; set; }
 

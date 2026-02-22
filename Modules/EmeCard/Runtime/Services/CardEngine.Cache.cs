@@ -119,7 +119,7 @@ namespace EasyPack.EmeCardSystem
             // 第八步: 注册位置映射
             _positionByUID[card.UID] = card.Position;
 
-            card.RootCard ??= card;
+            //card.RootCard ??= card;
 
             // 子卡牌不添加到_cardsByPosition位置索引
             if (card.Owner != null) return this;
