@@ -79,15 +79,9 @@ namespace EasyPack.BuffSystem
 
         /// <summary>
         ///     标签列表，用于分类和查询 Buff
-        ///     TODO: 迁移使用CategoryManager的Tag体系
+        ///     由 BuffService 在创建时自动同步到 CategoryManager
         /// </summary>
         public List<string> Tags = new();
-
-        /// <summary>
-        ///     层级列表，用于 Buff 的层级管理
-        ///     TODO: 迁移使用CategoryManager的Category体系
-        /// </summary>
-        public List<string> Layers = new();
 
         /// <summary>
         ///     检查是否包含指定标签
@@ -95,12 +89,5 @@ namespace EasyPack.BuffSystem
         /// <param name="tag">要检查的标签</param>
         /// <returns>包含返回 true，否则返回 false</returns>
         public bool HasTag(string tag) => Tags.Contains(tag);
-
-        /// <summary>
-        ///     检查是否在指定层级
-        /// </summary>
-        /// <param name="layer">要检查的层级</param>
-        /// <returns>在该层级返回 true，否则返回 false</returns>
-        public bool InLayer(string layer) => Layers.Contains(layer);
     }
 }

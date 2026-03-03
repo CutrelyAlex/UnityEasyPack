@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using EasyPack.Category;
 using EasyPack.ENekoFramework;
 using UnityEngine;
 
@@ -36,8 +38,8 @@ namespace EasyPack.BuffSystem
             _triggeredBuffs?.Clear();
             _moduleCache?.Clear();
             _buffsByID?.Clear();
-            _buffsByTag?.Clear();
-            _buffsByLayer?.Clear();
+            _uidToBuffs?.Clear();
+            _categoryManager?.Clear();
             _buffPositions?.Clear();
             _timedBuffPositions?.Clear();
             _permanentBuffPositions?.Clear();
@@ -66,8 +68,15 @@ namespace EasyPack.BuffSystem
 
         // 快速查找索引
         private readonly Dictionary<string, List<Buff>> _buffsByID = new();
-        private readonly Dictionary<string, List<Buff>> _buffsByTag = new();
-        private readonly Dictionary<string, List<Buff>> _buffsByLayer = new();
+
+        // CategoryManager：负责 Tag 的全局索引（Buff 为实体，long UID 为键）
+        private readonly ICategoryManager<Buff, long> _categoryManager =
+            new CategoryManager<Buff, long>(b => b.UID);
+
+        // UID 索引与分配器
+        private readonly Dictionary<long, Buff> _uidToBuffs = new();
+        private long _nextUid = 999;
+        private long AllocateUid() => Interlocked.Increment(ref _nextUid);
 
         // 位置索引用于快速移除
         private readonly Dictionary<Buff, int> _buffPositions = new();
@@ -175,6 +184,10 @@ namespace EasyPack.BuffSystem
                 module.SetParentBuff(buff);
             }
 
+            // 分配运行时唯一标识符
+            buff.UID = AllocateUid();
+            _uidToBuffs[buff.UID] = buff;
+
             // 添加到各种管理列表和索引
             buffs.Add(buff);
             _buffPositions[buff] = _allBuffs.Count;
@@ -213,7 +226,7 @@ namespace EasyPack.BuffSystem
         /// </summary>
         private void RegisterBuffInIndexes(Buff buff)
         {
-            // 添加到ID索引
+            // 添加到 ID 索引
             if (!_buffsByID.TryGetValue(buff.BuffData.ID, out var idList))
             {
                 idList = new();
@@ -222,35 +235,12 @@ namespace EasyPack.BuffSystem
 
             idList.Add(buff);
 
-            // 添加到标签索引
-            if (buff.BuffData.Tags != null)
-            {
-                foreach (string tag in buff.BuffData.Tags)
-                {
-                    if (!_buffsByTag.TryGetValue(tag, out var tagList))
-                    {
-                        tagList = new();
-                        _buffsByTag[tag] = tagList;
-                    }
-
-                    tagList.Add(buff);
-                }
-            }
-
-            // 添加到层级索引
-            if (buff.BuffData.Layers != null)
-            {
-                foreach (string layer in buff.BuffData.Layers)
-                {
-                    if (!_buffsByLayer.TryGetValue(layer, out var layerList))
-                    {
-                        layerList = new();
-                        _buffsByLayer[layer] = layerList;
-                    }
-
-                    layerList.Add(buff);
-                }
-            }
+            // 注册到 CategoryManager（使用默认分类，Tags 作为 CategoryManager 的 Tag 体系）
+            var tags = buff.BuffData.Tags;
+            if (tags != null && tags.Count > 0)
+                _categoryManager.RegisterEntityWithTags(buff.UID, buff, "Default", tags.ToArray());
+            else
+                _categoryManager.RegisterEntity(buff.UID, buff, "Default");
         }
 
         #endregion
@@ -411,22 +401,6 @@ namespace EasyPack.BuffSystem
             }
         }
 
-        public void RemoveBuffsByLayer(object target, string layer)
-        {
-            if (_targetToBuffs.TryGetValue(target, out var buffs))
-            {
-                foreach (Buff t in buffs)
-                {
-                    if (t.BuffData.InLayer(layer))
-                    {
-                        _buffsToRemove.Add(t);
-                    }
-                }
-
-                ProcessBuffRemovals();
-            }
-        }
-
         #endregion
 
         #region 全局移除操作
@@ -448,22 +422,8 @@ namespace EasyPack.BuffSystem
 
         public BuffService RemoveAllBuffsByTag(string tag)
         {
-            if (_buffsByTag.TryGetValue(tag, out var buffs))
-            {
-                foreach (Buff buff in buffs)
-                {
-                    _buffsToRemove.Add(buff);
-                }
-
-                ProcessBuffRemovals();
-            }
-
-            return this;
-        }
-
-        public BuffService RemoveAllBuffsByLayer(string layer)
-        {
-            if (_buffsByLayer.TryGetValue(layer, out var buffs))
+            var buffs = _categoryManager.GetByTag(tag);
+            if (buffs != null && buffs.Count > 0)
             {
                 foreach (Buff buff in buffs)
                 {
@@ -552,37 +512,19 @@ namespace EasyPack.BuffSystem
 
         private void UnregisterBuffFromIndexes(Buff buff)
         {
-            // 从ID索引中移除
+            // 从 ID 索引中移除
             if (_buffsByID.TryGetValue(buff.BuffData.ID, out var idList))
             {
                 SwapRemoveFromList(idList, buff);
                 if (idList.Count == 0) _buffsByID.Remove(buff.BuffData.ID);
             }
 
-            // 从标签索引中移除
-            if (buff.BuffData.Tags != null)
+            // 从 CategoryManager 和 UID 索引中移除
+            if (buff.UID >= 0)
             {
-                foreach (string tag in buff.BuffData.Tags)
-                {
-                    if (_buffsByTag.TryGetValue(tag, out var tagList))
-                    {
-                        SwapRemoveFromList(tagList, buff);
-                        if (tagList.Count == 0) _buffsByTag.Remove(tag);
-                    }
-                }
-            }
-
-            // 从层级索引中移除
-            if (buff.BuffData.Layers != null)
-            {
-                foreach (string layer in buff.BuffData.Layers)
-                {
-                    if (_buffsByLayer.TryGetValue(layer, out var layerList))
-                    {
-                        SwapRemoveFromList(layerList, buff);
-                        if (layerList.Count == 0) _buffsByLayer.Remove(layer);
-                    }
-                }
+                _categoryManager.DeleteEntity(buff.UID);
+                _uidToBuffs.Remove(buff.UID);
+                buff.UID = -1;
             }
         }
 
@@ -736,30 +678,6 @@ namespace EasyPack.BuffSystem
             return new();
         }
 
-        public List<Buff> GetBuffsByLayer(object target, string layer)
-        {
-            if (target == null || string.IsNullOrEmpty(layer))
-            {
-                return new();
-            }
-
-            if (_targetToBuffs.TryGetValue(target, out var buffs))
-            {
-                var result = new List<Buff>();
-                foreach (Buff t in buffs)
-                {
-                    if (t.BuffData.InLayer(layer))
-                    {
-                        result.Add(t);
-                    }
-                }
-
-                return result;
-            }
-
-            return new();
-        }
-
         #endregion
 
         #region 全局查询操作
@@ -773,24 +691,24 @@ namespace EasyPack.BuffSystem
 
         public List<Buff> GetAllBuffsByTag(string tag)
         {
-            if (_buffsByTag.TryGetValue(tag, out var buffs)) return new(buffs);
-
-            return new();
+            var buffs = _categoryManager.GetByTag(tag);
+            return buffs != null ? new(buffs) : new();
         }
 
-        public List<Buff> GetAllBuffsByLayer(string layer)
+        /// <summary>
+        ///     通过 UID 获取 Buff
+        /// </summary>
+        /// <param name="uid">Buff 的运行时 UID</param>
+        /// <returns>Buff 实例，不存在返回 null</returns>
+        public Buff GetByUid(long uid)
         {
-            if (_buffsByLayer.TryGetValue(layer, out var buffs)) return new(buffs);
-
-            return new();
+            _uidToBuffs.TryGetValue(uid, out var buff);
+            return buff;
         }
 
         public bool ContainsBuffWithID(string buffID) => _buffsByID.ContainsKey(buffID) && _buffsByID[buffID].Count > 0;
 
-        public bool ContainsBuffWithTag(string tag) => _buffsByTag.ContainsKey(tag) && _buffsByTag[tag].Count > 0;
-
-        public bool ContainsBuffWithLayer(string layer) =>
-            _buffsByLayer.ContainsKey(layer) && _buffsByLayer[layer].Count > 0;
+        public bool ContainsBuffWithTag(string tag) => _categoryManager.GetByTag(tag) is { Count: > 0 };
 
         #endregion
 
