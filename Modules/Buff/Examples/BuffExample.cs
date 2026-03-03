@@ -46,7 +46,7 @@ namespace EasyPack.BuffSystem.Example
                 Example_4_BuffSuperpositionStrategies();
                 Example_5_PropertyModifierBuffs();
                 Example_6_CustomBuffModules();
-                Example_7_BuffTagsAndLayers();
+                Example_7_BuffTagsAndUID();
                 Example_8_BuffLifecycleEvents();
                 Example_9_ComplexRPGBuffs();
                 Example_10_BuffPerformanceAndBestPractices();
@@ -368,12 +368,12 @@ namespace EasyPack.BuffSystem.Example
         }
 
         /// <summary>
-        ///     示例7：Buff 标签和层级系统
-        ///     学习目标：了解如何使用标签和层级管理 Buff
+        ///     示例7：Buff 标签系统与 UID 精确定位
+        ///     学习目标：了解如何使用标签管理 Buff，以及通过运行时 UID 精确访问 Buff 实例
         /// </summary>
-        private void Example_7_BuffTagsAndLayers()
+        private void Example_7_BuffTagsAndUID()
         {
-            Debug.Log("=== 示例7：Buff 标签和层级系统 ===");
+            Debug.Log("=== 示例7：Buff 标签系统与 UID 精确定位 ===");
 
             // 7.1 创建带有不同标签的Buff
             var positiveBuff = new BuffData
@@ -381,7 +381,6 @@ namespace EasyPack.BuffSystem.Example
                 ID = "PositiveBuff",
                 Name = "正面效果",
                 Tags = new() { "Positive", "Temporary" },
-                Layers = new() { "Enhancement" },
             };
 
             var negativeBuff = new BuffData
@@ -389,7 +388,6 @@ namespace EasyPack.BuffSystem.Example
                 ID = "NegativeBuff",
                 Name = "负面效果",
                 Tags = new() { "Negative", "Temporary" },
-                Layers = new() { "Debuff" },
             };
 
             var permanentBuff = new BuffData
@@ -398,37 +396,44 @@ namespace EasyPack.BuffSystem.Example
                 Name = "永久效果",
                 Duration = -1f,
                 Tags = new() { "Positive", "Permanent" },
-                Layers = new() { "Enhancement", "Passive" },
             };
 
             // 7.2 应用多个Buff
-            _buffManager.CreateBuff(positiveBuff, _dummyCreator, _dummyTarget);
+            Buff posiBuff = _buffManager.CreateBuff(positiveBuff, _dummyCreator, _dummyTarget);
             _buffManager.CreateBuff(negativeBuff, _dummyCreator, _dummyTarget);
             _buffManager.CreateBuff(permanentBuff, _dummyCreator, _dummyTarget);
 
             Debug.Log($"总Buff数量: {_buffManager.GetTargetBuffs(_dummyTarget).Count}");
 
-            // 7.3 按标签查询
+            // 7.3 通过运行时 UID 精确定位 Buff 实例
+            long uid = posiBuff.UID;
+            Debug.Log($"PositiveBuff 的运行时 UID: {uid}");
+
+            Buff foundByUid = _buffManager.GetByUid(uid);
+            Debug.Log($"通过 UID 找到的 Buff: {foundByUid?.BuffData.ID ?? "未找到"}");
+
+            // 7.4 按标签查询（目标内）
             var positiveBuffs = _buffManager.GetBuffsByTag(_dummyTarget, "Positive");
             var temporaryBuffs = _buffManager.GetBuffsByTag(_dummyTarget, "Temporary");
             Debug.Log($"正面效果Buff数量: {positiveBuffs.Count}");
             Debug.Log($"临时效果Buff数量: {temporaryBuffs.Count}");
 
-            // 7.4 按层级查询
-            var enhancementBuffs = _buffManager.GetBuffsByLayer(_dummyTarget, "Enhancement");
-            Debug.Log($"Enhancement层级Buff数量: {enhancementBuffs.Count}");
+            // 7.5 全局标签查询（跨目标，由 CategoryManager 提供）
+            var allPositiveBuffs = _buffManager.GetAllBuffsByTag("Positive");
+            Debug.Log($"全局正面效果Buff数量: {allPositiveBuffs.Count}");
 
-            // 7.5 按标签批量移除
+            // 7.6 按标签批量移除
             Debug.Log("移除所有临时效果...");
             _buffManager.RemoveBuffsByTag(_dummyTarget, "Temporary");
             Debug.Log($"移除临时效果后剩余Buff数量: {_buffManager.GetTargetBuffs(_dummyTarget).Count}");
 
-            // 7.6 按层级批量移除
-            Debug.Log("移除Enhancement层级...");
-            _buffManager.RemoveBuffsByLayer(_dummyTarget, "Enhancement");
-            Debug.Log($"移除Enhancement层级后剩余Buff数量: {_buffManager.GetTargetBuffs(_dummyTarget).Count}");
+            // 7.7 UID 在 Buff 移除后失效
+            Buff foundAfterRemoval = _buffManager.GetByUid(uid);
+            Debug.Log($"PositiveBuff 移除后通过 UID 查找: {foundAfterRemoval?.BuffData.ID ?? "已失效（返回 null）"}");
 
-            Debug.Log("Buff 标签和层级系统示例完成\n");
+            // 清理
+            _buffManager.RemoveAllBuffs(_dummyTarget);
+            Debug.Log("Buff 标签系统与 UID 精确定位示例完成\n");
         }
 
         /// <summary>
@@ -515,7 +520,6 @@ namespace EasyPack.BuffSystem.Example
                 BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add,
                 BuffSuperpositionStrategy = BuffSuperpositionDurationType.Reset,
                 Tags = new() { "Enhancement", "Combat" },
-                Layers = new() { "Temporary", "Stackable" },
             };
 
             // 添加多个效果模块
@@ -539,7 +543,6 @@ namespace EasyPack.BuffSystem.Example
                 MaxStacks = 3,
                 BuffSuperpositionStacksStrategy = BuffSuperpositionStacksType.Add,
                 Tags = new() { "DoT", "Fire" },
-                Layers = new() { "Debuff" },
             };
 
             burnBuff.BuffModules.Add(new DamageOverTimeModule(3f));
@@ -552,7 +555,6 @@ namespace EasyPack.BuffSystem.Example
                 Duration = 20f,
                 TriggerInterval = 2f,
                 Tags = new() { "Healing", "Aura" },
-                Layers = new() { "Support" },
             };
 
             healingAura.BuffModules.Add(new HealingModule(8f));
@@ -581,14 +583,14 @@ namespace EasyPack.BuffSystem.Example
 
                 // 检查各种类型的Buff
                 var combatBuffs = _buffManager.GetBuffsByTag(_dummyTarget, "Combat");
-                var debuffs = _buffManager.GetBuffsByLayer(_dummyTarget, "Debuff");
-                Debug.Log($"  战斗Buff: {combatBuffs.Count}, 减益效果: {debuffs.Count}");
+                var dotBuffs = _buffManager.GetBuffsByTag(_dummyTarget, "DoT");
+                Debug.Log($"  战斗Buff: {combatBuffs.Count}, 持续伤害Buff: {dotBuffs.Count}");
             }
 
             // 9.7 清除特定类型的Buff
-            Debug.Log("\n=== 清除减益效果 ===");
-            _buffManager.RemoveBuffsByLayer(_dummyTarget, "Debuff");
-            Debug.Log($"清除减益后剩余Buff数量: {_buffManager.GetTargetBuffs(_dummyTarget).Count}");
+            Debug.Log("\n=== 清除持续伤害效果 ===");
+            _buffManager.RemoveBuffsByTag(_dummyTarget, "DoT");
+            Debug.Log($"清除持续伤害后剩余Buff数量: {_buffManager.GetTargetBuffs(_dummyTarget).Count}");
 
             // 清理
             _buffManager.RemoveAllBuffs(_dummyTarget);

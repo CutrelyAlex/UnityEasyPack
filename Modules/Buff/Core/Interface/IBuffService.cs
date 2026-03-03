@@ -58,13 +58,6 @@ namespace EasyPack.BuffSystem
         /// <param name="tag">标签名</param>
         void RemoveBuffsByTag(object target, string tag);
 
-        /// <summary>
-        ///     根据层级移除 Buff
-        /// </summary>
-        /// <param name="target">目标对象</param>
-        /// <param name="layer">层级名</param>
-        void RemoveBuffsByLayer(object target, string layer);
-
         #endregion
 
         #region Buff查询操作
@@ -101,12 +94,24 @@ namespace EasyPack.BuffSystem
         List<Buff> GetBuffsByTag(object target, string tag);
 
         /// <summary>
-        ///     根据层级获取 Buff 列表
+        ///     全局查询具有指定标签的所有 Buff（跨目标）
         /// </summary>
-        /// <param name="target">目标对象</param>
-        /// <param name="layer">层级名</param>
-        /// <returns>匹配的 Buff 列表</returns>
-        List<Buff> GetBuffsByLayer(object target, string layer);
+        /// <param name="tag">标签名</param>
+        /// <returns>全局匹配的 Buff 列表</returns>
+        List<Buff> GetAllBuffsByTag(string tag);
+
+        /// <summary>
+        ///     全局判断是否存在具有指定标签的 Buff
+        /// </summary>
+        /// <param name="tag">标签名</param>
+        bool ContainsBuffWithTag(string tag);
+
+        /// <summary>
+        ///     通过UID 获取 Buff
+        /// </summary>
+        /// <param name="uid">Buff 的运行时 UID</param>
+        /// <returns>Buff 实例，不存在返回 null</returns>
+        Buff GetByUid(long uid);
 
         #endregion
     }

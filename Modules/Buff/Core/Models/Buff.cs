@@ -10,6 +10,12 @@ namespace EasyPack.BuffSystem
     public class Buff
     {
         /// <summary>
+        ///     获取或设置 Buff 的运行时唯一标识符
+        ///     由 BuffService 在创建时分配，-1 表示未分配
+        /// </summary>
+        public long UID { get; internal set; } = -1;
+
+        /// <summary>
         ///     获取或设置 Buff 的配置数据
         /// </summary>
         public BuffData BuffData { get; set; }

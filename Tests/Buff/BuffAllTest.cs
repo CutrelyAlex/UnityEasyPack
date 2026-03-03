@@ -378,50 +378,107 @@ namespace EasyPack.BuffTests
         }
 
         [Test]
-        public void Test_RemoveBuffsByLayer()
+        public void Test_BuffUID_IsAssigned()
         {
-            // 创建带有不同层级的Buff
-            var buffData1 = new BuffData
-            {
-                ID = "BuffInLayerA",
-                Layers = new List<string> { "LayerA" }
-            };
+            var buffData = new BuffData { ID = "UidTestBuff" };
 
-            var buffData2 = new BuffData
-            {
-                ID = "BuffInLayerB",
-                Layers = new List<string> { "LayerB" }
-            };
+            // 创建后应分配有效 UID
+            var buff = _buffManager.CreateBuff(buffData, _dummyCreator, _dummyTarget);
+            Assert.IsTrue(buff.UID > 0, $"创建后 Buff 应具有正数 UID，实际为: {buff.UID}");
 
-            var buffData3 = new BuffData
-            {
-                ID = "BuffInBothLayers",
-                Layers = new List<string> { "LayerA", "LayerB" }
-            };
+            // 两个不同 Buff 实例的 UID 应不同
+            var buffData2 = new BuffData { ID = "UidTestBuff2" };
+            var buff2 = _buffManager.CreateBuff(buffData2, _dummyCreator, _dummyTarget);
+            Assert.AreNotEqual(buff.UID, buff2.UID, "不同 Buff 实例的 UID 应唯一");
 
-            _buffManager.CreateBuff(buffData1, _dummyCreator, _dummyTarget);
-            _buffManager.CreateBuff(buffData2, _dummyCreator, _dummyTarget);
-            _buffManager.CreateBuff(buffData3, _dummyCreator, _dummyTarget);
+            // 移除后 UID 应重置为 -1
+            long uid = buff.UID;
+            _buffManager.RemoveBuff(buff);
+            Assert.AreEqual(-1, buff.UID, "Buff 移除后 UID 应重置为 -1");
 
-            // 验证三个Buff都存在
-            bool hasBuff1 = _buffManager.ContainsBuff(_dummyTarget, "BuffInLayerA");
-            bool hasBuff2 = _buffManager.ContainsBuff(_dummyTarget, "BuffInLayerB");
-            bool hasBuff3 = _buffManager.ContainsBuff(_dummyTarget, "BuffInBothLayers");
-            Assert.IsTrue(hasBuff1 && hasBuff2 && hasBuff3, "三个Buff应该都存在");
+            // 已移除的 Buff 不应再能通过旧 UID 查找到
+            var notFound = _buffManager.GetByUid(uid);
+            Assert.IsNull(notFound, "移除后的 Buff 通过旧 UID 应返回 null");
 
-            // 通过LayerA移除Buff
-            _buffManager.RemoveBuffsByLayer(_dummyTarget, "LayerA");
-
-            // 验证LayerA的Buff被移除
-            hasBuff1 = _buffManager.ContainsBuff(_dummyTarget, "BuffInLayerA");
-            hasBuff2 = _buffManager.ContainsBuff(_dummyTarget, "BuffInLayerB");
-            hasBuff3 = _buffManager.ContainsBuff(_dummyTarget, "BuffInBothLayers");
-            Assert.IsFalse(hasBuff1, "LayerA中的Buff1应该被移除");
-            Assert.IsTrue(hasBuff2, "LayerB中的Buff2应该仍然存在");
-            Assert.IsFalse(hasBuff3, "同时在LayerA和LayerB中的Buff3也应该被移除");
-
-            // 清理
             _buffManager.RemoveAllBuffs(_dummyTarget);
+        }
+
+        [Test]
+        public void Test_GetByUid()
+        {
+            var buffData1 = new BuffData { ID = "UidBuff1" };
+            var buffData2 = new BuffData { ID = "UidBuff2" };
+
+            var buff1 = _buffManager.CreateBuff(buffData1, _dummyCreator, _dummyTarget);
+            var buff2 = _buffManager.CreateBuff(buffData2, _dummyCreator, _dummyTarget);
+
+            // 通过 UID 能精确取到对应实例
+            var found1 = _buffManager.GetByUid(buff1.UID);
+            var found2 = _buffManager.GetByUid(buff2.UID);
+            Assert.AreSame(buff1, found1, "通过 UID 应返回对应的 Buff 实例");
+            Assert.AreSame(buff2, found2, "通过 UID 应返回对应的 Buff 实例");
+
+            // 不存在的 UID 返回 null
+            var notFound = _buffManager.GetByUid(999999L);
+            Assert.IsNull(notFound, "不存在的 UID 应返回 null");
+
+            _buffManager.RemoveAllBuffs(_dummyTarget);
+        }
+
+        [Test]
+        public void Test_GetAllBuffsByTag_CategoryManager()
+        {
+            var target2 = new GameObject("DummyTarget2");
+            try
+            {
+                // 在两个不同目标上各创建带 "Poison" Tag 的 Buff
+                var data1 = new BuffData { ID = "PoisonA", Tags = new List<string> { "Poison", "DoT" } };
+                var data2 = new BuffData { ID = "PoisonB", Tags = new List<string> { "Poison" } };
+                var data3 = new BuffData { ID = "Other",   Tags = new List<string> { "Enhancement" } };
+
+                _buffManager.CreateBuff(data1, _dummyCreator, _dummyTarget);
+                _buffManager.CreateBuff(data2, _dummyCreator, target2);
+                _buffManager.CreateBuff(data3, _dummyCreator, _dummyTarget);
+
+                // GetAllBuffsByTag 应进行全局查询，跨目标
+                var poisonBuffs = _buffManager.GetAllBuffsByTag("Poison");
+                Assert.AreEqual(2, poisonBuffs.Count,
+                    $"全局应有 2 个 Poison Buff，实际: {poisonBuffs.Count}");
+
+                var dotBuffs = _buffManager.GetAllBuffsByTag("DoT");
+                Assert.AreEqual(1, dotBuffs.Count,
+                    $"全局应有 1 个 DoT Buff，实际: {dotBuffs.Count}");
+
+                // 不存在的 Tag 返回空列表
+                var noneBuffs = _buffManager.GetAllBuffsByTag("NonExistent");
+                Assert.AreEqual(0, noneBuffs.Count, "不存在的 Tag 应返回空列表");
+
+                _buffManager.RemoveAllBuffs(_dummyTarget);
+                _buffManager.RemoveAllBuffs(target2);
+            }
+            finally
+            {
+                Object.DestroyImmediate(target2);
+            }
+        }
+
+        [Test]
+        public void Test_ContainsBuffWithTag_CategoryManager()
+        {
+            var data = new BuffData { ID = "TaggedBuff", Tags = new List<string> { "Burn", "Fire" } };
+            _buffManager.CreateBuff(data, _dummyCreator, _dummyTarget);
+
+            Assert.IsTrue(_buffManager.ContainsBuffWithTag("Burn"),
+                "ContainsBuffWithTag 应对已存在的 Tag 返回 true");
+            Assert.IsTrue(_buffManager.ContainsBuffWithTag("Fire"),
+                "ContainsBuffWithTag 应对已存在的 Tag 返回 true");
+            Assert.IsFalse(_buffManager.ContainsBuffWithTag("Ice"),
+                "ContainsBuffWithTag 应对不存在的 Tag 返回 false");
+
+            // 移除后应返回 false
+            _buffManager.RemoveAllBuffs(_dummyTarget);
+            Assert.IsFalse(_buffManager.ContainsBuffWithTag("Burn"),
+                "移除 Buff 后 ContainsBuffWithTag 应返回 false");
         }
 
         [Test]
