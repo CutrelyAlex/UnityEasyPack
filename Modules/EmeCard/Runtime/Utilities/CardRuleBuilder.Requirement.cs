@@ -151,8 +151,8 @@ namespace EasyPack.EmeCardSystem
 
                     return (false, null);
                 }),
-                new CardsRequirement(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ByTag, tag,
-                    1, 0, 1),
+                new CardsRequirement(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag,
+                    1, 0, 3),
             },
         });
 
