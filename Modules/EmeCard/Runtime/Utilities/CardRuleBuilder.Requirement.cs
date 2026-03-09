@@ -136,9 +136,13 @@ namespace EasyPack.EmeCardSystem
                                                       int? maxDepth = null) =>
             Need(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount, maxMatched,
                 maxDepth);
+        
+        /// <summary> 需要递归子卡中有一张指定标签的卡牌 </summary>
+        public CardRuleBuilder NeedOneDescendantHasTag(string tag) =>
+            Need(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag, 1, 0, 3);
 
-        /// <summary>需要源卡或递归子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceOrDescendantHasTag(string tag) => AddRequirement(new AnyRequirement
+        /// <summary>需要源卡或递归子卡中有一张指定标签的卡牌</summary>
+        public CardRuleBuilder NeedOneSourceOrDescendantHasTag(string tag) => AddRequirement(new AnyRequirement
         {
             Children =
             {
@@ -155,8 +159,13 @@ namespace EasyPack.EmeCardSystem
                     1, 0, 3),
             },
         });
-        /// <summary>需要源卡或直接子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceOrChildenHasTag(string tag) => AddRequirement(new AnyRequirement
+        
+        /// <summary> 需要子卡中有一张指定标签的卡牌 </summary>
+        public CardRuleBuilder NeedOneChildHasTag(string tag) =>
+            Need(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ByTag, tag, 1, 0, 0);
+        
+        /// <summary>需要源卡或直接子卡中有一张指定标签的卡牌</summary>
+        public CardRuleBuilder NeedOneSourceOrChildHasTag(string tag) => AddRequirement(new AnyRequirement
         {
             Children =
             {
@@ -173,48 +182,6 @@ namespace EasyPack.EmeCardSystem
                     1, 0, 0),
             },
         });
-
-        /// <summary>需要源卡或直接子卡中没有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceOrChildNotHasTag(string tag) => AddRequirement(new NotRequirement
-        {
-            Inner = new AnyRequirement
-            {
-                Children =
-                {
-                    new ConditionRequirement(context =>
-                    {
-                        if (context.Source.HasTag(tag))
-                        {
-                            return (true, new() { context.Source });
-                        }
-
-                        return (false, null);
-                    }),
-                    new CardsRequirement(SelectionRoot.Source, CardFilterMode.ByTag, tag,
-                        1, TargetScope.Children),
-                },
-            },
-        });
-        
-        /// <summary>需要容器或直接子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedContainerOrChildHasTag(string tag) => AddRequirement(new AnyRequirement
-        {
-            Children =
-            {
-                new ConditionRequirement(context =>
-                {
-                    if (context.MatchRoot.HasTag(tag))
-                    {
-                        return (true, new() { context.Source });
-                    }
-
-                    return (false, null);
-                }),
-                new CardsRequirement(SelectionRoot.MatchRoot, TargetScope.Children, CardFilterMode.ByTag, tag,
-                    1, 0, 1),
-            },
-        });
-
         #endregion
     }
 }
