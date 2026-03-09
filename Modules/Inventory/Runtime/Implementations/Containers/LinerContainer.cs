@@ -387,4 +387,4 @@ namespace EasyPack.InventorySystem
 
         #endregion
     }
-} // namespace EasyPack.InventorySystem
+}

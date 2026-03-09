@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using EasyPack.CustomData;
 
 namespace EasyPack.InventorySystem
@@ -35,6 +37,33 @@ namespace EasyPack.InventorySystem
         public float Weight { get; set; } = 1f;
 
         /// <summary>
+        ///     物品行为模块列表
+        /// </summary>
+        public List<IItemModule> UseModules { get; set; } = new();
+
+        /// <summary>添加一个模块，若已存在相同 <see cref="IItemModule.ModuleId"/> 则替换</summary>
+        public ItemData AddModule(IItemModule module)
+        {
+            if (module == null) return this;
+            int idx = UseModules.FindIndex(m => m.ModuleId == module.ModuleId);
+            if (idx >= 0) UseModules[idx] = module;
+            else UseModules.Add(module);
+            return this;
+        }
+
+        /// <summary>按 ModuleId 移除模块，返回是否移除成功</summary>
+        public bool RemoveModule(string moduleId) =>
+            UseModules.RemoveAll(m => m.ModuleId == moduleId) > 0;
+
+        /// <summary>按类型获取第一个匹配的模块，不存在则返回 null</summary>
+        public T GetModule<T>() where T : class, IItemModule =>
+            UseModules.OfType<T>().FirstOrDefault();
+
+        /// <summary>检查是否包含指定 ModuleId 的模块</summary>
+        public bool HasModule(string moduleId) =>
+            UseModules.Any(m => m.ModuleId == moduleId);
+
+        /// <summary>
         ///     克隆ItemData，创建新的模板实例
         /// </summary>
         /// <param name="newId">新ID（可选）</param>
@@ -51,7 +80,8 @@ namespace EasyPack.InventorySystem
                 IsStackable = IsStackable,
                 MaxStackCount = MaxStackCount,
                 Description = Description,
-                Weight = Weight
+                Weight = Weight,
+                UseModules = new List<IItemModule>(UseModules)
             };
         }
     }
