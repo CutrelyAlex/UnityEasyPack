@@ -334,6 +334,34 @@ namespace EasyPack.EmeCardSystem
         /// <returns>如果是固有子卡返回 true</returns>
         public bool IsChild(Card child) => child != null && _children.Contains(child);
 
+        /// <summary>
+        /// 根据ID尝试获取子卡
+        /// </summary>
+        /// <param name="id">目标ID</param>
+        /// <param name="targetChild">目标子卡</param>
+        /// <returns></returns>
+        public bool ChildHasID(string id, out Card targetChild)
+        {
+            for (int i = 0; i < Children.Count; i++)
+            {
+                if (Children[i].Id == id)
+                {
+                    targetChild = Children[i];
+                    return true;
+                }
+            }
+            targetChild = null;
+            return false;
+        }
+        
+        public bool ChildHasID(string id)
+        {
+            for (int i = 0; i < Children.Count; i++)
+            {
+                if (Children[i].Id == id) return true;
+            }
+            return false;
+        }
 
         /// <summary>
         ///     检测传入的卡牌是否是当前卡牌或当前卡牌的递归父级卡牌
