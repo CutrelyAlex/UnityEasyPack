@@ -120,19 +120,15 @@ namespace EasyPack.EmeCardSystem
                 category, minCount, maxMatched, maxDepth);
 
         /// <summary>需要源卡的直接子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceTag(string tag, int minCount = 1, int maxMatched = -1) =>
+        public CardRuleBuilder NeedSourceChildTag(string tag, int minCount = 1, int maxMatched = -1) =>
             Need(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ByTag, tag, minCount, maxMatched);
 
-        /// <summary>需要源卡的两层子卡中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceTagTwo(string tag, int minCount = 1, int maxMatched = -1) =>
-            Need(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount, maxMatched, 2);
-
         /// <summary>需要源卡的直接子卡中有指定ID的卡牌</summary>
-        public CardRuleBuilder NeedSourceId(string id, int minCount = 1, int maxMatched = -1) =>
+        public CardRuleBuilder NeedSourceChildId(string id, int minCount = 1, int maxMatched = -1) =>
             Need(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ById, id, minCount, maxMatched);
 
         /// <summary>需要源卡的所有后代中有指定标签的卡牌</summary>
-        public CardRuleBuilder NeedSourceTagRecursive(string tag, int minCount = 1, int maxMatched = -1,
+        public CardRuleBuilder NeedSourceRecursiveTag(string tag, int minCount = 1, int maxMatched = -1,
                                                       int? maxDepth = null) =>
             Need(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag, minCount, maxMatched,
                 maxDepth);
