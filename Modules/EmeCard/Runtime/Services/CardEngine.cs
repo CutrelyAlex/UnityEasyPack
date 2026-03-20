@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using EasyPack.Architecture;
 using EasyPack.Category;
@@ -14,6 +16,58 @@ namespace EasyPack.EmeCardSystem
     /// </summary>
     public sealed partial class CardEngine
     {
+        private static readonly AsyncLocal<CardEngine> s_templateRegistrationScope = new();
+        private static readonly ConcurrentDictionary<string, CardData> s_orphanTemplateData = new();
+
+        private sealed class TemplateRegistrationScope : IDisposable
+        {
+            private readonly CardEngine _previous;
+
+            public TemplateRegistrationScope(CardEngine engine)
+            {
+                _previous = s_templateRegistrationScope.Value;
+                s_templateRegistrationScope.Value = engine;
+            }
+
+            public void Dispose()
+            {
+                s_templateRegistrationScope.Value = _previous;
+            }
+        }
+
+        internal static void RegisterTemplateData(CardData data)
+        {
+            if (data == null || string.IsNullOrEmpty(data.ID)) return;
+
+            CardData snapshot = data.Clone(data.ID);
+            CardEngine scopedEngine = s_templateRegistrationScope.Value;
+            if (scopedEngine != null)
+            {
+                scopedEngine._cardDataTemplates[data.ID] = snapshot;
+            }
+            else
+            {
+                s_orphanTemplateData[data.ID] = snapshot;
+            }
+        }
+
+        internal static CardData GetOrphanTemplateData(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            return s_orphanTemplateData.TryGetValue(id, out CardData data) ? data : null;
+        }
+
+        private static bool TryTakeOrphanTemplateData(string id, out CardData data)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                data = null;
+                return false;
+            }
+
+            return s_orphanTemplateData.TryRemove(id, out data);
+        }
+
         #region 初始化
 
         public CardEngine(CardFactory factory)
@@ -68,6 +122,7 @@ namespace EasyPack.EmeCardSystem
         private void PreCacheAllCardTemplates()
         {
             _registeredCardsTemplates.Clear();
+            _cardDataTemplates.Clear();
 
             // 获取工厂中所有注册的卡牌ID
             var cardIds = _cardFactory?.GetAllCardIds();
@@ -76,8 +131,22 @@ namespace EasyPack.EmeCardSystem
             foreach (string id in cardIds)
             {
                 // 为每个ID创建一个副本
-                Card templateCard = _cardFactory.Create(id);
-                if (templateCard != null) _registeredCardsTemplates.Add(templateCard);
+                Card templateCard;
+                using (new TemplateRegistrationScope(this))
+                {
+                    templateCard = _cardFactory.Create(id);
+                }
+
+                if (templateCard != null)
+                {
+                    _registeredCardsTemplates.Add(templateCard);
+
+                    CardData templateData = templateCard.Data;
+                    if (templateData != null && !string.IsNullOrEmpty(templateData.ID))
+                    {
+                        _cardDataTemplates[templateData.ID] = templateData.Clone(templateData.ID);
+                    }
+                }
             }
         }
 
@@ -101,6 +170,48 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public ICategoryManager<Card, long> CategoryManager { get; private set; }
 
+        /// <summary>
+        ///     获取指定 ID 的模板数据。
+        /// </summary>
+        public CardData GetTemplateData(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            return _cardDataTemplates.TryGetValue(id, out CardData data) ? data : null;
+        }
+
+        /// <summary>
+        ///     尝试获取指定 ID 的模板数据。
+        /// </summary>
+        public bool TryGetTemplateData(string id, out CardData data)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                data = null;
+                return false;
+            }
+
+            return _cardDataTemplates.TryGetValue(id, out data);
+        }
+
+        /// <summary>
+        ///     确保模板已注册到引擎模板字典。
+        /// </summary>
+        internal void EnsureTemplateDataRegistered(Card card)
+        {
+            if (card == null || string.IsNullOrEmpty(card.Id)) return;
+
+            if (TryTakeOrphanTemplateData(card.Id, out CardData orphanTemplate) && orphanTemplate != null)
+            {
+                _cardDataTemplates[card.Id] = orphanTemplate;
+                return;
+            }
+
+            if (!_cardDataTemplates.ContainsKey(card.Id) && card.Data != null)
+            {
+                _cardDataTemplates[card.Id] = card.Data.Clone(card.Id);
+            }
+        }
+
         #endregion
 
         #region 卡牌创建
@@ -113,7 +224,13 @@ namespace EasyPack.EmeCardSystem
             if (id == null) throw new ArgumentNullException(nameof(id));
 
             T card = null;
-            if (_cardFactory != null) card = _cardFactory.Create<T>(id);
+            if (_cardFactory != null)
+            {
+                using (new TemplateRegistrationScope(this))
+                {
+                    card = _cardFactory.Create<T>(id);
+                }
+            }
 
             if (card == null) return null;
 

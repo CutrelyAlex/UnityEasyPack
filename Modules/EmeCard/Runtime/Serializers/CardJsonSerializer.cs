@@ -34,15 +34,6 @@ namespace EasyPack.EmeCardSystem
                 return null;
             }
 
-            if (obj.Data == null)
-            {
-                throw new SerializationException(
-                    "无法序列化没有 CardData 的 Card",
-                    typeof(Card),
-                    SerializationErrorCode.SerializationFailed
-                );
-            }
-
             var visited = new HashSet<Card>(ReferenceEqualityComparer<Card>.Default);
             return SerializeCardRecursive(obj, visited, new());
         }
@@ -141,11 +132,7 @@ namespace EasyPack.EmeCardSystem
 
                 var dto = new SerializableCard
                 {
-                    ID = card.Data.ID,
-                    Name = card.Data.Name,
-                    Description = card.Data.Description,
-                    DefaultCategory = card.Data?.Category ?? CardData.DEFAULT_CATEGORY,
-                    DefaultTags = card.Data.DefaultTags,
+                    ID = card.Id,
                     Index = card.Index,
                     UID = card.UID,
                     Properties = Array.Empty<SerializableGameProperty>(),
@@ -190,7 +177,7 @@ namespace EasyPack.EmeCardSystem
 
                         // 记录子卡的 UID
                         childrenUIDsList.Add(child.UID);
-                        
+
                         // 如果是固有子卡，也记录到固有列表中
                         if (card.IsIntrinsic(child))
                         {
@@ -203,7 +190,7 @@ namespace EasyPack.EmeCardSystem
                     {
                         dto.ChildrenUIDs = childrenUIDsList.ToArray();
                     }
-                    
+
                     if (intrinsicChildrenUIDsList.Count > 0)
                     {
                         dto.IntrinsicChildrenUIDs = intrinsicChildrenUIDsList.ToArray();
@@ -268,20 +255,13 @@ namespace EasyPack.EmeCardSystem
             }
             else
             {
-                // 回退：使用 DefaultCategory（运行时 Category 由 CategoryManager 提供）
-                string category = data.DefaultCategory;
-                if (string.IsNullOrEmpty(category))
-                {
-                    category = CardData.DEFAULT_CATEGORY;
-                }
-
-                cardData = new(
+                // 回退，缺失模板时以最小信息构造
+                cardData = new CardData(
                     data.ID,
-                    data.Name ?? "Default",
-                    data.Description ?? string.Empty,
-                    category,
-                    Array.Empty<string>()
-                );
+                    data.ID,
+                    string.Empty,
+                    CardData.DEFAULT_CATEGORY,
+                    Array.Empty<string>());
             }
 
             var card = new Card(cardData)

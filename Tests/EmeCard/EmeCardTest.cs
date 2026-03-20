@@ -62,7 +62,11 @@ namespace EasyPack.EmeCardTests
             Assert.AreEqual("药水", card.Name, $"卡牌名称应为药水，实际: {card.Name}");
             Assert.AreEqual("恢复生命的药水", card.Description, "卡牌描述应正确");
             Assert.AreEqual("Card.Object", card.Category, "卡牌类别应为 Object");
-            Assert.AreEqual(data, card.Data, "卡牌的 Data 应与创建时的 data 相同");
+            Assert.IsNotNull(card.Data, "卡牌的 Data 不应为 null");
+            Assert.AreEqual(data.ID, card.Data.ID, "Card.Data.ID 应与创建时一致");
+            Assert.AreEqual(data.Name, card.Data.Name, "Card.Data.Name 应与创建时一致");
+            Assert.AreEqual(data.Description, card.Data.Description, "Card.Data.Description 应与创建时一致");
+            Assert.AreEqual(data.Category, card.Data.Category, "Card.Data.Category 应与创建时一致");
 
             // 测试索引
             Assert.AreEqual(-1, card.Index, $"默认索引应为 0，实际: {card.Index}");
@@ -155,6 +159,77 @@ namespace EasyPack.EmeCardTests
             Assert.IsNotNull(card2, "应能创建法术师卡牌");
             Assert.IsTrue(cardData2.DefaultMetaData.HasValue("Level"), "cardData2的DefaultMetaData应包含Level");
             Assert.AreEqual(5, cardData2.DefaultMetaData.Get("Level", -1), "Level值应为5");
+        }
+
+        [Test]
+        public void Test_RootCard_ModifyRuntimeMetadata_ShouldNotChangeTemplateDefaultMetadata()
+        {
+            var factory = new CardFactory();
+
+            var rootData = new CardData("meta_root", "Root", "", "Card.Object");
+            rootData.DefaultMetaData.Set("TemplateOnly", 1);
+
+            factory.Register("meta_root", () => new Card(rootData));
+            var engine = new CardEngine(factory);
+
+            Card root = engine.CreateCard("meta_root");
+            Assert.IsNotNull(root, "应能创建根卡");
+            Assert.AreEqual(1, root.Data.DefaultMetaData.Get("TemplateOnly", -1), "模板初始值应为 1");
+
+            root.ModifyRuntimeMetadata(meta =>
+            {
+                meta.Set("TemplateOnly", 999);
+                meta.Set("RuntimeOnly", "runtime");
+            });
+
+            CustomDataCollection runtimeMeta = engine.CategoryManager.GetMetadata(root.UID);
+            Assert.AreEqual(999, runtimeMeta.Get("TemplateOnly", -1), "运行时元数据应已修改");
+            Assert.AreEqual("runtime", runtimeMeta.Get("RuntimeOnly", ""), "运行时新增字段应存在");
+
+            Assert.AreEqual(1, root.Data.DefaultMetaData.Get("TemplateOnly", -1),
+                "修改 RuntimeMetadata 后，模板 DefaultMetaData 不应被改写");
+            Assert.IsFalse(root.Data.DefaultMetaData.HasValue("RuntimeOnly"),
+                "运行时新增字段不应写回模板 DefaultMetaData");
+        }
+
+        [Test]
+        public void Test_ChildCard_ModifyRuntimeMetadata_ShouldNotChangeTemplateDefaultMetadata()
+        {
+            var factory = new CardFactory();
+
+            var parentData = new CardData("meta_parent", "Parent", "", "Card.Object");
+            parentData.DefaultMetaData.Set("ParentTemplate", "keep");
+
+            var childData = new CardData("meta_child", "Child", "", "Card.Object");
+            childData.DefaultMetaData.Set("ChildTemplate", 10);
+
+            factory.Register("meta_parent", () => new Card(parentData));
+            factory.Register("meta_child", () => new Card(childData));
+
+            var engine = new CardEngine(factory);
+            Card parent = engine.CreateCard("meta_parent");
+            Card child = engine.CreateCard("meta_child");
+            parent.AddChild(child);
+
+            Assert.IsNotNull(child.RuntimeMetadata, "子卡应有可访问的 RuntimeMetadata");
+            Assert.AreEqual(10, child.Data.DefaultMetaData.Get("ChildTemplate", -1), "子卡模板初始值应为 10");
+
+            child.ModifyRuntimeMetadata(meta =>
+            {
+                meta.Set("ChildTemplate", 888);
+                meta.Set("ChildRuntimeOnly", true);
+            });
+
+            CustomDataCollection childRuntimeMeta = engine.CategoryManager.GetMetadata(child.UID);
+            Assert.AreEqual(888, childRuntimeMeta.Get("ChildTemplate", -1), "子卡运行时元数据应已修改");
+            Assert.IsTrue(childRuntimeMeta.Get("ChildRuntimeOnly", false), "子卡运行时新增字段应存在");
+
+            Assert.AreEqual(10, child.Data.DefaultMetaData.Get("ChildTemplate", -1),
+                "修改子卡 RuntimeMetadata 后，子卡模板 DefaultMetaData 不应被改写");
+            Assert.IsFalse(child.Data.DefaultMetaData.HasValue("ChildRuntimeOnly"),
+                "子卡运行时新增字段不应写回子卡模板 DefaultMetaData");
+            Assert.AreEqual("keep", parent.Data.DefaultMetaData.Get("ParentTemplate", ""),
+                "修改子卡 RuntimeMetadata 不应影响父卡模板 DefaultMetaData");
         }
 
         [Test]

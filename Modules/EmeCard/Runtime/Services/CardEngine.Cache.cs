@@ -36,6 +36,9 @@ namespace EasyPack.EmeCardSystem
         // UID -> 位置缓存
         private readonly Dictionary<long, Vector3Int?> _positionByUID = new();
 
+        // ID -> CardData 模板缓存（集中存储静态模板）
+        private readonly Dictionary<string, CardData> _cardDataTemplates = new();
+
         #endregion
 
         #region 卡牌添加
@@ -49,6 +52,7 @@ namespace EasyPack.EmeCardSystem
 
             // 设置卡牌的 Engine 引用
             card.Engine = this;
+            EnsureTemplateDataRegistered(card);
 
             string id = card.Id;
 

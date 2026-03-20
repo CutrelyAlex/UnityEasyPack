@@ -220,6 +220,7 @@ namespace EasyPack.EmeCardSystem
             if (card == null) return;
 
             card.Engine = this;
+            EnsureTemplateDataRegistered(card);
 
             // 恢复索引
             string id = card.Id;

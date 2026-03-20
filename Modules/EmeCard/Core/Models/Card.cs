@@ -29,7 +29,8 @@ namespace EasyPack.EmeCardSystem
         /// <param name="extraTags">额外标签</param>
         public Card(CardData data, GameProperty gameProperty = null, params string[] extraTags)
         {
-            Data = data;
+            _id = data?.ID ?? string.Empty;
+            CardEngine.RegisterTemplateData(data);
             if (gameProperty != null)
             {
                 Properties.Add(gameProperty);
@@ -50,7 +51,8 @@ namespace EasyPack.EmeCardSystem
         /// <param name="extraTags">额外标签</param>
         public Card(CardData data, IEnumerable<GameProperty> properties, params string[] extraTags)
         {
-            Data = data;
+            _id = data?.ID ?? string.Empty;
+            CardEngine.RegisterTemplateData(data);
             Properties = properties?.ToList() ?? new List<GameProperty>();
 
             // 临时收集额外标签，等待注册到Engine时同步
@@ -88,7 +90,11 @@ namespace EasyPack.EmeCardSystem
         ///     注意：更改 Data 不会自动更新 CategoryManager 中的标签，
         ///     标签管理统一由 Engine 在注册时处理。
         /// </summary>
-        public CardData Data { get; protected set; }
+        private readonly string _id;
+
+        public CardData Data =>
+            Engine?.GetTemplateData(_id)
+            ?? CardEngine.GetOrphanTemplateData(_id);
 
         /// <summary>
         ///     唯一标识符：由 CardFactory 分配，全局唯一，线程安全。
@@ -105,7 +111,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     卡牌标识，来自 <see cref="Data" />。
         /// </summary>
-        public string Id => Data != null ? Data.ID : string.Empty;
+        public string Id => _id;
 
         public string IdAndIndex => Id + Index;
 

@@ -56,7 +56,7 @@ namespace EasyPack.EmeCardTests
         {
             // 使用 Engine 创建卡牌以确保标签正确管理
             var factory = new CardFactory();
-            factory.Register("warrior", () => 
+            factory.Register("warrior", () =>
             {
                 var data = new CardData("warrior", "战士", "强者", "Card.Object", new[] { "Combat" });
                 var card = new Card(data, "Player");
@@ -74,7 +74,7 @@ namespace EasyPack.EmeCardTests
             var clone = _serializationService.DeserializeFromJson<Card>(json);
             Assert.IsNotNull(clone, "反序列化应成功");
             Assert.AreEqual("warrior", clone.Id, "ID 应匹配");
-            
+
             // 将 clone 添加到引擎以恢复标签功能
             engine.AddCard(clone);
             // 运行时标签（extraTags，例如 Player）不再由 CardJsonSerializer 序列化；
@@ -91,29 +91,29 @@ namespace EasyPack.EmeCardTests
             var player = new Card(new("player", "玩家"));
             var sword = new Card(new("sword", "剑"));
             var shield = new Card(new("shield", "盾"));
-            
+
             // 将所有卡牌添加到 Engine 以分配 UID 并建立管理关系
             _engine.AddCard(player);
             _engine.AddCard(sword);
             _engine.AddCard(shield);
-            
+
             // 建立父子关系
             player.AddChild(sword);
             player.AddChild(shield, true);
 
             // 使用 Engine 序列化整个状态（包括子卡关系）
             string json = _engine.SerializeToJson();
-            
+
             // 创建新的 Engine 并加载状态
             var newFactory = new CardFactory();
             newFactory.Register("player", () => new Card(new("player", "玩家")));
             newFactory.Register("sword", () => new Card(new("sword", "剑")));
             newFactory.Register("shield", () => new Card(new("shield", "盾")));
-            
+
             CardJsonSerializer.Factory = newFactory;
             var newEngine = new CardEngine(newFactory);
             newEngine.DeserializeFromJson(json);
-            
+
             // 通过 UID 获取恢复后的卡牌
             Card restored = newEngine.GetCardByUID(player.UID);
 
@@ -151,29 +151,29 @@ namespace EasyPack.EmeCardTests
         {
             var p = new Card(new("p", "p"));
             var c = new Card(new("c", "c"));
-            
+
             // 将所有卡牌添加到 Engine 以分配 UID
             _engine.AddCard(p);
             _engine.AddCard(c);
-            
+
             // 建立父子关系
             p.AddChild(c, true);
 
             // 使用 Engine 序列化整个状态（包括子卡关系）
             string json = _engine.SerializeToJson();
-            
+
             // 创建新的 Engine 并加载状态
             var newFactory = new CardFactory();
             newFactory.Register("p", () => new Card(new("p", "p")));
             newFactory.Register("c", () => new Card(new("c", "c")));
-            
+
             CardJsonSerializer.Factory = newFactory;
             var newEngine = new CardEngine(newFactory);
             newEngine.DeserializeFromJson(json);
-            
+
             // 通过 UID 获取恢复后的卡牌
             Card restored = newEngine.GetCardByUID(p.UID);
-            
+
             Assert.IsNotNull(restored, "应该能找到恢复的卡牌");
             Assert.AreEqual(1, restored.Children.Count, "应该有1个子卡");
             Assert.IsTrue(restored.IsIntrinsic(restored.Children[0]), "固有子卡应保持");
@@ -541,10 +541,10 @@ namespace EasyPack.EmeCardTests
 
             // Act 3 - 使用 CardEngine 序列化并反序列化
             var json = _engine.SerializeToJson();
-            
+
             var newEngine = new CardEngine(_factory);
             newEngine.DeserializeFromJson(json);
-            
+
             categoryManager = newEngine.CategoryManager as CategoryManager<Card, long>;
             Assert.IsNotNull(categoryManager, "反序列化后的 CategoryManager 不应为空");
 
@@ -597,16 +597,16 @@ namespace EasyPack.EmeCardTests
             // 因此这里必须在模板层就设置好 category，避免后续重复注册导致 DuplicateId。
             factory.Register("hero", () => new Card(new CardData("hero", "英雄", category: "Unit.Hero")));
             factory.Register("sword", () => new Card(new CardData("sword", "剑", category: "Item.Weapon")));
-            
+
             var engine = new CardEngine(factory);
-            
+
             var hero = engine.CreateCard("hero");
             var sword = engine.CreateCard("sword");
-            
+
             // 设置标签（分类已在 AddCard 时完成注册）
             engine.CategoryManager.AddTag(hero.UID, "Legendary");
             engine.CategoryManager.AddTag(sword.UID, "Sharp");
-            
+
             // 设置元数据
             var metadata = new CustomDataCollection();
             metadata.Set("Level", 10);
@@ -622,7 +622,7 @@ namespace EasyPack.EmeCardTests
 
             // 4. 验证
             Assert.AreEqual(2, newEngine.CategoryManager.GetStatistics().TotalEntities);
-            
+
             var restoredHero = newEngine.CategoryManager.GetById(hero.UID).Value;
             Assert.IsNotNull(restoredHero);
             Assert.AreEqual("hero", restoredHero.Id);
@@ -641,27 +641,32 @@ namespace EasyPack.EmeCardTests
         public void Test_CardEngine_Full_Serialization_RoundTrip()
         {
             // Arrange
-            _factory.Register("hero", () => {return new Card(new CardData("hero", "Hero"), "Character");});
-            _factory.Register("item", () => {return new Card(new CardData("item", "Item"), "Equipment");});
-            _factory.Register("velocity", () => {
-                // 注意：Card 的逻辑 ID 来自 CardData.ID。
-                // 这里必须保持 CardData.ID 与工厂注册 key 一致，否则序列化/反序列化会按错误 ID 走工厂，导致静态默认数据（DefaultMetaData）无法恢复。
-                var card = new Card(new CardData("velocity", "Velocity"), "Equipment");
-                card.Data.DefaultMetaData.Set("IsVelocity", true);
-                card.Data.DefaultMetaData.Set("Speed", 9.8f);
-                card.Data.DefaultMetaData.Set("Direction", new Vector2(1.0f, 0.0f));
-                return card;
+            _factory.Register("hero", () => { return new Card(new CardData("hero", "Hero"), "Character"); });
+            _factory.Register("item", () => { return new Card(new CardData("item", "Item"), "Equipment"); });
+            _factory.Register("velocity", () =>
+            {
+                // 因此模板元数据应在 CardData 上先配置，再创建 Card。
+                var data = new CardData("velocity", "Velocity");
+                data.DefaultMetaData.Set("IsVelocity", true);
+                data.DefaultMetaData.Set("Speed", 9.8f);
+                data.DefaultMetaData.Set("Direction", new Vector2(1.0f, 0.0f));
+                return new Card(data, "Equipment");
             });
-            _factory.RegisterVariant("velocity", "vu", card => {
-                card.Data.DefaultMetaData.Set("Direction", new Vector2(0.0f, 2.0f));
+            _factory.Register("vu", () =>
+            {
+                var data = new CardData("vu", "Velocity Variant");
+                data.DefaultMetaData.Set("IsVelocity", true);
+                data.DefaultMetaData.Set("Speed", 9.8f);
+                data.DefaultMetaData.Set("Direction", new Vector2(0.0f, 2.0f));
+                return new Card(data, "Equipment");
             });
             var hero = _engine.CreateCard("hero");
             hero.Position = new Vector3Int(1, 0, 1);
             hero.Properties.Add(new GameProperty("HP", 100));
-            
+
             var item = _engine.CreateCard("item");
             item.Position = new Vector3Int(2, 0, 2);
-            
+
             var vu = _engine.CreateCard("vu");
             var vel = _engine.CreateCard("velocity");
 
@@ -673,9 +678,9 @@ namespace EasyPack.EmeCardTests
             // Act
             string json = _engine.SerializeToJson();
             Assert.IsNotEmpty(json);
-            
+
             _engine.ClearAllCards();
-            var newEngine =_engine;
+            var newEngine = _engine;
             newEngine.DeserializeFromJson(json);
 
             // Assert
@@ -696,13 +701,13 @@ namespace EasyPack.EmeCardTests
             // 3. Verify Position
             Assert.AreEqual(new Vector3Int(1, 0, 1), restoredHero.Position, "Hero position should be restored");
             Assert.AreEqual(new Vector3Int(2, 0, 2), restoredItem.Position, "Item position should be restored");
-            
+
             // 4. Verify Engine Caches
             Assert.AreEqual(restoredHero, newEngine.GetCardByPosition(new Vector3Int(1, 0, 1)), "Engine position cache should work");
-            
+
             // 5. Verify Tags
             Assert.IsTrue(restoredHero.HasTag("Character"), "Hero tag should be restored");
-            
+
             // 6. Verify Metadata
             var restoredMetadata = newEngine.CategoryManager.GetMetadata(restoredHero.UID);
             Assert.IsNotNull(restoredMetadata, "Metadata should be restored");

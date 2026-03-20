@@ -54,6 +54,7 @@ namespace EasyPack.EmeCardTests
 
             // 使用 Engine 创建卡牌以确保标签正确管理
             _factory = new CardFactory();
+            CardJsonSerializer.Factory = _factory;
             _factory.Register("test_warrior", () => 
             {
                 var card = new Card(_testCardData, "Player");
@@ -73,6 +74,7 @@ namespace EasyPack.EmeCardTests
             _testCardData = null;
             _engine = null;
             _factory = null;
+            CardJsonSerializer.Factory = null;
         }
 
         #region ToSerializable 测试
@@ -90,9 +92,8 @@ namespace EasyPack.EmeCardTests
             Assert.IsNotNull(dto, "DTO 不应为 null");
             Assert.IsInstanceOf<SerializableCard>(dto, "应返回 SerializableCard 类型");
             Assert.AreEqual("test_warrior", dto.ID, "ID 应匹配");
-            Assert.AreEqual("测试战士", dto.Name, "名称应匹配");
-            Assert.AreEqual("这是一个测试战士卡牌", dto.Description, "描述应匹配");
-            Assert.AreEqual("CardCategory.Object", dto.DefaultCategory, "分类应匹配");
+            Assert.AreEqual(_testCard.Index, dto.Index, "索引应匹配");
+            Assert.AreEqual(_testCard.UID, dto.UID, "UID 应匹配");
         }
 
         /// <summary>
@@ -120,19 +121,16 @@ namespace EasyPack.EmeCardTests
         ///     测试：ToSerializable 应该仅序列化 CardData.DefaultTags（运行时 Tags 由 CategoryManager 管理，不在 SerializableCard 中保存）
         /// </summary>
         [Test]
-        public void Test_ToSerializable_SerializesDefaultTagsOnly()
+        public void Test_ToSerializable_ContainsRuntimeStateOnly()
         {
             // Act
             SerializableCard dto = _serializer.ToSerializable(_testCard);
 
             // Assert
-            Assert.IsNotNull(dto.DefaultTags, "DefaultTags 不应为 null");
-            Assert.GreaterOrEqual(dto.DefaultTags.Length, 0, "DefaultTags 数组应可用");
-            Assert.Contains("Combat", dto.DefaultTags, "应该包含 Combat 默认标签");
-            Assert.Contains("Melee", dto.DefaultTags, "应该包含 Melee 默认标签");
-
-            // 运行时额外标签（如 Player）来自 CategoryManager，不应被写入 SerializableCard
-            Assert.IsFalse(Array.Exists(dto.DefaultTags, t => t == "Player"), "DefaultTags 不应包含运行时标签 Player");
+            Assert.AreEqual("test_warrior", dto.ID, "应包含模板 ID");
+            Assert.IsNotNull(dto.Properties, "应包含运行时属性");
+            Assert.IsNotNull(dto.ChildrenUIDs, "应包含子卡 UID 列表字段");
+            Assert.IsNotNull(dto.IntrinsicChildrenUIDs, "应包含固有子卡 UID 列表字段");
         }
 
         /// <summary>
@@ -234,7 +232,7 @@ namespace EasyPack.EmeCardTests
             Assert.IsNotNull(json, "JSON 不应为 null");
             Assert.IsNotEmpty(json, "JSON 不应为空字符串");
             Assert.IsTrue(json.Contains("test_warrior"), "JSON 应包含卡牌 ID");
-            Assert.IsTrue(json.Contains("测试战士"), "JSON 应包含卡牌名称");
+            Assert.IsFalse(json.Contains("DefaultTags"), "JSON 不应包含模板标签冗余字段");
         }
 
         /// <summary>
@@ -271,7 +269,6 @@ namespace EasyPack.EmeCardTests
             Assert.IsNotNull(deserializedDto, "DTO 不应为 null");
             Assert.IsInstanceOf<SerializableCard>(deserializedDto, "应返回 SerializableCard 类型");
             Assert.AreEqual("test_warrior", deserializedDto.ID, "ID 应匹配");
-            Assert.AreEqual("测试战士", deserializedDto.Name, "名称应匹配");
         }
 
         /// <summary>
@@ -315,7 +312,6 @@ namespace EasyPack.EmeCardTests
             Assert.IsNotNull(json, "JSON 不应为 null");
             Assert.IsNotEmpty(json, "JSON 不应为空字符串");
             Assert.IsTrue(json.Contains("test_warrior"), "JSON 应包含卡牌 ID");
-            Assert.IsTrue(json.Contains("测试战士"), "JSON 应包含卡牌名称");
         }
 
         #endregion
