@@ -142,7 +142,7 @@ namespace EasyPack.EmeCardSystem
         public Vector3Int? Position
         {
             //如果有根卡牌则返回跟卡牌位置，否则返回自己的位置
-            get => RootCard==null?_position:RootCard._position;
+            get => RootCard == null ? _position : RootCard._position;
             set
             {
                 if (RootCard == null || RootCard.Equals(this))
@@ -353,7 +353,7 @@ namespace EasyPack.EmeCardSystem
             targetChild = null;
             return false;
         }
-        
+
         public bool ChildHasID(string id)
         {
             for (int i = 0; i < Children.Count; i++)
@@ -647,51 +647,6 @@ namespace EasyPack.EmeCardSystem
         public Card WithChild(Card child, bool intrinsic = false)
         {
             AddChild(child, intrinsic);
-            return this;
-        }
-
-        /// <summary>
-        ///     链式添加标签
-        /// </summary>
-        public Card WithTag(string tag)
-        {
-            if (string.IsNullOrEmpty(tag)) return this;
-            if (Engine != null)
-            {
-                AddTag(tag);
-            }
-            else
-            {
-                PendingExtraTags ??= new List<string>();
-                PendingExtraTags.Add(tag);
-            }
-            return this;
-        }
-
-        /// <summary>
-        ///     链式添加多个标签
-        /// </summary>
-        public Card WithTags(params string[] tags)
-        {
-            if (tags == null || tags.Length == 0) return this;
-            if (Engine != null)
-            {
-                AddTags(tags);
-            }
-            else
-            {
-                PendingExtraTags ??= new List<string>();
-                PendingExtraTags.AddRange(tags);
-            }
-            return this;
-        }
-
-        /// <summary>
-        ///     链式配置元数据
-        /// </summary>
-        public Card WithMetaData(Action<CustomDataCollection> action)
-        {
-            action?.Invoke(Data.DefaultMetaData);
             return this;
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using EasyPack.CustomData;
 using UnityEngine;
 
@@ -47,7 +48,9 @@ namespace EasyPack.EmeCardSystem
         ///     - 通常在基于 <see cref="CardData" /> 创建 <see cref="Card" /> 实例时拷贝到实例的标签集中；
         ///     - 本数组应视为只读原数据，不建议在运行时直接修改该数组内容（修改应作用于实例）。
         /// </summary>
-        public string[] DefaultTags { get; }
+        private readonly List<string> _defaultTags = new();
+
+        public string[] DefaultTags => _defaultTags.Count == 0 ? Array.Empty<string>() : _defaultTags.ToArray();
 
         /// <summary>
         ///     自定义数据集合的默认实例
@@ -70,8 +73,48 @@ namespace EasyPack.EmeCardSystem
             Name = name;
             Description = desc;
             Category = category ?? DEFAULT_CATEGORY;
-            DefaultTags = defaultTags ?? Array.Empty<string>();
+            if (defaultTags is { Length: > 0 })
+            {
+                foreach (string tag in defaultTags)
+                {
+                    if (string.IsNullOrWhiteSpace(tag)) continue;
+                    if (!_defaultTags.Contains(tag)) _defaultTags.Add(tag);
+                }
+            }
             Sprite = sprite ?? Resources.Load<Sprite>(ID);
+        }
+
+        /// <summary>
+        ///     为模板添加默认标签。
+        /// </summary>
+        public CardData WithTag(string tag)
+        {
+            if (string.IsNullOrWhiteSpace(tag)) return this;
+            if (!_defaultTags.Contains(tag)) _defaultTags.Add(tag);
+            return this;
+        }
+
+        /// <summary>
+        ///     为模板添加多个默认标签。
+        /// </summary>
+        public CardData WithTags(params string[] tags)
+        {
+            if (tags == null || tags.Length == 0) return this;
+            foreach (string tag in tags)
+            {
+                WithTag(tag);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        ///     配置模板默认元数据。
+        /// </summary>
+        public CardData WithMetaData(Action<CustomDataCollection> action)
+        {
+            action?.Invoke(DefaultMetaData);
+            return this;
         }
 
         /// <summary>
