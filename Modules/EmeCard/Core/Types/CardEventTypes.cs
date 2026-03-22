@@ -31,6 +31,12 @@ namespace EasyPack.EmeCardSystem
         /// <summary>从容器移除事件类型标识符</summary>
         public const string REMOVED_FROM_OWNER = "RemovedFromOwner";
 
+        /// <summary>卡牌初始化事件类型标识符</summary>
+        public const string INIT = "Init";
+        
+        /// <summary>渲染初始化事件类型标识符</summary>
+        public const string RENDERING_INIT = "RenderingInit";
+        
         /// <summary>使用卡牌事件类型标识符</summary>
         public const string USE = "Use";
 
@@ -80,8 +86,19 @@ namespace EasyPack.EmeCardSystem
         ///     从容器移除事件：携带原容器卡牌。
         /// </summary>
         public static readonly CardEventDefinition<Card> RemovedFromOwner = new(REMOVED_FROM_OWNER);
+        
+        /// <summary>
+        ///     初始化事件
+        /// </summary>
+        public static readonly CardEventDefinition<object> Init = new(INIT);
+        
+        /// <summary>
+        ///     渲染初始化事件
+        /// </summary>
+        public static readonly CardEventDefinition<object> RenderingInit = new(RENDERING_INIT);
 
         #endregion
+        
 
         #region 使用事件
 

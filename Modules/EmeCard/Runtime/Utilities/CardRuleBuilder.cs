@@ -34,6 +34,12 @@ namespace EasyPack.EmeCardSystem
         /// <summary>监听 Tick 事件</summary>
         public CardRuleBuilder OnTick() => On(CardEventTypes.TICK);
 
+        /// <summary>监听 Init 事件</summary>
+        public CardRuleBuilder OnInit() => On(CardEventTypes.INIT);
+        
+        /// <summary>监听 RenderingInit 事件</summary>
+        public CardRuleBuilder OnRenderingInit() => On(CardEventTypes.RENDERING_INIT);
+        
         /// <summary>监听 Use 事件</summary>
         public CardRuleBuilder OnUse() => On(CardEventTypes.USE);
 

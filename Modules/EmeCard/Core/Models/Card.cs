@@ -548,6 +548,22 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
+        ///     触发初始化事件（Init）。
+        /// </summary>
+        public void Init()
+        {
+            RaiseEventInternal(CardEventTypes.Init.CreateEvent(null));
+        }
+        
+        /// <summary>
+        ///     触发渲染初始化事件（RenderingInit）。
+        /// </summary>
+        public void RenderingInit()
+        {
+            RaiseEventInternal(CardEventTypes.RenderingInit.CreateEvent(null));
+        }
+        
+        /// <summary>
         ///     触发主动使用事件（Use）。
         /// </summary>
         /// <param name="target">目标卡</param>
