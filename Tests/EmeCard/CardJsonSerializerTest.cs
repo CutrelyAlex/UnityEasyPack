@@ -57,7 +57,7 @@ namespace EasyPack.EmeCardTests
             CardJsonSerializer.Factory = _factory;
             _factory.Register("test_warrior", () => 
             {
-                var card = new Card(_testCardData, "Player");
+                var card = new Card(_testCardData);
                 card.Properties.Add(new GamePropertySystem.GameProperty("Strength", 100f));
                 card.Properties.Add(new GamePropertySystem.GameProperty("Health", 50f));
                 return card;
@@ -445,7 +445,7 @@ namespace EasyPack.EmeCardTests
             var newFactory = new CardFactory();
             newFactory.Register("test_warrior", () => 
             {
-                var card = new Card(_testCardData, "Player");
+                var card = new Card(_testCardData);
                 card.Properties.Add(new GamePropertySystem.GameProperty("Strength", 100f));
                 return card;
             });

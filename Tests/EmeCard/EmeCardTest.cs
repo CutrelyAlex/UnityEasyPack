@@ -6,6 +6,8 @@ using EasyPack.Modifiers;
 using NUnit.Framework;
 using UnityEngine;
 
+#pragma warning disable CS0618
+
 namespace EasyPack.EmeCardTests
 {
     /// <summary>
@@ -240,8 +242,7 @@ namespace EasyPack.EmeCardTests
             factory.Register("sword", () => new(
                 new("sword", "剑", "", "Card.Object", new[] { "武器", "近战" })));
             factory.Register("sword_extra", () => new(
-                new("sword_extra", "剑", "", "Card.Object", new[] { "武器", "近战" }),
-                "额外标签1", "额外标签2"));
+                new("sword_extra", "剑", "", "Card.Object", new[] { "武器", "近战", "额外标签1", "额外标签2" })));
 
             var engine = new CardEngine(factory);
 
@@ -396,8 +397,8 @@ namespace EasyPack.EmeCardTests
             var factory = new CardFactory();
 
             // 注册卡牌模板
-            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object"), "武器"));
-            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Object"), "消耗品"));
+            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object", new[] { "武器" })));
+            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Object", new[] { "消耗品" })));
 
             // 使用 Engine 创建卡牌以确保标签正确管理
             var engine = new CardEngine(factory);
@@ -425,9 +426,9 @@ namespace EasyPack.EmeCardTests
             // 注册带属性的卡牌
             factory.Register("health_potion", () =>
             {
-                var data = new CardData("health_potion", "生命药水", "恢复100生命", "Card.Object");
+                var data = new CardData("health_potion", "生命药水", "恢复100生命", "Card.Object", new[] { "药水", "消耗品" });
                 var prop = new GameProperty("HealAmount", 100f);
-                return new(data, prop, "药水", "消耗品");
+                return new(data, prop);
             });
 
             // 使用 Engine 创建卡牌以确保标签正确管理
@@ -544,7 +545,7 @@ namespace EasyPack.EmeCardTests
         {
             var factory = new CardFactory();
             factory.Register("player", () => new(new("player", "玩家", "", "Card.Object")));
-            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object"), "武器"));
+            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object", new[] { "武器" })));
 
             var engine = new CardEngine(factory);
 
@@ -600,9 +601,9 @@ namespace EasyPack.EmeCardTests
             var factory = new CardFactory();
             factory.Register("timer", () =>
             {
-                var data = new CardData("timer", "计时器", "", "Card.Object");
+                var data = new CardData("timer", "计时器", "", "Card.Object", new[] { "计时器" });
                 var prop = new GameProperty("Time", 0f);
-                return new(data, prop, "计时器");
+                return new(data, prop);
             });
 
             var engine = new CardEngine(factory);
@@ -644,7 +645,7 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_UseEvent()
         {
             var factory = new CardFactory();
-            factory.Register("consumable", () => new(new("consumable", "消耗品", "", "Card.Object"), "可使用"));
+            factory.Register("consumable", () => new(new("consumable", "消耗品", "", "Card.Object", new[] { "可使用" })));
 
             var engine = new CardEngine(factory);
 
@@ -672,8 +673,8 @@ namespace EasyPack.EmeCardTests
         {
             var factory = new CardFactory();
             factory.Register("player", () => new(new("player", "玩家", "", "Card.Object")));
-            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object"), "武器", "近战"));
-            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Object"), "消耗品"));
+            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object", new[] { "武器", "近战" })));
+            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Object", new[] { "消耗品" })));
 
             var engine = new CardEngine(factory);
 
@@ -712,13 +713,13 @@ namespace EasyPack.EmeCardTests
             var factory = new CardFactory();
             factory.Register("card", () =>
             {
-                var data = new CardData("card", "卡牌", "", "Card.Object");
+                var data = new CardData("card", "卡牌", "", "Card.Object", new[] { "可激活" });
                 var prop = new GameProperty("Value", 10f);
-                return new(data, prop, "可激活");
+                return new(data, prop);
             });
 
             // 注册一个子卡作为"触发器"
-            factory.Register("trigger", () => new(new("trigger", "触发器", "", "Card.Object"), "触发器"));
+            factory.Register("trigger", () => new(new("trigger", "触发器", "", "Card.Object", new[] { "触发器" })));
 
             var engine = new CardEngine(factory);
 
@@ -765,7 +766,7 @@ namespace EasyPack.EmeCardTests
         {
             var factory = new CardFactory();
             factory.Register("container", () => new(new("container", "容器", "", "Card.Object")));
-            factory.Register("item", () => new(new("item", "物品", "", "Card.Object"), "物品"));
+            factory.Register("item", () => new(new("item", "物品", "", "Card.Object", new[] { "物品" })));
 
             var engine = new CardEngine(factory);
 
@@ -948,7 +949,7 @@ namespace EasyPack.EmeCardTests
                 var hp = new GameProperty("HP", 100f);
                 return new(data, hp);
             });
-            factory.Register("buff", () => new(new("buff", "增益", "", "Card.Attribute"), "增益"));
+            factory.Register("buff", () => new(new("buff", "增益", "", "Card.Attribute", new[] { "增益" })));
 
             var engine = new CardEngine(factory);
 
@@ -1311,7 +1312,7 @@ namespace EasyPack.EmeCardTests
         public void Test_CardEngine_UnregisterRule()
         {
             var factory = new CardFactory();
-            factory.Register("test_card", () => new(new("test_card", "测试卡牌", "", "Card.Object"), "测试"));
+            factory.Register("test_card", () => new(new("test_card", "测试卡牌", "", "Card.Object", new[] { "测试" })));
 
             var engine = new CardEngine(factory);
 
@@ -1356,3 +1357,5 @@ namespace EasyPack.EmeCardTests
         }
     }
 }
+
+#pragma warning restore CS0618

@@ -59,7 +59,7 @@ namespace EasyPack.EmeCardTests
             factory.Register("warrior", () =>
             {
                 var data = new CardData("warrior", "战士", "强者", "Card.Object", new[] { "Combat" });
-                var card = new Card(data, "Player");
+                var card = new Card(data);
                 card.Properties.Add(new GameProperty("Health", 100f));
                 return card;
             });
@@ -206,8 +206,8 @@ namespace EasyPack.EmeCardTests
             // Arrange - 注册卡牌模板
             _factory.Register("warrior", () =>
             {
-                var data = new CardData("warrior", "战士", "强大的战士", "Equipment.Character.Warrior");
-                var card = new Card(data, "Player", "Combat");
+                var data = new CardData("warrior", "战士", "强大的战士", "Equipment.Character.Warrior", new[] { "Player", "Combat" });
+                var card = new Card(data);
                 card.Properties.Add(new GameProperty("Health", 100f));
                 card.Properties.Add(new GameProperty("Attack", 15f));
                 return card;
@@ -215,8 +215,8 @@ namespace EasyPack.EmeCardTests
 
             _factory.Register("mage", () =>
             {
-                var data = new CardData("mage", "法师", "神秘的法师", "Equipment.Character.Mage");
-                var card = new Card(data, "Player", "Magic");
+                var data = new CardData("mage", "法师", "神秘的法师", "Equipment.Character.Mage", new[] { "Player", "Magic" });
+                var card = new Card(data);
                 card.Properties.Add(new GameProperty("Mana", 80f));
                 card.Properties.Add(new GameProperty("Intelligence", 20f));
                 return card;
@@ -224,8 +224,8 @@ namespace EasyPack.EmeCardTests
 
             _factory.Register("sword", () =>
             {
-                var data = new CardData("sword", "剑", "一把锋利的剑", "Equipment.Weapon");
-                var card = new Card(data, "Equipment", "Weapon");
+                var data = new CardData("sword", "剑", "一把锋利的剑", "Equipment.Weapon", new[] { "Equipment", "Weapon" });
+                var card = new Card(data);
                 card.Properties.Add(new GameProperty("Damage", 25f));
                 return card;
             });
@@ -363,14 +363,14 @@ namespace EasyPack.EmeCardTests
             // Arrange - 注册卡牌模板
             _factory.Register("knight", () =>
             {
-                var data = new CardData("knight", "骑士", "穿着盔甲的骑士", "Equipment.Character.Knight");
-                return new Card(data, "Player", "Combat");
+                var data = new CardData("knight", "骑士", "穿着盔甲的骑士", "Equipment.Character.Knight", new[] { "Player", "Combat" });
+                return new Card(data);
             });
 
             _factory.Register("bow", () =>
             {
-                var data = new CardData("bow", "弓", "一张精致的弓", "Equipment.Weapon.Bow");
-                return new Card(data, "Equipment", "Weapon");
+                var data = new CardData("bow", "弓", "一张精致的弓", "Equipment.Weapon.Bow", new[] { "Equipment", "Weapon" });
+                return new Card(data);
             });
 
             // Act 1 - 创建并注册卡牌
@@ -641,24 +641,24 @@ namespace EasyPack.EmeCardTests
         public void Test_CardEngine_Full_Serialization_RoundTrip()
         {
             // Arrange
-            _factory.Register("hero", () => { return new Card(new CardData("hero", "Hero"), "Character"); });
-            _factory.Register("item", () => { return new Card(new CardData("item", "Item"), "Equipment"); });
+            _factory.Register("hero", () => { return new Card(new CardData("hero", "Hero", defaultTags: new[] { "Character" })); });
+            _factory.Register("item", () => { return new Card(new CardData("item", "Item", defaultTags: new[] { "Equipment" })); });
             _factory.Register("velocity", () =>
             {
                 // 因此模板元数据应在 CardData 上先配置，再创建 Card。
-                var data = new CardData("velocity", "Velocity");
+                var data = new CardData("velocity", "Velocity", defaultTags: new[] { "Equipment" });
                 data.DefaultMetaData.Set("IsVelocity", true);
                 data.DefaultMetaData.Set("Speed", 9.8f);
                 data.DefaultMetaData.Set("Direction", new Vector2(1.0f, 0.0f));
-                return new Card(data, "Equipment");
+                return new Card(data);
             });
             _factory.Register("vu", () =>
             {
-                var data = new CardData("vu", "Velocity Variant");
+                var data = new CardData("vu", "Velocity Variant", defaultTags: new[] { "Equipment" });
                 data.DefaultMetaData.Set("IsVelocity", true);
                 data.DefaultMetaData.Set("Speed", 9.8f);
                 data.DefaultMetaData.Set("Direction", new Vector2(0.0f, 2.0f));
-                return new Card(data, "Equipment");
+                return new Card(data);
             });
             var hero = _engine.CreateCard("hero");
             hero.Position = new Vector3Int(1, 0, 1);
