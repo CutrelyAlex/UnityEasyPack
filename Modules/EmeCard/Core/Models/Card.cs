@@ -560,7 +560,8 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public void RenderingInit()
         {
-            RaiseEventInternal(CardEventTypes.RenderingInit.CreateEvent(null));
+            CardEvent<object> cet = new CardEvent<object>("RenderingInit",null,"RenderingInit", EEventPumpType.End);
+            RaiseEventInternal(cet);
         }
         
         /// <summary>
