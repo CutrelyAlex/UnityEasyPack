@@ -228,9 +228,6 @@ namespace EasyPack.EmeCardSystem
                 return existingCard;
             }
 
-            // 反序列化时创建的CardData不应包含DefaultTags
-            // DefaultTags仅在新建卡牌时使用，反序列化的卡牌标签完全由序列化数据决定
-
             // 尝试使用工厂创建原型以获取正确的 CardData
             Card prototype = null;
             if (Factory != null && !string.IsNullOrEmpty(data.ID))
@@ -250,8 +247,8 @@ namespace EasyPack.EmeCardSystem
             CardData cardData;
             if (prototype != null && prototype.Data != null)
             {
-                // 使用工厂创建的 CardData
-                cardData = prototype.Data;
+                // 使用工厂创建的模板数据副本
+                cardData = prototype.Data.Clone(data.ID);
             }
             else
             {
@@ -260,8 +257,7 @@ namespace EasyPack.EmeCardSystem
                     data.ID,
                     data.ID,
                     string.Empty,
-                    CardData.DEFAULT_CATEGORY,
-                    Array.Empty<string>());
+                    CardData.DEFAULT_CATEGORY);
             }
 
             var card = new Card(cardData)
@@ -293,10 +289,6 @@ namespace EasyPack.EmeCardSystem
                     }
                 }
             }
-
-            // 标签完全由 CategoryManager 管理，无需在卡牌层级处理
-            // 运行时标签通过 Card.Tags 属性从 Engine.CategoryManager 读取
-            // 反序列化时由 CardEngine.LoadState() 从 CategoryManager.Tags 恢复
 
             // 注意：子卡关系在两阶段反序列化中处理
             // 第一阶段只创建卡牌对象，第二阶段建立父子关系

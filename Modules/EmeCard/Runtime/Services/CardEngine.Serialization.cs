@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using EasyPack.Category;
 using EasyPack.CustomData;
-using EasyPack.Serialization;
 using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
@@ -19,17 +17,46 @@ namespace EasyPack.EmeCardSystem
         {
             var dto = new CardEngineDTO();
 
-            if (CategoryManager is CategoryManager<Card, long> concreteManager)
-            {
-                // 确保序列化器使用当前的工厂
-                CardJsonSerializer.Factory = _cardFactory;
+            // 确保序列化器使用当前的工厂
+            CardJsonSerializer.Factory = _cardFactory;
 
-                dto.CategoryState = concreteManager.GetSerializableState(
-                    card => _cardSerializer.SerializeToJson(card),
-                    uid => uid.ToString(),
-                    metadata => JsonUtility.ToJson(new CustomDataCollectionWrapper { Entries = metadata.ToList() })
-                );
+            var cards = new List<SerializableCard>(_cardsByUID.Count);
+            foreach (Card card in _cardsByUID.Values)
+            {
+                if (card == null) continue;
+
+                SerializableCard cardDto = _cardSerializer.ToSerializable(card);
+                if (cardDto != null)
+                {
+                    cards.Add(cardDto);
+                }
             }
+
+            dto.Cards = cards.Count == 0 ? Array.Empty<SerializableCard>() : cards.ToArray();
+
+            var metadataEntries = new List<SerializableCardMetadata>();
+            foreach (Card card in _cardsByUID.Values)
+            {
+                if (card == null || card.UID < 0) continue;
+
+                CustomDataCollection metadata = CategoryManager.GetMetadata(card.UID);
+                if (metadata == null || metadata.Count == 0) continue;
+
+                string metadataJson = JsonUtility.ToJson(new CustomDataCollectionWrapper
+                {
+                    Entries = new List<CustomDataEntry>(metadata),
+                });
+
+                metadataEntries.Add(new SerializableCardMetadata
+                {
+                    UID = card.UID,
+                    MetadataJson = metadataJson,
+                });
+            }
+
+            dto.Metadata = metadataEntries.Count == 0
+                ? Array.Empty<SerializableCardMetadata>()
+                : metadataEntries.ToArray();
 
             return dto;
         }
@@ -39,7 +66,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public void LoadState(CardEngineDTO dto)
         {
-            if (dto == null || dto.CategoryState == null) return;
+            if (dto == null) return;
 
             // 确保序列化器使用当前的工厂
             CardJsonSerializer.Factory = _cardFactory;
@@ -52,23 +79,16 @@ namespace EasyPack.EmeCardSystem
             var newManager = new CategoryManager<Card, long>(card => card.UID);
             CategoryManager = newManager;
 
-            var state = dto.CategoryState;
-
             // 3. Entities (同时恢复 CardEngine 内部状态)
             // 使用 Identity Map 确保同一 UID 只对应一个实例
             var identityMap = new Dictionary<long, Card>();
             var restoredUids = new HashSet<long>();
             long maxUID = 0;
 
-            if (state.Entities != null)
+            if (dto.Cards != null)
             {
-                foreach (SerializableCategoryManagerState<Card, long>.SerializedEntity entityDto in state.Entities)
+                foreach (SerializableCard cardDto in dto.Cards)
                 {
-                    if (string.IsNullOrEmpty(entityDto.EntityJson)) continue;
-
-                    // 从 JSON 字符串解析为 SerializableCard DTO，然后转换为 Card 实例
-                    // 传入 identityMap，如果该 UID 已存在于 map 中，则直接返回现有实例
-                    SerializableCard cardDto = _cardSerializer.FromJson(entityDto.EntityJson);
                     Card card = cardDto != null ? _cardSerializer.FromSerializable(cardDto, identityMap) : null;
 
                     if (card != null)
@@ -86,16 +106,17 @@ namespace EasyPack.EmeCardSystem
                         // RestoreCardToEngine 内部操作（字典赋值）是幂等的，或者是安全的覆盖
                         RestoreCardToEngine(card);
 
-                        // 注册到分类
+                        // 注册到 CategoryManager用于动态 metadata
                         // 如果有 DefaultMetaData，先应用它（创建副本以避免修改共享数据）
                         if (card.Data?.DefaultMetaData != null && card.Data.DefaultMetaData.Count > 0)
                         {
                             var initialMetadata = new CustomDataCollection(card.Data.DefaultMetaData);
-                            newManager.RegisterEntityWithMetadata(card.UID, card, entityDto.Category, initialMetadata);
+                            newManager.RegisterEntityWithMetadata(card.UID, card, CardData.DEFAULT_CATEGORY,
+                                initialMetadata);
                         }
                         else
                         {
-                            newManager.RegisterEntity(card.UID, card, entityDto.Category);
+                            newManager.RegisterEntity(card.UID, card, CardData.DEFAULT_CATEGORY);
                         }
                     }
                 }
@@ -105,29 +126,10 @@ namespace EasyPack.EmeCardSystem
             CardFactory.SyncUID(maxUID);
 
             // 3.5. 建立父子关系（第二阶段）
-            // 首先建立 UID -> SerializableCard 的映射，以便获取 IsIntrinsic 标记
-            var dtoMap = new Dictionary<long, SerializableCard>();
-            if (state.Entities != null)
+            if (dto.Cards != null)
             {
-                foreach (SerializableCategoryManagerState<Card, long>.SerializedEntity entityDto in state.Entities)
+                foreach (SerializableCard cardDto in dto.Cards)
                 {
-                    if (string.IsNullOrEmpty(entityDto.EntityJson)) continue;
-                    SerializableCard cardDto = _cardSerializer.FromJson(entityDto.EntityJson);
-                    if (cardDto != null)
-                    {
-                        dtoMap[cardDto.UID] = cardDto;
-                    }
-                }
-            }
-
-            // 现在所有卡牌都已创建并缓存，可以安全地建立父子关系
-            if (state.Entities != null)
-            {
-                foreach (SerializableCategoryManagerState<Card, long>.SerializedEntity entityDto in state.Entities)
-                {
-                    if (string.IsNullOrEmpty(entityDto.EntityJson)) continue;
-
-                    SerializableCard cardDto = _cardSerializer.FromJson(entityDto.EntityJson);
                     if (cardDto == null) continue;
 
                     // 从缓存中获取父卡牌
@@ -142,12 +144,12 @@ namespace EasyPack.EmeCardSystem
                             if (identityMap.TryGetValue(childUID, out Card childCard))
                             {
                                 // 避免重复添加
-                                if (!parentCard.Children.Contains(childCard))
+                                if (!parentCard.IsChild(childCard))
                                 {
                                     // 检查是否是固有子卡
-                                    bool isIntrinsic = cardDto.IntrinsicChildrenUIDs != null 
+                                    bool isIntrinsic = cardDto.IntrinsicChildrenUIDs != null
                                         && Array.IndexOf(cardDto.IntrinsicChildrenUIDs, childUID) >= 0;
-                                    
+
                                     parentCard.AddChild(childCard, isIntrinsic);
                                 }
                             }
@@ -160,55 +162,28 @@ namespace EasyPack.EmeCardSystem
                 }
             }
 
-            // 4. Tags
-            if (state.Tags != null)
+            // 4. Runtime Metadata
+            if (dto.Metadata != null)
             {
-                foreach (SerializableCategoryManagerState<Card, long>.SerializedTag tagDto in state.Tags)
+                foreach (SerializableCardMetadata metadataDto in dto.Metadata)
                 {
-                    if (tagDto.EntityKeyJsons != null)
+                    if (metadataDto == null || string.IsNullOrEmpty(metadataDto.MetadataJson)) continue;
+
+                    long uid = metadataDto.UID;
+                    var wrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(metadataDto.MetadataJson);
+                    if (wrapper == null || wrapper.Entries == null) continue;
+
+                    CustomDataCollection mergedMetadata = newManager.GetMetadata(uid) ?? new CustomDataCollection();
+                    foreach (CustomDataEntry entry in wrapper.Entries)
                     {
-                        foreach (string keyJson in tagDto.EntityKeyJsons)
-                        {
-                            if (long.TryParse(keyJson, out long uid))
-                            {
-                                newManager.AddTag(uid, tagDto.TagName);
-                            }
-                        }
+                        mergedMetadata.Set(entry.Key, entry.GetValue());
                     }
+
+                    newManager.UpdateMetadata(uid, mergedMetadata);
                 }
             }
 
-            // 5. Metadata
-            if (state.Metadata != null)
-            {
-                foreach (SerializableCategoryManagerState<Card, long>.SerializedMetadata metaDto in state.Metadata)
-                {
-                    if (long.TryParse(metaDto.EntityKeyJson, out long uid))
-                    {
-                        var wrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(metaDto.MetadataJson);
-                        if (wrapper != null && wrapper.Entries != null)
-                        {
-                            // 合并并持久化元数据：
-                            // 注意：CategoryManager.GetMetadata(key) 在未命中时会返回 new()，并不会自动写回 _metadataStore。
-                            // 所以这里无论是否命中，都必须在合并后调用 UpdateMetadata 写回。
-
-                            CustomDataCollection mergedMetadata =
-                                newManager.GetMetadata(uid) ?? new CustomDataCollection();
-                            foreach (CustomDataEntry entry in wrapper.Entries)
-                            {
-                                // 使用 SetValue 确保覆盖同名 key，且缓存一致
-                                mergedMetadata.Set(entry.Key, entry.GetValue());
-                            }
-
-                            // 写回（即使 mergedMetadata 是从 store 取出的引用，也允许幂等写回；
-                            // 若此前不存在元数据，则确保落到 _metadataStore）
-                            newManager.UpdateMetadata(uid, mergedMetadata);
-                        }
-                    }
-                }
-            }
-
-            // 6. 重新初始化缓存
+            // 5. 重新初始化缓存
             InitializeTargetSelectorCache();
         }
 
@@ -262,7 +237,20 @@ namespace EasyPack.EmeCardSystem
 
         public string SerializeToJson(bool prettyPrint = true) => JsonUtility.ToJson(GetSerializableState(), prettyPrint);
 
-        public void DeserializeFromJson(string json) => LoadState(JsonUtility.FromJson<CardEngineDTO>(json));
+        public void DeserializeFromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return;
+
+            CardEngineDTO dto = JsonUtility.FromJson<CardEngineDTO>(json);
+            bool isLikelyLegacyPayload = dto == null || (dto.Cards == null && dto.Metadata == null);
+            if (isLikelyLegacyPayload &&
+                CardEngineLegacyCompatibility.TryConvertFromLegacyJson(json, _cardSerializer, out CardEngineDTO legacyDto))
+            {
+                dto = legacyDto;
+            }
+
+            LoadState(dto);
+        }
 
         [Serializable]
         private class CustomDataCollectionWrapper
