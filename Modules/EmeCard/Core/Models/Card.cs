@@ -153,8 +153,8 @@ namespace EasyPack.EmeCardSystem
         #region 标签和持有关系
 
         /// <summary>
-        ///     标签集合。标签由 CategoryManager 统一管理。
-        ///     <para>推荐使用 <see cref="HasTag" />、<see cref="AddTag" />、<see cref="RemoveTag" /> 方法操作标签。</para>
+        ///     标签集合（只读，来自 <see cref="CardData.DefaultTags" />）。
+        ///     <para>运行时可变标记请使用 <see cref="RuntimeMetadata" />。</para>
         /// </summary>
         /// <exception cref="InvalidOperationException">卡牌未注册到引擎时访问。</exception>
         public IReadOnlyCollection<string> Tags
@@ -211,30 +211,6 @@ namespace EasyPack.EmeCardSystem
             }
             return false;
         }
-
-        /// <summary>
-        ///     添加标签到卡牌。
-        /// </summary>
-        /// <param name="tag">要添加的标签。</param>
-        /// <returns>如果成功添加返回 true（标签之前不存在）。</returns>
-        [Obsolete("运行时标签写入已废弃且不再生效。请改用 RuntimeMetadata。")]
-        public bool AddTag(string tag)
-        {
-            return false;
-        }
-
-        /// <summary>
-        ///     从卡牌移除标签。
-        /// </summary>
-        /// <param name="tag">要移除的标签。</param>
-        /// <returns>如果成功移除返回 true（标签之前存在）。</returns>
-        [Obsolete("运行时标签写入已废弃且不再生效。请改用 RuntimeMetadata。")]
-        public bool RemoveTag(string tag)
-        {
-            return false;
-        }
-
-
 
         /// <summary>
         ///     当前卡牌的持有者（父卡）。

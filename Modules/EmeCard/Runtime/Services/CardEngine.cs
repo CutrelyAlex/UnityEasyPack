@@ -79,7 +79,6 @@ namespace EasyPack.EmeCardSystem
             CategoryManager = new CategoryManager<Card, long>(card => card.UID);
 
             PreCacheAllCardTemplates();
-            InitializeTargetSelectorCache();
 
             // 预注册标准事件类型
             _rules[CardEventTypes.TICK] = new();
@@ -95,18 +94,7 @@ namespace EasyPack.EmeCardSystem
         public void Init()
         {
             PreCacheAllCardTemplates();
-            InitializeTargetSelectorCache();
         }
-
-        /// <summary>
-        ///     初始化TargetSelector的Tag缓存。应在所有卡牌注册完成后调用。
-        /// </summary>
-        private void InitializeTargetSelectorCache()
-        {
-            // 同时传递 CategoryManager 以支持线程安全的标签查询
-            TargetSelector.InitializeTagCache(_registeredCardsTemplates, CategoryManager);
-        }
-
 
         /// <summary>
         ///     从工厂创建所有卡牌的副本并缓存。

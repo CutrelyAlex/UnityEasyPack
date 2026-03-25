@@ -182,9 +182,6 @@ namespace EasyPack.EmeCardSystem
                     newManager.UpdateMetadata(uid, mergedMetadata);
                 }
             }
-
-            // 5. 重新初始化缓存
-            InitializeTargetSelectorCache();
         }
 
         /// <summary>
