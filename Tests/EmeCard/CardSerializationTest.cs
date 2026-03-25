@@ -59,7 +59,7 @@ namespace EasyPack.EmeCardTests
             factory.Register("warrior", () =>
             {
                 var data = new CardData("warrior", "战士", "强者", "Card.Object", new[] { "Combat" });
-                var card = new Card(data, "Player");
+                var card = new Card(data);
                 card.Properties.Add(new GameProperty("Health", 100f));
                 return card;
             });
@@ -206,8 +206,8 @@ namespace EasyPack.EmeCardTests
             // Arrange - 注册卡牌模板
             _factory.Register("warrior", () =>
             {
-                var data = new CardData("warrior", "战士", "强大的战士", "Equipment.Character.Warrior");
-                var card = new Card(data, "Player", "Combat");
+                var data = new CardData("warrior", "战士", "强大的战士", "Equipment.Character.Warrior", new[] { "Player", "Combat" });
+                var card = new Card(data);
                 card.Properties.Add(new GameProperty("Health", 100f));
                 card.Properties.Add(new GameProperty("Attack", 15f));
                 return card;
@@ -215,8 +215,8 @@ namespace EasyPack.EmeCardTests
 
             _factory.Register("mage", () =>
             {
-                var data = new CardData("mage", "法师", "神秘的法师", "Equipment.Character.Mage");
-                var card = new Card(data, "Player", "Magic");
+                var data = new CardData("mage", "法师", "神秘的法师", "Equipment.Character.Mage", new[] { "Player", "Magic" });
+                var card = new Card(data);
                 card.Properties.Add(new GameProperty("Mana", 80f));
                 card.Properties.Add(new GameProperty("Intelligence", 20f));
                 return card;
@@ -224,8 +224,8 @@ namespace EasyPack.EmeCardTests
 
             _factory.Register("sword", () =>
             {
-                var data = new CardData("sword", "剑", "一把锋利的剑", "Equipment.Weapon");
-                var card = new Card(data, "Equipment", "Weapon");
+                var data = new CardData("sword", "剑", "一把锋利的剑", "Equipment.Weapon", new[] { "Equipment", "Weapon" });
+                var card = new Card(data);
                 card.Properties.Add(new GameProperty("Damage", 25f));
                 return card;
             });
@@ -235,123 +235,35 @@ namespace EasyPack.EmeCardTests
             var mage = _engine.CreateCard("mage");
             var sword = _engine.CreateCard("sword");
 
-            // Act 2 - 获取 CategoryManager 并注册卡牌
-            var categoryManager = _engine.CategoryManager;
-
-            // 注意：CardEngine.CreateCard 会自动把卡牌注册到 CategoryManager。
-            // 这里不要再次 RegisterEntity（否则会 DuplicateId，导致分类/标签/元数据并未真正写入）。
-
-            // 战士卡牌：写入标签与元数据
-            var warriorMetadata = new CustomDataCollection
-            {
-                CustomDataEntry.CreateString("rarity", "common"),
-                CustomDataEntry.CreateString("role", "tank")
-            };
-
-            Assert.IsTrue((bool?)categoryManager.UpdateMetadata(warrior.UID, warriorMetadata).IsSuccess, "战士元数据应写入成功");
-            foreach (var tag in new[] { "player", "melee", "tank", "humanoid" })
-            {
-                Assert.IsTrue((bool?)categoryManager.AddTag(warrior.UID, tag).IsSuccess, $"战士标签 '{tag}' 应写入成功");
-            }
-
-            // 法师卡牌：写入标签与元数据
-            var mageMetadata = new CustomDataCollection
-            {
-                CustomDataEntry.CreateString("rarity", "rare"),
-                CustomDataEntry.CreateString("role", "ranged"),
-                CustomDataEntry.CreateString("speciality", "magic")
-            };
-
-            Assert.IsTrue((bool?)categoryManager.UpdateMetadata(mage.UID, mageMetadata).IsSuccess, "法师元数据应写入成功");
-            foreach (var tag in new[] { "player", "ranged", "mage", "humanoid", "magical" })
-            {
-                Assert.IsTrue((bool?)categoryManager.AddTag(mage.UID, tag).IsSuccess, $"法师标签 '{tag}' 应写入成功");
-            }
-
-            // 剑卡牌：写入标签与元数据
-            var swordMetadata = new CustomDataCollection
-            {
-                CustomDataEntry.CreateString("type", "sword"),
-                CustomDataEntry.CreateString("material", "steel"),
-                CustomDataEntry.CreateInt("level", 5)
-            };
-
-            Assert.IsTrue((bool?)categoryManager.UpdateMetadata(sword.UID, swordMetadata).IsSuccess, "剑元数据应写入成功");
-            foreach (var tag in new[] { "equipment", "weapon", "common" })
-            {
-                Assert.IsTrue((bool?)categoryManager.AddTag(sword.UID, tag).IsSuccess, $"剑标签 '{tag}' 应写入成功");
-            }
-
-            // 记录序列化前的状态
-            var statsBefore = categoryManager.GetStatistics();
-            var warriorTagsBefore = categoryManager.GetEntityTags(warrior.UID).OrderBy(t => t).ToList();
-            var mageTagsBefore = categoryManager.GetEntityTags(mage.UID).OrderBy(t => t).ToList();
-            var swordTagsBefore = categoryManager.GetEntityTags(sword.UID).OrderBy(t => t).ToList();
-
-            var warriorMetadataBefore = categoryManager.GetMetadata(warrior.UID);
-            var mageMetadataBefore = categoryManager.GetMetadata(mage.UID);
-            var swordMetadataBefore = categoryManager.GetMetadata(sword.UID);
-
-            Debug.Log($"[BEFORE SERIALIZATION] Entities: {statsBefore.TotalEntities}, Categories: {statsBefore.TotalCategories}, Tags: {statsBefore.TotalTags}");
-
-            // Act 3 - 使用 CardEngine 序列化（支持 Card 的完整结构）
+            // Act 2 - 使用 CardEngine 序列化（支持 Card 的完整结构）
             var json = _engine.SerializeToJson();
             Assert.IsNotNull(json, "序列化 JSON 不应为空");
             Assert.IsNotEmpty(json, "序列化 JSON 不应为空");
-            Debug.Log($"[SERIALIZED JSON LENGTH] {json.Length}");
 
-            // Act 4 - 清空并反序列化到新引擎
+            // Act 3 - 反序列化到新引擎
             var newEngine = new CardEngine(_factory);
             newEngine.DeserializeFromJson(json);
 
-            var categoryManagerAfter = newEngine.CategoryManager;
-            var statsClear = newEngine.CategoryManager.GetStatistics();
-            Assert.AreEqual(statsBefore.TotalEntities, statsClear.TotalEntities, "反序列化后实体数量应相同");
+            // Assert - 仅验证 CardData 一致性
+            var restoredWarrior = newEngine.GetCardByUID(warrior.UID);
+            var restoredMage = newEngine.GetCardByUID(mage.UID);
+            var restoredSword = newEngine.GetCardByUID(sword.UID);
 
-            // Act 5 - 验证反序列化的数据
-            var statsAfter = categoryManagerAfter.GetStatistics();
-            Assert.AreEqual(statsBefore.TotalEntities, statsAfter.TotalEntities, "实体数量应相同");
-            Assert.AreEqual(statsBefore.TotalCategories, statsAfter.TotalCategories, "分类数量应相同");
-            Assert.AreEqual(statsBefore.TotalTags, statsAfter.TotalTags, "标签数量应相同");
+            Assert.IsNotNull(restoredWarrior, "应恢复 warrior");
+            Assert.IsNotNull(restoredMage, "应恢复 mage");
+            Assert.IsNotNull(restoredSword, "应恢复 sword");
 
-            // Assert - 验证标签
-            var warriorTagsAfter = categoryManagerAfter.GetEntityTags(warrior.UID).OrderBy(t => t).ToList();
-            var mageTagsAfter = categoryManagerAfter.GetEntityTags(mage.UID).OrderBy(t => t).ToList();
-            var swordTagsAfter = categoryManagerAfter.GetEntityTags(sword.UID).OrderBy(t => t).ToList();
+            Assert.AreEqual("warrior", restoredWarrior.Id, "战士 ID 应一致");
+            Assert.AreEqual("mage", restoredMage.Id, "法师 ID 应一致");
+            Assert.AreEqual("sword", restoredSword.Id, "剑 ID 应一致");
 
-            Assert.AreEqual(warriorTagsBefore.Count, warriorTagsAfter.Count, "战士标签数量应相同");
-            Assert.AreEqual(mageTagsBefore.Count, mageTagsAfter.Count, "法师标签数量应相同");
-            Assert.AreEqual(swordTagsBefore.Count, swordTagsAfter.Count, "剑标签数量应相同");
+            Assert.AreEqual("Equipment.Character.Warrior", restoredWarrior.Category, "战士模板分类应保持");
+            Assert.AreEqual("Equipment.Character.Mage", restoredMage.Category, "法师模板分类应保持");
+            Assert.AreEqual("Equipment.Weapon", restoredSword.Category, "剑模板分类应保持");
 
-            for (int i = 0; i < warriorTagsBefore.Count; i++)
-            {
-                Assert.AreEqual(warriorTagsBefore[i], warriorTagsAfter[i], $"战士标签 {i} 应匹配");
-            }
-
-            // Assert - 验证元数据
-            var warriorMetadataAfter = categoryManagerAfter.GetMetadata(warrior.UID);
-            var mageMetadataAfter = categoryManagerAfter.GetMetadata(mage.UID);
-            var swordMetadataAfter = categoryManagerAfter.GetMetadata(sword.UID);
-
-            Assert.AreEqual(warriorMetadataBefore.Count, warriorMetadataAfter.Count, "战士元数据数量应相同");
-            Assert.AreEqual(mageMetadataBefore.Count, mageMetadataAfter.Count, "法师元数据数量应相同");
-            Assert.AreEqual(swordMetadataBefore.Count, swordMetadataAfter.Count, "剑元数据数量应相同");
-
-            // Assert - 验证分类查询
-            var characters = categoryManagerAfter.GetByCategory("Equipment.Character", includeChildren: true);
-            Assert.AreEqual(2, characters.Count, "Equipment.Character 应包含 2 个卡牌");
-
-            var weapons = categoryManagerAfter.GetByCategory("Equipment.Weapon");
-            Assert.AreEqual(1, weapons.Count, "Equipment.Weapon 应包含 1 个卡牌");
-
-            // Assert - 验证标签查询
-            var players = categoryManagerAfter.GetByTag("player");
-            Assert.AreEqual(2, players.Count, "player 标签应有 2 个卡牌");
-
-            var equipment = categoryManagerAfter.GetByTag("equipment");
-            Assert.AreEqual(1, equipment.Count, "equipment 标签应有 1 个卡牌");
-
-            Debug.Log("[TEST PASSED] CategoryManager-EmeCard 序列化往返测试通过");
+            Assert.IsTrue(restoredWarrior.HasTag("Player"), "战士默认标签 Player 应保持");
+            Assert.IsTrue(restoredMage.HasTag("Magic"), "法师默认标签 Magic 应保持");
+            Assert.IsTrue(restoredSword.HasTag("Weapon"), "剑默认标签 Weapon 应保持");
         }
 
         /// <summary>
@@ -363,98 +275,48 @@ namespace EasyPack.EmeCardTests
             // Arrange - 注册卡牌模板
             _factory.Register("knight", () =>
             {
-                var data = new CardData("knight", "骑士", "穿着盔甲的骑士", "Equipment.Character.Knight");
-                return new Card(data, "Player", "Combat");
+                var data = new CardData("knight", "骑士", "穿着盔甲的骑士", "Equipment.Character.Knight", new[] { "Player", "Combat" });
+                return new Card(data);
             });
 
             _factory.Register("bow", () =>
             {
-                var data = new CardData("bow", "弓", "一张精致的弓", "Equipment.Weapon.Bow");
-                return new Card(data, "Equipment", "Weapon");
+                var data = new CardData("bow", "弓", "一张精致的弓", "Equipment.Weapon.Bow", new[] { "Equipment", "Weapon" });
+                return new Card(data);
             });
 
             // Act 1 - 创建并注册卡牌
             var knight = _engine.CreateCard("knight");
             var bow = _engine.CreateCard("bow");
 
-            var categoryManager = _engine.CategoryManager as CategoryManager<Card, long>;
-            Assert.IsNotNull(categoryManager, "CategoryManager 应为 CategoryManager<Card, long> 类型");
-
-            var knightMetadata = new CustomDataCollection
-            {
-                CustomDataEntry.CreateString("armor", "plate")
-            };
-
-            Assert.IsTrue(categoryManager.UpdateMetadata(knight.UID, knightMetadata).IsSuccess, "骑士元数据应写入成功");
-            foreach (var tag in new[] { "player", "warrior", "noble" })
-            {
-                Assert.IsTrue(categoryManager.AddTag(knight.UID, tag).IsSuccess, $"骑士标签 '{tag}' 应写入成功");
-            }
-
-            foreach (var tag in new[] { "equipment", "weapon", "ranged" })
-            {
-                Assert.IsTrue(categoryManager.AddTag(bow.UID, tag).IsSuccess, $"弓标签 '{tag}' 应写入成功");
-            }
-
-            var statsBefore = categoryManager.GetStatistics();
-            var knightTagsBefore = categoryManager.GetEntityTags(knight.UID).OrderBy(t => t).ToList();
-
             // Act 2 - 使用 CardEngine 序列化
             var json = _engine.SerializeToJson();
 
-            // Act 3 - 反序列化到新引擎获取 CategoryManager（作为恢复数据源）
+            // Act 3 - 反序列化到临时引擎，再转移实体到新引擎
             var tempEngine = new CardEngine(_factory);
             tempEngine.DeserializeFromJson(json);
-            var recoveredManager = tempEngine.CategoryManager as CategoryManager<Card, long>;
-            Assert.IsNotNull(recoveredManager, "反序列化得到的 CategoryManager 不应为空");
-
-            var statsAfter = recoveredManager.GetStatistics();
-            Assert.AreEqual(statsBefore.TotalEntities, statsAfter.TotalEntities, "实体数量应相同");
 
             // Act 4 - 创建新引擎，将反序列化出来的实体通过 AddCard 恢复到引擎缓存
-            // 重要：不要先把 JSON Load 到 newEngine.CategoryManager，否则 AddCard 会二次 RegisterEntity 导致 DuplicateId 警告。
             var newEngine = new CardEngine(_factory);
-            var newEngineMgr = newEngine.CategoryManager;
 
-            var recoveredCards = recoveredManager.GetAllEntities();
-            Assert.AreEqual(statsBefore.TotalEntities, recoveredCards.Count, "应能取回全部反序列化卡牌实体");
+            var recoveredCards = tempEngine.GetAllCards().ToList();
+            Assert.AreEqual(2, recoveredCards.Count, "应能取回全部反序列化卡牌实体");
 
             foreach (var recoveredCard in recoveredCards)
             {
                 newEngine.AddCard(recoveredCard);
-
-                // CategoryManager 序列化里有元数据，需要手动同步到新引擎的 CategoryManager
-                var meta = recoveredManager.GetMetadata(recoveredCard.UID);
-                Assert.IsTrue(newEngineMgr.UpdateMetadata(recoveredCard.UID, meta).IsSuccess,
-                    $"恢复卡牌 UID={recoveredCard.UID} 的元数据应成功");
-
-                // CategoryManager 的运行时标签同样需要同步到新引擎的 CategoryManager。
-                // 注意：CardJsonSerializer 不再保存运行时 Tags；此处是“通过 Manager 状态恢复”。
-                foreach (var tag in recoveredManager.GetEntityTags(recoveredCard.UID))
-                {
-                    Assert.IsTrue(newEngineMgr.AddTag(recoveredCard.UID, tag).IsSuccess,
-                        $"恢复卡牌 UID={recoveredCard.UID} 的标签 '{tag}' 应成功");
-                }
             }
 
-            // Assert - 验证卡牌已添加到引擎
-            Assert.IsTrue(newEngine.HasCard(newEngine.GetCardByUID(knight.UID)), "骑士卡牌应在引擎中");
-            Assert.IsTrue(newEngine.HasCard(newEngine.GetCardByUID(bow.UID)), "弓卡牌应在引擎中");
+            // Assert - 仅验证 CardData 一致性
+            var restoredKnight = newEngine.GetCardByUID(knight.UID);
+            var restoredBow = newEngine.GetCardByUID(bow.UID);
+            Assert.IsNotNull(restoredKnight, "骑士卡牌应在引擎中");
+            Assert.IsNotNull(restoredBow, "弓卡牌应在引擎中");
 
-            // Assert - 验证标签恢复
-            var expectedKnightTags = recoveredManager.GetEntityTags(knight.UID).OrderBy(t => t).ToList();
-            var knightTagsAfter = newEngineMgr.GetEntityTags(knight.UID).OrderBy(t => t).ToList();
-            Assert.AreEqual(knightTagsBefore.Count, knightTagsAfter.Count, "标签数量应相同");
-
-            for (int i = 0; i < knightTagsBefore.Count; i++)
-            {
-                Assert.AreEqual(knightTagsBefore[i], knightTagsAfter[i], $"标签 {i} 应匹配");
-            }
-
-            // 额外校验：反序列化出的标签与新引擎内一致
-            Assert.AreEqual(expectedKnightTags.Count, knightTagsAfter.Count, "恢复后标签数量应与反序列化一致");
-
-            Debug.Log("[TEST PASSED] CategoryManager-EmeCard 通过 Engine 恢复测试通过");
+            Assert.AreEqual("Equipment.Character.Knight", restoredKnight.Category, "骑士分类应保持");
+            Assert.AreEqual("Equipment.Weapon.Bow", restoredBow.Category, "弓分类应保持");
+            Assert.IsTrue(restoredKnight.HasTag("Player"), "骑士默认标签 Player 应保持");
+            Assert.IsTrue(restoredBow.HasTag("Weapon"), "弓默认标签 Weapon 应保持");
         }
 
         /// <summary>
@@ -475,19 +337,16 @@ namespace EasyPack.EmeCardTests
             };
 
             // Arrange - 注册多个卡牌模板（确保 CardData.Category 与预期分类一致，避免后续重复 RegisterEntity）
-            foreach (var (cardId, category, _) in cardConfigs)
+            foreach (var (cardId, category, tags) in cardConfigs)
             {
                 _factory.Register(cardId, () =>
                 {
-                    var data = new CardData(cardId, $"卡牌_{cardId}", $"这是一张{cardId}卡牌", category);
+                    var data = new CardData(cardId, $"卡牌_{cardId}", $"这是一张{cardId}卡牌", category, tags);
                     return new Card(data);
                 });
             }
 
-            var categoryManager = _engine.CategoryManager as CategoryManager<Card, long>;
-            Assert.IsNotNull(categoryManager, "CategoryManager 应为 CategoryManager<Card, long> 类型");
-
-            // Act 1 - 创建多张卡牌，并写入标签与元数据
+            // Act 1 - 创建多张卡牌
             var createdCards = new List<Card>();
 
             foreach (var (cardId, category, tags) in cardConfigs)
@@ -495,97 +354,31 @@ namespace EasyPack.EmeCardTests
                 var card = _engine.CreateCard(cardId);
                 createdCards.Add(card);
 
-                // 为每张卡牌创建不同的元数据
-                var metadata = new CustomDataCollection();
-                metadata.Add(CustomDataEntry.CreateString("description", $"This is {cardId}"));
-                metadata.Add(CustomDataEntry.CreateString("creator", "System"));
-                if (cardId.StartsWith("hero"))
-                {
-                    metadata.Add(CustomDataEntry.CreateInt("level", int.Parse(cardId.Last().ToString()) * 10));
-                }
-
-                // 写入元数据
-                Assert.IsTrue(categoryManager.UpdateMetadata(card.UID, metadata).IsSuccess,
-                    $"写入元数据应成功: {cardId}");
-
-                // 写入标签
+                // 额外保障：模板分类应与配置一致（由 CardData.Category 驱动）
+                Assert.AreEqual(category, card.Category, $"卡牌 {cardId} 模板分类应为 {category}");
                 foreach (var tag in tags)
                 {
-                    Assert.IsTrue(categoryManager.AddTag(card.UID, tag).IsSuccess,
-                        $"写入标签应成功: {cardId} tag={tag}");
-                }
-
-                // 额外保障：分类应与配置一致（由 CardData.Category 驱动）
-                Assert.IsTrue(categoryManager.IsInCategory(card.UID, category, includeChildren: false),
-                    $"卡牌 {cardId} 应位于分类 {category}");
-            }
-
-            // Act 2 - 记录序列化前的状态
-            var statsBefore = categoryManager.GetStatistics();
-            var allCategoriesBefore = categoryManager.GetCategoriesNodes().OrderBy(c => c).ToList();
-            var tagStatsBefore = new Dictionary<string, int>();
-            var allTags = new HashSet<string>();
-            foreach (var card in createdCards)
-            {
-                foreach (var tag in categoryManager.GetEntityTags(card.UID))
-                {
-                    allTags.Add(tag);
+                    Assert.IsTrue(card.HasTag(tag), $"卡牌 {cardId} 应包含默认标签 {tag}");
                 }
             }
-            foreach (var tag in allTags)
-            {
-                tagStatsBefore[tag] = categoryManager.GetByTag(tag).Count;
-            }
 
-            Debug.Log($"[COMPLEX] Before: {statsBefore.TotalEntities} entities, {statsBefore.TotalCategories} categories, {statsBefore.TotalTags} tags");
-
-            // Act 3 - 使用 CardEngine 序列化并反序列化
+            // Act 2 - 使用 CardEngine 序列化并反序列化
             var json = _engine.SerializeToJson();
 
             var newEngine = new CardEngine(_factory);
             newEngine.DeserializeFromJson(json);
 
-            categoryManager = newEngine.CategoryManager as CategoryManager<Card, long>;
-            Assert.IsNotNull(categoryManager, "反序列化后的 CategoryManager 不应为空");
-
-            // Assert - 验证数据完整性
-            var statsAfter = categoryManager.GetStatistics();
-            Assert.AreEqual(statsBefore.TotalEntities, statsAfter.TotalEntities, "实体数量应相同");
-            Assert.AreEqual(statsBefore.TotalCategories, statsAfter.TotalCategories, "分类数量应相同");
-            Assert.AreEqual(statsBefore.TotalTags, statsAfter.TotalTags, "标签数量应相同");
-
-            // Assert - 验证所有分类
-            var allCategoriesAfter = categoryManager.GetCategoriesNodes().OrderBy(c => c).ToList();
-            Assert.AreEqual(allCategoriesBefore.Count, allCategoriesAfter.Count, "分类数量应相同");
-
-            // Assert - 验证所有标签统计
-            foreach (var tag in tagStatsBefore.Keys)
+            // Assert - 验证 CardData 一致性
+            foreach (var (cardId, category, tags) in cardConfigs)
             {
-                var countBefore = tagStatsBefore[tag];
-                var countAfter = categoryManager.GetByTag(tag).Count;
-                Assert.AreEqual(countBefore, countAfter, $"标签 '{tag}' 的卡牌数应相同");
+                var restoredCard = newEngine.GetCardById(cardId);
+                Assert.IsNotNull(restoredCard, $"应恢复卡牌 {cardId}");
+                Assert.AreEqual(category, restoredCard.Category, $"恢复后卡牌 {cardId} 分类应一致");
+                foreach (var tag in tags)
+                {
+                    Assert.IsTrue(restoredCard.HasTag(tag), $"恢复后卡牌 {cardId} 应保留默认标签 {tag}");
+                }
             }
-
-            // Assert - 验证层级分类查询
-            var characters = categoryManager.GetByCategory("Character", includeChildren: true);
-            Assert.AreEqual(3, characters.Count, "Character 应包含 3 个卡牌");
-
-            var equipment = categoryManager.GetByCategory("Equipment", includeChildren: true);
-            Assert.AreEqual(3, equipment.Count, "Equipment 应包含 3 个卡牌");
-
-            // 注意：这里的卡牌通常注册在更细分的子分类（例如 Equipment.Weapon.Sword），
-            // 因此查询父分类时需要 includeChildren=true。
-            var weapons = categoryManager.GetByCategory("Equipment.Weapon", includeChildren: true);
-            Assert.AreEqual(1, weapons.Count, "Equipment.Weapon（含子分类）应包含 1 个卡牌");
-
-            // Assert - 验证多标签查询
-            var heroItems = categoryManager.GetByTags(new[] { "hero" }, matchAll: false);
-            Assert.AreEqual(3, heroItems.Count, "hero 标签应有 3 个卡牌");
-
-            var rareItems = categoryManager.GetByTags(new[] { "rare" }, matchAll: false);
-            Assert.AreEqual(2, rareItems.Count, "rare 标签应有 2 个卡牌");
-
-            Debug.Log("[TEST PASSED] 复杂场景序列化往返测试通过");
         }
 
         [Test]
@@ -593,24 +386,13 @@ namespace EasyPack.EmeCardTests
         {
             // 1. 准备数据
             var factory = new CardFactory();
-            // 注意：CardEngine.AddCard 会按 CardData.Category 自动注册到 CategoryManager。
-            // 因此这里必须在模板层就设置好 category，避免后续重复注册导致 DuplicateId。
-            factory.Register("hero", () => new Card(new CardData("hero", "英雄", category: "Unit.Hero")));
-            factory.Register("sword", () => new Card(new CardData("sword", "剑", category: "Item.Weapon")));
+            factory.Register("hero", () => new Card(new CardData("hero", "英雄", category: "Unit.Hero", defaultTags: new[] { "Hero" })));
+            factory.Register("sword", () => new Card(new CardData("sword", "剑", category: "Item.Weapon", defaultTags: new[] { "Weapon" })));
 
             var engine = new CardEngine(factory);
 
             var hero = engine.CreateCard("hero");
             var sword = engine.CreateCard("sword");
-
-            // 设置标签（分类已在 AddCard 时完成注册）
-            engine.CategoryManager.AddTag(hero.UID, "Legendary");
-            engine.CategoryManager.AddTag(sword.UID, "Sharp");
-
-            // 设置元数据
-            var metadata = new CustomDataCollection();
-            metadata.Set("Level", 10);
-            engine.CategoryManager.UpdateMetadata(hero.UID, metadata);
 
             // 2. 序列化
             string json = engine.SerializeToJson();
@@ -620,45 +402,42 @@ namespace EasyPack.EmeCardTests
             var newEngine = new CardEngine(factory);
             newEngine.DeserializeFromJson(json);
 
-            // 4. 验证
-            Assert.AreEqual(2, newEngine.CategoryManager.GetStatistics().TotalEntities);
-
-            var restoredHero = newEngine.CategoryManager.GetById(hero.UID).Value;
+            // 4. 仅验证 CardData 一致性
+            var restoredHero = newEngine.GetCardByUID(hero.UID);
             Assert.IsNotNull(restoredHero);
             Assert.AreEqual("hero", restoredHero.Id);
-            Assert.IsTrue(newEngine.CategoryManager.HasTag(hero.UID, "Legendary"));
-            Assert.AreEqual("Unit.Hero", newEngine.CategoryManager.GetReadableCategoryPath(hero.UID));
-            Assert.AreEqual(10, newEngine.CategoryManager.GetMetadata(hero.UID).Get<int>("Level"));
+            Assert.AreEqual("Unit.Hero", restoredHero.Category, "模板分类应保留在卡牌数据中");
+            Assert.IsTrue(restoredHero.HasTag("Hero"), "默认标签应保持");
 
-            var restoredSword = newEngine.CategoryManager.GetById(sword.UID).Value;
+            var restoredSword = newEngine.GetCardByUID(sword.UID);
             Assert.IsNotNull(restoredSword);
             Assert.AreEqual("sword", restoredSword.Id);
-            Assert.IsTrue(newEngine.CategoryManager.HasTag(sword.UID, "Sharp"));
-            Assert.AreEqual("Item.Weapon", newEngine.CategoryManager.GetReadableCategoryPath(sword.UID));
+            Assert.AreEqual("Item.Weapon", restoredSword.Category, "模板分类应保留在卡牌数据中");
+            Assert.IsTrue(restoredSword.HasTag("Weapon"), "默认标签应保持");
         }
 
         [Test]
         public void Test_CardEngine_Full_Serialization_RoundTrip()
         {
             // Arrange
-            _factory.Register("hero", () => { return new Card(new CardData("hero", "Hero"), "Character"); });
-            _factory.Register("item", () => { return new Card(new CardData("item", "Item"), "Equipment"); });
+            _factory.Register("hero", () => { return new Card(new CardData("hero", "Hero", defaultTags: new[] { "Character" })); });
+            _factory.Register("item", () => { return new Card(new CardData("item", "Item", defaultTags: new[] { "Equipment" })); });
             _factory.Register("velocity", () =>
             {
                 // 因此模板元数据应在 CardData 上先配置，再创建 Card。
-                var data = new CardData("velocity", "Velocity");
+                var data = new CardData("velocity", "Velocity", defaultTags: new[] { "Equipment" });
                 data.DefaultMetaData.Set("IsVelocity", true);
                 data.DefaultMetaData.Set("Speed", 9.8f);
                 data.DefaultMetaData.Set("Direction", new Vector2(1.0f, 0.0f));
-                return new Card(data, "Equipment");
+                return new Card(data);
             });
             _factory.Register("vu", () =>
             {
-                var data = new CardData("vu", "Velocity Variant");
+                var data = new CardData("vu", "Velocity Variant", defaultTags: new[] { "Equipment" });
                 data.DefaultMetaData.Set("IsVelocity", true);
                 data.DefaultMetaData.Set("Speed", 9.8f);
                 data.DefaultMetaData.Set("Direction", new Vector2(0.0f, 2.0f));
-                return new Card(data, "Equipment");
+                return new Card(data);
             });
             var hero = _engine.CreateCard("hero");
             hero.Position = new Vector3Int(1, 0, 1);

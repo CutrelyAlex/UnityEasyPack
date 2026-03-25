@@ -29,44 +29,6 @@ namespace EasyPack.EmeCardSystem
             SelectionRoot.MatchRoot,
             TargetScope.Children, CardFilterMode.ById, id, take);
 
-        /// <summary>给匹配结果添加标签</summary>
-        public CardRuleBuilder DoAddTagToMatched(string tag) =>
-            DoAddTag(tag);
-
-        /// <summary>给源卡牌自身添加标签</summary>
-        public CardRuleBuilder DoAddTagToSource(string tag)
-        {
-            return DoInvoke((ctx, matched) => ctx.Source.AddTag(tag));
-        }
-
-        /// <summary>给容器卡牌自身添加标签</summary>
-        public CardRuleBuilder DoAddTagToMatchRoot(string tag)
-        {
-            return DoInvoke((ctx, matched) => ctx.MatchRoot.AddTag(tag));
-        }
-
-        /// <summary>给容器子卡中指定标签的卡牌添加新标签</summary>
-        public CardRuleBuilder DoAddTagToMatchRootChildByTag(string targetTag, string newTag, int? take = null) =>
-            DoAddTag(newTag, SelectionRoot.MatchRoot, TargetScope.Children, CardFilterMode.ByTag, targetTag,
-                take);
-
-        /// <summary>给容器子卡中指定ID的卡牌添加标签</summary>
-        public CardRuleBuilder DoAddTagToMatchRootChildById(string targetId, string newTag, int? take = null) =>
-            DoAddTag(newTag,
-                SelectionRoot.MatchRoot, TargetScope.Children, CardFilterMode.ById, targetId, take);
-
-        /// <summary>给源卡牌自身移除标签</summary>
-        public CardRuleBuilder DoRemoveTagFromSource(string tag)
-        {
-            return DoInvoke((ctx, matched) => ctx.Source.RemoveTag(tag));
-        }
-
-        /// <summary>给容器卡牌自身移除标签</summary>
-        public CardRuleBuilder DoRemoveTagFromMatchRoot(string tag)
-        {
-            return DoInvoke((ctx, matched) => ctx.MatchRoot.RemoveTag(tag));
-        }
-
         /// <summary>修改匹配结果中指定标签的卡牌的属性</summary>
         public CardRuleBuilder DoModifyTag(
             string tag,
@@ -103,18 +65,6 @@ namespace EasyPack.EmeCardSystem
         #endregion
 
         #region 效果执行 - EffectRoot 便捷语法糖
-
-        /// <summary>给效果根卡牌自身添加标签</summary>
-        public CardRuleBuilder DoAddTagToEffectRoot(string tag)
-        {
-            return DoInvoke((ctx, matched) => ctx.EffectRoot?.AddTag(tag));
-        }
-
-        /// <summary>给效果根卡牌自身移除标签</summary>
-        public CardRuleBuilder DoRemoveTagFromEffectRoot(string tag)
-        {
-            return DoInvoke((ctx, matched) => ctx.EffectRoot?.RemoveTag(tag));
-        }
 
         /// <summary>移除效果根子卡中指定标签的卡牌</summary>
         public CardRuleBuilder DoRemoveEffectRootChildByTag(string tag, int? take = null)
@@ -166,44 +116,6 @@ namespace EasyPack.EmeCardSystem
             });
         }
 
-        /// <summary>给效果根子卡中指定标签的卡牌添加新标签</summary>
-        public CardRuleBuilder DoAddTagToEffectRootChildByTag(string targetTag, string newTag, int? take = null)
-        {
-            return DoInvoke((ctx, matched) =>
-            {
-                if (ctx.EffectRoot?.Children == null) return;
-                int count = 0;
-                foreach (Card child in ctx.EffectRoot.Children)
-                {
-                    if (child.HasTag(targetTag))
-                    {
-                        child.AddTag(newTag);
-                        count++;
-                        if (take.HasValue && count >= take.Value) break;
-                    }
-                }
-            });
-        }
-
-        /// <summary>给效果根子卡中指定ID的卡牌添加标签</summary>
-        public CardRuleBuilder DoAddTagToEffectRootChildById(string targetId, string newTag, int? take = null)
-        {
-            return DoInvoke((ctx, matched) =>
-            {
-                if (ctx.EffectRoot?.Children == null) return;
-                int count = 0;
-                foreach (Card child in ctx.EffectRoot.Children)
-                {
-                    if (string.Equals(child.Id, targetId, StringComparison.Ordinal))
-                    {
-                        child.AddTag(newTag);
-                        count++;
-                        if (take.HasValue && count >= take.Value) break;
-                    }
-                }
-            });
-        }
-
         /// <summary>修改效果根子卡中指定标签卡牌的属性（仅支持 AddToBase/SetBase 模式）</summary>
         public CardRuleBuilder DoModifyEffectRootChildByTag(
             string tag,
@@ -231,7 +143,7 @@ namespace EasyPack.EmeCardSystem
                                 case ModifyPropertyEffect.Mode.SetBase:
                                     prop.SetBaseValue(value);
                                     break;
-                                // AddModifier/RemoveModifier 需要 IModifier，请使用 DoModify 完整版本
+                                    // AddModifier/RemoveModifier 需要 IModifier，请使用 DoModify 完整版本
                             }
                         }
 

@@ -1,6 +1,6 @@
-using NUnit.Framework;
 using System.Collections.Generic;
 using EasyPack.EmeCardSystem;
+using NUnit.Framework;
 
 namespace EasyPack.EmeCardTests
 {
@@ -27,7 +27,7 @@ namespace EasyPack.EmeCardTests
             // 注册测试用卡牌
             _factory.Register("parent", () => new(new("parent", "父卡", "", "Card.Object")));
             _factory.Register("child", () => new(new("child", "子卡", "", "Card.Object")));
-            _factory.Register("tagged_child", () => new(new("tagged_child", "带标签的子卡", "", "Card.Object"), "特殊"));
+            _factory.Register("tagged_child", () => new(new("tagged_child", "带标签的子卡", "", "Card.Object", new[] { "特殊" })));
         }
 
         [TearDown]
@@ -52,8 +52,8 @@ namespace EasyPack.EmeCardTests
                 .DoInvoke((ctx, matched) =>
                 {
                     invokeCount++;
-                    // 标记子卡已被父卡收纳
-                    ctx.Source.AddTag("已收纳");
+                    // 标记子卡已被父卡收纳（运行时元数据）
+                    ctx.Source.ModifyRuntimeMetadata(meta => meta.Set("收纳状态", true));
                 })
                 .Build();
 
@@ -63,7 +63,7 @@ namespace EasyPack.EmeCardTests
             Card parent = _engine.CreateCard("parent");
             Card child = _engine.CreateCard("child");
 
-            Assert.IsFalse(child.HasTag("已收纳"), "初始子卡不应有'已收纳'标签");
+            Assert.IsFalse(child.RuntimeMetadata.Get("收纳状态", false), "初始子卡不应有'已收纳'标记");
             Assert.AreEqual(0, invokeCount, "初始规则不应被触发");
 
             // 添加子卡，应触发事件
@@ -71,7 +71,7 @@ namespace EasyPack.EmeCardTests
             _engine.Pump(); // 处理事件队列
 
             Assert.AreEqual(1, invokeCount, "AddedToOwner 事件应触发规则 1 次");
-            Assert.IsTrue(child.HasTag("已收纳"), "子卡应被标记为'已收纳'");
+            Assert.IsTrue(child.RuntimeMetadata.Get("收纳状态", false), "子卡应被标记为'已收纳'");
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace EasyPack.EmeCardTests
                 {
                     invokeCount++;
                     removedChildId = ctx.Source.Id;
-                    ctx.Source.AddTag("已移除");
+                    ctx.Source.ModifyRuntimeMetadata(meta => meta.Set("移除状态", true));
                 })
                 .Build();
 
@@ -105,7 +105,7 @@ namespace EasyPack.EmeCardTests
             _engine.Pump();
 
             Assert.AreEqual(0, invokeCount, "移除前规则不应被触发");
-            Assert.IsFalse(child.HasTag("已移除"), "移除前子卡不应有'已移除'标签");
+            Assert.IsFalse(child.RuntimeMetadata.Get("移除状态", false), "移除前子卡不应有'已移除'标记");
 
             // 移除子卡，应触发事件
             parent.RemoveChild(child);
@@ -113,7 +113,7 @@ namespace EasyPack.EmeCardTests
 
             Assert.AreEqual(1, invokeCount, "RemovedFromOwner 事件应触发规则 1 次");
             Assert.AreEqual("child", removedChildId, "应记录被移除的子卡 ID");
-            Assert.IsTrue(child.HasTag("已移除"), "子卡应被标记为'已移除'");
+            Assert.IsTrue(child.RuntimeMetadata.Get("移除状态", false), "子卡应被标记为'已移除'");
         }
 
         /// <summary>
@@ -169,7 +169,7 @@ namespace EasyPack.EmeCardTests
                 {
                     specialChildCount++;
                     // 为父卡添加标记，表示有特殊子卡被添加
-                    ctx.MatchRoot.AddTag("已激活特殊子卡");
+                    ctx.MatchRoot.ModifyRuntimeMetadata(meta => meta.Set("已激活特殊子卡", true));
                 })
                 .Build();
 
@@ -188,7 +188,7 @@ namespace EasyPack.EmeCardTests
             parent.AddChild(specialChild);
             _engine.Pump();
             Assert.AreEqual(1, specialChildCount, "特殊子卡应触发规则");
-            Assert.IsTrue(parent.HasTag("已激活特殊子卡"), "父卡应被标记");
+            Assert.IsTrue(parent.RuntimeMetadata.Get("已激活特殊子卡", false), "父卡应被标记");
         }
 
         /// <summary>
@@ -318,7 +318,7 @@ namespace EasyPack.EmeCardTests
                 .DoInvoke((ctx, matched) =>
                 {
                     rule1Triggered = true;
-                    ctx.Source.AddTag("规则1");
+                    ctx.Source.ModifyRuntimeMetadata(meta => meta.Set("规则1", true));
                 })
                 .Build();
 
@@ -329,7 +329,7 @@ namespace EasyPack.EmeCardTests
                 .DoInvoke((ctx, matched) =>
                 {
                     rule2Triggered = true;
-                    ctx.Source.AddTag("规则2");
+                    ctx.Source.ModifyRuntimeMetadata(meta => meta.Set("规则2", true));
                 })
                 .Build();
 
@@ -344,8 +344,8 @@ namespace EasyPack.EmeCardTests
 
             Assert.IsTrue(rule1Triggered, "规则 1 应被触发");
             Assert.IsTrue(rule2Triggered, "规则 2 应被触发");
-            Assert.IsTrue(child.HasTag("规则1"), "子卡应有规则 1 的标签");
-            Assert.IsTrue(child.HasTag("规则2"), "子卡应有规则 2 的标签");
+            Assert.IsTrue(child.RuntimeMetadata.Get("规则1", false), "子卡应有规则 1 的标记");
+            Assert.IsTrue(child.RuntimeMetadata.Get("规则2", false), "子卡应有规则 2 的标记");
         }
 
         /// <summary>

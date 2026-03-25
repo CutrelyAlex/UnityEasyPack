@@ -110,8 +110,7 @@ namespace EasyPack.EmeCardSystem
                 FilterMode,
                 root,
                 FilterValue,
-                MaxDepth ?? ctx.MaxDepth,
-                ctx.Engine?.CategoryManager);
+                MaxDepth ?? ctx.MaxDepth);
             int count = picks?.Count ?? 0;
 
             // 检查匹配条件：至少 MinCount 个

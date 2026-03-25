@@ -93,7 +93,7 @@ namespace EasyPack.EmeCardTests
                 {
                     Debug.Log($"[OnPositionChanged] {ctx.Source.Name} 位置改变");
                     // 标记移动物体为待删除（这是碰撞的结果）
-                    ctx.Source.AddTag("__PendingRemoval");
+                    ctx.Source.ModifyRuntimeMetadata(meta => meta.Set("PendingRemoval", true));
                     Debug.Log($"[OnPositionChanged] 标记 {ctx.Source.Name} 为待删除");
                     // 触发升温事件
                     ctx.Source.RaiseEvent("Heat");
@@ -103,7 +103,7 @@ namespace EasyPack.EmeCardTests
             // 处理升温事件，增加温度
             engine.RegisterRule(r => r
                 .On("Heat")
-                .When(ctx => !ctx.Source.HasTag("__PendingRemoval")) // 只有未标记删除的才升温
+                .When(ctx => !ctx.Source.RuntimeMetadata.Get("PendingRemoval", false)) // 只有未标记删除的才升温
                 .DoInvoke((ctx, _) =>
                 {
                     GameProperty tempProp = ctx.Source.GetProperty("Temperature");
@@ -118,7 +118,7 @@ namespace EasyPack.EmeCardTests
             // 在 Pump 结束时删除所有标记待删除的卡牌
             engine.RegisterRule(r => r
                 .OnPumpEnd()
-                .When(ctx => ctx.Source.HasTag("__PendingRemoval")) // 检查源卡牌本身是否有标记
+                .When(ctx => ctx.Source.RuntimeMetadata.Get("PendingRemoval", false)) // 检查源卡牌本身是否有标记
                 .DoInvoke((ctx, _) =>
                 {
                     Debug.Log($"[PumpEnd] 删除 {ctx.Source.Name}");
@@ -201,8 +201,8 @@ namespace EasyPack.EmeCardTests
             // PumpEnd：清理所有标记删除的卡牌（这里没有）
             engine.RegisterRule(r => r
                 .OnPumpEnd()
-                .NeedMatchRootTag("__PendingRemoval")
-                .DoRemove());
+                .When(ctx => ctx.Source.RuntimeMetadata.Get("PendingRemoval", false))
+                .DoInvoke((ctx, _) => ctx.Engine.RemoveCard(ctx.Source)));
 
             // 触发升温
             object1.RaiseEvent("Heat");

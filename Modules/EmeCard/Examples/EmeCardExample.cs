@@ -59,33 +59,33 @@ namespace EasyPack.EmeCardSystem.Example
 
             // 注册卡牌模板 - 使用简化构造函数（无属性）
             _factory.Register("世界", () =>
-                new(new("世界", "世界", "", "Card.Object"), "世界"));
+                new(new CardData("世界", "世界", "", "Card.Object", new[] { "世界" })));
 
             _factory.Register("草地格", () =>
-                new(new("草地格", "草地格", "", "Card.Object"), "草地"));
+                new(new CardData("草地格", "草地格", "", "Card.Object", new[] { "草地" })));
 
             _factory.Register("玩家", () =>
-                new(new("玩家", "玩家", "", "Card.Object"), "玩家"));
+                new(new CardData("玩家", "玩家", "", "Card.Object", new[] { "玩家" })));
 
             _factory.Register("树木", () =>
-                new(new("树木", "树木", "", "Card.Object"), "树木", "可燃烧"));
+                new(new CardData("树木", "树木", "", "Card.Object", new[] { "树木", "可燃烧" })));
 
             _factory.Register("木棍", () =>
-                new(new("木棍", "木棍", "", "Card.Object"), "木棍"));
+                new(new CardData("木棍", "木棍", "", "Card.Object", new[] { "木棍" })));
 
             _factory.Register("火", () =>
-                new(new("火", "火", "", "Card.Object"), "火"));
+                new(new CardData("火", "火", "", "Card.Object", new[] { "火" })));
 
             // 火把使用完整构造函数（带属性）
             _factory.Register("火把", () =>
-                new(new("火把", "火把", "", "Card.Object"),
-                    new List<GameProperty> { new("Ticks", 0f) }, "火把"));
+                new(new CardData("火把", "火把", "", "Card.Object", new[] { "火把" }),
+                    new List<GameProperty> { new("Ticks", 0f) }));
 
             _factory.Register("灰烬", () =>
-                new(new("灰烬", "灰烬", "", "Card.Object"), "灰烬"));
+                new(new CardData("灰烬", "灰烬", "", "Card.Object", new[] { "灰烬" })));
 
             _factory.Register("制作", () =>
-                new(new("制作", "制作", "", "Card.Action"), "制作"));
+                new(new CardData("制作", "制作", "", "Card.Action", new[] { "制作" })));
 
             Debug.Log("工厂和引擎初始化完成，可用于创建和管理卡牌\n");
         }
@@ -101,7 +101,7 @@ namespace EasyPack.EmeCardSystem.Example
             var simpleCard = new Card(new("simple", "简单卡牌", "一张简单的卡牌", "Card.Object"));
             Debug.Log($"创建了简单卡牌: {simpleCard.Name} (ID: {simpleCard.Id})");
 
-            var taggedCard = new Card(new("tagged", "带标签卡牌", "", "Card.Object"), "武器", "近战");
+            var taggedCard = new Card(new CardData("tagged", "带标签卡牌", "", "Card.Object", new[] { "武器", "近战" }));
 #pragma warning disable CS0618 // 使用 Tags 属性用于演示
             Debug.Log($"创建了带标签卡牌: {taggedCard.Name}，标签: {string.Join(", ", taggedCard.Tags)}");
 #pragma warning restore CS0618
@@ -257,7 +257,8 @@ namespace EasyPack.EmeCardSystem.Example
             );
 
             // 添加夜晚标签到其中一个区域
-            area1.AddTag("夜晚");
+            Card nightMarker = new(new CardData("night_marker", "夜晚标记", "", "Card.Attribute", new[] { "夜晚" }));
+            area1.AddChild(nightMarker);
 
             // 触发检查
             root.RaiseEvent("检查夜晚");

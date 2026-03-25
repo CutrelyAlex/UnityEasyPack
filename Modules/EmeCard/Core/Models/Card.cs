@@ -26,20 +26,13 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="data">卡牌数据</param>
         /// <param name="gameProperty">可选的单个游戏属性</param>
-        /// <param name="extraTags">额外标签</param>
-        public Card(CardData data, GameProperty gameProperty = null, params string[] extraTags)
+        public Card(CardData data, GameProperty gameProperty = null)
         {
             _id = data?.ID ?? string.Empty;
             CardEngine.RegisterTemplateData(data);
             if (gameProperty != null)
             {
                 Properties.Add(gameProperty);
-            }
-
-            // 临时收集额外标签，等待注册到Engine时同步
-            if (extraTags is { Length: > 0 })
-            {
-                PendingExtraTags = new(extraTags);
             }
         }
 
@@ -48,28 +41,19 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="data">卡牌数据</param>
         /// <param name="properties">属性列表</param>
-        /// <param name="extraTags">额外标签</param>
-        public Card(CardData data, IEnumerable<GameProperty> properties, params string[] extraTags)
+        public Card(CardData data, IEnumerable<GameProperty> properties)
         {
             _id = data?.ID ?? string.Empty;
             CardEngine.RegisterTemplateData(data);
             Properties = properties?.ToList() ?? new List<GameProperty>();
-
-            // 临时收集额外标签，等待注册到Engine时同步
-            if (extraTags is { Length: > 0 })
-            {
-                PendingExtraTags = new(extraTags);
-            }
         }
 
         /// <summary>
-        ///     简化构造函数
-        ///     提供卡牌数据和标签
+        ///     构造函数，提供卡牌数据
         /// </summary>
         /// <param name="data">卡牌数据</param>
-        /// <param name="extraTags">额外标签</param>
-        public Card(CardData data, params string[] extraTags)
-            : this(data, (IEnumerable<GameProperty>)null, extraTags) { }
+        public Card(CardData data)
+            : this(data, (IEnumerable<GameProperty>)null) { }
 
         #endregion
 
@@ -79,11 +63,6 @@ namespace EasyPack.EmeCardSystem
         ///     卡牌所属的CardEngine
         /// </summary>
         public CardEngine Engine { get; set; }
-
-        /// <summary>
-        ///     构造函数中临时收集的额外标签，在注册到Engine时同步到CategoryManager后清空。
-        /// </summary>
-        internal List<string> PendingExtraTags { get; set; }
 
         /// <summary>
         ///     该卡牌的静态数据（ID/名称/描述/默认标签等）。
@@ -129,11 +108,6 @@ namespace EasyPack.EmeCardSystem
         {
             get
             {
-                if (Engine?.CategoryManager != null && UID >= 0)
-                {
-                    return Engine.CategoryManager.GetReadableCategoryPath(UID);
-                }
-
                 return Data?.Category ?? CardData.DEFAULT_CATEGORY;
             }
         }
@@ -179,20 +153,15 @@ namespace EasyPack.EmeCardSystem
         #region 标签和持有关系
 
         /// <summary>
-        ///     标签集合。标签由 CategoryManager 统一管理。
-        ///     <para>推荐使用 <see cref="HasTag" />、<see cref="AddTag" />、<see cref="RemoveTag" /> 方法操作标签。</para>
+        ///     标签集合（只读，来自 <see cref="CardData.DefaultTags" />）。
+        ///     <para>运行时可变标记请使用 <see cref="RuntimeMetadata" />。</para>
         /// </summary>
         /// <exception cref="InvalidOperationException">卡牌未注册到引擎时访问。</exception>
         public IReadOnlyCollection<string> Tags
         {
             get
             {
-                if (Engine?.CategoryManager == null || Index < 0)
-                {
-                    return Array.Empty<string>();
-                }
-
-                return Engine.CategoryManager.GetTags(this);
+                return Data?.DefaultTags ?? Array.Empty<string>();
             }
         }
 
@@ -204,20 +173,25 @@ namespace EasyPack.EmeCardSystem
         public bool HasTag(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return false;
-            if (Engine?.CategoryManager == null || UID < 0) return false;
 
-            return Engine.CategoryManager.HasTag(this, tag);
+            string[] defaultTags = Data?.DefaultTags;
+            if (defaultTags == null || defaultTags.Length == 0) return false;
+            for (int i = 0; i < defaultTags.Length; i++)
+            {
+                if (defaultTags[i] == tag) return true;
+            }
+
+            return false;
         }
 
         public bool ChildHasTag(string tag, out Card target)
         {
             target = null;
             if (string.IsNullOrEmpty(tag)) return false;
-            if (Engine?.CategoryManager == null || UID < 0) return false;
 
             foreach (Card child in Children)
             {
-                if (Engine.CategoryManager.HasTag(child, tag))
+                if (child != null && child.HasTag(tag))
                 {
                     target = child;
                     return true;
@@ -230,76 +204,13 @@ namespace EasyPack.EmeCardSystem
         public bool ChildHasTag(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return false;
-            if (Engine?.CategoryManager == null || UID < 0) return false;
 
             foreach (Card child in Children)
             {
-                if (Engine.CategoryManager.HasTag(child, tag)) return true;
+                if (child != null && child.HasTag(tag)) return true;
             }
             return false;
         }
-
-        /// <summary>
-        ///     添加标签到卡牌。
-        /// </summary>
-        /// <param name="tag">要添加的标签。</param>
-        /// <returns>如果成功添加返回 true（标签之前不存在）。</returns>
-        public bool AddTag(string tag)
-        {
-            if (string.IsNullOrEmpty(tag)) return false;
-            if (Engine?.CategoryManager == null || UID < 0) return false;
-
-            // 检查是否已存在
-            if (Engine.CategoryManager.HasTag(this, tag)) return false;
-
-            OperationResult op = Engine.CategoryManager.AddTag(UID, tag);
-            return op.IsSuccess;
-        }
-
-        /// <summary>
-        ///     添加多个标签到卡牌。
-        /// </summary>
-        /// <param name="tags">要添加的标签数组。</param>
-        /// <returns>如果成功添加至少一个新标签返回 true。</returns>
-        public bool AddTags(string[] tags)
-        {
-            if (tags == null || tags.Length == 0) return false;
-            if (Engine?.CategoryManager == null || UID < 0) return false;
-
-            // 过滤出未存在的标签
-            var newTags = new List<string>();
-            foreach (string tag in tags)
-            {
-                if (!string.IsNullOrEmpty(tag) && !Engine.CategoryManager.HasTag(this, tag))
-                {
-                    newTags.Add(tag);
-                }
-            }
-
-            if (newTags.Count == 0) return false;
-
-            OperationResult op = Engine.CategoryManager.AddTags(UID, newTags.ToArray());
-            return op.IsSuccess;
-        }
-
-        /// <summary>
-        ///     从卡牌移除标签。
-        /// </summary>
-        /// <param name="tag">要移除的标签。</param>
-        /// <returns>如果成功移除返回 true（标签之前存在）。</returns>
-        public bool RemoveTag(string tag)
-        {
-            if (string.IsNullOrEmpty(tag)) return false;
-            if (Engine?.CategoryManager == null || UID < 0) return false;
-
-            // 检查是否存在
-            if (!Engine.CategoryManager.HasTag(this, tag)) return false;
-
-            OperationResult op = Engine.CategoryManager.RemoveTag(UID, tag);
-            return op.IsSuccess;
-        }
-
-
 
         /// <summary>
         ///     当前卡牌的持有者（父卡）。
@@ -554,7 +465,7 @@ namespace EasyPack.EmeCardSystem
         {
             RaiseEventInternal(CardEventTypes.Init.CreateEvent(null));
         }
-        
+
         /// <summary>
         ///     触发渲染初始化事件（RenderingInit）。
         /// </summary>
@@ -563,7 +474,7 @@ namespace EasyPack.EmeCardSystem
             CardEvent<object> cet = new CardEvent<object>("RenderingInit",null,"RenderingInit", EEventPumpType.End);
             RaiseEventInternal(cet);
         }
-        
+
         /// <summary>
         ///     触发主动使用事件（Use）。
         /// </summary>

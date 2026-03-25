@@ -297,29 +297,6 @@ namespace EasyPack.EmeCardSystem
             return this;
         }
 
-        /// <summary>添加标签效果</summary>
-        public CardRuleBuilder DoAddTag(
-            string tag,
-            SelectionRoot root = SelectionRoot.MatchRoot,
-            TargetScope scope = TargetScope.Matched,
-            CardFilterMode filter = CardFilterMode.None,
-            string filterValue = null,
-            int? take = null,
-            int? maxDepth = null)
-        {
-            _rule.Effects.Add(new AddTagEffect
-            {
-                Tag = tag,
-                Root = root,
-                Scope = scope,
-                Filter = filter,
-                FilterValue = filterValue,
-                Take = take,
-                MaxDepth = maxDepth,
-            });
-            return this;
-        }
-
         /// <summary>创建卡牌效果</summary>
         public CardRuleBuilder DoCreate(string cardId, int count = 1)
         {

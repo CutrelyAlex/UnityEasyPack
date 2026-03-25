@@ -6,6 +6,8 @@ using EasyPack.Modifiers;
 using NUnit.Framework;
 using UnityEngine;
 
+#pragma warning disable CS0618
+
 namespace EasyPack.EmeCardTests
 {
     /// <summary>
@@ -240,8 +242,7 @@ namespace EasyPack.EmeCardTests
             factory.Register("sword", () => new(
                 new("sword", "剑", "", "Card.Object", new[] { "武器", "近战" })));
             factory.Register("sword_extra", () => new(
-                new("sword_extra", "剑", "", "Card.Object", new[] { "武器", "近战" }),
-                "额外标签1", "额外标签2"));
+                new("sword_extra", "剑", "", "Card.Object", new[] { "武器", "近战", "额外标签1", "额外标签2" })));
 
             var engine = new CardEngine(factory);
 
@@ -252,26 +253,10 @@ namespace EasyPack.EmeCardTests
             Assert.IsTrue(card.HasTag("武器"), "应有'武器'标签");
             Assert.IsTrue(card.HasTag("近战"), "应有'近战'标签");
 
-            // 测试添加标签
-            bool added1 = card.AddTag("锋利");
-            Assert.IsTrue(added1, "添加新标签应返回 true");
-            Assert.IsTrue(card.HasTag("锋利"), "应有'锋利'标签");
-            Assert.AreEqual(3, card.Tags.Count, $"标签数量应为 3，实际: {card.Tags.Count}");
-
-            // 测试重复添加
-            bool added2 = card.AddTag("武器");
-            Assert.IsFalse(added2, "重复添加标签应返回 false");
-            Assert.AreEqual(3, card.Tags.Count, "标签数量应保持不变");
-
-            // 测试移除标签
-            bool removed1 = card.RemoveTag("近战");
-            Assert.IsTrue(removed1, "移除存在的标签应返回 true");
-            Assert.IsFalse(card.HasTag("近战"), "不应再有'近战'标签");
-            Assert.AreEqual(2, card.Tags.Count, $"标签数量应为 2，实际: {card.Tags.Count}");
-
-            // 测试移除不存在的标签
-            bool removed2 = card.RemoveTag("不存在");
-            Assert.IsFalse(removed2, "移除不存在的标签应返回 false");
+            // 运行时标签写入接口已移除：默认标签应保持只读且稳定
+            Assert.IsFalse(card.HasTag("锋利"), "默认标签中不应出现'锋利'");
+            Assert.IsTrue(card.HasTag("近战"), "默认标签'近战'应保持");
+            Assert.AreEqual(2, card.Tags.Count, $"默认标签数量应保持为 2，实际: {card.Tags.Count}");
 
             // 测试额外标签（构造函数）
             Card card2 = engine.CreateCard("sword_extra");
@@ -396,8 +381,8 @@ namespace EasyPack.EmeCardTests
             var factory = new CardFactory();
 
             // 注册卡牌模板
-            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object"), "武器"));
-            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Object"), "消耗品"));
+            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object", new[] { "武器" })));
+            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Object", new[] { "消耗品" })));
 
             // 使用 Engine 创建卡牌以确保标签正确管理
             var engine = new CardEngine(factory);
@@ -425,9 +410,9 @@ namespace EasyPack.EmeCardTests
             // 注册带属性的卡牌
             factory.Register("health_potion", () =>
             {
-                var data = new CardData("health_potion", "生命药水", "恢复100生命", "Card.Object");
+                var data = new CardData("health_potion", "生命药水", "恢复100生命", "Card.Object", new[] { "药水", "消耗品" });
                 var prop = new GameProperty("HealAmount", 100f);
-                return new(data, prop, "药水", "消耗品");
+                return new(data, prop);
             });
 
             // 使用 Engine 创建卡牌以确保标签正确管理
@@ -544,7 +529,7 @@ namespace EasyPack.EmeCardTests
         {
             var factory = new CardFactory();
             factory.Register("player", () => new(new("player", "玩家", "", "Card.Object")));
-            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object"), "武器"));
+            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object", new[] { "武器" })));
 
             var engine = new CardEngine(factory);
 
@@ -572,15 +557,15 @@ namespace EasyPack.EmeCardTests
 
             var engine = new CardEngine(factory);
 
-            // 测试添加标签效果
+            // 测试自定义效果
             CardRule rule1 = new CardRuleBuilder()
                 .OnUse()
                 .MatchRootAtSelf()
-                .DoAddTagToMatched("已使用")
+                .DoInvoke((ctx, matched) => { })
                 .Build();
 
             Assert.AreEqual(1, rule1.Effects.Count, $"应有 1 个效果，实际: {rule1.Effects.Count}");
-            Assert.IsInstanceOf<AddTagEffect>(rule1.Effects[0], "效果应为 AddTagEffect");
+            Assert.IsInstanceOf<InvokeEffect>(rule1.Effects[0], "效果应为 InvokeEffect");
 
             // 测试移除卡牌效果
             CardRule rule2 = new CardRuleBuilder()
@@ -600,9 +585,9 @@ namespace EasyPack.EmeCardTests
             var factory = new CardFactory();
             factory.Register("timer", () =>
             {
-                var data = new CardData("timer", "计时器", "", "Card.Object");
+                var data = new CardData("timer", "计时器", "", "Card.Object", new[] { "计时器" });
                 var prop = new GameProperty("Time", 0f);
-                return new(data, prop, "计时器");
+                return new(data, prop);
             });
 
             var engine = new CardEngine(factory);
@@ -644,27 +629,36 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_UseEvent()
         {
             var factory = new CardFactory();
-            factory.Register("consumable", () => new(new("consumable", "消耗品", "", "Card.Object"), "可使用"));
+            factory.Register("consumable", () => new(new("consumable", "消耗品", "", "Card.Object", new[] { "可使用" })));
 
             var engine = new CardEngine(factory);
 
-            // 创建规则：使用时给源卡牌自身添加"已使用"标签
+            bool usedTriggered = false;
+
+            // 创建规则：使用时写入运行时元数据标记
             CardRule rule = new CardRuleBuilder()
                 .OnUse()
                 .MatchRootAtSelf()
-                .DoAddTagToSource("已使用")
+                .DoInvoke((ctx, matched) =>
+                {
+                    usedTriggered = true;
+                    var meta = ctx.Engine.CategoryManager.GetMetadata(ctx.Source.UID) ?? new CustomDataCollection();
+                    meta.Set("已使用", true);
+                    ctx.Engine.CategoryManager.UpdateMetadata(ctx.Source.UID, meta);
+                })
                 .Build();
 
             engine.RegisterRule(rule);
 
             Card item = engine.CreateCard("consumable");
-            Assert.IsFalse(item.HasTag("已使用"), "初始不应有'已使用'标签");
+            Assert.IsFalse(item.RuntimeMetadata.Get("已使用", false), "初始不应有'已使用'标记");
 
             // 触发 Use 事件
             item.Use();
             engine.Pump();
 
-            Assert.IsTrue(item.HasTag("已使用"), "使用后应有'已使用'标签");
+            Assert.IsTrue(usedTriggered, "规则应被触发");
+            Assert.IsTrue(item.RuntimeMetadata.Get("已使用", false), "使用后应写入'已使用'标记");
         }
 
         [Test]
@@ -672,10 +666,12 @@ namespace EasyPack.EmeCardTests
         {
             var factory = new CardFactory();
             factory.Register("player", () => new(new("player", "玩家", "", "Card.Object")));
-            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object"), "武器", "近战"));
-            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Object"), "消耗品"));
+            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object", new[] { "武器", "近战" })));
+            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Object", new[] { "消耗品" })));
 
             var engine = new CardEngine(factory);
+
+            int readyCount = 0;
 
             // 创建规则：需要同时有"武器"和"消耗品"标签的子卡
             CardRule rule = new CardRuleBuilder()
@@ -683,7 +679,7 @@ namespace EasyPack.EmeCardTests
                 .MatchRootAtSelf()
                 .NeedMatchRootTag("武器")
                 .NeedMatchRootTag("消耗品")
-                .DoAddTagToSource("战备充足")
+                .DoInvoke((ctx, matched) => { readyCount++; })
                 .Build();
 
             engine.RegisterRule(rule);
@@ -693,17 +689,17 @@ namespace EasyPack.EmeCardTests
             Card potion = engine.CreateCard("potion");
 
             player.AddChild(sword);
-            Assert.IsFalse(player.HasTag("战备充足"), "只有武器时不应触发");
+            Assert.AreEqual(0, readyCount, "只有武器时不应触发");
 
             player.Use();
             engine.Pump();
-            Assert.IsFalse(player.HasTag("战备充足"), "只有武器时规则不应生效");
+            Assert.AreEqual(0, readyCount, "只有武器时规则不应生效");
 
             // 添加药水后再测试
             player.AddChild(potion);
             player.Use();
             engine.Pump();
-            Assert.IsTrue(player.HasTag("战备充足"), "同时有武器和消耗品时应触发");
+            Assert.AreEqual(1, readyCount, "同时有武器和消耗品时应触发");
         }
 
         [Test]
@@ -712,27 +708,27 @@ namespace EasyPack.EmeCardTests
             var factory = new CardFactory();
             factory.Register("card", () =>
             {
-                var data = new CardData("card", "卡牌", "", "Card.Object");
+                var data = new CardData("card", "卡牌", "", "Card.Object", new[] { "可激活" });
                 var prop = new GameProperty("Value", 10f);
-                return new(data, prop, "可激活");
+                return new(data, prop);
             });
 
             // 注册一个子卡作为"触发器"
-            factory.Register("trigger", () => new(new("trigger", "触发器", "", "Card.Object"), "触发器"));
+            factory.Register("trigger", () => new(new("trigger", "触发器", "", "Card.Object", new[] { "触发器" })));
 
             var engine = new CardEngine(factory);
 
             // 创建规则：使用 Need 方法直接选择源卡牌的子卡（触发器），这样 matched 会包含触发器
             // 但我们要修改的是容器（父卡），所以需要改变策略
             // 更好的方法：使用条件判断，然后用 DoInvoke 直接操作
+            bool activated = false;
             CardRule rule = new CardRuleBuilder()
                 .OnUse()
                 .MatchRootAtSelf()
                 .When(ctx => ctx.Source.HasTag("可激活")) // 条件判断
                 .DoInvoke((ctx, matched) =>
                 {
-                    // 直接操作源卡牌
-                    ctx.Source.AddTag("已激活");
+                    activated = true;
 
                     // 使用 Modifier 修改属性
                     GameProperty valueProp = ctx.Source.GetProperty("Value");
@@ -750,13 +746,13 @@ namespace EasyPack.EmeCardTests
             Card card = engine.CreateCard("card");
             GameProperty valueProp = card.GetProperty("Value");
 
-            Assert.IsFalse(card.HasTag("已激活"), "初始无标签");
+            Assert.IsFalse(activated, "初始不应激活");
             Assert.AreEqual(10f, valueProp.GetValue(), "初始值为 10");
 
             card.Use();
             engine.Pump();
 
-            Assert.IsTrue(card.HasTag("已激活"), "应添加标签");
+            Assert.IsTrue(activated, "应触发激活逻辑");
             Assert.AreEqual(15f, valueProp.GetValue(), $"Value 应为 15（使用 Modifier），实际: {valueProp.GetValue()}");
         }
 
@@ -765,20 +761,20 @@ namespace EasyPack.EmeCardTests
         {
             var factory = new CardFactory();
             factory.Register("container", () => new(new("container", "容器", "", "Card.Object")));
-            factory.Register("item", () => new(new("item", "物品", "", "Card.Object"), "物品"));
+            factory.Register("item", () => new(new("item", "物品", "", "Card.Object", new[] { "物品" })));
 
             var engine = new CardEngine(factory);
 
             // 创建规则：递归查找所有后代中的"物品"标签
             // 使用 maxMatched=0 表示返回所有找到的卡牌
+            int foundCount = 0;
             CardRule rule = new CardRuleBuilder()
                 .OnUse()
                 .MatchRootAtSelf()
                 .NeedMatchRootTagRecursive("物品", 3, 0) // minCount=3 表示至少3个才触发，maxMatched=0 表示返回所有
                 .DoInvoke((ctx, matched) =>
                 {
-                    // matched 包含递归找到的所有物品
-                    ctx.Source.AddTag($"找到{matched.Count}个物品");
+                    foundCount = matched.Count;
                 })
                 .Build();
 
@@ -801,7 +797,7 @@ namespace EasyPack.EmeCardTests
             root.Use();
             engine.Pump();
 
-            Assert.IsTrue(root.HasTag("找到3个物品"), $"应找到3个物品，实际标签: {string.Join(", ", root.Tags)}");
+            Assert.AreEqual(3, foundCount, $"应找到3个物品，实际: {foundCount}");
         }
 
         [Test]
@@ -827,31 +823,31 @@ namespace EasyPack.EmeCardTests
             player.AddChild(item5);
 
             // 测试1：MinCount=3, MaxMatched=-1（默认，返回 MinCount 个）
+            int returnedDefault = 0;
             CardRule rule1 = new CardRuleBuilder()
                 .OnUse()
                 .MatchRootAtSelf()
                 .NeedMatchRootTag("物品", 3)
-                .DoInvoke((ctx, matched) => { ctx.Source.AddTag($"默认返回{matched.Count}个"); })
+                .DoInvoke((ctx, matched) => { returnedDefault = matched.Count; })
                 .Build();
 
             engine.RegisterRule(rule1);
             player.Use();
             engine.Pump();
 
-            Assert.IsTrue(player.HasTag("默认返回3个"),
-                $"MaxMatched=-1 应返回 MinCount(3) 个，实际标签: {string.Join(", ", player.Tags)}");
+            Assert.AreEqual(3, returnedDefault, $"MaxMatched=-1 应返回 MinCount(3) 个，实际: {returnedDefault}");
 
-            // 清理标签
-            player.RemoveTag("默认返回3个");
+            // 清理实体避免干扰
             engine.RemoveCard(player); // 移除以清除规则
 
             // 测试2：MinCount=3, MaxMatched=2（只返回2个）
             var engine2 = new CardEngine(factory);
+            int returnedLimited = 0;
             CardRule rule2 = new CardRuleBuilder()
                 .OnUse()
                 .MatchRootAtSelf()
                 .NeedMatchRootTag("物品", 3, 2)
-                .DoInvoke((ctx, matched) => { ctx.Source.AddTag($"限制返回{matched.Count}个"); })
+                .DoInvoke((ctx, matched) => { returnedLimited = matched.Count; })
                 .Build();
             engine2.RegisterRule(rule2);
 
@@ -865,15 +861,16 @@ namespace EasyPack.EmeCardTests
             player2.Use();
             engine2.Pump();
 
-            Assert.IsTrue(player2.HasTag("限制返回2个"), $"MaxMatched=2 应只返回2个，实际标签: {string.Join(", ", player2.Tags)}");
+            Assert.AreEqual(2, returnedLimited, $"MaxMatched=2 应只返回2个，实际: {returnedLimited}");
 
             // 测试3：MinCount=3, MaxMatched=0（返回所有）
             var engine3 = new CardEngine(factory);
+            int returnedAll = 0;
             CardRule rule3 = new CardRuleBuilder()
                 .OnUse()
                 .MatchRootAtSelf()
                 .NeedMatchRootTag("物品", 3, 0)
-                .DoInvoke((ctx, matched) => { ctx.Source.AddTag($"返回全部{matched.Count}个"); })
+                .DoInvoke((ctx, matched) => { returnedAll = matched.Count; })
                 .Build();
             engine3.RegisterRule(rule3);
 
@@ -887,7 +884,7 @@ namespace EasyPack.EmeCardTests
             player3.Use();
             engine3.Pump();
 
-            Assert.IsTrue(player3.HasTag("返回全部5个"), $"MaxMatched=0 应返回所有5个，实际标签: {string.Join(", ", player3.Tags)}");
+            Assert.AreEqual(5, returnedAll, $"MaxMatched=0 应返回所有5个，实际: {returnedAll}");
         }
 
         [Test]
@@ -948,7 +945,7 @@ namespace EasyPack.EmeCardTests
                 var hp = new GameProperty("HP", 100f);
                 return new(data, hp);
             });
-            factory.Register("buff", () => new(new("buff", "增益", "", "Card.Attribute"), "增益"));
+            factory.Register("buff", () => new(new("buff", "增益", "", "Card.Attribute", new[] { "增益" })));
 
             var engine = new CardEngine(factory);
 
@@ -1005,12 +1002,13 @@ namespace EasyPack.EmeCardTests
             var engine = new CardEngine(factory);
 
             // 创建规则：监听自定义事件"OnDamage"
+            int recordedDamage = 0;
             CardRule rule = new CardRuleBuilder()
                 .On("OnDamage")
                 .MatchRootAtSelf()
                 .DoInvoke((ctx, matched) =>
                 {
-                    if (ctx.Event.DataObject is int damage) ctx.Source.AddTag($"受到{damage}点伤害");
+                    if (ctx.Event.DataObject is int damage) recordedDamage = damage;
                 })
                 .Build();
 
@@ -1018,19 +1016,19 @@ namespace EasyPack.EmeCardTests
 
             Card target = engine.CreateCard("target");
 
-            Assert.AreEqual(0, target.Tags.Count, "初始无标签");
+            Assert.AreEqual(0, recordedDamage, "初始无伤害记录");
 
             // 触发自定义事件
             target.RaiseEvent("OnDamage", 50);
             engine.Pump();
 
-            Assert.IsTrue(target.HasTag("受到50点伤害"), $"应有伤害标签，实际标签: {string.Join(", ", target.Tags)}");
+            Assert.AreEqual(50, recordedDamage, "应记录50点伤害");
 
             // 触发不同的自定义事件（不应响应）
             target.RaiseEvent("OnHeal", 20);
             engine.Pump();
 
-            Assert.IsFalse(target.HasTag("受到20点伤害"), "不应响应OnHeal事件");
+            Assert.AreEqual(50, recordedDamage, "不应响应OnHeal事件");
         }
 
         [Test]
@@ -1047,6 +1045,7 @@ namespace EasyPack.EmeCardTests
             var engine = new CardEngine(factory);
 
             // 创建规则：HP低于50时触发
+            bool dangerTriggered = false;
             CardRule rule = new CardRuleBuilder()
                 .OnTick()
                 .MatchRootAtSelf()
@@ -1055,7 +1054,7 @@ namespace EasyPack.EmeCardTests
                     GameProperty hp = ctx.Source.GetProperty("HP");
                     return hp != null && hp.GetValue() < 50f;
                 })
-                .DoAddTagToSource("危险状态")
+                .DoInvoke((ctx, matched) => { dangerTriggered = true; })
                 .Build();
 
             engine.RegisterRule(rule);
@@ -1066,13 +1065,13 @@ namespace EasyPack.EmeCardTests
             // HP为100时
             player.Tick(1f);
             engine.Pump();
-            Assert.IsFalse(player.HasTag("危险状态"), "HP充足不应触发");
+            Assert.IsFalse(dangerTriggered, "HP充足不应触发");
 
             // HP降到30
             hp.SetBaseValue(30f);
             player.Tick(1f);
             engine.Pump();
-            Assert.IsTrue(player.HasTag("危险状态"), "HP低于50应触发");
+            Assert.IsTrue(dangerTriggered, "HP低于50应触发");
         }
 
         [Test]
@@ -1094,7 +1093,7 @@ namespace EasyPack.EmeCardTests
                 .DoInvoke((ctx, matched) =>
                 {
                     executionOrder = executionOrder * 10 + 1;
-                    ctx.Source.AddTag("规则1");
+                    // 标记行为由执行顺序断言覆盖
                 })
                 .Build();
 
@@ -1106,7 +1105,7 @@ namespace EasyPack.EmeCardTests
                 .DoInvoke((ctx, matched) =>
                 {
                     executionOrder = executionOrder * 10 + 2;
-                    ctx.Source.AddTag("规则2");
+                    // 标记行为由执行顺序断言覆盖
                 })
                 .Build();
 
@@ -1118,7 +1117,6 @@ namespace EasyPack.EmeCardTests
             engine.Pump();
 
             Assert.AreEqual(21, executionOrder, $"执行顺序应为21（规则2先，规则1后），实际: {executionOrder}");
-            Assert.IsTrue(card.HasTag("规则1") && card.HasTag("规则2"), "两条规则都应执行");
         }
 
         [Test]
@@ -1150,11 +1148,12 @@ namespace EasyPack.EmeCardTests
                 MinCount = 1,
             });
 
+            int equippedTriggeredCount = 0;
             CardRule rule = new CardRuleBuilder()
                 .OnUse()
                 .MatchRootAtSelf()
                 .AddRequirement(anyReq)
-                .DoAddTagToSource("有装备")
+                .DoInvoke((ctx, matched) => { equippedTriggeredCount++; })
                 .Build();
 
             engine.RegisterRule(rule);
@@ -1164,23 +1163,22 @@ namespace EasyPack.EmeCardTests
             // 无装备
             player.Use();
             engine.Pump();
-            Assert.IsFalse(player.HasTag("有装备"), "无装备不应触发");
+            Assert.AreEqual(0, equippedTriggeredCount, "无装备不应触发");
 
             // 有武器
             Card weapon = engine.CreateCard("weapon");
             player.AddChild(weapon);
             player.Use();
             engine.Pump();
-            Assert.IsTrue(player.HasTag("有装备"), "有武器应触发");
+            Assert.AreEqual(1, equippedTriggeredCount, "有武器应触发");
 
-            // 清除标签测试护甲
-            player.RemoveTag("有装备");
+            // 测试护甲路径
             player.RemoveChild(weapon);
             Card armor = engine.CreateCard("armor");
             player.AddChild(armor);
             player.Use();
             engine.Pump();
-            Assert.IsTrue(player.HasTag("有装备"), "有护甲也应触发");
+            Assert.AreEqual(2, equippedTriggeredCount, "有护甲也应触发");
         }
 
         [Test]
@@ -1205,6 +1203,8 @@ namespace EasyPack.EmeCardTests
 
             var engine = new CardEngine(factory);
 
+            bool spellCastMarked = false;
+
             // 规则1：使用法术消耗魔法值并添加灼烧状态
             CardRule rule1 = new CardRuleBuilder()
                 .OnUse()
@@ -1218,7 +1218,7 @@ namespace EasyPack.EmeCardTests
                         // 使用 Modifier 减少魔法值
                         var costModifier = new FloatModifier(ModifierType.Add, 0, -10f);
                         mana.AddModifier(costModifier);
-                        ctx.Source.AddTag("已施放");
+                        spellCastMarked = true;
 
                         // 如果是火系，创建灼烧状态
                         if (ctx.Source.HasTag("火系"))
@@ -1290,7 +1290,7 @@ namespace EasyPack.EmeCardTests
             engine.Pump();
 
             Assert.AreEqual(40f, mana.GetValue(), $"施放法术后魔法应为40，实际: {mana.GetValue()}");
-            Assert.IsTrue(fireSpell.HasTag("已施放"), "法术应标记为已施放");
+            Assert.IsTrue(spellCastMarked, "法术应标记为已施放");
             Assert.AreEqual(3, player.Children.Count, $"应创建灼烧状态，实际子卡数: {player.Children.Count}");
 
             // 使用魔法药水
@@ -1311,15 +1311,17 @@ namespace EasyPack.EmeCardTests
         public void Test_CardEngine_UnregisterRule()
         {
             var factory = new CardFactory();
-            factory.Register("test_card", () => new(new("test_card", "测试卡牌", "", "Card.Object"), "测试"));
+            factory.Register("test_card", () => new(new("test_card", "测试卡牌", "", "Card.Object", new[] { "测试" })));
 
             var engine = new CardEngine(factory);
 
-            // 创建一个简单的规则：使用时添加标签
+            int useTriggerCount = 0;
+
+            // 创建一个简单的规则：使用时记录触发次数
             CardRule rule = new CardRuleBuilder()
                 .OnUse()
                 .MatchRootAtSelf()
-                .DoAddTagToSource("已使用")
+                .DoInvoke((ctx, matched) => { useTriggerCount++; })
                 .Build();
 
             // 注册规则
@@ -1327,15 +1329,12 @@ namespace EasyPack.EmeCardTests
 
             // 创建测试卡牌
             Card card = engine.CreateCard("test_card");
-            Assert.IsFalse(card.HasTag("已使用"), "初始状态不应有已使用标签");
+            Assert.AreEqual(0, useTriggerCount, "初始状态不应触发规则");
 
             // 触发规则
             card.Use();
             engine.Pump();
-            Assert.IsTrue(card.HasTag("已使用"), "规则应被触发，添加已使用标签");
-
-            // 移除标签，准备下一次测试
-            card.RemoveTag("已使用");
+            Assert.AreEqual(1, useTriggerCount, "规则应被触发");
 
             // 注销规则
             bool unregisterResult = engine.UnregisterRule(rule);
@@ -1344,7 +1343,7 @@ namespace EasyPack.EmeCardTests
             // 再次触发，应该不再生效
             card.Use();
             engine.Pump();
-            Assert.IsFalse(card.HasTag("已使用"), "注销后规则不应再触发");
+            Assert.AreEqual(1, useTriggerCount, "注销后规则不应再触发");
 
             // 测试注销不存在的规则
             bool unregisterNonExistent = engine.UnregisterRule(rule);
@@ -1356,3 +1355,5 @@ namespace EasyPack.EmeCardTests
         }
     }
 }
+
+#pragma warning restore CS0618

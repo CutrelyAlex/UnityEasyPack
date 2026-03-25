@@ -36,7 +36,7 @@ namespace EasyPack.EmeCardSystem
         // UID -> 位置缓存
         private readonly Dictionary<long, Vector3Int?> _positionByUID = new();
 
-        // ID -> CardData 模板缓存（集中存储静态模板）
+        // ID -> CardData 模板缓存
         private readonly Dictionary<string, CardData> _cardDataTemplates = new();
 
         #endregion
@@ -56,9 +56,8 @@ namespace EasyPack.EmeCardSystem
 
             string id = card.Id;
 
-            // 第一步: 处理 UID（必须先分配 UID，因为 CategoryManager 使用 UID 作为键）
-            // 使用循环确保分配的 UID 在引擎和分类管理器中都是唯一的
-            while (card.UID < 0 || _cardsByUID.ContainsKey(card.UID) || CategoryManager.GetById(card.UID).IsSuccess)
+            // 第一步: 处理 UID（确保引擎内唯一）
+            while (card.UID < 0 || _cardsByUID.ContainsKey(card.UID))
             {
                 if (card.UID >= 0)
                 {
@@ -105,13 +104,7 @@ namespace EasyPack.EmeCardSystem
             // 第五步: 注册到 CategoryManager
             RegisterToCategoryManager(card);
 
-            // 第六步: 将卡牌的所有标签加入 TargetSelector 缓存
-            foreach (string tag in card.Tags)
-            {
-                TargetSelector.OnCardTagAdded(card, tag);
-            }
-
-            // 第七步: 递归注册所有已存在的子卡牌
+            // 第六步: 递归注册所有已存在的子卡牌
             if (card.Children is { Count: > 0 })
             {
                 foreach (Card child in card.Children)
@@ -120,7 +113,7 @@ namespace EasyPack.EmeCardSystem
                 }
             }
 
-            // 第八步: 注册位置映射
+            // 第七步: 注册位置映射
             _positionByUID[card.UID] = card.Position;
 
             //card.RootCard ??= card;
@@ -351,19 +344,6 @@ namespace EasyPack.EmeCardSystem
 
             _cardsByKey.Remove((c.Id, c.Index));
 
-            // 收集标签用于后续清理
-            var tags = c.Tags;
-            string[] tagArray = null;
-            if (tags.Count > 0)
-            {
-                tagArray = new string[tags.Count];
-                int idx = 0;
-                foreach (string tag in tags)
-                {
-                    tagArray[idx++] = tag;
-                }
-            }
-
             UnregisterFromCategoryManager(c.UID);
 
             // 从位置映射中移除
@@ -375,16 +355,6 @@ namespace EasyPack.EmeCardSystem
             }
 
             _positionByUID.Remove(c.UID);
-
-
-            // 清理 TargetSelector 标签缓存
-            if (tagArray != null)
-            {
-                foreach (string tag in tagArray)
-                {
-                    TargetSelector.OnCardTagRemoved(c, tag);
-                }
-            }
 
             return this;
         }
