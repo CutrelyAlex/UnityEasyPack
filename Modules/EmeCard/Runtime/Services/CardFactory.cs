@@ -91,13 +91,7 @@ namespace EasyPack.EmeCardSystem
                     }
                 }
 
-                // 5. 复制待处理标签 (PendingExtraTags)
-                if (baseCard.PendingExtraTags is { Count: > 0 })
-                {
-                    newCard.PendingExtraTags = new(baseCard.PendingExtraTags);
-                }
-
-                // 6. 执行自定义微调
+                // 5. 执行自定义微调
                 tweakAction?.Invoke(newCard);
 
                 return newCard;

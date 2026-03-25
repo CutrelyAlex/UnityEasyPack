@@ -107,13 +107,6 @@ namespace EasyPack.EmeCardSystem
             TargetSelector.InitializeTagCache(_registeredCardsTemplates, CategoryManager);
         }
 
-        /// <summary>
-        ///     清除TargetSelector的Tag缓存
-        /// </summary>
-        public void ClearTargetSelectorCache()
-        {
-            TargetSelector.ClearTagCache();
-        }
 
         /// <summary>
         ///     从工厂创建所有卡牌的副本并缓存。
@@ -310,38 +303,6 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     按标签查询卡牌。
-        /// </summary>
-        /// <param name="tag">要查询的标签。</param>
-        /// <returns>包含该标签的所有卡牌列表。</returns>
-        public IReadOnlyList<Card> GetCardsByTag(string tag) =>
-            string.IsNullOrEmpty(tag) ? Array.Empty<Card>() : CategoryManager.GetByTag(tag);
-
-        /// <summary>
-        ///     按分类查询卡牌，支持通配符匹配和子分类包含。
-        /// </summary>
-        /// <param name="pattern">分类名称或通配符模式（如 "Object"、"Creature.*"）。</param>
-        /// <param name="includeChildren">是否包含子分类中的卡牌。</param>
-        /// <returns>匹配分类的所有卡牌列表。</returns>
-        public IReadOnlyList<Card> GetCardsByCategory(string pattern, bool includeChildren = false) =>
-            string.IsNullOrEmpty(pattern)
-                ? Array.Empty<Card>()
-                : CategoryManager.GetByCategory(pattern, includeChildren);
-
-        /// <summary>
-        ///     按分类和标签的交集查询卡牌。
-        /// </summary>
-        /// <param name="category">分类名称。</param>
-        /// <param name="tag">标签名称。</param>
-        /// <param name="includeChildren">是否包含子分类。</param>
-        /// <returns>同时匹配分类和标签的卡牌列表。</returns>
-        public IReadOnlyList<Card> GetCardsByCategoryAndTag(string category, string tag, bool includeChildren = true)
-        {
-            if (string.IsNullOrEmpty(category) || string.IsNullOrEmpty(tag)) return Array.Empty<Card>();
-            return CategoryManager.GetByCategoryAndTag(category, tag, includeChildren);
-        }
-
-        /// <summary>
         ///     按位置查询卡牌。
         /// </summary>
         /// <param name="position">要查询的位置。</param>
@@ -377,36 +338,8 @@ namespace EasyPack.EmeCardSystem
         {
             if (card == null) return;
 
-            string category = ExtractCategoryPath(card);
-
-            // 使用 UID注册实体，保证唯一
-            IEntityRegistration registration = CategoryManager.RegisterEntity(card, category);
-
-            // 应用运行时的DefaultTags（来自CardData）
-            if (card.Data?.DefaultTags != null)
-            {
-                foreach (string tag in card.Data.DefaultTags)
-                {
-                    if (!string.IsNullOrWhiteSpace(tag))
-                    {
-                        registration = registration.WithTags(tag);
-                    }
-                }
-            }
-
-            // 待应用的额外标签
-            if (card.PendingExtraTags != null && card.PendingExtraTags.Count > 0)
-            {
-                foreach (string tag in card.PendingExtraTags)
-                {
-                    if (string.IsNullOrWhiteSpace(tag)) continue;
-
-                    registration = registration.WithTags(tag);
-                }
-
-                // 清空临时标签列表
-                card.PendingExtraTags = null;
-            }
+            // 仅使用 CategoryManager 的 metadata 能力，不使用其 tag/category 能力
+            IEntityRegistration registration = CategoryManager.RegisterEntity(card, CardData.DEFAULT_CATEGORY);
 
             // 应用默认的metadata
             CustomDataCollection defaultMetaData = card.Data?.DefaultMetaData;
@@ -438,24 +371,6 @@ namespace EasyPack.EmeCardSystem
             {
                 Debug.LogWarning($"[CardEngine] CategoryManager 注销失败: Card UID={uid}, Error={result.ErrorMessage}");
             }
-        }
-
-        /// <summary>
-        ///     从卡牌数据中提取分类路径字符串。
-        /// </summary>
-        /// <param name="card">卡牌实例。</param>
-        /// <returns>分类路径字符串。</returns>
-        private static string ExtractCategoryPath(Card card)
-        {
-            if (card?.Data == null)
-            {
-                return CardData.DEFAULT_CATEGORY;
-            }
-
-            // 优先使用新的 DefaultCategory，如果为空则回退到 DEFAULT_CATEGORY
-            return string.IsNullOrEmpty(card.Data.Category)
-                ? CardData.DEFAULT_CATEGORY
-                : card.Data.Category;
         }
 
         #endregion
