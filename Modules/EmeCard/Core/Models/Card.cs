@@ -329,7 +329,25 @@ namespace EasyPack.EmeCardSystem
         /// <exception cref="InvalidOperationException">如果 child 已经是当前卡牌的祖父卡牌（会形成循环引用）。</exception>
         public Card AddChild(Card child, bool intrinsic = false)
         {
-            if (child == null) return this;
+            AddChildCore(child, intrinsic, raiseEvents: true, updateEngineIndices: true);
+            return this;
+        }
+
+        /// <summary>
+        ///     静默建立父子关系
+        /// 不触发 AddedToOwner 事件，也不即时刷新引擎位置索引
+        /// </summary>
+        /// <param name="child">子卡牌实例</param>
+        /// <param name="intrinsic">是否作为固有子卡</param>
+        internal Card RestoreChild(Card child, bool intrinsic = false)
+        {
+            AddChildCore(child, intrinsic, raiseEvents: false, updateEngineIndices: false);
+            return this;
+        }
+
+        private void AddChildCore(Card child, bool intrinsic, bool raiseEvents, bool updateEngineIndices)
+        {
+            if (child == null) return;
 
             // 检测循环引用：如果 child 是当前卡牌的祖父卡牌，添加它将形成循环
             if (IsRecursiveParent(child))
@@ -338,7 +356,7 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 如果子卡牌之前在位置索引中（作为根卡牌），需要从索引中移除
-            if (Engine != null && child.UID >= 0 && child.Owner == null && child.Position != null)
+            if (updateEngineIndices && Engine != null && child.UID >= 0 && child.Owner == null && child.Position != null)
             {
                 Engine.NotifyChildAddedToParent(child);
             }
@@ -349,14 +367,37 @@ namespace EasyPack.EmeCardSystem
             // 子卡牌与父卡牌在同一位置
             child._position = _position;
 
-            // 维护 RootCard 引用：子卡牌继承父卡牌的 RootCard
-            child.RootCard = RootCard ?? this;
+            // 维护 RootCard 引用：子卡牌及其整个子树继承父卡牌的 RootCard
+            child.PropagateRootCardToSubtree(RootCard ?? this);
 
-            if (intrinsic) _intrinsics.Add(child);
+            if (intrinsic)
+            {
+                _intrinsics.Add(child);
+            }
+            else
+            {
+                _intrinsics.Remove(child);
+            }
 
-            // 通知子卡
-            child.RaiseEvent(CardEventTypes.AddedToOwner.CreateEvent(this));
-            return this;
+            if (raiseEvents)
+            {
+                child.RaiseEvent(CardEventTypes.AddedToOwner.CreateEvent(this));
+            }
+        }
+
+        private void PropagateRootCardToSubtree(Card rootCard)
+        {
+            RootCard = rootCard;
+
+            if (_children.Count == 0) return;
+
+            foreach (Card child in _children)
+            {
+                if (child == null) continue;
+
+                child._position = _position;
+                child.PropagateRootCardToSubtree(rootCard);
+            }
         }
 
         /// <summary>
@@ -471,7 +512,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public void RenderingInit()
         {
-            CardEvent<object> cet = new CardEvent<object>("RenderingInit",null,"RenderingInit", EEventPumpType.End);
+            CardEvent<object> cet = new CardEvent<object>("RenderingInit", null, "RenderingInit", EEventPumpType.End);
             RaiseEventInternal(cet);
         }
 

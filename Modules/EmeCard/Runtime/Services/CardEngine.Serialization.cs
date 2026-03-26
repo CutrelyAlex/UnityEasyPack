@@ -126,41 +126,7 @@ namespace EasyPack.EmeCardSystem
             CardFactory.SyncUID(maxUID);
 
             // 3.5. 建立父子关系（第二阶段）
-            if (dto.Cards != null)
-            {
-                foreach (SerializableCard cardDto in dto.Cards)
-                {
-                    if (cardDto == null) continue;
-
-                    // 从缓存中获取父卡牌
-                    if (!identityMap.TryGetValue(cardDto.UID, out Card parentCard)) continue;
-
-                    // 建立父子关系
-                    if (cardDto.ChildrenUIDs != null && cardDto.ChildrenUIDs.Length > 0)
-                    {
-                        foreach (long childUID in cardDto.ChildrenUIDs)
-                        {
-                            // 从缓存中查找子卡牌
-                            if (identityMap.TryGetValue(childUID, out Card childCard))
-                            {
-                                // 避免重复添加
-                                if (!parentCard.IsChild(childCard))
-                                {
-                                    // 检查是否是固有子卡
-                                    bool isIntrinsic = cardDto.IntrinsicChildrenUIDs != null
-                                        && Array.IndexOf(cardDto.IntrinsicChildrenUIDs, childUID) >= 0;
-
-                                    parentCard.AddChild(childCard, isIntrinsic);
-                                }
-                            }
-                            else
-                            {
-                                Debug.LogWarning($"[CardEngine] 无法找到子卡牌 UID={childUID}，父卡牌 UID={parentCard.UID}");
-                            }
-                        }
-                    }
-                }
-            }
+            RestoreHierarchy(dto.Cards, identityMap);
 
             // 4. Runtime Metadata
             if (dto.Metadata != null)
@@ -221,15 +187,98 @@ namespace EasyPack.EmeCardSystem
 
             cardList.Add(card);
 
-            // 恢复位置缓存
-            if (card.Position.HasValue)
-            {
-                _cardsByPosition[card.Position.Value] = card;
-                _positionByUID[card.UID] = card.Position.Value;
-            }
-
             // 订阅事件
             card.OnEvent += OnCardEvent;
+        }
+
+        /// <summary>
+        ///    恢复父子关系
+        /// </summary>
+        /// <param name="cardDtos"></param>
+        /// <param name="identityMap"></param>
+        private void RestoreHierarchy(IReadOnlyList<SerializableCard> cardDtos, Dictionary<long, Card> identityMap)
+        {
+            if (cardDtos == null || cardDtos.Count == 0 || identityMap == null || identityMap.Count == 0)
+            {
+                return;
+            }
+
+            var dtoByUid = new Dictionary<long, SerializableCard>(cardDtos.Count);
+            var childrenWithParents = new HashSet<long>();
+
+            foreach (SerializableCard cardDto in cardDtos)
+            {
+                if (cardDto == null) continue;
+
+                dtoByUid[cardDto.UID] = cardDto;
+
+                if (cardDto.ChildrenUIDs == null) continue;
+                foreach (long childUid in cardDto.ChildrenUIDs)
+                {
+                    childrenWithParents.Add(childUid);
+                }
+            }
+
+            var visited = new HashSet<long>();
+
+            foreach (SerializableCard cardDto in cardDtos)
+            {
+                if (cardDto == null || childrenWithParents.Contains(cardDto.UID)) continue;
+                RestoreHierarchyRecursive(cardDto, dtoByUid, identityMap, visited);
+            }
+
+            foreach (SerializableCard cardDto in cardDtos)
+            {
+                if (cardDto == null || visited.Contains(cardDto.UID)) continue;
+                RestoreHierarchyRecursive(cardDto, dtoByUid, identityMap, visited);
+            }
+        }
+
+        private void RestoreHierarchyRecursive(SerializableCard parentDto,
+                                              IReadOnlyDictionary<long, SerializableCard> dtoByUid,
+                                              IReadOnlyDictionary<long, Card> identityMap,
+                                              ISet<long> visited)
+        {
+            if (parentDto == null || !visited.Add(parentDto.UID))
+            {
+                return;
+            }
+
+            if (!identityMap.TryGetValue(parentDto.UID, out Card parentCard) ||
+                parentDto.ChildrenUIDs == null ||
+                parentDto.ChildrenUIDs.Length == 0)
+            {
+                return;
+            }
+
+            long[] intrinsicChildren = parentDto.IntrinsicChildrenUIDs ?? Array.Empty<long>();
+
+            foreach (long childUid in parentDto.ChildrenUIDs)
+            {
+                if (!identityMap.TryGetValue(childUid, out Card childCard))
+                {
+                    Debug.LogWarning($"[CardEngine] 无法找到子卡牌 UID={childUid}，父卡牌 UID={parentDto.UID}");
+                    continue;
+                }
+
+                if (childCard.Owner != null && !ReferenceEquals(childCard.Owner, parentCard))
+                {
+                    Debug.LogWarning(
+                        $"[CardEngine] 子卡牌 UID={childUid} 已有父卡牌 UID={childCard.Owner.UID}，忽略重复父级 UID={parentDto.UID}");
+                    continue;
+                }
+
+                if (!parentCard.IsChild(childCard))
+                {
+                    bool isIntrinsic = Array.IndexOf(intrinsicChildren, childUid) >= 0;
+                    parentCard.RestoreChild(childCard, isIntrinsic);
+                }
+
+                if (dtoByUid.TryGetValue(childUid, out SerializableCard childDto))
+                {
+                    RestoreHierarchyRecursive(childDto, dtoByUid, identityMap, visited);
+                }
+            }
         }
 
         public string SerializeToJson(bool prettyPrint = true) => JsonUtility.ToJson(GetSerializableState(), prettyPrint);
