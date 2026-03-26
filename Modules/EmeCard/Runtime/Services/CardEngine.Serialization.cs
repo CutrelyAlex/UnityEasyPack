@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using EasyPack.Category;
 using EasyPack.CustomData;
 using UnityEngine;
@@ -127,6 +128,9 @@ namespace EasyPack.EmeCardSystem
 
             // 3.5. 建立父子关系（第二阶段）
             RestoreHierarchy(dto.Cards, identityMap);
+
+            // 3.6. 在层级重建完成后统一恢复位置缓存，避免子卡覆盖根卡位置索引
+            RebuildPositionCaches(identityMap.Values.ToList());
 
             // 4. Runtime Metadata
             if (dto.Metadata != null)

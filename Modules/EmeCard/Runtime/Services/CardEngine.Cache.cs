@@ -39,6 +39,29 @@ namespace EasyPack.EmeCardSystem
         // ID -> CardData 模板缓存
         private readonly Dictionary<string, CardData> _cardDataTemplates = new();
 
+        private void CacheCardPosition(Card card)
+        {
+            if (card == null || card.UID < 0) return;
+
+            _positionByUID[card.UID] = card.Owner == null ? card.Position : null;
+
+            if (card.Owner != null || !card.Position.HasValue) return;
+            _cardsByPosition[card.Position.Value] = card;
+        }
+
+        internal void RebuildPositionCaches(IEnumerable<Card> cards)
+        {
+            _cardsByPosition.Clear();
+            _positionByUID.Clear();
+
+            if (cards == null) return;
+
+            foreach (Card card in cards)
+            {
+                CacheCardPosition(card);
+            }
+        }
+
         #endregion
 
         #region 卡牌添加
@@ -114,24 +137,15 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 第七步: 注册位置映射
-            _positionByUID[card.UID] = card.Position;
-
-            //card.RootCard ??= card;
-
-            // 子卡牌不添加到_cardsByPosition位置索引
-            if (card.Owner != null) return this;
-
-            var initialPosition = card.Position;
-            if (initialPosition == null) return this;
-
-            if (_cardsByPosition.TryGetValue(initialPosition, out Card existingCard))
+            if (card.Owner == null && card.Position.HasValue &&
+                _cardsByPosition.TryGetValue(card.Position.Value, out Card existingCard))
             {
                 Debug.LogError(
-                    $"[CardEngine] 位置冲突: {initialPosition} 已被 '{existingCard.Id}' (UID: {existingCard.UID}) 占用");
+                    $"[CardEngine] 位置冲突: {card.Position} 已被 '{existingCard.Id}' (UID: {existingCard.UID}) 占用");
                 return this;
             }
 
-            _cardsByPosition[initialPosition] = card;
+            CacheCardPosition(card);
             return this;
         }
 

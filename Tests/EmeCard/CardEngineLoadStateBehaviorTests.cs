@@ -44,5 +44,32 @@ namespace EasyPack.EmeCardTests
 
             Assert.IsFalse(triggered, "LoadState 重建父子关系时不应真实触发 AddedToOwner 规则");
         }
+
+        [Test]
+        public void LoadState_PreservesRootPositionIndex_WhenChildSharesRootPosition()
+        {
+            CardFactory sourceFactory = CreateFactory();
+            var sourceEngine = new CardEngine(sourceFactory);
+
+            Card root = sourceEngine.CreateCard("root");
+            root.Position = new Vector3Int(4, 0, 7);
+            Card child = sourceEngine.CreateCard("child");
+            root.AddChild(child);
+
+            string json = sourceEngine.SerializeToJson();
+
+            var restoredEngine = new CardEngine(CreateFactory());
+            restoredEngine.DeserializeFromJson(json);
+
+            Card restoredRoot = restoredEngine.GetCardByUID(root.UID);
+            Card restoredChild = restoredEngine.GetCardByUID(child.UID);
+
+            Assert.IsNotNull(restoredRoot, "应恢复根卡");
+            Assert.IsNotNull(restoredChild, "应恢复子卡");
+            Assert.AreEqual(restoredRoot, restoredEngine.GetCardByPosition(root.Position.Value),
+                "位置索引应继续指向根卡，而不是在恢复过程中被子卡覆盖后丢失");
+            Assert.IsNull(restoredEngine.GetPositionByUID(restoredChild.UID), "子卡不应持有独立位置索引");
+            Assert.AreEqual(root.Position, restoredChild.Position, "子卡逻辑位置应继续继承根卡位置");
+        }
     }
 }
