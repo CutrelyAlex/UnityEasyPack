@@ -378,6 +378,18 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public void ClearAllCards()
         {
+            var cardsSnapshot = new List<Card>(_cardsByUID.Values);
+            foreach (Card card in cardsSnapshot)
+            {
+                if (card == null) continue;
+
+                card.OnEvent -= OnCardEvent;
+                if (ReferenceEquals(card.Engine, this))
+                {
+                    card.Engine = null;
+                }
+            }
+
             CategoryManager.Clear();
 
             _idIndexes.Clear();

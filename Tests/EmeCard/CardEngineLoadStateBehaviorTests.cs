@@ -106,5 +106,27 @@ namespace EasyPack.EmeCardTests
             Assert.AreEqual(12, restoredEngine.CategoryManager.GetMetadata(restoredChild.UID).Get<int>("Heat"),
                 "子卡运行时 metadata 应恢复");
         }
+
+        [Test]
+        public void ClearAllCards_UnsubscribesOldCardsFromEngine()
+        {
+            var engine = new CardEngine(CreateFactory());
+            Card card = engine.CreateCard("root");
+
+            bool triggered = false;
+            engine.RegisterRule(builder => builder
+                .On("Clear_Test")
+                .When(_ =>
+                {
+                    triggered = true;
+                    return true;
+                }));
+
+            engine.ClearAllCards();
+            card.RaiseEvent("Clear_Test");
+
+            Assert.IsFalse(triggered, "ClearAllCards 后旧卡牌事件不应再回流到原引擎");
+            Assert.IsNull(card.Engine, "ClearAllCards 后旧卡牌应解除对原引擎的引用");
+        }
     }
 }
