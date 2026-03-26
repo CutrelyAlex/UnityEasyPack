@@ -16,7 +16,9 @@ namespace EasyPack.EmeCardSystem
     /// </summary>
     public sealed partial class CardEngine
     {
+        // TODO: 评估合并
         private static readonly AsyncLocal<CardEngine> s_templateRegistrationScope = new();
+        // TODO: 评估合并
         private static readonly ConcurrentDictionary<string, CardData> s_orphanTemplateData = new();
 
         private sealed class TemplateRegistrationScope : IDisposable

@@ -111,7 +111,8 @@ namespace EasyPack.EmeCardSystem
                         // 如果有 DefaultMetaData，先应用它（创建副本以避免修改共享数据）
                         if (card.Data?.DefaultMetaData != null && card.Data.DefaultMetaData.Count > 0)
                         {
-                            var initialMetadata = new CustomDataCollection(card.Data.DefaultMetaData);
+                            // var initialMetadata = new CustomDataCollection(card.Data.DefaultMetaData);
+                            var initialMetadata = card.Data.DefaultMetaData.Clone();
                             newManager.RegisterEntityWithMetadata(card.UID, card, CardData.DEFAULT_CATEGORY,
                                 initialMetadata);
                         }

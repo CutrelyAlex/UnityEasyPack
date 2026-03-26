@@ -508,6 +508,64 @@ namespace EasyPack.EmeCardTests
             Assert.AreEqual(new Vector2(0.0f, 2.0f), vuMetadata.Get<Vector2>("Direction"), "VU Direction metadata should be correct");
         }
 
+        [Test]
+        public void Test_CardEngine_Serialization_RuntimeMetadataPersists_DefaultMetadataUnchanged()
+        {
+            // Arrange
+            var factory = new CardFactory();
+            var cardData = new CardData("meta_card", "Meta Card", category: "Card.Object");
+            cardData.DefaultMetaData.Set("TemplateOnly", 1);
+
+            factory.Register("meta_card", () => new Card(cardData));
+
+            var engine = new CardEngine(factory);
+            Card card = engine.CreateCard("meta_card");
+
+            // 修改运行时 metadata（不应写回模板）
+            card.ModifyRuntimeMetadata(meta =>
+            {
+                meta.Set("TemplateOnly", 999);
+                meta.Set("RuntimeOnly", "runtime_value");
+            });
+
+            // 序列化前先确认模板未被污染
+            Assert.AreEqual(1, card.Data.DefaultMetaData.Get("TemplateOnly", -1),
+                "修改 RuntimeMetadata 后模板 DefaultMetaData 不应变化");
+            Assert.IsFalse(card.Data.DefaultMetaData.HasValue("RuntimeOnly"),
+                "运行时新增字段不应写入模板 DefaultMetaData");
+
+            // Act
+            string json = engine.SerializeToJson();
+            var restoredEngine = new CardEngine(factory);
+
+            // 反序列化前先确认新引擎的模板未被污染
+            var templateCard = restoredEngine.CreateCard("meta_card");
+            Assert.AreEqual(1, templateCard.Data.DefaultMetaData.Get("TemplateOnly", -1),
+                "新引擎模板 DefaultMetaData 应保持原样");
+            Assert.IsFalse(templateCard.Data.DefaultMetaData.HasValue("RuntimeOnly"),
+                "新引擎模板 DefaultMetaData 不应包含运行时字段");
+
+            restoredEngine.DeserializeFromJson(json);
+
+            // Assert
+            Card restored = restoredEngine.GetCardByUID(card.UID);
+            Assert.IsNotNull(restored, "反序列化后应能找到卡牌");
+
+            // 模板默认值保持原样
+            Assert.AreEqual(1, restored.Data.DefaultMetaData.Get("TemplateOnly", -1),
+                "反序列化后模板 DefaultMetaData 不应被运行时值覆盖");
+            Assert.IsFalse(restored.Data.DefaultMetaData.HasValue("RuntimeOnly"),
+                "反序列化后模板 DefaultMetaData 不应包含运行时字段");
+
+            // 运行时 metadata 保持序列化时的更改
+            CustomDataCollection runtimeMeta = restoredEngine.CategoryManager.GetMetadata(restored.UID);
+            Assert.IsNotNull(runtimeMeta, "反序列化后应有运行时 metadata");
+            Assert.AreEqual(999, runtimeMeta.Get("TemplateOnly", -1),
+                "反序列化后运行时 TemplateOnly 应保留修改值");
+            Assert.AreEqual("runtime_value", runtimeMeta.Get("RuntimeOnly", ""),
+                "反序列化后运行时 RuntimeOnly 应保留修改值");
+        }
+
         #endregion
     }
 }
