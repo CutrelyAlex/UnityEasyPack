@@ -1,3 +1,4 @@
+using EasyPack.CustomData;
 using EasyPack.EmeCardSystem;
 using NUnit.Framework;
 using UnityEngine;
@@ -70,6 +71,40 @@ namespace EasyPack.EmeCardTests
                 "位置索引应继续指向根卡，而不是在恢复过程中被子卡覆盖后丢失");
             Assert.IsNull(restoredEngine.GetPositionByUID(restoredChild.UID), "子卡不应持有独立位置索引");
             Assert.AreEqual(root.Position, restoredChild.Position, "子卡逻辑位置应继续继承根卡位置");
+        }
+
+        [Test]
+        public void LoadState_RestoresRuntimeMetadata()
+        {
+            CardFactory sourceFactory = CreateFactory();
+            var sourceEngine = new CardEngine(sourceFactory);
+
+            Card root = sourceEngine.CreateCard("root");
+            Card child = sourceEngine.CreateCard("child");
+            root.AddChild(child);
+
+            var rootMetadata = new CustomDataCollection();
+            rootMetadata.Set("Stack", 3);
+            sourceEngine.CategoryManager.UpdateMetadata(root.UID, rootMetadata);
+
+            var childMetadata = new CustomDataCollection();
+            childMetadata.Set("Heat", 12);
+            sourceEngine.CategoryManager.UpdateMetadata(child.UID, childMetadata);
+
+            string json = sourceEngine.SerializeToJson();
+
+            var restoredEngine = new CardEngine(CreateFactory());
+            restoredEngine.DeserializeFromJson(json);
+
+            Card restoredRoot = restoredEngine.GetCardByUID(root.UID);
+            Card restoredChild = restoredEngine.GetCardByUID(child.UID);
+
+            Assert.IsNotNull(restoredRoot, "应恢复根卡");
+            Assert.IsNotNull(restoredChild, "应恢复子卡");
+            Assert.AreEqual(3, restoredEngine.CategoryManager.GetMetadata(restoredRoot.UID).Get<int>("Stack"),
+                "根卡运行时 metadata 应恢复");
+            Assert.AreEqual(12, restoredEngine.CategoryManager.GetMetadata(restoredChild.UID).Get<int>("Heat"),
+                "子卡运行时 metadata 应恢复");
         }
     }
 }

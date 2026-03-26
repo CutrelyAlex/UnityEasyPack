@@ -126,32 +126,14 @@ namespace EasyPack.EmeCardSystem
             // 同步 UID 计数器，防止后续分配冲突
             CardFactory.SyncUID(maxUID);
 
-            // 3.5. 建立父子关系（第二阶段）
+            // 3.5. Runtime Metadata
+            RestoreRuntimeMetadata(newManager, dto.Metadata);
+
+            // 3.6. 建立父子关系（第二阶段）
             RestoreHierarchy(dto.Cards, identityMap);
 
-            // 3.6. 在层级重建完成后统一恢复位置缓存，避免子卡覆盖根卡位置索引
+            // 3.7. 在层级重建完成后统一恢复位置缓存，避免子卡覆盖根卡位置索引
             RebuildPositionCaches(identityMap.Values.ToList());
-
-            // 4. Runtime Metadata
-            if (dto.Metadata != null)
-            {
-                foreach (SerializableCardMetadata metadataDto in dto.Metadata)
-                {
-                    if (metadataDto == null || string.IsNullOrEmpty(metadataDto.MetadataJson)) continue;
-
-                    long uid = metadataDto.UID;
-                    var wrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(metadataDto.MetadataJson);
-                    if (wrapper == null || wrapper.Entries == null) continue;
-
-                    CustomDataCollection mergedMetadata = newManager.GetMetadata(uid) ?? new CustomDataCollection();
-                    foreach (CustomDataEntry entry in wrapper.Entries)
-                    {
-                        mergedMetadata.Set(entry.Key, entry.GetValue());
-                    }
-
-                    newManager.UpdateMetadata(uid, mergedMetadata);
-                }
-            }
         }
 
         /// <summary>
@@ -282,6 +264,32 @@ namespace EasyPack.EmeCardSystem
                 {
                     RestoreHierarchyRecursive(childDto, dtoByUid, identityMap, visited);
                 }
+            }
+        }
+
+        private static void RestoreRuntimeMetadata(ICategoryManager<Card, long> categoryManager,
+                                                   IReadOnlyList<SerializableCardMetadata> metadataDtos)
+        {
+            if (categoryManager == null || metadataDtos == null || metadataDtos.Count == 0)
+            {
+                return;
+            }
+
+            foreach (SerializableCardMetadata metadataDto in metadataDtos)
+            {
+                if (metadataDto == null || string.IsNullOrEmpty(metadataDto.MetadataJson)) continue;
+
+                long uid = metadataDto.UID;
+                var wrapper = JsonUtility.FromJson<CustomDataCollectionWrapper>(metadataDto.MetadataJson);
+                if (wrapper == null || wrapper.Entries == null) continue;
+
+                CustomDataCollection mergedMetadata = categoryManager.GetMetadata(uid) ?? new CustomDataCollection();
+                foreach (CustomDataEntry entry in wrapper.Entries)
+                {
+                    mergedMetadata.Set(entry.Key, entry.GetValue());
+                }
+
+                categoryManager.UpdateMetadata(uid, mergedMetadata);
             }
         }
 
