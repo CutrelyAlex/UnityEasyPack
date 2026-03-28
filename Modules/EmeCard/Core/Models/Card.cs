@@ -108,7 +108,7 @@ namespace EasyPack.EmeCardSystem
         {
             get
             {
-                return Data?.Category ?? CardData.DEFAULT_CATEGORY;
+                return Data?.Category ?? string.Empty;
             }
         }
 
