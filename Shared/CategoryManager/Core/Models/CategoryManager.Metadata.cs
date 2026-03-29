@@ -35,12 +35,9 @@ namespace EasyPack.Category
         /// </summary>
         public CustomDataCollection GetMetadata(TKey key)
         {
-            // 如果实体不存在，返回一个新的空集合
-            if (!_entities.ContainsKey(key)) return new CustomDataCollection();
-
-            return _metadataStore.TryGetValue(key, out CustomDataCollection metadata)
-                ? metadata
-                : new CustomDataCollection();
+            // 如果实体不存在，返回null
+            if (!_entities.ContainsKey(key)) return null;
+            return _metadataStore.GetValueOrDefault(key);
         }
 
         /// <summary>
