@@ -56,10 +56,15 @@ namespace EasyPack.EmeCardTests
         [Test]
         public void Test_Card_BasicProperties()
         {
+            // Plan B：Card.Data 是 Engine?.GetTemplateData(_id) 的纯代理，
+            // 必须通过引擎创建才能解析 Data / Name / Description / Category。
             var data = new CardData("potion", "药水", "恢复生命的药水", "Card.Object");
-            var card = new Card(data);
+            var factory = new CardFactory();
+            factory.Register("potion", () => new Card(data));
+            var engine = new CardEngine(factory);
+            var card = engine.CreateCard("potion");
 
-            // 测试基本属性
+            // 测试基本属性（需要 Engine 解析模板）
             Assert.AreEqual("potion", card.Id, $"卡牌 ID 应为 potion，实际: {card.Id}");
             Assert.AreEqual("药水", card.Name, $"卡牌名称应为药水，实际: {card.Name}");
             Assert.AreEqual("恢复生命的药水", card.Description, "卡牌描述应正确");
@@ -70,14 +75,14 @@ namespace EasyPack.EmeCardTests
             Assert.AreEqual(data.Description, card.Data.Description, "Card.Data.Description 应与创建时一致");
             Assert.AreEqual(data.Category, card.Data.Category, "Card.Data.Category 应与创建时一致");
 
-            // 测试索引
-            Assert.AreEqual(-1, card.Index, $"默认索引应为 0，实际: {card.Index}");
+            // 通过引擎创建后，第一张同 ID 卡牌的索引从 0 开始
+            Assert.AreEqual(0, card.Index, $"引擎创建的第一张同 ID 卡牌索引应为 0，实际: {card.Index}");
 
             // 测试属性列表
             Assert.IsNotNull(card.Properties, "属性列表不应为 null");
             Assert.AreEqual(0, card.Properties.Count, $"初始属性列表应为空，实际数量: {card.Properties.Count}");
 
-            // 测试带属性的创建
+            // Properties 不依赖 Engine，可在裸 Card 上直接测试
             var prop = new GameProperty("Health", 100f);
             var card2 = new Card(data, prop);
             Assert.AreEqual(1, card2.Properties.Count, $"属性数量应为 1，实际: {card2.Properties.Count}");

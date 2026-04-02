@@ -129,7 +129,8 @@ namespace EasyPack.EmeCardTests
         public void Test_Card_RemoveFromEngine_CategoryManagerCachesNotContainReference()
         {
             // 创建带标签和元数据的卡牌
-            var cardData = new CardData("test_card", "测试卡", "", "Card.Object", new[] { "标签1", "标签2" });
+            // 注意：CardData.ID 必须与 factory.Register 的 key 一致，否则模板查找链会命中先前缓存的同名模板
+            var cardData = new CardData("tagged_card", "测试卡", "", "Card.Object", new[] { "标签1", "标签2" });
             cardData.DefaultMetaData.Set("TestKey", "TestValue");
             _factory.Register("tagged_card", () => new(cardData));
 

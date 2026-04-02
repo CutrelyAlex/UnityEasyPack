@@ -232,31 +232,11 @@ namespace EasyPack.EmeCardSystem
                 return existingCard;
             }
 
-            // 尝试使用工厂创建原型以获取正确的 CardData
-            Card prototype = null;
-            if (_factory != null && !string.IsNullOrEmpty(data.ID))
-            {
-                try
-                {
-                    // 创建一个临时原型来获取 CardData
-                    // 注意：这里可能会有副作用（如果工厂方法里有副作用），但通常工厂方法只负责创建对象
-                    prototype = _factory.Create(data.ID);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"[CardJsonSerializer] 无法从工厂创建原型 ID={data.ID}: {ex.Message}");
-                }
-            }
-
+            // 从工厂模板字典获取 CardData
             CardData cardData;
-            if (prototype != null && prototype.Data != null)
+            if (_factory?.GetTemplateData(data.ID) is CardData factoryTemplate)
             {
-                // 使用工厂创建的模板数据副本
-                cardData = prototype.Data.Clone(data.ID);
-            }
-            else if (CardEngine.GetOrphanTemplateData(data.ID) is CardData orphanTemplate)
-            {
-                cardData = orphanTemplate.Clone(data.ID);
+                cardData = factoryTemplate.Clone(data.ID);
             }
             else
             {

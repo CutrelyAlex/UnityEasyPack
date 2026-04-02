@@ -29,7 +29,7 @@ namespace EasyPack.EmeCardSystem
         public Card(CardData data, GameProperty gameProperty = null)
         {
             _id = data?.ID ?? string.Empty;
-            CardEngine.RegisterTemplateData(data);
+            _initialData = data;
             if (gameProperty != null)
             {
                 Properties.Add(gameProperty);
@@ -44,7 +44,7 @@ namespace EasyPack.EmeCardSystem
         public Card(CardData data, IEnumerable<GameProperty> properties)
         {
             _id = data?.ID ?? string.Empty;
-            CardEngine.RegisterTemplateData(data);
+            _initialData = data;
             Properties = properties?.ToList() ?? new List<GameProperty>();
         }
 
@@ -71,9 +71,26 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private readonly string _id;
 
-        public CardData Data =>
-            Engine?.GetTemplateData(_id)
-            ?? CardEngine.GetOrphanTemplateData(_id);
+        /// <summary>
+        ///     构造时传入的 CardData 引用（暂存）。
+        ///     仅供 CardFactory 在 Create 流程中读取并注册到模板字典，
+        ///     之后可被 ConsumeInitialData() 清除。
+        ///     Card 自身不应长期依赖此字段。
+        /// </summary>
+        internal CardData _initialData;
+
+        /// <summary>
+        ///     消费并返回暂存的 CardData，随后将其清除。
+        ///     供 CardFactory / CardEngine 在注册模板时调用。
+        /// </summary>
+        internal CardData ConsumeInitialData()
+        {
+            CardData data = _initialData;
+            _initialData = null;
+            return data;
+        }
+
+        public CardData Data => Engine?.GetTemplateData(_id);
 
         /// <summary>
         ///     唯一标识符：由 CardFactory 分配，全局唯一，线程安全。

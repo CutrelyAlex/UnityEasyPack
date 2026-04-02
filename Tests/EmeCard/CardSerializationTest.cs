@@ -186,7 +186,8 @@ namespace EasyPack.EmeCardTests
             Assert.IsNotNull(card, "应能容忍可选字段缺失");
             Assert.AreEqual(0, card.Index, "Index 默认 0");
             Assert.AreEqual(0, card.Children.Count, "Children 默认空");
-            Assert.AreEqual(0, card.Tags.Count, "Tags 默认空");
+            // 卡牌未接入引擎时 Data 为 null，Tags 回退为空数组
+            Assert.AreEqual(0, card.Tags.Count, "Tags 应为空（无引擎时 Data 为 null）");
         }
 
         #region CategoryManager 往返序列化测试

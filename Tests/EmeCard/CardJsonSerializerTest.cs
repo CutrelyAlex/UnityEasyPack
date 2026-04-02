@@ -51,7 +51,7 @@ namespace EasyPack.EmeCardTests
 
             // 使用 Engine 创建卡牌以确保标签正确管理
             _factory = new CardFactory();
-            _factory.Register("test_warrior", () => 
+            _factory.Register("test_warrior", () =>
             {
                 var card = new Card(_testCardData);
                 card.Properties.Add(new GamePropertySystem.GameProperty("Strength", 100f));
@@ -158,6 +158,7 @@ namespace EasyPack.EmeCardTests
 
             // Act
             Card card = _serializer.FromSerializable(dto);
+            _engine.AddCard(card);
 
             // Assert
             Assert.IsNotNull(card, "Card 不应为 null");
@@ -326,6 +327,7 @@ namespace EasyPack.EmeCardTests
 
             // Act
             Card card = _serializer.DeserializeFromJson(json);
+            _engine.AddCard(card);
 
             // Assert
             Assert.IsNotNull(card, "Card 不应为 null");
@@ -390,15 +392,22 @@ namespace EasyPack.EmeCardTests
             factoryA.Register("shared_id", () => new Card(new CardData("shared_id", "FactoryA", category: "Category.A")));
             factoryB.Register("shared_id", () => new Card(new CardData("shared_id", "FactoryB", category: "Category.B")));
 
+            var engineA = new CardEngine(factoryA);
+            var engineB = new CardEngine(factoryB);
+
             var serializerA = new CardJsonSerializer(factoryA);
             var serializerB = new CardJsonSerializer(factoryB);
 
-            var sourceCard = factoryA.Create("shared_id");
+            var sourceCard = engineA.CreateCard("shared_id");
             string json = serializerA.SerializeToJson(sourceCard);
 
             // Act
             Card restoredA = serializerA.DeserializeFromJson(json);
             Card restoredB = serializerB.DeserializeFromJson(json);
+
+            // 将卡牌添加到各自的引擎以解析 Data
+            engineA.AddCard(restoredA);
+            engineB.AddCard(restoredB);
 
             // Assert
             Assert.AreEqual("FactoryA", restoredA.Name, "serializerA 应使用自己的工厂模板");
@@ -453,21 +462,21 @@ namespace EasyPack.EmeCardTests
             // Arrange: 创建带子卡的卡牌
             var weapon = new Card(new("weapon_sword", "剑", "一把锋利的剑"));
             var shield = new Card(new("weapon_shield", "盾", "一面坚固的盾"));
-            
+
             // 先将子卡添加到 Engine 以分配 UID
             _engine.AddCard(weapon);
             _engine.AddCard(shield);
-            
+
             // 然后建立父子关系
             _testCard.AddChild(weapon);
             _testCard.AddChild(shield, true);
 
             // Act: 使用 Engine 序列化整个状态（包括子卡关系）
             string json = _engine.SerializeToJson();
-            
+
             // 创建新的 Engine 并加载状态
             var newFactory = new CardFactory();
-            newFactory.Register("test_warrior", () => 
+            newFactory.Register("test_warrior", () =>
             {
                 var card = new Card(_testCardData);
                 card.Properties.Add(new GamePropertySystem.GameProperty("Strength", 100f));
@@ -475,7 +484,7 @@ namespace EasyPack.EmeCardTests
             });
             newFactory.Register("weapon_sword", () => new Card(new("weapon_sword", "剑", "一把锋利的剑")));
             newFactory.Register("weapon_shield", () => new Card(new("weapon_shield", "盾", "一面坚固的盾")));
-            
+
             var newEngine = new CardEngine(newFactory);
             newEngine.DeserializeFromJson(json);
 
