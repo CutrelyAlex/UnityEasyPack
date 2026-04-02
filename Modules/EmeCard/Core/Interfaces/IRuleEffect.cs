@@ -2,47 +2,6 @@ using System.Collections.Generic;
 
 namespace EasyPack.EmeCardSystem
 {
-    /// <summary>
-    ///     规则效果接口：在规则匹配成功后执行的效果逻辑。
-    ///     <para>
-    ///         效果可以修改卡牌状态、触发新事件、创建/移除卡牌等。
-    ///     </para>
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         <b>上下文访问示例：</b>
-    ///     </para>
-    ///     <code>
-    ///     public void Execute(CardRuleContext ctx, IReadOnlyList&lt;Card&gt; matched)
-    ///     {
-    ///         // 访问效果作用根节点
-    ///         var effectRoot = ctx.EffectRoot;
-    ///         
-    ///         // 访问事件源卡牌
-    ///         var source = ctx.Source;
-    ///         
-    ///         // 访问强类型事件数据
-    ///         if (ctx.TryGetEventData&lt;DamageData&gt;(out var damage))
-    ///         {
-    ///             // 应用伤害效果
-    ///             foreach (var target in matched)
-    ///             {
-    ///                 // 处理每个匹配的目标
-    ///             }
-    ///         }
-    ///         
-    ///         // 通过引擎触发新事件
-    ///         ctx.Engine?.EnqueueEvent(source, new CardEvent&lt;int&gt;("Heal", 10));
-    ///         
-    ///         // 使用引擎创建新卡牌
-    ///         var newCard = ctx.Engine?.CreateCard("CardId");
-    ///         if (newCard != null)
-    ///         {
-    ///             ctx.EffectRoot.AddChild(newCard);
-    ///         }
-    ///     }
-    ///     </code>
-    /// </remarks>
     public interface IRuleEffect
     {
         /// <summary>
