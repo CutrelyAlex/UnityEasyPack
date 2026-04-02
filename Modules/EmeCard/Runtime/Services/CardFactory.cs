@@ -159,9 +159,19 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public static void SyncUID(long maxUID)
         {
-            if (maxUID >= _nextUID)
+            while (true)
             {
-                _nextUID = maxUID;
+                long current = Interlocked.Read(ref _nextUID);
+                if (maxUID < current)
+                {
+                    return;
+                }
+
+                long original = Interlocked.CompareExchange(ref _nextUID, maxUID, current);
+                if (original == current)
+                {
+                    return;
+                }
             }
         }
 

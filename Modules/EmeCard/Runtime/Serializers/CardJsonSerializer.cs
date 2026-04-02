@@ -15,11 +15,15 @@ namespace EasyPack.EmeCardSystem
     public class CardJsonSerializer : ITypeSerializer<Card, SerializableCard>
     {
         private readonly GamePropertyJsonSerializer _propertySerializer = new();
+        private readonly ICardFactory _factory;
 
         /// <summary>
         ///     可选的卡牌工厂引用，用于在反序列化时重建符合静态数据的原型
         /// </summary>
-        public static ICardFactory Factory { get; set; }
+        public CardJsonSerializer(ICardFactory factory = null)
+        {
+            _factory = factory;
+        }
 
         #region ITypeSerializer<Card, SerializableCard> 实现
 
@@ -230,13 +234,13 @@ namespace EasyPack.EmeCardSystem
 
             // 尝试使用工厂创建原型以获取正确的 CardData
             Card prototype = null;
-            if (Factory != null && !string.IsNullOrEmpty(data.ID))
+            if (_factory != null && !string.IsNullOrEmpty(data.ID))
             {
                 try
                 {
                     // 创建一个临时原型来获取 CardData
                     // 注意：这里可能会有副作用（如果工厂方法里有副作用），但通常工厂方法只负责创建对象
-                    prototype = Factory.Create(data.ID);
+                    prototype = _factory.Create(data.ID);
                 }
                 catch (Exception ex)
                 {
@@ -249,6 +253,10 @@ namespace EasyPack.EmeCardSystem
             {
                 // 使用工厂创建的模板数据副本
                 cardData = prototype.Data.Clone(data.ID);
+            }
+            else if (CardEngine.GetOrphanTemplateData(data.ID) is CardData orphanTemplate)
+            {
+                cardData = orphanTemplate.Clone(data.ID);
             }
             else
             {

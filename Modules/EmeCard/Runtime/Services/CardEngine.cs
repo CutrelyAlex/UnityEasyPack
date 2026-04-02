@@ -42,14 +42,12 @@ namespace EasyPack.EmeCardSystem
             if (data == null || string.IsNullOrEmpty(data.ID)) return;
 
             CardData snapshot = data.Clone(data.ID);
+            s_orphanTemplateData[data.ID] = snapshot.Clone(data.ID);
+
             CardEngine scopedEngine = s_templateRegistrationScope.Value;
             if (scopedEngine != null)
             {
                 scopedEngine._cardDataTemplates[data.ID] = snapshot;
-            }
-            else
-            {
-                s_orphanTemplateData[data.ID] = snapshot;
             }
         }
 
@@ -75,8 +73,7 @@ namespace EasyPack.EmeCardSystem
         public CardEngine(CardFactory factory)
         {
             _cardFactory = factory;
-            // 注入工厂到序列化器
-            CardJsonSerializer.Factory = factory;
+            _cardSerializer = new CardJsonSerializer(factory);
 
             CategoryManager = new CategoryManager<Card, long>(card => card.UID);
 

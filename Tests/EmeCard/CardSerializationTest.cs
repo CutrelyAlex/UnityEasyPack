@@ -75,8 +75,9 @@ namespace EasyPack.EmeCardTests
             Assert.IsNotNull(clone, "反序列化应成功");
             Assert.AreEqual("warrior", clone.Id, "ID 应匹配");
 
-            // 将 clone 添加到引擎以恢复标签功能
-            engine.AddCard(clone);
+            // 将 clone 添加到新的引擎以恢复标签功能，避免与原实例产生 UID 冲突
+            var cloneEngine = new CardEngine(factory);
+            cloneEngine.AddCard(clone);
             // 运行时标签（extraTags，例如 Player）不再由 CardJsonSerializer 序列化；
             // 标签恢复应由 CardEngine/CategoryManager 的状态负责。
             // 这里仅验证 CardData.DefaultTags 会在 AddCard 注册时被应用。
@@ -110,7 +111,6 @@ namespace EasyPack.EmeCardTests
             newFactory.Register("sword", () => new Card(new("sword", "剑")));
             newFactory.Register("shield", () => new Card(new("shield", "盾")));
 
-            CardJsonSerializer.Factory = newFactory;
             var newEngine = new CardEngine(newFactory);
             newEngine.DeserializeFromJson(json);
 
@@ -167,7 +167,6 @@ namespace EasyPack.EmeCardTests
             newFactory.Register("p", () => new Card(new("p", "p")));
             newFactory.Register("c", () => new Card(new("c", "c")));
 
-            CardJsonSerializer.Factory = newFactory;
             var newEngine = new CardEngine(newFactory);
             newEngine.DeserializeFromJson(json);
 

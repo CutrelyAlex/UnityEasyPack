@@ -40,9 +40,6 @@ namespace EasyPack.EmeCardTests
         [SetUp]
         public void Setup()
         {
-            // 初始化序列化器
-            _serializer = new();
-
             // 创建测试卡牌数据
             _testCardData = new(
                 "test_warrior",
@@ -54,7 +51,6 @@ namespace EasyPack.EmeCardTests
 
             // 使用 Engine 创建卡牌以确保标签正确管理
             _factory = new CardFactory();
-            CardJsonSerializer.Factory = _factory;
             _factory.Register("test_warrior", () => 
             {
                 var card = new Card(_testCardData);
@@ -62,6 +58,8 @@ namespace EasyPack.EmeCardTests
                 card.Properties.Add(new GamePropertySystem.GameProperty("Health", 50f));
                 return card;
             });
+            // 初始化序列化器
+            _serializer = new(_factory);
             _engine = new CardEngine(_factory);
             _testCard = _engine.CreateCard("test_warrior");
         }
@@ -74,7 +72,6 @@ namespace EasyPack.EmeCardTests
             _testCardData = null;
             _engine = null;
             _factory = null;
-            CardJsonSerializer.Factory = null;
         }
 
         #region ToSerializable 测试
@@ -383,6 +380,33 @@ namespace EasyPack.EmeCardTests
             Assert.AreEqual(_testCard.Properties.Count, card.Properties.Count, "属性数量应保持一致");
         }
 
+        [Test]
+        public void Test_Deserialize_UsesInstanceScopedFactory()
+        {
+            // Arrange
+            var factoryA = new CardFactory();
+            var factoryB = new CardFactory();
+
+            factoryA.Register("shared_id", () => new Card(new CardData("shared_id", "FactoryA", category: "Category.A")));
+            factoryB.Register("shared_id", () => new Card(new CardData("shared_id", "FactoryB", category: "Category.B")));
+
+            var serializerA = new CardJsonSerializer(factoryA);
+            var serializerB = new CardJsonSerializer(factoryB);
+
+            var sourceCard = factoryA.Create("shared_id");
+            string json = serializerA.SerializeToJson(sourceCard);
+
+            // Act
+            Card restoredA = serializerA.DeserializeFromJson(json);
+            Card restoredB = serializerB.DeserializeFromJson(json);
+
+            // Assert
+            Assert.AreEqual("FactoryA", restoredA.Name, "serializerA 应使用自己的工厂模板");
+            Assert.AreEqual("Category.A", restoredA.Category, "serializerA 应恢复自己的模板分类");
+            Assert.AreEqual("FactoryB", restoredB.Name, "serializerB 不应被其他实例的工厂状态污染");
+            Assert.AreEqual("Category.B", restoredB.Category, "serializerB 应恢复自己的模板分类");
+        }
+
 
         [Test]
         public void Test_Mutipule_SameIdDifferentCards_IndexPreserved()
@@ -452,7 +476,6 @@ namespace EasyPack.EmeCardTests
             newFactory.Register("weapon_sword", () => new Card(new("weapon_sword", "剑", "一把锋利的剑")));
             newFactory.Register("weapon_shield", () => new Card(new("weapon_shield", "盾", "一面坚固的盾")));
             
-            CardJsonSerializer.Factory = newFactory;
             var newEngine = new CardEngine(newFactory);
             newEngine.DeserializeFromJson(json);
 

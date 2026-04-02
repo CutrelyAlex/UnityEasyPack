@@ -9,7 +9,7 @@ namespace EasyPack.EmeCardSystem
 {
     public sealed partial class CardEngine
     {
-        private readonly CardJsonSerializer _cardSerializer = new();
+        private readonly CardJsonSerializer _cardSerializer;
 
         /// <summary>
         ///     获取可序列化的状态对象
@@ -17,9 +17,6 @@ namespace EasyPack.EmeCardSystem
         public CardEngineDTO GetSerializableState()
         {
             var dto = new CardEngineDTO();
-
-            // 确保序列化器使用当前的工厂
-            CardJsonSerializer.Factory = _cardFactory;
 
             var cards = new List<SerializableCard>(_cardsByUID.Count);
             foreach (Card card in _cardsByUID.Values)
@@ -68,9 +65,6 @@ namespace EasyPack.EmeCardSystem
         public void LoadState(CardEngineDTO dto)
         {
             if (dto == null) return;
-
-            // 确保序列化器使用当前的工厂
-            CardJsonSerializer.Factory = _cardFactory;
 
             // 1. 清除当前状态
             ClearAllCards();
