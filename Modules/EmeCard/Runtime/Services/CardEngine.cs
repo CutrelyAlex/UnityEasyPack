@@ -42,34 +42,21 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     从工厂创建所有卡牌的副本并缓存。
+        ///     从工厂缓存所有卡牌模板数据。
         ///     应在系统初始化时调用一次。
         /// </summary>
         private void PreCacheAllCardTemplates()
         {
-            _registeredCardsTemplates.Clear();
             _cardDataTemplates.Clear();
 
-            // 获取工厂中所有注册的卡牌ID
-            var cardIds = _cardFactory?.GetAllCardIds();
-            if (cardIds == null || cardIds.Count == 0) return;
+            if (_cardFactory == null) return;
 
-            foreach (string id in cardIds)
+            var allTemplates = _cardFactory.GetAllTemplateData();
+            if (allTemplates == null) return;
+
+            foreach (var kvp in allTemplates)
             {
-                // 为每个ID创建一个副本
-                Card templateCard = _cardFactory.Create(id);
-
-                if (templateCard != null)
-                {
-                    _registeredCardsTemplates.Add(templateCard);
-
-                    // 从工厂的模板字典中复制到引擎的模板字典
-                    CardData factoryTemplate = _cardFactory.GetTemplateData(id);
-                    if (factoryTemplate != null)
-                    {
-                        _cardDataTemplates[id] = factoryTemplate.Clone(id);
-                    }
-                }
+                _cardDataTemplates[kvp.Key] = kvp.Value.Clone(kvp.Key);
             }
         }
 
@@ -130,14 +117,6 @@ namespace EasyPack.EmeCardSystem
             if (factoryTemplate != null)
             {
                 _cardDataTemplates[card.Id] = factoryTemplate.Clone(card.Id);
-                return;
-            }
-
-            // 最后尝试从卡牌的 _initialData 中提取
-            CardData initialData = card._initialData;
-            if (initialData != null)
-            {
-                _cardDataTemplates[card.Id] = initialData.Clone(card.Id);
             }
         }
 
@@ -147,6 +126,7 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     按ID创建并注册卡牌实例。
+        ///     自动应用 CardData.DefaultChildren。
         /// </summary>
         public T CreateCard<T>(string id) where T : Card
         {
@@ -159,6 +139,17 @@ namespace EasyPack.EmeCardSystem
             // AddCard 会设置 Engine 引用并注册到 CategoryManager
             AddCard(card);
 
+            // 在卡牌注册到引擎后，创建并添加默认子卡
+            CardData templateData = GetTemplateData(id);
+            if (templateData?.DefaultChildren is { Count: > 0 })
+            {
+                foreach (var (childId, intrinsic) in templateData.DefaultChildren)
+                {
+                    Card child = CreateCard(childId);
+                    if (child != null) card.AddChild(child, intrinsic);
+                }
+            }
+
             return card;
         }
 
@@ -170,11 +161,6 @@ namespace EasyPack.EmeCardSystem
         #endregion
 
         #region 查询服务
-
-        /// <summary>
-        ///     获取所有在卡牌工厂中注册的卡牌模板。
-        /// </summary>
-        public HashSet<Card> GetAllCardsTemplates() => _registeredCardsTemplates;
 
         /// <summary>
         ///     获取所有的卡牌。

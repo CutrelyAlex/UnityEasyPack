@@ -233,22 +233,8 @@ namespace EasyPack.EmeCardSystem
             }
 
             // 从工厂模板字典获取 CardData
-            CardData cardData;
-            if (_factory?.GetTemplateData(data.ID) is CardData factoryTemplate)
-            {
-                cardData = factoryTemplate.Clone(data.ID);
-            }
-            else
-            {
-                // 回退，缺失模板时以最小信息构造
-                cardData = new CardData(
-                    data.ID,
-                    data.ID,
-                    string.Empty,
-                    CardData.DEFAULT_CATEGORY);
-            }
-
-            var card = new Card(cardData)
+            // 用于回退构造最小信息
+            var card = new Card(data.ID)
             {
                 Index = data.Index,
                 UID = data.UID,

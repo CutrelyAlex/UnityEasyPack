@@ -16,6 +16,11 @@ namespace EasyPack.EmeCardSystem
         ///     获取工厂中注册的模板数据。
         /// </summary>
         CardData GetTemplateData(string id);
+
+        /// <summary>
+        ///     获取所有已注册的模板数据。
+        /// </summary>
+        IReadOnlyDictionary<string, CardData> GetAllTemplateData();
     }
 
     /// <summary>
@@ -23,16 +28,24 @@ namespace EasyPack.EmeCardSystem
     /// </summary>
     public interface ICardFactoryRegistry
     {
-        void Register(string id, Func<Card> ctor);
-        void Register(IReadOnlyDictionary<string, Func<Card>> productionList);
+        /// <summary>
+        ///     注册一条卡牌模板数据。
+        ///     运行时 Create 时，工厂将自动基于此模板构建 Card 实例。
+        /// </summary>
+        void RegisterData(string id, CardData data);
+
+        /// <summary>
+        ///     批量注册卡牌模板数据。
+        /// </summary>
+        void RegisterData(IReadOnlyDictionary<string, CardData> dataList);
 
         /// <summary>
         ///     基于现有卡牌模板注册一个变体。
         /// </summary>
         /// <param name="baseId">基础卡牌 ID。</param>
         /// <param name="newId">新变体 ID。</param>
-        /// <param name="tweakAction">可选的微调操作，用于修改变体属性或元数据。</param>
-        void RegisterVariant(string baseId, string newId, Action<Card> tweakAction = null);
+        /// <param name="tweakAction">可选的微调操作，用于修改变体的 CardData。</param>
+        void RegisterVariant(string baseId, string newId, Action<CardData> tweakAction = null);
 
         /// <summary>
         ///     同步 UID 计数器，确保后续分配的 UID 大于当前已知的最大值。
@@ -44,11 +57,9 @@ namespace EasyPack.EmeCardSystem
 
     public sealed class CardFactory : ICardFactory, ICardFactoryRegistry
     {
-        private readonly Dictionary<string, Func<Card>> _constructors = new(StringComparer.Ordinal);
-
         /// <summary>
-        ///     工厂级模板数据字典（ID → CardData 副本）。
-        ///     在 Create 时自动从 Card._initialData 捕获，也可通过 RegisterTemplate 显式注册。
+        ///     模板数据字典（ID → CardData 副本）。
+        ///     通过 RegisterData 注册，Create 时基于模板构建 Card 实例。
         /// </summary>
         private readonly Dictionary<string, CardData> _templates = new(StringComparer.Ordinal);
 
@@ -57,67 +68,48 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         private static long _nextUID = 1001;
 
-        public void Register(string id, Func<Card> ctor)
+        /// <summary>
+        ///     注册一条卡牌模板数据。
+        /// </summary>
+        public void RegisterData(string id, CardData data)
         {
             if (string.IsNullOrEmpty(id)) throw new ArgumentNullException(nameof(id));
-            _constructors[id] = ctor ?? throw new ArgumentNullException(nameof(ctor));
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            _templates[id] = data.Clone(data.ID);
         }
 
-        public void Register(IReadOnlyDictionary<string, Func<Card>> productionList)
+        /// <summary>
+        ///     批量注册卡牌模板数据。
+        /// </summary>
+        public void RegisterData(IReadOnlyDictionary<string, CardData> dataList)
         {
-            foreach ((string id, var ctor) in productionList)
+            if (dataList == null) throw new ArgumentNullException(nameof(dataList));
+            foreach ((string id, CardData data) in dataList)
             {
-                Register(id, ctor);
+                RegisterData(id, data);
             }
         }
 
-        public void RegisterVariant(string baseId, string newId, Action<Card> tweakAction = null)
+        public void RegisterVariant(string baseId, string newId, Action<CardData> tweakAction = null)
         {
             if (string.IsNullOrEmpty(baseId)) throw new ArgumentNullException(nameof(baseId));
             if (string.IsNullOrEmpty(newId)) throw new ArgumentNullException(nameof(newId));
 
-            if (!_constructors.TryGetValue(baseId, out var baseCtor))
+            CardData baseData = GetTemplateData(baseId);
+            if (baseData == null)
             {
                 throw new KeyNotFoundException($"未找到基础卡牌 ID: {baseId}");
             }
 
-            Register(newId, () =>
-            {
-                // 1. 调用基础构造器获取原型
-                Card baseCard = baseCtor();
-
-                // 2. 克隆静态数据并应用新 ID（从暂存数据或工厂模板获取）
-                CardData baseData = baseCard._initialData ?? GetTemplateData(baseId);
-                if (baseData == null)
-                {
-                    throw new InvalidOperationException($"无法获取基础卡牌 '{baseId}' 的 CardData");
-                }
-                CardData newData = baseData.Clone(newId);
-
-                // 3. 创建新卡牌实例
-                var newCard = new Card(newData);
-
-                // 4. 复制运行时属性 (GameProperties)
-                if (baseCard.Properties is { Count: > 0 })
-                {
-                    foreach (GameProperty prop in baseCard.Properties)
-                    {
-                        // 简单复制 ID 和值
-                        newCard.Properties.Add(new(prop.ID, prop.GetValue()));
-                    }
-                }
-
-                // 5. 执行自定义微调
-                tweakAction?.Invoke(newCard);
-
-                return newCard;
-            });
+            CardData newData = baseData.Clone(newId);
+            tweakAction?.Invoke(newData);
+            _templates[newId] = newData;
         }
 
         /// <summary>
         ///     获取所有已注册的卡牌ID
         /// </summary>
-        public IReadOnlyCollection<string> GetAllCardIds() => _constructors.Keys;
+        public IReadOnlyCollection<string> GetAllCardIds() => _templates.Keys;
 
         /// <summary>
         ///     获取所有已注册的卡牌ID（ICardFactory 接口实现）
@@ -201,25 +193,24 @@ namespace EasyPack.EmeCardSystem
         public T Create<T>(string id) where T : Card
         {
             if (string.IsNullOrEmpty(id)) return null;
-            if (_constructors.TryGetValue(id, out var ctor))
+
+            if (!_templates.TryGetValue(id, out CardData templateData)) return null;
+
+            var card = new Card(id) as T;
+            if (card == null) return null;
+
+            // 从模板的 DefaultProperties 初始化属性
+            if (templateData.DefaultProperties is { Count: > 0 })
             {
-                var card = ctor() as T;
-                if (card == null) return null;
-
-                // 自动捕获模板数据：从 Card 的暂存 _initialData 中提取并注册
-                CardData initialData = card.ConsumeInitialData();
-                if (initialData != null && !string.IsNullOrEmpty(initialData.ID)
-                    && !_templates.ContainsKey(initialData.ID))
+                foreach (var prop in templateData.DefaultProperties)
                 {
-                    _templates[initialData.ID] = initialData.Clone(initialData.ID);
+                    card.Properties.Add(new GameProperty(prop.id, prop.value));
                 }
-
-                if (card.UID == -1) AssignUID(card);
-
-                return card;
             }
 
-            return null;
+            if (card.UID == -1) AssignUID(card);
+
+            return card;
         }
 
         // 显式接口实现 - 仅供 CardEngine 内部通过 ICardFactory 接口调用
@@ -235,7 +226,12 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
-        ///     显式注册模板数据（用于不经过 Create 流程的场景）。
+        ///     获取所有已注册的模板数据。
+        /// </summary>
+        public IReadOnlyDictionary<string, CardData> GetAllTemplateData() => _templates;
+
+        /// <summary>
+        ///     显式注册模板数据。
         /// </summary>
         public void RegisterTemplate(CardData data)
         {

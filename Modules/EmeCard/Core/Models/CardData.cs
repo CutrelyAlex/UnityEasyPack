@@ -33,7 +33,7 @@ namespace EasyPack.EmeCardSystem
         public string Description { get; }
 
         /// <summary>
-        ///     默认分类路径，用于 CategoryManager 注册。
+        ///     默认分类路径
         ///     示例："Card.Object"、"Card.Action"、"Equipment.Weapon"
         /// </summary>
         public string Category { get; }
@@ -44,13 +44,27 @@ namespace EasyPack.EmeCardSystem
         public Sprite Sprite { get; set; }
 
         /// <summary>
-        ///     默认标签集合：
-        ///     - 通常在基于 <see cref="CardData" /> 创建 <see cref="Card" /> 实例时拷贝到实例的标签集中；
-        ///     - 本数组应视为只读原数据，不建议在运行时直接修改该数组内容（修改应作用于实例）。
+        ///     默认标签集合
         /// </summary>
         private readonly List<string> _defaultTags = new();
 
         public string[] DefaultTags => _defaultTags.Count == 0 ? Array.Empty<string>() : _defaultTags.ToArray();
+
+        /// <summary>
+        ///     默认属性列表：
+        ///     Card 被添加到 Engine 时，若自身 Properties 为空，则从此列表初始化。
+        /// </summary>
+        private readonly List<(string id, float value)> _defaultProperties = new();
+
+        public IReadOnlyList<(string id, float value)> DefaultProperties => _defaultProperties;
+
+        /// <summary>
+        ///     默认子卡列表：(childId, intrinsic)
+        ///     Card 被 Factory 创建时，自动添加这些子卡。
+        /// </summary>
+        private readonly List<(string childId, bool intrinsic)> _defaultChildren = new();
+
+        public IReadOnlyList<(string childId, bool intrinsic)> DefaultChildren => _defaultChildren;
 
         /// <summary>
         ///     自定义数据集合的默认实例
@@ -118,6 +132,27 @@ namespace EasyPack.EmeCardSystem
         }
 
         /// <summary>
+        ///     为模板添加默认属性。
+        /// </summary>
+        public CardData WithProperty(string id, float value)
+        {
+            if (string.IsNullOrEmpty(id)) return this;
+            _defaultProperties.Add((id, value));
+            return this;
+        }
+
+        /// <summary>
+        ///     为模板添加默认子卡。
+        ///     Factory 创建卡牌时自动 CreateCard 并 AddChild。
+        /// </summary>
+        public CardData WithChild(string childId, bool intrinsic = false)
+        {
+            if (string.IsNullOrEmpty(childId)) return this;
+            _defaultChildren.Add((childId, intrinsic));
+            return this;
+        }
+
+        /// <summary>
         ///     克隆当前数据并指定新的 ID。
         /// </summary>
         /// <param name="newId">新的逻辑 ID。</param>
@@ -137,6 +172,24 @@ namespace EasyPack.EmeCardSystem
             if (DefaultMetaData != null)
             {
                 clone.DefaultMetaData.Merge(DefaultMetaData);
+            }
+
+            // 深度拷贝默认属性
+            if (_defaultProperties.Count > 0)
+            {
+                foreach (var prop in _defaultProperties)
+                {
+                    clone._defaultProperties.Add(prop);
+                }
+            }
+
+            // 深度拷贝默认子卡
+            if (_defaultChildren.Count > 0)
+            {
+                foreach (var child in _defaultChildren)
+                {
+                    clone._defaultChildren.Add(child);
+                }
             }
 
             return clone;

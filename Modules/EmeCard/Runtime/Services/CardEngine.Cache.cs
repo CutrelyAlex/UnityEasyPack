@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using EasyPack.GamePropertySystem;
 using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
@@ -9,9 +10,6 @@ namespace EasyPack.EmeCardSystem
     public sealed partial class CardEngine
     {
         #region 内部缓存字段
-
-        // 已注册的卡牌模板集合
-        private readonly HashSet<Card> _registeredCardsTemplates = new();
 
         // ID -> Index 集合缓存
         private readonly Dictionary<string, HashSet<int>> _idIndexes = new();
@@ -76,6 +74,19 @@ namespace EasyPack.EmeCardSystem
             // 设置卡牌的 Engine 引用
             card.Engine = this;
             EnsureTemplateDataRegistered(card);
+
+            // 从模板的 DefaultProperties 初始化属性（如果卡牌自身无属性）
+            if (card.Properties.Count == 0)
+            {
+                CardData templateData = GetTemplateData(card.Id);
+                if (templateData?.DefaultProperties is { Count: > 0 })
+                {
+                    foreach (var prop in templateData.DefaultProperties)
+                    {
+                        card.Properties.Add(new GameProperty(prop.id, prop.value));
+                    }
+                }
+            }
 
             string id = card.Id;
 

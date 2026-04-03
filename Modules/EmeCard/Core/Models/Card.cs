@@ -22,38 +22,14 @@ namespace EasyPack.EmeCardSystem
         #region 构造函数
 
         /// <summary>
-        ///     构造函数：创建卡牌，可选单个属性
+        ///     构造函数
+        ///     仅通过 ID 创建卡牌。
         /// </summary>
-        /// <param name="data">卡牌数据</param>
-        /// <param name="gameProperty">可选的单个游戏属性</param>
-        public Card(CardData data, GameProperty gameProperty = null)
+        /// <param name="id">卡牌 ID</param>
+        public Card(string id)
         {
-            _id = data?.ID ?? string.Empty;
-            _initialData = data;
-            if (gameProperty != null)
-            {
-                Properties.Add(gameProperty);
-            }
+            _id = id ?? string.Empty;
         }
-
-        /// <summary>
-        ///     构造函数：创建卡牌，可选多个属性
-        /// </summary>
-        /// <param name="data">卡牌数据</param>
-        /// <param name="properties">属性列表</param>
-        public Card(CardData data, IEnumerable<GameProperty> properties)
-        {
-            _id = data?.ID ?? string.Empty;
-            _initialData = data;
-            Properties = properties?.ToList() ?? new List<GameProperty>();
-        }
-
-        /// <summary>
-        ///     构造函数，提供卡牌数据
-        /// </summary>
-        /// <param name="data">卡牌数据</param>
-        public Card(CardData data)
-            : this(data, (IEnumerable<GameProperty>)null) { }
 
         #endregion
 
@@ -66,29 +42,12 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>
         ///     该卡牌的静态数据（ID/名称/描述/默认标签等）。
+        /// </summary>
+        /// <remark>
         ///     注意：更改 Data 不会自动更新 CategoryManager 中的标签，
         ///     标签管理统一由 Engine 在注册时处理。
-        /// </summary>
+        /// </remark>
         private readonly string _id;
-
-        /// <summary>
-        ///     构造时传入的 CardData 引用（暂存）。
-        ///     仅供 CardFactory 在 Create 流程中读取并注册到模板字典，
-        ///     之后可被 ConsumeInitialData() 清除。
-        ///     Card 自身不应长期依赖此字段。
-        /// </summary>
-        internal CardData _initialData;
-
-        /// <summary>
-        ///     消费并返回暂存的 CardData，随后将其清除。
-        ///     供 CardFactory / CardEngine 在注册模板时调用。
-        /// </summary>
-        internal CardData ConsumeInitialData()
-        {
-            CardData data = _initialData;
-            _initialData = null;
-            return data;
-        }
 
         public CardData Data => Engine?.GetTemplateData(_id);
 
