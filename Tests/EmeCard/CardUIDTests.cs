@@ -77,11 +77,9 @@ namespace EasyPack.EmeCardTests
         public void Card_UID_SameIdCards_HaveUniqueUIDs()
         {
             // Arrange
-            var data = new CardData("Monster", "Monster");
-
-            var card1 = new Card(data);
-            var card2 = new Card(data);
-            var card3 = new Card(data);
+            var card1 = new Card("Monster");
+            var card2 = new Card("Monster");
+            var card3 = new Card("Monster");
 
             // Act
             _engine.AddCard(card1);
@@ -154,8 +152,7 @@ namespace EasyPack.EmeCardTests
         public void Card_IdAndIndex_StillWorkAfterUID()
         {
             // Arrange
-            var data = new CardData("TestCard", "TestCard");
-            var card = new Card(data);
+            var card = new Card("TestCard");
 
             // Act
             _engine.AddCard(card);
@@ -170,11 +167,8 @@ namespace EasyPack.EmeCardTests
         public void Card_AllThreeIdentifiers_AreIndependent()
         {
             // Arrange
-            var data1 = new CardData("Card", "Card");
-            var data2 = new CardData("Card", "Card");
-
-            var card1 = new Card(data1);
-            var card2 = new Card(data2);
+            var card1 = new Card("Card");
+            var card2 = new Card("Card");
 
             // Act
             _engine.AddCard(card1);

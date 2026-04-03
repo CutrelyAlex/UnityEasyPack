@@ -25,9 +25,9 @@ namespace EasyPack.EmeCardTests
             _engine = new CardEngine(_factory);
 
             // 注册测试用卡牌
-            _factory.Register("parent", () => new(new("parent", "父卡", "", "Card.Object")));
-            _factory.Register("child", () => new(new("child", "子卡", "", "Card.Object")));
-            _factory.Register("tagged_child", () => new(new("tagged_child", "带标签的子卡", "", "Card.Object", new[] { "特殊" })));
+            _factory.RegisterData("parent", new CardData("parent", "父卡", "", "Card.Object"));
+            _factory.RegisterData("child", new CardData("child", "子卡", "", "Card.Object"));
+            _factory.RegisterData("tagged_child", new CardData("tagged_child", "带标签的子卡", "", "Card.Object", new[] { "特殊" }));
         }
 
         [TearDown]

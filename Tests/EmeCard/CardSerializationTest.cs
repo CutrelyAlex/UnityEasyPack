@@ -56,13 +56,8 @@ namespace EasyPack.EmeCardTests
         {
             // 使用 Engine 创建卡牌以确保标签正确管理
             var factory = new CardFactory();
-            factory.Register("warrior", () =>
-            {
-                var data = new CardData("warrior", "战士", "强者", "Card.Object", new[] { "Combat" });
-                var card = new Card(data);
-                card.Properties.Add(new GameProperty("Health", 100f));
-                return card;
-            });
+            factory.RegisterData("warrior", new CardData("warrior", "战士", "强者", "Card.Object", new[] { "Combat" })
+                .WithProperty("Health", 100f));
             var engine = new CardEngine(factory);
             var card = engine.CreateCard("warrior");
 
@@ -89,9 +84,9 @@ namespace EasyPack.EmeCardTests
         [Test]
         public void Test_RoundTrip_PreservesHierarchyAndData()
         {
-            var player = new Card(new("player", "玩家"));
-            var sword = new Card(new("sword", "剑"));
-            var shield = new Card(new("shield", "盾"));
+            var player = new Card("player");
+            var sword = new Card("sword");
+            var shield = new Card("shield");
 
             // 将所有卡牌添加到 Engine 以分配 UID 并建立管理关系
             _engine.AddCard(player);
@@ -107,9 +102,9 @@ namespace EasyPack.EmeCardTests
 
             // 创建新的 Engine 并加载状态
             var newFactory = new CardFactory();
-            newFactory.Register("player", () => new Card(new("player", "玩家")));
-            newFactory.Register("sword", () => new Card(new("sword", "剑")));
-            newFactory.Register("shield", () => new Card(new("shield", "盾")));
+            newFactory.RegisterData("player", new CardData("player", "玩家"));
+            newFactory.RegisterData("sword", new CardData("sword", "剑"));
+            newFactory.RegisterData("shield", new CardData("shield", "盾"));
 
             var newEngine = new CardEngine(newFactory);
             newEngine.DeserializeFromJson(json);
@@ -128,8 +123,8 @@ namespace EasyPack.EmeCardTests
         [Test]
         public void Test_CircularReference_Detected()
         {
-            var a = new Card(new("A", "A"));
-            var b = new Card(new("B", "B"));
+            var a = new Card("A");
+            var b = new Card("B");
             a.AddChild(b);
 
             // 循环引用应在 AddChild 时就被检测到并抛出异常
@@ -149,8 +144,8 @@ namespace EasyPack.EmeCardTests
         [Test]
         public void Test_IntrinsicChildren_Preserved()
         {
-            var p = new Card(new("p", "p"));
-            var c = new Card(new("c", "c"));
+            var p = new Card("p");
+            var c = new Card("c");
 
             // 将所有卡牌添加到 Engine 以分配 UID
             _engine.AddCard(p);
@@ -164,8 +159,8 @@ namespace EasyPack.EmeCardTests
 
             // 创建新的 Engine 并加载状态
             var newFactory = new CardFactory();
-            newFactory.Register("p", () => new Card(new("p", "p")));
-            newFactory.Register("c", () => new Card(new("c", "c")));
+            newFactory.RegisterData("p", new CardData("p", "p"));
+            newFactory.RegisterData("c", new CardData("c", "c"));
 
             var newEngine = new CardEngine(newFactory);
             newEngine.DeserializeFromJson(json);
@@ -204,31 +199,16 @@ namespace EasyPack.EmeCardTests
         public void Test_CategoryManager_EmeCard_RoundTrip_Serialization()
         {
             // Arrange - 注册卡牌模板
-            _factory.Register("warrior", () =>
-            {
-                var data = new CardData("warrior", "战士", "强大的战士", "Equipment.Character.Warrior", new[] { "Player", "Combat" });
-                var card = new Card(data);
-                card.Properties.Add(new GameProperty("Health", 100f));
-                card.Properties.Add(new GameProperty("Attack", 15f));
-                return card;
-            });
+            _factory.RegisterData("warrior", new CardData("warrior", "战士", "强大的战士", "Equipment.Character.Warrior", new[] { "Player", "Combat" })
+                .WithProperty("Health", 100f)
+                .WithProperty("Attack", 15f));
 
-            _factory.Register("mage", () =>
-            {
-                var data = new CardData("mage", "法师", "神秘的法师", "Equipment.Character.Mage", new[] { "Player", "Magic" });
-                var card = new Card(data);
-                card.Properties.Add(new GameProperty("Mana", 80f));
-                card.Properties.Add(new GameProperty("Intelligence", 20f));
-                return card;
-            });
+            _factory.RegisterData("mage", new CardData("mage", "法师", "神秘的法师", "Equipment.Character.Mage", new[] { "Player", "Magic" })
+                .WithProperty("Mana", 80f)
+                .WithProperty("Intelligence", 20f));
 
-            _factory.Register("sword", () =>
-            {
-                var data = new CardData("sword", "剑", "一把锋利的剑", "Equipment.Weapon", new[] { "Equipment", "Weapon" });
-                var card = new Card(data);
-                card.Properties.Add(new GameProperty("Damage", 25f));
-                return card;
-            });
+            _factory.RegisterData("sword", new CardData("sword", "剑", "一把锋利的剑", "Equipment.Weapon", new[] { "Equipment", "Weapon" })
+                .WithProperty("Damage", 25f));
 
             // Act 1 - 创建卡牌
             var warrior = _engine.CreateCard("warrior");
@@ -273,17 +253,9 @@ namespace EasyPack.EmeCardTests
         public void Test_CategoryManager_EmeCard_Recovery_Via_Engine()
         {
             // Arrange - 注册卡牌模板
-            _factory.Register("knight", () =>
-            {
-                var data = new CardData("knight", "骑士", "穿着盔甲的骑士", "Equipment.Character.Knight", new[] { "Player", "Combat" });
-                return new Card(data);
-            });
+            _factory.RegisterData("knight", new CardData("knight", "骑士", "穿着盔甲的骑士", "Equipment.Character.Knight", new[] { "Player", "Combat" }));
 
-            _factory.Register("bow", () =>
-            {
-                var data = new CardData("bow", "弓", "一张精致的弓", "Equipment.Weapon.Bow", new[] { "Equipment", "Weapon" });
-                return new Card(data);
-            });
+            _factory.RegisterData("bow", new CardData("bow", "弓", "一张精致的弓", "Equipment.Weapon.Bow", new[] { "Equipment", "Weapon" }));
 
             // Act 1 - 创建并注册卡牌
             var knight = _engine.CreateCard("knight");
@@ -339,11 +311,7 @@ namespace EasyPack.EmeCardTests
             // Arrange - 注册多个卡牌模板（确保 CardData.Category 与预期分类一致，避免后续重复 RegisterEntity）
             foreach (var (cardId, category, tags) in cardConfigs)
             {
-                _factory.Register(cardId, () =>
-                {
-                    var data = new CardData(cardId, $"卡牌_{cardId}", $"这是一张{cardId}卡牌", category, tags);
-                    return new Card(data);
-                });
+                _factory.RegisterData(cardId, new CardData(cardId, $"卡牌_{cardId}", $"这是一张{cardId}卡牌", category, tags));
             }
 
             // Act 1 - 创建多张卡牌
@@ -386,8 +354,8 @@ namespace EasyPack.EmeCardTests
         {
             // 1. 准备数据
             var factory = new CardFactory();
-            factory.Register("hero", () => new Card(new CardData("hero", "英雄", category: "Unit.Hero", defaultTags: new[] { "Hero" })));
-            factory.Register("sword", () => new Card(new CardData("sword", "剑", category: "Item.Weapon", defaultTags: new[] { "Weapon" })));
+            factory.RegisterData("hero", new CardData("hero", "英雄", category: "Unit.Hero", defaultTags: new[] { "Hero" }));
+            factory.RegisterData("sword", new CardData("sword", "剑", category: "Item.Weapon", defaultTags: new[] { "Weapon" }));
 
             var engine = new CardEngine(factory);
 
@@ -420,25 +388,23 @@ namespace EasyPack.EmeCardTests
         public void Test_CardEngine_Full_Serialization_RoundTrip()
         {
             // Arrange
-            _factory.Register("hero", () => { return new Card(new CardData("hero", "Hero", defaultTags: new[] { "Character" })); });
-            _factory.Register("item", () => { return new Card(new CardData("item", "Item", defaultTags: new[] { "Equipment" })); });
-            _factory.Register("velocity", () =>
-            {
+            _factory.RegisterData("hero", new CardData("hero", "Hero", defaultTags: new[] { "Character" }));
+            _factory.RegisterData("item", new CardData("item", "Item", defaultTags: new[] { "Equipment" }));
+            _factory.RegisterData("velocity", new CardData("velocity", "Velocity", defaultTags: new[] { "Equipment" })
                 // 因此模板元数据应在 CardData 上先配置，再创建 Card。
-                var data = new CardData("velocity", "Velocity", defaultTags: new[] { "Equipment" });
-                data.DefaultMetaData.Set("IsVelocity", true);
-                data.DefaultMetaData.Set("Speed", 9.8f);
-                data.DefaultMetaData.Set("Direction", new Vector2(1.0f, 0.0f));
-                return new Card(data);
-            });
-            _factory.Register("vu", () =>
-            {
-                var data = new CardData("vu", "Velocity Variant", defaultTags: new[] { "Equipment" });
-                data.DefaultMetaData.Set("IsVelocity", true);
-                data.DefaultMetaData.Set("Speed", 9.8f);
-                data.DefaultMetaData.Set("Direction", new Vector2(0.0f, 2.0f));
-                return new Card(data);
-            });
+                .WithMetaData(meta =>
+                {
+                    meta.Set("IsVelocity", true);
+                    meta.Set("Speed", 9.8f);
+                    meta.Set("Direction", new Vector2(1.0f, 0.0f));
+                }));
+            _factory.RegisterData("vu", new CardData("vu", "Velocity Variant", defaultTags: new[] { "Equipment" })
+                .WithMetaData(meta =>
+                {
+                    meta.Set("IsVelocity", true);
+                    meta.Set("Speed", 9.8f);
+                    meta.Set("Direction", new Vector2(0.0f, 2.0f));
+                }));
             var hero = _engine.CreateCard("hero");
             hero.Position = new Vector3Int(1, 0, 1);
             hero.Properties.Add(new GameProperty("HP", 100));
@@ -516,7 +482,7 @@ namespace EasyPack.EmeCardTests
             var cardData = new CardData("meta_card", "Meta Card", category: "Card.Object");
             cardData.DefaultMetaData.Set("TemplateOnly", 1);
 
-            factory.Register("meta_card", () => new Card(cardData));
+            factory.RegisterData("meta_card", cardData);
 
             var engine = new CardEngine(factory);
             Card card = engine.CreateCard("meta_card");

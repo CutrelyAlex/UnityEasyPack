@@ -177,7 +177,7 @@ namespace EasyPack.ENekoFrameworkTest
             // Arrange: 解析服务和创建测试对象
             var service = await _architecture.ResolveAsync<ISerializationService>();
 
-            // 创建一个简单的 Card 对象用于测试
+            // 创建一个简单的 Card 对象用于测试（新路径：模板 + 引擎创建）
             var cardData = new EmeCardSystem.CardData(
                 id: "test_card",
                 name: "测试卡牌",
@@ -186,7 +186,10 @@ namespace EasyPack.ENekoFrameworkTest
                 defaultTags: new[] { "test" },
                 sprite: null
             );
-            var testCard = new EmeCardSystem.Card(cardData);
+            var factory = new EmeCardSystem.CardFactory();
+            factory.RegisterData("test_card", cardData);
+            var engine = new EmeCardSystem.CardEngine(factory);
+            var testCard = engine.CreateCard("test_card");
 
             // Act: 序列化
             string json = service.SerializeToJson(testCard);
@@ -210,7 +213,7 @@ namespace EasyPack.ENekoFrameworkTest
             // Arrange: 解析服务和准备测试数据
             var service = await _architecture.ResolveAsync<ISerializationService>();
 
-            // 创建测试卡牌并序列化
+            // 创建测试卡牌并序列化（新路径：模板 + 引擎创建）
             var cardData = new EmeCardSystem.CardData(
                 id: "test_card_deser",
                 name: "反序列化测试卡牌",
@@ -219,11 +222,15 @@ namespace EasyPack.ENekoFrameworkTest
                 defaultTags: new[] { "test", "deser" },
                 sprite: null
             );
-            var originalCard = new EmeCardSystem.Card(cardData);
+            var factory = new EmeCardSystem.CardFactory();
+            factory.RegisterData("test_card_deser", cardData);
+            var engine = new EmeCardSystem.CardEngine(factory);
+            var originalCard = engine.CreateCard("test_card_deser");
             string json = service.SerializeToJson(originalCard);
 
             // Act: 反序列化
             var deserializedCard = service.DeserializeFromJson<EmeCardSystem.Card>(json);
+            engine.AddCard(deserializedCard);
 
             // Assert: 验证反序列化结果
             Assert.IsNotNull(deserializedCard, "反序列化结果不应为 null");

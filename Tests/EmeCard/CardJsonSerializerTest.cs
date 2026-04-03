@@ -51,13 +51,13 @@ namespace EasyPack.EmeCardTests
 
             // 使用 Engine 创建卡牌以确保标签正确管理
             _factory = new CardFactory();
-            _factory.Register("test_warrior", () =>
-            {
-                var card = new Card(_testCardData);
-                card.Properties.Add(new GamePropertySystem.GameProperty("Strength", 100f));
-                card.Properties.Add(new GamePropertySystem.GameProperty("Health", 50f));
-                return card;
-            });
+            _factory.RegisterData("test_warrior", _testCardData
+                .Clone("test_warrior")
+                .WithProperty("Strength", 100f)
+                .WithProperty("Health", 50f));
+            _factory.RegisterData("card", new CardData("card", "卡牌"));
+            _factory.RegisterData("weapon_sword", new CardData("weapon_sword", "剑", "一把锋利的剑"));
+            _factory.RegisterData("weapon_shield", new CardData("weapon_shield", "盾", "一面坚固的盾"));
             // 初始化序列化器
             _serializer = new(_factory);
             _engine = new CardEngine(_factory);
@@ -389,8 +389,8 @@ namespace EasyPack.EmeCardTests
             var factoryA = new CardFactory();
             var factoryB = new CardFactory();
 
-            factoryA.Register("shared_id", () => new Card(new CardData("shared_id", "FactoryA", category: "Category.A")));
-            factoryB.Register("shared_id", () => new Card(new CardData("shared_id", "FactoryB", category: "Category.B")));
+            factoryA.RegisterData("shared_id", new CardData("shared_id", "FactoryA", category: "Category.A"));
+            factoryB.RegisterData("shared_id", new CardData("shared_id", "FactoryB", category: "Category.B"));
 
             var engineA = new CardEngine(factoryA);
             var engineB = new CardEngine(factoryB);
@@ -421,9 +421,9 @@ namespace EasyPack.EmeCardTests
         public void Test_Mutipule_SameIdDifferentCards_IndexPreserved()
         {
             // Arrange
-            var card1 = new Card(new("card", "卡牌一"));
-            var card2 = new Card(new("card", "卡牌二"));
-            var card3 = new Card(new("card", "卡牌三"));
+            var card1 = new Card("card");
+            var card2 = new Card("card");
+            var card3 = new Card("card");
             _engine.AddCard(card1);
             _engine.AddCard(card2);
             _engine.AddCard(card3);
@@ -440,7 +440,7 @@ namespace EasyPack.EmeCardTests
             _engine.AddCard(restored1);
             _engine.AddCard(restored2);
             _engine.AddCard(restored3);
-            var card4 = new Card(new("card", "卡牌四"));
+            var card4 = new Card("card");
             _engine.AddCard(card4);
             // Assert
             Assert.AreEqual(0, restored1.Index, "第一个卡牌索引应为 0");
@@ -460,8 +460,8 @@ namespace EasyPack.EmeCardTests
         public void Test_RoundTrip_PreservesChildHierarchy()
         {
             // Arrange: 创建带子卡的卡牌
-            var weapon = new Card(new("weapon_sword", "剑", "一把锋利的剑"));
-            var shield = new Card(new("weapon_shield", "盾", "一面坚固的盾"));
+            var weapon = new Card("weapon_sword");
+            var shield = new Card("weapon_shield");
 
             // 先将子卡添加到 Engine 以分配 UID
             _engine.AddCard(weapon);
@@ -476,14 +476,12 @@ namespace EasyPack.EmeCardTests
 
             // 创建新的 Engine 并加载状态
             var newFactory = new CardFactory();
-            newFactory.Register("test_warrior", () =>
-            {
-                var card = new Card(_testCardData);
-                card.Properties.Add(new GamePropertySystem.GameProperty("Strength", 100f));
-                return card;
-            });
-            newFactory.Register("weapon_sword", () => new Card(new("weapon_sword", "剑", "一把锋利的剑")));
-            newFactory.Register("weapon_shield", () => new Card(new("weapon_shield", "盾", "一面坚固的盾")));
+            newFactory.RegisterData("test_warrior", _testCardData
+                .Clone("test_warrior")
+                .WithProperty("Strength", 100f)
+                .WithProperty("Health", 50f));
+            newFactory.RegisterData("weapon_sword", new CardData("weapon_sword", "剑", "一把锋利的剑"));
+            newFactory.RegisterData("weapon_shield", new CardData("weapon_shield", "盾", "一面坚固的盾"));
 
             var newEngine = new CardEngine(newFactory);
             newEngine.DeserializeFromJson(json);

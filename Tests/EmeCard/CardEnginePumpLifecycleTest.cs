@@ -51,14 +51,9 @@ namespace EasyPack.EmeCardTests
             var factory = new CardFactory();
 
             // 注册物体卡牌：包含温度和移动标志属性
-            factory.Register("physics_object", () => new(
-                new("physics_object", "物理物体", "受物理规则影响的物体", "Card.Object"),
-                new List<GameProperty>
-                {
-                    new("Temperature", 0f), // 温度：初始值 0
-                    new("IsMoving", 0f), // 移动标志：0=不移动，1=移动
-                }
-            ));
+            factory.RegisterData("physics_object", new CardData("physics_object", "物理物体", "受物理规则影响的物体", "Card.Object")
+                .WithProperty("Temperature", 0f) // 温度：初始值 0
+                .WithProperty("IsMoving", 0f)); // 移动标志：0=不移动，1=移动
 
             var engine = new CardEngine(factory);
 
@@ -179,10 +174,8 @@ namespace EasyPack.EmeCardTests
         public void Test_PumpEnd_NormalHeatingWithoutDeletion()
         {
             var factory = new CardFactory();
-            factory.Register("hot_object", () => new(
-                new("hot_object", "热源", "会升温的物体", "Card.Object"),
-                new GameProperty("Temperature", 0f)
-            ));
+            factory.RegisterData("hot_object", new CardData("hot_object", "热源", "会升温的物体", "Card.Object")
+                .WithProperty("Temperature", 0f));
 
             var engine = new CardEngine(factory);
 
@@ -232,10 +225,8 @@ namespace EasyPack.EmeCardTests
         public void Test_PumpStart_ExecutesBeforeNormalEvents()
         {
             var factory = new CardFactory();
-            factory.Register("test", () => new(
-                new("test", "测试", "", "Card.Object"),
-                new GameProperty("InitValue", 0f)
-            ));
+            factory.RegisterData("test", new CardData("test", "测试", "", "Card.Object")
+                .WithProperty("InitValue", 0f));
 
             var engine = new CardEngine(factory);
 

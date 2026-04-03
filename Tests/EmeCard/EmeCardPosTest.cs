@@ -37,7 +37,7 @@ namespace EasyPack.EmeCardTests
         {
             // 测试新创建卡牌的默认位置
             var factory = new CardFactory();
-            factory.Register("test", () => new(new("test", "测试", "", "Card.Object")));
+            factory.RegisterData("test", new("test", "测试", "", "Card.Object"));
             var engine = new CardEngine(factory);
             
             Card card = engine.CreateCard("test");
@@ -54,8 +54,8 @@ namespace EasyPack.EmeCardTests
         public void Test_CardPosition_ChildCardsInheritParentPosition()
         {
             var factory = new CardFactory();
-            factory.Register("container", () => new(new("container", "容器", "", "Card.Object")));
-            factory.Register("child", () => new(new("child", "子卡", "", "Card.Object")));
+            factory.RegisterData("container", new("container", "容器", "", "Card.Object"));
+            factory.RegisterData("child", new("child", "子卡", "", "Card.Object"));
             
             var engine = new CardEngine(factory);
 
@@ -82,7 +82,7 @@ namespace EasyPack.EmeCardTests
         public void Test_CardPosition_GetPositionByUID()
         {
             var factory = new CardFactory();
-            factory.Register("test", () => new(new("test", "测试", "", "Card.Object")));
+            factory.RegisterData("test", new("test", "测试", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -109,8 +109,8 @@ namespace EasyPack.EmeCardTests
         public void Test_CardPosition_GetCardByPosition()
         {
             var factory = new CardFactory();
-            factory.Register("card_a", () => new(new("card_a", "卡牌A", "", "Card.Object")));
-            factory.Register("card_b", () => new(new("card_b", "卡牌B", "", "Card.Object")));
+            factory.RegisterData("card_a", new("card_a", "卡牌A", "", "Card.Object"));
+            factory.RegisterData("card_b", new("card_b", "卡牌B", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -140,7 +140,7 @@ namespace EasyPack.EmeCardTests
         public void Test_CardPosition_TryMoveCardToPosition()
         {
             var factory = new CardFactory();
-            factory.Register("card", () => new(new("card", "卡牌", "", "Card.Object")));
+            factory.RegisterData("card", new("card", "卡牌", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -165,7 +165,7 @@ namespace EasyPack.EmeCardTests
         public void Test_CardPosition_OneCardPerPosition()
         {
             var factory = new CardFactory();
-            factory.Register("card", () => new(new("card", "卡牌", "", "Card.Object")));
+            factory.RegisterData("card", new("card", "卡牌", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -186,8 +186,8 @@ namespace EasyPack.EmeCardTests
         public void Test_CardPosition_ChildFollowsParentPosition()
         {
             var factory = new CardFactory();
-            factory.Register("parent", () => new(new("parent", "父卡", "", "Card.Object")));
-            factory.Register("child", () => new(new("child", "子卡", "", "Card.Object")));
+            factory.RegisterData("parent", new("parent", "父卡", "", "Card.Object"));
+            factory.RegisterData("child", new("child", "子卡", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -212,8 +212,8 @@ namespace EasyPack.EmeCardTests
         public void Test_CardPosition_RemoveChildUpdatesPosition()
         {
             var factory = new CardFactory();
-            factory.Register("parent", () => new(new("parent", "父卡", "", "Card.Object")));
-            factory.Register("child", () => new(new("child", "子卡", "", "Card.Object")));
+            factory.RegisterData("parent", new("parent", "父卡", "", "Card.Object"));
+            factory.RegisterData("child", new("child", "子卡", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -251,8 +251,8 @@ namespace EasyPack.EmeCardTests
         public void Test_TryMoveCardToPositionEffect_SingleCardMovement()
         {
             var factory = new CardFactory();
-            factory.Register("source", () => new(new("source", "源卡", "", "Card.Object")));
-            factory.Register("target", () => new(new("target", "目标卡", "", "Card.Object")));
+            factory.RegisterData("source", new("source", "源卡", "", "Card.Object"));
+            factory.RegisterData("target", new("target", "目标卡", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -293,8 +293,8 @@ namespace EasyPack.EmeCardTests
         public void Test_TryMoveCardToPositionEffect_ForcedOverride()
         {
             var factory = new CardFactory();
-            factory.Register("moving", () => new(new("moving", "移动卡", "", "Card.Object")));
-            factory.Register("blocking", () => new(new("blocking", "阻挡卡", "", "Card.Object")));
+            factory.RegisterData("moving", new("moving", "移动卡", "", "Card.Object"));
+            factory.RegisterData("blocking", new("blocking", "阻挡卡", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -350,12 +350,12 @@ namespace EasyPack.EmeCardTests
             // 验证位置系统在复杂游戏场景中的表现
 
             var factory = new CardFactory();
-            factory.Register("pawn", () => new(new("pawn", "兵", "", "Card.Piece", new[] { "棋子", "兵" })));
-            factory.Register("rook", () => new(new("rook", "车", "", "Card.Piece", new[] { "棋子", "车" })));
-            factory.Register("bishop", () => new(new("bishop", "象", "", "Card.Piece", new[] { "棋子", "象" })));
-            factory.Register("knight", () => new(new("knight", "马", "", "Card.Piece", new[] { "棋子", "马" })));
-            factory.Register("queen", () => new(new("queen", "皇后", "", "Card.Piece", new[] { "棋子", "皇后" })));
-            factory.Register("king", () => new(new("king", "国王", "", "Card.Piece", new[] { "棋子", "国王" })));
+            factory.RegisterData("pawn", new("pawn", "兵", "", "Card.Piece", new[] { "棋子", "兵" }));
+            factory.RegisterData("rook", new("rook", "车", "", "Card.Piece", new[] { "棋子", "车" }));
+            factory.RegisterData("bishop", new("bishop", "象", "", "Card.Piece", new[] { "棋子", "象" }));
+            factory.RegisterData("knight", new("knight", "马", "", "Card.Piece", new[] { "棋子", "马" }));
+            factory.RegisterData("queen", new("queen", "皇后", "", "Card.Piece", new[] { "棋子", "皇后" }));
+            factory.RegisterData("king", new("king", "国王", "", "Card.Piece", new[] { "棋子", "国王" }));
 
             var engine = new CardEngine(factory);
 
@@ -445,9 +445,9 @@ namespace EasyPack.EmeCardTests
             // 测试卡牌位置系统在动态游戏场景中的应用
 
             var factory = new CardFactory();
-            factory.Register("tower", () => new(new("tower", "防御塔", "", "Card.Tower")));
-            factory.Register("enemy", () => new(new("enemy", "敌人", "", "Card.Enemy", new[] { "敌人", "目标" })));
-            factory.Register("explosion", () => new(new("explosion", "爆炸效果", "", "Card.Effect", new[] { "效果", "临时" })));
+            factory.RegisterData("tower", new("tower", "防御塔", "", "Card.Tower"));
+            factory.RegisterData("enemy", new("enemy", "敌人", "", "Card.Enemy", new[] { "敌人", "目标" }));
+            factory.RegisterData("explosion", new("explosion", "爆炸效果", "", "Card.Effect", new[] { "效果", "临时" }));
 
             var engine = new CardEngine(factory);
 
@@ -527,10 +527,10 @@ namespace EasyPack.EmeCardTests
             // 物品在背包中（继承玩家位置）vs 在世界中（独立位置）
 
             var factory = new CardFactory();
-            factory.Register("player", () => new(new("player", "玩家", "", "Card.Unit")));
-            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Item", new[] { "消耗品", "药水" })));
-            factory.Register("weapon", () => new(new("weapon", "武器", "", "Card.Item", new[] { "装备", "武器" })));
-            factory.Register("armor", () => new(new("armor", "护甲", "", "Card.Item", new[] { "装备", "护甲" })));
+            factory.RegisterData("player", new("player", "玩家", "", "Card.Unit"));
+            factory.RegisterData("potion", new("potion", "药水", "", "Card.Item", new[] { "消耗品", "药水" }));
+            factory.RegisterData("weapon", new("weapon", "武器", "", "Card.Item", new[] { "装备", "武器" }));
+            factory.RegisterData("armor", new("armor", "护甲", "", "Card.Item", new[] { "装备", "护甲" }));
 
             var engine = new CardEngine(factory);
 
@@ -625,8 +625,8 @@ namespace EasyPack.EmeCardTests
         {
             // 测试多层嵌套子卡牌的位置继承
             var factory = new CardFactory();
-            factory.Register("container", () => new(new("container", "容器", "", "Card.Object")));
-            factory.Register("item", () => new(new("item", "物品", "", "Card.Object")));
+            factory.RegisterData("container", new("container", "容器", "", "Card.Object"));
+            factory.RegisterData("item", new("item", "物品", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -659,8 +659,8 @@ namespace EasyPack.EmeCardTests
         {
             // 验证只有根卡牌被索引到位置字典
             var factory = new CardFactory();
-            factory.Register("parent", () => new(new("parent", "父卡", "", "Card.Object")));
-            factory.Register("child", () => new(new("child", "子卡", "", "Card.Object")));
+            factory.RegisterData("parent", new("parent", "父卡", "", "Card.Object"));
+            factory.RegisterData("child", new("child", "子卡", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -686,7 +686,7 @@ namespace EasyPack.EmeCardTests
         {
             // 测试 ClearCardPosition 功能（如果已实现）
             var factory = new CardFactory();
-            factory.Register("card", () => new(new("card", "卡牌", "", "Card.Object")));
+            factory.RegisterData("card", new("card", "卡牌", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -711,8 +711,8 @@ namespace EasyPack.EmeCardTests
         {
             // 测试父卡牌移动时，所有子卡牌位置自动更新
             var factory = new CardFactory();
-            factory.Register("parent", () => new(new("parent", "父卡", "", "Card.Object")));
-            factory.Register("child", () => new(new("child", "子卡", "", "Card.Object")));
+            factory.RegisterData("parent", new("parent", "父卡", "", "Card.Object"));
+            factory.RegisterData("child", new("child", "子卡", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -750,8 +750,8 @@ namespace EasyPack.EmeCardTests
         {
             // 测试 TryMoveCardToPosition 只能用于根卡牌
             var factory = new CardFactory();
-            factory.Register("parent", () => new(new("parent", "父卡", "", "Card.Object")));
-            factory.Register("child", () => new(new("child", "子卡", "", "Card.Object")));
+            factory.RegisterData("parent", new("parent", "父卡", "", "Card.Object"));
+            factory.RegisterData("child", new("child", "子卡", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 

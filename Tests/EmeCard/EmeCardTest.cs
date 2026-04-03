@@ -56,15 +56,13 @@ namespace EasyPack.EmeCardTests
         [Test]
         public void Test_Card_BasicProperties()
         {
-            // Plan B：Card.Data 是 Engine?.GetTemplateData(_id) 的纯代理，
-            // 必须通过引擎创建才能解析 Data / Name / Description / Category。
             var data = new CardData("potion", "药水", "恢复生命的药水", "Card.Object");
             var factory = new CardFactory();
-            factory.Register("potion", () => new Card(data));
+            factory.RegisterData("potion", data);
             var engine = new CardEngine(factory);
             var card = engine.CreateCard("potion");
 
-            // 测试基本属性（需要 Engine 解析模板）
+            // 测试基本属性
             Assert.AreEqual("potion", card.Id, $"卡牌 ID 应为 potion，实际: {card.Id}");
             Assert.AreEqual("药水", card.Name, $"卡牌名称应为药水，实际: {card.Name}");
             Assert.AreEqual("恢复生命的药水", card.Description, "卡牌描述应正确");
@@ -82,16 +80,17 @@ namespace EasyPack.EmeCardTests
             Assert.IsNotNull(card.Properties, "属性列表不应为 null");
             Assert.AreEqual(0, card.Properties.Count, $"初始属性列表应为空，实际数量: {card.Properties.Count}");
 
-            // Properties 不依赖 Engine，可在裸 Card 上直接测试
             var prop = new GameProperty("Health", 100f);
-            var card2 = new Card(data, prop);
+            var card2 = new Card(data.ID);
+            card2.Properties.Add(prop);
             Assert.AreEqual(1, card2.Properties.Count, $"属性数量应为 1，实际: {card2.Properties.Count}");
             Assert.IsNotNull(card2.GetProperty("Health"), "应能获取到 Health 属性");
             Assert.AreEqual(100f, card2.GetProperty("Health").GetValue(), "Health 属性值应为 100");
 
             // 测试多属性创建
             var props = new List<GameProperty> { new("Attack", 50f), new("Defense", 30f) };
-            var card3 = new Card(data, props);
+            var card3 = new Card(data.ID);
+            card3.Properties.AddRange(props);
             Assert.AreEqual(2, card3.Properties.Count, $"属性数量应为 2，实际: {card3.Properties.Count}");
             Assert.IsNotNull(card3.GetProperty("Attack"), "应能获取到 Attack 属性");
             Assert.IsNotNull(card3.GetProperty("Defense"), "应能获取到 Defense 属性");
@@ -110,7 +109,7 @@ namespace EasyPack.EmeCardTests
             cardData.DefaultMetaData.Set("SpellBook", "Basic Spells");
             cardData.DefaultMetaData.Add(CustomDataEntry.CreateInt("TestInt", 42));
 
-            factory.Register("wizard", () => new(cardData));
+            factory.RegisterData("wizard", cardData);
             var engine = new CardEngine(factory);
 
             // 创建卡牌前检查DefaultMetaData
@@ -160,7 +159,7 @@ namespace EasyPack.EmeCardTests
             // 测试多个卡牌实例共享同一个DefaultMetaData
             var cardData2 = new CardData("mage", "法术师", "另一个法师", "Card.Object");
             cardData2.DefaultMetaData.Set("Level", 5);
-            factory.Register("mage", () => new(cardData2));
+            factory.RegisterData("mage", cardData2);
 
             Card card2 = engine.CreateCard("mage");
             Assert.IsNotNull(card2, "应能创建法术师卡牌");
@@ -176,7 +175,7 @@ namespace EasyPack.EmeCardTests
             var rootData = new CardData("meta_root", "Root", "", "Card.Object");
             rootData.DefaultMetaData.Set("TemplateOnly", 1);
 
-            factory.Register("meta_root", () => new Card(rootData));
+            factory.RegisterData("meta_root", rootData);
             var engine = new CardEngine(factory);
 
             Card root = engine.CreateCard("meta_root");
@@ -210,8 +209,8 @@ namespace EasyPack.EmeCardTests
             var childData = new CardData("meta_child", "Child", "", "Card.Object");
             childData.DefaultMetaData.Set("ChildTemplate", 10);
 
-            factory.Register("meta_parent", () => new Card(parentData));
-            factory.Register("meta_child", () => new Card(childData));
+            factory.RegisterData("meta_parent", parentData);
+            factory.RegisterData("meta_child", childData);
 
             var engine = new CardEngine(factory);
             Card parent = engine.CreateCard("meta_parent");
@@ -244,10 +243,8 @@ namespace EasyPack.EmeCardTests
         {
             // 创建工厂和引擎
             var factory = new CardFactory();
-            factory.Register("sword", () => new(
-                new("sword", "剑", "", "Card.Object", new[] { "武器", "近战" })));
-            factory.Register("sword_extra", () => new(
-                new("sword_extra", "剑", "", "Card.Object", new[] { "武器", "近战", "额外标签1", "额外标签2" })));
+            factory.RegisterData("sword", new CardData("sword", "剑", "", "Card.Object", new[] { "武器", "近战" }));
+            factory.RegisterData("sword_extra", new CardData("sword_extra", "剑", "", "Card.Object", new[] { "武器", "近战", "额外标签1", "额外标签2" }));
 
             var engine = new CardEngine(factory);
 
@@ -275,12 +272,12 @@ namespace EasyPack.EmeCardTests
         {
             // 创建工厂和引擎
             var factory = new CardFactory();
-            factory.Register("player", () => new(new("player", "玩家", "", "Card.Object")));
-            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object")));
-            factory.Register("shield", () => new(new("shield", "盾", "", "Card.Object")));
-            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Object")));
-            factory.Register("other", () => new(new("other", "其他", "", "Card.Object")));
-            factory.Register("intrinsic", () => new(new("intrinsic", "固有", "", "Card.Object")));
+            factory.RegisterData("player", new CardData("player", "玩家", "", "Card.Object"));
+            factory.RegisterData("sword", new CardData("sword", "剑", "", "Card.Object"));
+            factory.RegisterData("shield", new CardData("shield", "盾", "", "Card.Object"));
+            factory.RegisterData("potion", new CardData("potion", "药水", "", "Card.Object"));
+            factory.RegisterData("other", new CardData("other", "其他", "", "Card.Object"));
+            factory.RegisterData("intrinsic", new CardData("intrinsic", "固有", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -336,7 +333,7 @@ namespace EasyPack.EmeCardTests
         public void Test_Card_Events()
         {
             var factory = new CardFactory();
-            factory.Register("test_card", () => new(new("test_card", "测试卡", "", "Card.Object")));
+            factory.RegisterData("test_card", new CardData("test_card", "测试卡", "", "Card.Object"));
             var engine = new CardEngine(factory);
 
             Card card = engine.CreateCard("test_card");
@@ -370,7 +367,7 @@ namespace EasyPack.EmeCardTests
             Assert.AreEqual("test_custom", lastEventType, "事件类型应为 test_custom");
 
             // 测试 AddedToOwner 和 RemovedFromOwner 事件
-            var parent = new Card(new("parent", "父卡", "", "Card.Object"));
+            var parent = new Card("parent");
             parent.AddChild(card); // 应触发 AddedToOwner
             Assert.AreEqual(4, eventCount, $"添加到父卡应触发事件，实际事件数: {eventCount}");
             Assert.AreEqual(CardEventTypes.ADDED_TO_OWNER, lastEventType, "事件类型应为 AddedToOwner");
@@ -386,8 +383,8 @@ namespace EasyPack.EmeCardTests
             var factory = new CardFactory();
 
             // 注册卡牌模板
-            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object", new[] { "武器" })));
-            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Object", new[] { "消耗品" })));
+            factory.RegisterData("sword", new CardData("sword", "剑", "", "Card.Object", new[] { "武器" }));
+            factory.RegisterData("potion", new CardData("potion", "药水", "", "Card.Object", new[] { "消耗品" }));
 
             // 使用 Engine 创建卡牌以确保标签正确管理
             var engine = new CardEngine(factory);
@@ -413,12 +410,9 @@ namespace EasyPack.EmeCardTests
             var factory = new CardFactory();
 
             // 注册带属性的卡牌
-            factory.Register("health_potion", () =>
-            {
-                var data = new CardData("health_potion", "生命药水", "恢复100生命", "Card.Object", new[] { "药水", "消耗品" });
-                var prop = new GameProperty("HealAmount", 100f);
-                return new(data, prop);
-            });
+            factory.RegisterData("health_potion",
+                new CardData("health_potion", "生命药水", "恢复100生命", "Card.Object", new[] { "药水", "消耗品" })
+                    .WithProperty("HealAmount", 100f));
 
             // 使用 Engine 创建卡牌以确保标签正确管理
             var engine = new CardEngine(factory);
@@ -440,7 +434,7 @@ namespace EasyPack.EmeCardTests
         public void Test_CardEngine_CardManagement()
         {
             var factory = new CardFactory();
-            factory.Register("test", () => new(new("test", "测试", "", "Card.Object")));
+            factory.RegisterData("test", new CardData("test", "测试", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -455,7 +449,7 @@ namespace EasyPack.EmeCardTests
             Assert.AreNotEqual(card1.Index, card2.Index, "不同实例应有不同索引");
 
             // 测试手动添加卡牌
-            var manualCard = new Card(new("manual", "手动", "", "Card.Object"));
+            var manualCard = new Card("manual");
             engine.AddCard(manualCard);
             Assert.GreaterOrEqual(manualCard.Index, 0, "手动添加的卡牌应被分配索引");
 
@@ -468,8 +462,8 @@ namespace EasyPack.EmeCardTests
         public void Test_CardEngine_CardQuery()
         {
             var factory = new CardFactory();
-            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object")));
-            factory.Register("shield", () => new(new("shield", "盾", "", "Card.Object")));
+            factory.RegisterData("sword", new CardData("sword", "剑", "", "Card.Object"));
+            factory.RegisterData("shield", new CardData("shield", "盾", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -533,8 +527,8 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_SimpleRequirement()
         {
             var factory = new CardFactory();
-            factory.Register("player", () => new(new("player", "玩家", "", "Card.Object")));
-            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object", new[] { "武器" })));
+            factory.RegisterData("player", new CardData("player", "玩家", "", "Card.Object"));
+            factory.RegisterData("sword", new CardData("sword", "剑", "", "Card.Object", new[] { "武器" }));
 
             var engine = new CardEngine(factory);
 
@@ -558,7 +552,7 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_SimpleEffect()
         {
             var factory = new CardFactory();
-            factory.Register("card", () => new(new("card", "卡牌", "", "Card.Object")));
+            factory.RegisterData("card", new CardData("card", "卡牌", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -588,12 +582,8 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_TickEvent()
         {
             var factory = new CardFactory();
-            factory.Register("timer", () =>
-            {
-                var data = new CardData("timer", "计时器", "", "Card.Object", new[] { "计时器" });
-                var prop = new GameProperty("Time", 0f);
-                return new(data, prop);
-            });
+            factory.RegisterData("timer", new CardData("timer", "计时器", "", "Card.Object", new[] { "计时器" })
+                .WithProperty("Time", 0f));
 
             var engine = new CardEngine(factory);
 
@@ -634,7 +624,7 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_UseEvent()
         {
             var factory = new CardFactory();
-            factory.Register("consumable", () => new(new("consumable", "消耗品", "", "Card.Object", new[] { "可使用" })));
+            factory.RegisterData("consumable", new CardData("consumable", "消耗品", "", "Card.Object", new[] { "可使用" }));
 
             var engine = new CardEngine(factory);
 
@@ -670,9 +660,9 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_MultipleRequirements()
         {
             var factory = new CardFactory();
-            factory.Register("player", () => new(new("player", "玩家", "", "Card.Object")));
-            factory.Register("sword", () => new(new("sword", "剑", "", "Card.Object", new[] { "武器", "近战" })));
-            factory.Register("potion", () => new(new("potion", "药水", "", "Card.Object", new[] { "消耗品" })));
+            factory.RegisterData("player", new CardData("player", "玩家", "", "Card.Object"));
+            factory.RegisterData("sword", new CardData("sword", "剑", "", "Card.Object", new[] { "武器", "近战" }));
+            factory.RegisterData("potion", new CardData("potion", "药水", "", "Card.Object", new[] { "消耗品" }));
 
             var engine = new CardEngine(factory);
 
@@ -711,15 +701,11 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_MultipleEffects()
         {
             var factory = new CardFactory();
-            factory.Register("card", () =>
-            {
-                var data = new CardData("card", "卡牌", "", "Card.Object", new[] { "可激活" });
-                var prop = new GameProperty("Value", 10f);
-                return new(data, prop);
-            });
+            factory.RegisterData("card", new CardData("card", "卡牌", "", "Card.Object", new[] { "可激活" })
+                .WithProperty("Value", 10f));
 
             // 注册一个子卡作为"触发器"
-            factory.Register("trigger", () => new(new("trigger", "触发器", "", "Card.Object", new[] { "触发器" })));
+            factory.RegisterData("trigger", new CardData("trigger", "触发器", "", "Card.Object", new[] { "触发器" }));
 
             var engine = new CardEngine(factory);
 
@@ -765,8 +751,8 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_RecursiveSelection()
         {
             var factory = new CardFactory();
-            factory.Register("container", () => new(new("container", "容器", "", "Card.Object")));
-            factory.Register("item", () => new(new("item", "物品", "", "Card.Object", new[] { "物品" })));
+            factory.RegisterData("container", new CardData("container", "容器", "", "Card.Object"));
+            factory.RegisterData("item", new CardData("item", "物品", "", "Card.Object", new[] { "物品" }));
 
             var engine = new CardEngine(factory);
 
@@ -809,8 +795,8 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_MaxMatchedParameter()
         {
             var factory = new CardFactory();
-            factory.Register("player", () => new(new("player", "玩家", "", "Card.Object")));
-            factory.Register("item", () => new(new("item", "物品", "", "Card.Object", new string[] { "物品" })));
+            factory.RegisterData("player", new CardData("player", "玩家", "", "Card.Object"));
+            factory.RegisterData("item", new CardData("item", "物品", "", "Card.Object", new[] { "物品" }));
 
             var engine = new CardEngine(factory);
 
@@ -896,9 +882,9 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_CreateAndRemoveCards()
         {
             var factory = new CardFactory();
-            factory.Register("crafter", () => new(new("crafter", "工匠", "", "Card.Object")));
-            factory.Register("wood", () => new(new("wood", "木头", "", "Card.Object", new string[] { "材料" })));
-            factory.Register("sword", () => new(new("sword", "木剑", "", "Card.Object", new string[] { "武器" })));
+            factory.RegisterData("crafter", new CardData("crafter", "工匠", "", "Card.Object"));
+            factory.RegisterData("wood", new CardData("wood", "木头", "", "Card.Object", new[] { "材料" }));
+            factory.RegisterData("sword", new CardData("sword", "木剑", "", "Card.Object", new[] { "武器" }));
 
             var engine = new CardEngine(factory);
 
@@ -944,13 +930,9 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_PropertyModification()
         {
             var factory = new CardFactory();
-            factory.Register("player", () =>
-            {
-                var data = new CardData("player", "玩家", "", "Card.Object");
-                var hp = new GameProperty("HP", 100f);
-                return new(data, hp);
-            });
-            factory.Register("buff", () => new(new("buff", "增益", "", "Card.Attribute", new[] { "增益" })));
+            factory.RegisterData("player", new CardData("player", "玩家", "", "Card.Object")
+                .WithProperty("HP", 100f));
+            factory.RegisterData("buff", new CardData("buff", "增益", "", "Card.Attribute", new[] { "增益" }));
 
             var engine = new CardEngine(factory);
 
@@ -1001,8 +983,8 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_CustomEvents()
         {
             var factory = new CardFactory();
-            factory.Register("skill", () => new(new("skill", "技能", "", "Card.Action")));
-            factory.Register("target", () => new(new("target", "目标", "", "Card.Object")));
+            factory.RegisterData("skill", new CardData("skill", "技能", "", "Card.Action"));
+            factory.RegisterData("target", new CardData("target", "目标", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
 
@@ -1040,12 +1022,8 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_ConditionalRequirement()
         {
             var factory = new CardFactory();
-            factory.Register("player", () =>
-            {
-                var data = new CardData("player", "玩家", "", "Card.Object");
-                var hp = new GameProperty("HP", 100f);
-                return new(data, hp);
-            });
+            factory.RegisterData("player", new CardData("player", "玩家", "", "Card.Object")
+                .WithProperty("HP", 100f));
 
             var engine = new CardEngine(factory);
 
@@ -1083,7 +1061,7 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_RulePriority()
         {
             var factory = new CardFactory();
-            factory.Register("card", () => new(new("card", "卡牌", "", "Card.Object")));
+            factory.RegisterData("card", new CardData("card", "卡牌", "", "Card.Object"));
 
             var engine = new CardEngine(factory);
             engine.Policy.RuleSelection = RuleSelectionMode.Priority; // 启用优先级模式
@@ -1128,9 +1106,9 @@ namespace EasyPack.EmeCardTests
         public void Test_CardRule_CompositeRequirements()
         {
             var factory = new CardFactory();
-            factory.Register("player", () => new(new("player", "玩家", "", "Card.Object")));
-            factory.Register("weapon", () => new(new("weapon", "武器", "", "Card.Object", new string[] { "武器", "装备" })));
-            factory.Register("armor", () => new(new("armor", "护甲", "", "Card.Object", new string[] { "护甲", "装备" })));
+            factory.RegisterData("player", new CardData("player", "玩家", "", "Card.Object"));
+            factory.RegisterData("weapon", new CardData("weapon", "武器", "", "Card.Object", new[] { "武器", "装备" }));
+            factory.RegisterData("armor", new CardData("armor", "护甲", "", "Card.Object", new[] { "护甲", "装备" }));
 
             var engine = new CardEngine(factory);
 
@@ -1192,19 +1170,14 @@ namespace EasyPack.EmeCardTests
             var factory = new CardFactory();
 
             // 注册各种卡牌
-            factory.Register("player", () =>
-            {
-                var data = new CardData("player", "玩家", "", "Card.Object");
-                var hp = new GameProperty("HP", 100f);
-                var mana = new GameProperty("Mana", 50f);
-                return new(data, new List<GameProperty> { hp, mana });
-            });
+            factory.RegisterData("player", new CardData("player", "玩家", "", "Card.Object")
+                .WithProperty("HP", 100f)
+                .WithProperty("Mana", 50f));
 
             string[] defaultTags = new string[] { "法术", "火系" };
-            factory.Register("fire_spell", () => new(new("fire_spell", "火球术", "", "Card.Action", defaultTags)));
-            factory.Register("mana_potion",
-                () => new(new("mana_potion", "魔法药水", "", "Card.Object", new string[] { "药水" })));
-            factory.Register("burn", () => new(new("burn", "灼烧", "", "Card.Attribute", new string[] { "负面状态" })));
+            factory.RegisterData("fire_spell", new CardData("fire_spell", "火球术", "", "Card.Action", defaultTags));
+            factory.RegisterData("mana_potion", new CardData("mana_potion", "魔法药水", "", "Card.Object", new[] { "药水" }));
+            factory.RegisterData("burn", new CardData("burn", "灼烧", "", "Card.Attribute", new[] { "负面状态" }));
 
             var engine = new CardEngine(factory);
 
@@ -1316,7 +1289,7 @@ namespace EasyPack.EmeCardTests
         public void Test_CardEngine_UnregisterRule()
         {
             var factory = new CardFactory();
-            factory.Register("test_card", () => new(new("test_card", "测试卡牌", "", "Card.Object", new[] { "测试" })));
+            factory.RegisterData("test_card", new CardData("test_card", "测试卡牌", "", "Card.Object", new[] { "测试" }));
 
             var engine = new CardEngine(factory);
 

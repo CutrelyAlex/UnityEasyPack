@@ -24,9 +24,9 @@ namespace EasyPack.EmeCardTests
         public void Setup()
         {
             _factory = new CardFactory();
-            _factory.Register("test_card", () => new(new("test_card", "测试卡", "", "Card.Object")));
-            _factory.Register("parent_card", () => new(new("parent_card", "父卡", "", "Card.Object")));
-            _factory.Register("child_card", () => new(new("child_card", "子卡", "", "Card.Object")));
+            _factory.RegisterData("test_card", new("test_card", "测试卡", "", "Card.Object"));
+            _factory.RegisterData("parent_card", new("parent_card", "父卡", "", "Card.Object"));
+            _factory.RegisterData("child_card", new("child_card", "子卡", "", "Card.Object"));
             _engine = new CardEngine(_factory);
         }
 
@@ -132,7 +132,7 @@ namespace EasyPack.EmeCardTests
             // 注意：CardData.ID 必须与 factory.Register 的 key 一致，否则模板查找链会命中先前缓存的同名模板
             var cardData = new CardData("tagged_card", "测试卡", "", "Card.Object", new[] { "标签1", "标签2" });
             cardData.DefaultMetaData.Set("TestKey", "TestValue");
-            _factory.Register("tagged_card", () => new(cardData));
+            _factory.RegisterData("tagged_card", cardData);
 
             Card card = _engine.CreateCard("tagged_card");
             Assert.IsNotNull(card, "卡牌应该创建成功");
@@ -210,9 +210,9 @@ namespace EasyPack.EmeCardTests
 
             // 创建新引擎并反序列化
             var newFactory = new CardFactory();
-            newFactory.Register("test_card", () => new(new("test_card", "测试卡", "", "Card.Object")));
-            newFactory.Register("parent_card", () => new(new("parent_card", "父卡", "", "Card.Object")));
-            newFactory.Register("child_card", () => new(new("child_card", "子卡", "", "Card.Object")));
+            newFactory.RegisterData("test_card", new("test_card", "测试卡", "", "Card.Object"));
+            newFactory.RegisterData("parent_card", new("parent_card", "父卡", "", "Card.Object"));
+            newFactory.RegisterData("child_card", new("child_card", "子卡", "", "Card.Object"));
             var newEngine = new CardEngine(newFactory);
 
             var dto = JsonUtility.FromJson<CardEngineDTO>(serializedState);

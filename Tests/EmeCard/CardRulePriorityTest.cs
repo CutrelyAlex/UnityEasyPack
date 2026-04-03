@@ -27,7 +27,7 @@ namespace EasyPack.EmeCardTests
         public void Setup()
         {
             _factory = new CardFactory();
-            _factory.Register("card", () => new(new("card", "卡牌", "", "Card.Object")));
+            _factory.RegisterData("card", new CardData("card", "卡牌", "", "Card.Object"));
             _engine = new CardEngine(_factory);
             _executionLog = new List<string>();
         }

@@ -11,8 +11,8 @@ namespace EasyPack.EmeCardTests
         private static CardFactory CreateFactory()
         {
             var factory = new CardFactory();
-            factory.Register("root", () => new Card(new CardData("root", "Root", category: "Card.Object")));
-            factory.Register("child", () => new Card(new CardData("child", "Child", category: "Card.Object")));
+            factory.RegisterData("root", new CardData("root", "Root", category: "Card.Object"));
+            factory.RegisterData("child", new CardData("child", "Child", category: "Card.Object"));
             return factory;
         }
 

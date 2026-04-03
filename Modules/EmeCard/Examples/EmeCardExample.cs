@@ -57,35 +57,18 @@ namespace EasyPack.EmeCardSystem.Example
             _factory = new();
             _engine = new(_factory);
 
-            // 注册卡牌模板 - 使用简化构造函数（无属性）
-            _factory.Register("世界", () =>
-                new(new CardData("世界", "世界", "", "Card.Object", new[] { "世界" })));
-
-            _factory.Register("草地格", () =>
-                new(new CardData("草地格", "草地格", "", "Card.Object", new[] { "草地" })));
-
-            _factory.Register("玩家", () =>
-                new(new CardData("玩家", "玩家", "", "Card.Object", new[] { "玩家" })));
-
-            _factory.Register("树木", () =>
-                new(new CardData("树木", "树木", "", "Card.Object", new[] { "树木", "可燃烧" })));
-
-            _factory.Register("木棍", () =>
-                new(new CardData("木棍", "木棍", "", "Card.Object", new[] { "木棍" })));
-
-            _factory.Register("火", () =>
-                new(new CardData("火", "火", "", "Card.Object", new[] { "火" })));
-
-            // 火把使用完整构造函数（带属性）
-            _factory.Register("火把", () =>
-                new(new CardData("火把", "火把", "", "Card.Object", new[] { "火把" }),
-                    new List<GameProperty> { new("Ticks", 0f) }));
-
-            _factory.Register("灰烬", () =>
-                new(new CardData("灰烬", "灰烬", "", "Card.Object", new[] { "灰烬" })));
-
-            _factory.Register("制作", () =>
-                new(new CardData("制作", "制作", "", "Card.Action", new[] { "制作" })));
+            // 注册卡牌模板
+            _factory.RegisterData("世界", new CardData("世界", "世界", "", "Card.Object", new[] { "世界" }));
+            _factory.RegisterData("草地格", new CardData("草地格", "草地格", "", "Card.Object", new[] { "草地" }));
+            _factory.RegisterData("玩家", new CardData("玩家", "玩家", "", "Card.Object", new[] { "玩家" }));
+            _factory.RegisterData("树木", new CardData("树木", "树木", "", "Card.Object", new[] { "树木", "可燃烧" }));
+            _factory.RegisterData("木棍", new CardData("木棍", "木棍", "", "Card.Object", new[] { "木棍" }));
+            _factory.RegisterData("火", new CardData("火", "火", "", "Card.Object", new[] { "火" }));
+            _factory.RegisterData("火把", new CardData("火把", "火把", "", "Card.Object", new[] { "火把" })
+                .WithProperty("Ticks", 0f));
+            _factory.RegisterData("灰烬", new CardData("灰烬", "灰烬", "", "Card.Object", new[] { "灰烬" }));
+            _factory.RegisterData("制作", new CardData("制作", "制作", "", "Card.Action", new[] { "制作" }));
+            _factory.RegisterData("night_marker", new CardData("night_marker", "夜晚标记", "", "Card.Attribute", new[] { "夜晚" }));
 
             Debug.Log("工厂和引擎初始化完成，可用于创建和管理卡牌\n");
         }
@@ -98,18 +81,17 @@ namespace EasyPack.EmeCardSystem.Example
             Debug.Log("案例2: 创建卡牌模板");
 
             // 演示创建不同类型的卡牌
-            var simpleCard = new Card(new("simple", "简单卡牌", "一张简单的卡牌", "Card.Object"));
+            _factory.RegisterData("simple", new CardData("simple", "简单卡牌", "一张简单的卡牌", "Card.Object"));
+            var simpleCard = _engine.CreateCard("simple");
             Debug.Log($"创建了简单卡牌: {simpleCard.Name} (ID: {simpleCard.Id})");
 
-            var taggedCard = new Card(new CardData("tagged", "带标签卡牌", "", "Card.Object", new[] { "武器", "近战" }));
-#pragma warning disable CS0618 // 使用 Tags 属性用于演示
+            _factory.RegisterData("tagged", new CardData("tagged", "带标签卡牌", "", "Card.Object", new[] { "武器", "近战" }));
+            var taggedCard = _engine.CreateCard("tagged");
             Debug.Log($"创建了带标签卡牌: {taggedCard.Name}，标签: {string.Join(", ", taggedCard.Tags)}");
-#pragma warning restore CS0618
-
-            var propertyCard = new Card(
-                new("property", "带属性卡牌", "", "Card.Object"),
-                new List<GameProperty> { new("Health", 100f), new("Attack", 50f) }
-            );
+            _factory.RegisterData("property", new CardData("property", "带属性卡牌", "", "Card.Object")
+                .WithProperty("Health", 100f)
+                .WithProperty("Attack", 50f));
+            var propertyCard = _engine.CreateCard("property");
             Debug.Log($"创建了带属性卡牌: {propertyCard.Name}，属性数量: {propertyCard.Properties.Count}");
 
             Debug.Log("卡牌模板创建完成，可用于游戏中的各种实体\n");
@@ -257,7 +239,7 @@ namespace EasyPack.EmeCardSystem.Example
             );
 
             // 添加夜晚标签到其中一个区域
-            Card nightMarker = new(new CardData("night_marker", "夜晚标记", "", "Card.Attribute", new[] { "夜晚" }));
+            Card nightMarker = _engine.CreateCard("night_marker");
             area1.AddChild(nightMarker);
 
             // 触发检查
