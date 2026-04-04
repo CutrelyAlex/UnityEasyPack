@@ -1,11 +1,11 @@
-using NUnit.Framework;
 using System.Collections;
 using System.Threading.Tasks;
+using EasyPack.Architecture;
+using EasyPack.GamePropertySystem;
+using EasyPack.Serialization;
+using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
-using EasyPack.Architecture;
-using EasyPack.Serialization;
-using EasyPack.GamePropertySystem;
 
 namespace EasyPack.ENekoFrameworkTest
 {
@@ -177,7 +177,7 @@ namespace EasyPack.ENekoFrameworkTest
             // Arrange: 解析服务和创建测试对象
             var service = await _architecture.ResolveAsync<ISerializationService>();
 
-            // 创建一个简单的 Card 对象用于测试（新路径：模板 + 引擎创建）
+            // 创建一个简单的 Card 对象用于测试
             var cardData = new EmeCardSystem.CardData(
                 id: "test_card",
                 name: "测试卡牌",
