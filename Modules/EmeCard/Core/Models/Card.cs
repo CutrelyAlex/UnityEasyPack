@@ -188,6 +188,48 @@ namespace EasyPack.EmeCardSystem
             return false;
         }
 
+        /*
+        public bool RecursiveHasTag(string tag, out Card target)
+        {
+            target = null;
+            if (string.IsNullOrEmpty(tag)) return false;
+
+            foreach (Card child in Children)
+            {
+                if (child == null) continue;
+
+                if (child.HasTag(tag))
+                {
+                    target = child;
+                    return true;
+                }
+
+                if (child.RecursiveHasTag(tag, out target))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        public bool RecursiveHasTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return false;
+
+            foreach (Card child in Children)
+            {
+                if (child == null) continue;
+
+                if (child.HasTag(tag) || child.RecursiveHasTag(tag))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        */
+        
         /// <summary>
         ///     当前卡牌的持有者（父卡）。
         /// </summary>
@@ -634,3 +676,4 @@ namespace EasyPack.EmeCardSystem
         #endregion
     }
 }
+
