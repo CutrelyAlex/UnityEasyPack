@@ -89,6 +89,41 @@ namespace EasyPack.GamepropertyTests
             Assert.AreEqual(150, newBase);
         }
 
+        [Test]
+        public void Test_克隆属性_复制基础值和修饰符并重置UID()
+        {
+            var property = new GameProperty("hp", 100) { UID = 123 };
+            property.AddModifier(new FloatModifier(ModifierType.Add, 1, 50f));
+            property.AddModifier(new FloatModifier(ModifierType.Mul, 2, 2f));
+
+            GameProperty clone = property.Clone();
+
+            Assert.AreEqual(property.ID, clone.ID);
+            Assert.AreEqual(-1, clone.UID, "克隆后的属性 UID 应重置");
+            Assert.AreEqual(property.GetBaseValue(), clone.GetBaseValue());
+            Assert.AreEqual(property.ModifierCount, clone.ModifierCount);
+            Assert.AreEqual(property.GetValue(), clone.GetValue());
+            Assert.AreNotSame(property, clone);
+            Assert.AreNotSame(property.Modifiers[0], clone.Modifiers[0]);
+        }
+
+        [Test]
+        public void Test_克隆属性_修改副本不影响原属性()
+        {
+            var property = new GameProperty("hp", 100);
+            property.AddModifier(new FloatModifier(ModifierType.Add, 1, 50f));
+
+            GameProperty clone = property.Clone();
+            clone.SetBaseValue(999);
+            clone.AddModifier(new FloatModifier(ModifierType.Add, 2, 1f));
+
+            Assert.AreEqual(100, property.GetBaseValue());
+            Assert.AreEqual(150, property.GetValue());
+            Assert.AreEqual(2, clone.ModifierCount);
+            Assert.AreEqual(1000, clone.GetValue());
+            Assert.AreEqual(1, property.ModifierCount);
+        }
+
         #endregion
 
         #region Modifier修饰符测试

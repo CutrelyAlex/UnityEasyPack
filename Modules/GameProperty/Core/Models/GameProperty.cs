@@ -441,6 +441,34 @@ namespace EasyPack.GamePropertySystem
             return this;
         }
 
+        /// <summary>
+        ///     深拷贝当前属性。
+        ///     保留 ID、基础值与修饰符，但默认重置 UID
+        ///     不复制依赖关系与事件订阅。
+        /// </summary>
+        /// <param name="resetUid">是否将克隆后的 UID 重置为 -1。</param>
+        /// <returns>新的独立属性实例。</returns>
+        public GameProperty Clone(bool resetUid = true)
+        {
+            var clone = new GameProperty(ID, _baseValue)
+            {
+                UID = resetUid ? -1 : UID,
+            };
+
+            if (Modifiers.Count > 0)
+            {
+                foreach (IModifier modifier in Modifiers)
+                {
+                    if (modifier == null) continue;
+                    clone.AddModifierInternal(modifier.Clone());
+                }
+            }
+
+            clone._cacheValue = clone._baseValue;
+            clone.MakeDirty();
+            return clone;
+        }
+
         // 策略缓存
         private static readonly Dictionary<ModifierType, IModifierStrategy> _cachedStrategies = new();
 
