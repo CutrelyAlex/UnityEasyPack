@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using EasyPack.Category;
 using EasyPack.CustomData;
+using EasyPack.GamePropertySystem;
 using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
@@ -157,6 +158,73 @@ namespace EasyPack.EmeCardSystem
         ///     按ID创建并注册Card类型的卡牌。
         /// </summary>
         public Card CreateCard(string id) => CreateCard<Card>(id);
+
+        /// <summary>
+        ///     复制一张已注册到当前引擎的卡牌，保留 ID / 子卡树 / 属性 / Metadata，
+        ///     会为新副本重新分配 UID 与 Index。
+        /// </summary>
+        /// <param name="source">要复制的源卡牌</param>
+        /// <returns>已注册到当前引擎的新卡牌副本。</returns>
+        public Card CopyCard(Card source)
+        {
+            if (!HasCard(source))
+            {
+                throw new InvalidOperationException($"卡牌 '{source.Id}' 未注册到当前引擎");
+            }
+
+            if (GetTemplateData(source.Id) == null)
+            {
+                throw new InvalidOperationException($"卡牌 '{source.Id}' 缺少模板数据");
+            }
+
+            var cloneMap = new Dictionary<Card, Card>(ReferenceEqualityComparer<Card>.Default);
+            Card clonedRoot = CloneCardTree(source, cloneMap);
+
+            AddCard(clonedRoot);
+
+            foreach ((Card original, Card clone) in cloneMap)
+            {
+                CustomDataCollection runtimeMetadata = original.RuntimeMetadata;
+                if (runtimeMetadata == null || clone.UID < 0) continue;
+
+                CategoryManager.UpdateMetadata(clone.UID, runtimeMetadata.Clone());
+            }
+
+            return clonedRoot;
+        }
+
+        private Card CloneCardTree(Card source, IDictionary<Card, Card> cloneMap)
+        {
+            if (source == null) return null;
+
+            var clone = new Card(source.Id);
+            cloneMap[source] = clone;
+
+            if (source.Properties is { Count: > 0 })
+            {
+                foreach (GameProperty property in source.Properties)
+                {
+                    GameProperty propertyClone = property?.Clone();
+                    if (propertyClone != null)
+                    {
+                        clone.Properties.Add(propertyClone);
+                    }
+                }
+            }
+
+            if (source.Children is { Count: > 0 })
+            {
+                foreach (Card child in source.Children)
+                {
+                    Card childClone = CloneCardTree(child, cloneMap);
+                    clone.AddChild(childClone, source.IsIntrinsic(child));
+                }
+            }
+
+            return clone;
+        }
+
+
 
         #endregion
 
