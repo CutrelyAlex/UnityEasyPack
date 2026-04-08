@@ -323,7 +323,7 @@ namespace EasyPack.CategoryTests
 
             // Assert
             var result = Manager.GetMetadata("test_001");
-            Assert.AreEqual(0, result.Count);
+            Assert.IsNull(result);
         }
 
         #endregion

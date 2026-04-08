@@ -198,7 +198,8 @@ namespace EasyPack.ENekoFrameworkTest
             Assert.IsNotNull(json, "序列化结果不应为 null");
             Assert.IsNotEmpty(json, "序列化结果不应为空字符串");
             Assert.IsTrue(json.Contains("test_card"), "JSON 应包含卡牌 ID");
-            Assert.IsTrue(json.Contains("测试卡牌"), "JSON 应包含卡牌名称");
+            Assert.IsFalse(json.Contains("测试卡牌"), "当前 Card JSON 仅序列化运行时状态，不包含模板名称");
+            Assert.IsTrue(json.Contains("\"UID\":"), "JSON 应包含运行时 UID 字段");
 
             Debug.Log($"[SerializationServiceInitializationTest] 序列化成功，JSON 长度: {json.Length}");
             Debug.Log($"JSON 内容: {json}");

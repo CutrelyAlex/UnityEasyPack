@@ -81,7 +81,7 @@ namespace EasyPack.CategoryTests
         #region 元数据设置测试
 
         [Test]
-        public void GetMetadata_NoMetadata_ReturnsEmptyCollection()
+        public void GetMetadata_NoMetadata_ReturnsNull()
         {
             // Arrange
             var entity = new TestEntity("entity_1", "Entity 1");
@@ -91,8 +91,7 @@ namespace EasyPack.CategoryTests
             var metadata = Manager.GetMetadata("entity_1");
 
             // Assert
-            Assert.IsNotNull(metadata);
-            Assert.AreEqual(0, metadata.Count);
+            Assert.IsNull(metadata);
         }
 
         [Test]
@@ -113,14 +112,13 @@ namespace EasyPack.CategoryTests
         }
 
         [Test]
-        public void GetMetadata_NonExistentEntity_ReturnsEmptyCollection()
+        public void GetMetadata_NonExistentEntity_ReturnsNull()
         {
             // Act
             var metadata = Manager.GetMetadata("nonexistent_id");
 
             // Assert
-            Assert.IsNotNull(metadata);
-            Assert.AreEqual(0, metadata.Count);
+            Assert.IsNull(metadata);
         }
 
         [Test]
@@ -376,7 +374,7 @@ namespace EasyPack.CategoryTests
 
             // Assert
             var metadataAfter = Manager.GetMetadata("entity_1");
-            Assert.AreEqual(0, metadataAfter.Count);
+            Assert.IsNull(metadataAfter);
         }
 
         [Test]

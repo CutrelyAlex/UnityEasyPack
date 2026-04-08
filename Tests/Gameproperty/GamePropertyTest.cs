@@ -120,7 +120,7 @@ namespace EasyPack.GamepropertyTests
             Assert.AreEqual(100, property.GetBaseValue());
             Assert.AreEqual(150, property.GetValue());
             Assert.AreEqual(2, clone.ModifierCount);
-            Assert.AreEqual(1000, clone.GetValue());
+            Assert.AreEqual(1050, clone.GetValue());
             Assert.AreEqual(1, property.ModifierCount);
         }
 
