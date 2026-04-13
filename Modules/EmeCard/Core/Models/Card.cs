@@ -439,7 +439,10 @@ namespace EasyPack.EmeCardSystem
 
             _intrinsics.Remove(child);
             child.Owner = null;
-            child.RootCard = null; // 清除 RootCard 引用
+            
+            child.PropagateRootCardToSubtree(child); // 清除子树的 RootCard 引用
+            child.RootCard = null;
+            
             child.RaiseEvent(CardEventTypes.RemovedFromOwner.CreateEvent(this));
 
             return true;
