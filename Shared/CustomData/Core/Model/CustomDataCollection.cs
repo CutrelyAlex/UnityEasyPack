@@ -402,7 +402,7 @@ namespace EasyPack.CustomData
         }
 
         /// <summary>
-        ///     获取指定键的值
+        ///     获取指定键的值对应的字符串
         /// </summary>
         public string GetToString(string key) => TryGetValue(key, out object value) ? value.ToString() : "null";
 
