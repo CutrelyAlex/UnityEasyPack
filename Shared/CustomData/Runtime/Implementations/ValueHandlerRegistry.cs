@@ -29,6 +29,7 @@ namespace EasyPack.CustomData
             Handlers[CustomDataType.String] = new StringValueHandler();
             Handlers[CustomDataType.Vector2] = new Vector2ValueHandler();
             Handlers[CustomDataType.Vector3] = new Vector3ValueHandler();
+            Handlers[CustomDataType.Vector3Int] = new Vector3IntValueHandler();
             Handlers[CustomDataType.Color] = new ColorValueHandler();
             Handlers[CustomDataType.Json] = new JsonValueHandler();
             Handlers[CustomDataType.Custom] = new CustomValueHandler();
@@ -67,6 +68,7 @@ namespace EasyPack.CustomData
                 _ when valueType == typeof(string) => Handlers[CustomDataType.String],
                 _ when valueType == typeof(Vector2) => Handlers[CustomDataType.Vector2],
                 _ when valueType == typeof(Vector3) => Handlers[CustomDataType.Vector3],
+                _ when valueType == typeof(Vector3Int) => Handlers[CustomDataType.Vector3Int],
                 _ when valueType == typeof(Color) => Handlers[CustomDataType.Color],
                 _ when valueType == typeof(CustomDataCollection) => Handlers[CustomDataType.EntryList],
                 _ when valueType == typeof(CustomDataList) => Handlers[CustomDataType.EntryList],

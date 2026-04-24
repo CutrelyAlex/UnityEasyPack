@@ -56,6 +56,7 @@ namespace EasyPack.CustomData
             entry.BoolValue = false;
             entry.StringValue = null;
             entry.Vector3Value = default;
+            entry.Vector3IntValue = default;
             entry.ColorValue = default;
             entry.JsonValue = null;
             entry.JsonClrType = null;

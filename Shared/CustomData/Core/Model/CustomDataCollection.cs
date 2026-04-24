@@ -638,6 +638,7 @@ namespace EasyPack.CustomData
                     StringValue = entry.StringValue,
                     Vector2Value = entry.Vector2Value,
                     Vector3Value = entry.Vector3Value,
+                    Vector3IntValue = entry.Vector3IntValue,
                     ColorValue = entry.ColorValue,
                     JsonValue = entry.JsonValue,
                     JsonClrType = entry.JsonClrType,

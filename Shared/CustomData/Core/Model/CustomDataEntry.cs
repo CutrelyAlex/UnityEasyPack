@@ -26,6 +26,7 @@ namespace EasyPack.CustomData
         [NonSerialized] public string StringValue;
         [NonSerialized] public Vector2 Vector2Value;
         [NonSerialized] public Vector3 Vector3Value;
+        [NonSerialized] public Vector3Int Vector3IntValue;
         [NonSerialized] public Color ColorValue;
 
         [NonSerialized] public string JsonValue;
@@ -74,6 +75,14 @@ namespace EasyPack.CustomData
             Type = CustomDataType.Vector3,
             Vector3Value = value,
         };
+        
+        public static CustomDataEntry CreateVector3Int(string key, Vector3Int value) => new()
+        {
+            Key = key,
+            Type = CustomDataType.Vector3Int,
+            Vector3IntValue = value,
+        };
+
 
         public static CustomDataEntry CreateColor(string key, Color value) =>
             new() { Key = key, Type = CustomDataType.Color, ColorValue = value };
@@ -154,6 +163,17 @@ namespace EasyPack.CustomData
             Type = CustomDataType.Vector3,
             Vector3Value = value,
         };
+        
+        /// <summary>
+        /// 创建无 Key 的 Vector3Int 条目（适用于 CustomDataList）
+        /// </summary>
+        public static CustomDataEntry CreateValue(Vector3Int value) => new()
+        {
+            Key = "",
+            Type = CustomDataType.Vector3Int,
+            Vector3IntValue = value,
+        };
+
 
         /// <summary>
         /// 创建无 Key 的 Color 条目（适用于 CustomDataList）
@@ -208,6 +228,7 @@ namespace EasyPack.CustomData
                 CustomDataType.Bool => BoolValue == other.BoolValue,
                 CustomDataType.Vector2 => Vector2Value == other.Vector2Value,
                 CustomDataType.Vector3 => Vector3Value == other.Vector3Value,
+                CustomDataType.Vector3Int => Vector3IntValue == other.Vector3IntValue,
                 CustomDataType.Color => ColorValue == other.ColorValue,
                 CustomDataType.Json => JsonValue == other.JsonValue && JsonClrType == other.JsonClrType,
                 CustomDataType.EntryList => CompareCollections(EntryListValue, other.EntryListValue),
@@ -237,6 +258,7 @@ namespace EasyPack.CustomData
         {
             if (forceType.HasValue)
             {
+                Debug.Log("存在类型");
                 IValueHandler handler = ValueHandlerRegistry.GetHandler(forceType.Value);
                 handler.SetValue(this, value);
                 return;
@@ -244,6 +266,7 @@ namespace EasyPack.CustomData
 
             if (value == null)
             {
+                Debug.Log("不存在类型");
                 IValueHandler noneHandler = ValueHandlerRegistry.GetHandler(CustomDataType.None);
                 noneHandler.SetValue(this, null);
                 return;

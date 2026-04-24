@@ -3,25 +3,25 @@ using UnityEngine;
 
 namespace EasyPack.CustomData
 {
-    public class Vector3ValueHandler : IValueHandler
+    public class Vector3IntValueHandler : IValueHandler
     {
-        public CustomDataType SupportedType => CustomDataType.Vector3;
+        public CustomDataType SupportedType => CustomDataType.Vector3Int;
 
-        public object GetValue(CustomDataEntry entry) => entry.Vector3Value;
+        public object GetValue(CustomDataEntry entry) => entry.Vector3IntValue;
 
         public void SetValue(CustomDataEntry entry, object value)
         {
-            if (value is Vector3 v3)
+            if (value is Vector3Int v3)
             {
-                entry.Vector3Value = v3;
+                entry.Vector3IntValue = v3;
             }
             else if (value is string strValue && !string.IsNullOrEmpty(strValue))
             {
-                var parsed = JsonUtility.FromJson<Vector3>(strValue);
-                entry.Vector3Value = parsed;
+                var parsed = JsonUtility.FromJson<Vector3Int>(strValue);
+                entry.Vector3IntValue = parsed;
             }
 
-            entry.Type = CustomDataType.Vector3;
+            entry.Type = CustomDataType.Vector3Int;
             ClearOtherValues(entry);
         }
 
@@ -29,9 +29,9 @@ namespace EasyPack.CustomData
         {
             try
             {
-                var value = JsonUtility.FromJson<Vector3>(data);
-                entry.Vector3Value = value;
-                entry.Type = CustomDataType.Vector3;
+                var value = JsonUtility.FromJson<Vector3Int>(data);
+                entry.Vector3IntValue = value;
+                entry.Type = CustomDataType.Vector3Int;
                 ClearOtherValues(entry);
                 return true;
             }
@@ -41,11 +41,11 @@ namespace EasyPack.CustomData
             }
         }
 
-        public string Serialize(CustomDataEntry entry) => JsonUtility.ToJson(entry.Vector3Value);
+        public string Serialize(CustomDataEntry entry) => JsonUtility.ToJson(entry.Vector3IntValue);
 
         public void Clear(CustomDataEntry entry)
         {
-            entry.Vector3Value = default;
+            entry.Vector3IntValue = default;
         }
 
         private static void ClearOtherValues(CustomDataEntry entry)
@@ -56,7 +56,7 @@ namespace EasyPack.CustomData
             entry.BoolValue = false;
             entry.StringValue = null;
             entry.Vector2Value = default;
-            entry.Vector3IntValue = default;
+            entry.Vector3Value = default;
             entry.ColorValue = default;
             entry.JsonValue = null;
             entry.JsonClrType = null;
