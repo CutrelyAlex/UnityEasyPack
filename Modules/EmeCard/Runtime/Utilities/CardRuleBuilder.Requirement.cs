@@ -178,6 +178,29 @@ namespace EasyPack.EmeCardSystem
                     1, 0, 0),
             },
         });
+        /// <summary>需要源卡或直接子卡中不含有指定标签的卡牌</summary>
+        public CardRuleBuilder NeedSourceOrChildNotHasTag(string tag) => AddRequirement(new AllRequirement()
+        {
+            Children =
+            {
+                new NotRequirement()
+                {
+                    Inner = new ConditionRequirement(context =>
+                    {
+                        if (context.Source.HasTag(tag))
+                        {
+                            return true;
+                        }
+                        return false;
+                    }),
+                },
+                new NotRequirement()
+                {
+                    Inner =  new CardsRequirement(SelectionRoot.Source, TargetScope.Children, CardFilterMode.ByTag, tag,
+                        1, 0, 0),
+                }
+            },
+        });
         #endregion
     }
 }
