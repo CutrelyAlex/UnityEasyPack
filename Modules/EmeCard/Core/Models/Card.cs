@@ -188,12 +188,18 @@ namespace EasyPack.EmeCardSystem
             return false;
         }
 
-        /*
+        
         public bool RecursiveHasTag(string tag, out Card target)
         {
             target = null;
             if (string.IsNullOrEmpty(tag)) return false;
 
+            if (HasTag(tag))
+            {
+                target = this;
+                return true;
+            }
+            
             foreach (Card child in Children)
             {
                 if (child == null) continue;
@@ -216,6 +222,7 @@ namespace EasyPack.EmeCardSystem
         {
             if (string.IsNullOrEmpty(tag)) return false;
 
+            if (HasTag(tag)) return true;
             foreach (Card child in Children)
             {
                 if (child == null) continue;
@@ -228,7 +235,6 @@ namespace EasyPack.EmeCardSystem
 
             return false;
         }
-        */
         
         /// <summary>
         ///     当前卡牌的持有者（父卡）。
