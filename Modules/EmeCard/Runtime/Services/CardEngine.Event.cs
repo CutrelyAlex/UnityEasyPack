@@ -12,9 +12,13 @@ namespace EasyPack.EmeCardSystem
         #region 事件队列与状态
 
         // 事件队列
-        private readonly Queue<(Card source, ICardEvent evt)> _eventQueue = new();
-        private readonly Queue<(Card source, ICardEvent evt)> _startEventQueue = new();
-        private readonly Queue<(Card source, ICardEvent evt)> _endEventQueue = new();
+        private readonly Stack<(Card source, ICardEvent evt)> _eventQueue = new();
+        private readonly Stack<(Card source, ICardEvent evt)> _startEventQueue = new();
+        private readonly Stack<(Card source, ICardEvent evt)> _endEventQueue = new();
+
+        private readonly List<(Card source, ICardEvent evt)> _eventCache = new();
+        private readonly List<(Card source, ICardEvent evt)> _startEventCache = new();
+        private readonly List<(Card source, ICardEvent evt)> _endEventCache = new();
 
         #endregion
 
@@ -60,14 +64,14 @@ namespace EasyPack.EmeCardSystem
             {
                 case EEventPumpType.Start:
                     if (_currentPumpState > EEventPumpType.Start) return;
-                    _startEventQueue.Enqueue((source, evt));
+                    _startEventCache.Add((source, evt));
                     break;
                 case EEventPumpType.Normal:
                     if (_currentPumpState > EEventPumpType.Normal) return;
-                    _eventQueue.Enqueue((source, evt));
+                    _eventCache.Add((source, evt));
                     break;
                 case EEventPumpType.End:
-                    _endEventQueue.Enqueue((source, evt));
+                    _endEventCache.Add((source, evt));
                     break;
             }
 
@@ -89,6 +93,10 @@ namespace EasyPack.EmeCardSystem
 
             try
             {
+                //PushListToStack(_startEventCache, _startEventQueue);
+                //PushListToStack(_eventCache, _eventQueue);
+                //PushListToStack(_endEventCache, _endEventQueue);
+                
                 _currentPumpState = EEventPumpType.Start;
                 ProcessPumpLifecycleEvent(CardEventTypes.PUMP_START);
 
@@ -98,24 +106,27 @@ namespace EasyPack.EmeCardSystem
                 while (iteration < MaxIterations)
                 {
                     // 处理队列中的所有事件
-                    while (_startEventQueue.Count > 0)
+                    while (_startEventQueue.Count > 0||_startEventCache.Count>0)
                     {
+                        PushListToStack(_startEventCache, _startEventQueue);
                         _currentPumpState = EEventPumpType.Start;
-                        (Card source, ICardEvent evt) = _startEventQueue.Dequeue();
+                        (Card source, ICardEvent evt) = _startEventQueue.Pop();
                         Process(source, evt);
                     }
 
-                    while (_eventQueue.Count > 0)
+                    while (_eventQueue.Count > 0||_eventCache.Count>0)
                     {
+                        PushListToStack(_eventCache, _eventQueue);
                         _currentPumpState = EEventPumpType.Normal;
-                        (Card source, ICardEvent evt) = _eventQueue.Dequeue();
+                        (Card source, ICardEvent evt) = _eventQueue.Pop();
                         Process(source, evt);
                     }
 
-                    while (_endEventQueue.Count > 0)
+                    while (_endEventQueue.Count > 0||_endEventCache.Count>0)
                     {
+                        PushListToStack(_endEventCache, _endEventQueue);
                         _currentPumpState = EEventPumpType.End;
-                        (Card source, ICardEvent evt) = _endEventQueue.Dequeue();
+                        (Card source, ICardEvent evt) = _endEventQueue.Pop();
                         Process(source, evt);
                     }
 
@@ -185,7 +196,7 @@ namespace EasyPack.EmeCardSystem
                         if (elapsed >= frameBudget) break;
                     }
 
-                    (Card source, ICardEvent evt) = _eventQueue.Dequeue();
+                    (Card source, ICardEvent evt) = _eventQueue.Pop();
                     Process(source, evt);
                     processed++;
                     _frameProcessedCount++;
@@ -243,7 +254,7 @@ namespace EasyPack.EmeCardSystem
                        Time.realtimeSinceStartup - frameStart < frameBudgetSec &&
                        processedInFrame < maxEvents)
                 {
-                    (Card source, ICardEvent evt) = _eventQueue.Dequeue();
+                    (Card source, ICardEvent evt) = _eventQueue.Pop();
                     Process(source, evt);
                     processedInFrame++;
                 }
@@ -263,7 +274,7 @@ namespace EasyPack.EmeCardSystem
                 // 超时：同步完成所有
                 while (_eventQueue.Count > 0)
                 {
-                    (Card source, ICardEvent evt) = _eventQueue.Dequeue();
+                    (Card source, ICardEvent evt) = _eventQueue.Pop();
                     Process(source, evt);
                 }
 
@@ -276,6 +287,15 @@ namespace EasyPack.EmeCardSystem
             {
                 FlushEffectPool();
             }
+        }
+
+        private void PushListToStack(List<(Card source, ICardEvent evt)> list,Stack<(Card source, ICardEvent evt)> stack)
+        {
+            for (int i = list.Count - 1; i >= 0; i--)
+            {
+                stack.Push(list[i]);
+            }
+            list.Clear();
         }
 
         #endregion
