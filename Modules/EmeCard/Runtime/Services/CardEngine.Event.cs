@@ -432,8 +432,6 @@ namespace EasyPack.EmeCardSystem
             {
                 return false;
             }
-
-            Debug.Log(e.rule.Effects.Count);
             
             foreach (IRuleEffect eff in e.rule.Effects)
             {
