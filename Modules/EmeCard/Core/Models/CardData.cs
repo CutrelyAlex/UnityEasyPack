@@ -44,11 +44,11 @@ namespace EasyPack.EmeCardSystem
         public Sprite Sprite { get; set; }
 
         /// <summary>
-        ///     默认标签集合
+        ///     默认标签集合，内部使用 HashSet 保证标签唯一，并优化标签查找。
         /// </summary>
-        private readonly List<string> _defaultTags = new();
+        private readonly HashSet<string> _defaultTags = new();
 
-        public string[] DefaultTags => _defaultTags.Count == 0 ? Array.Empty<string>() : _defaultTags.ToArray();
+        public IReadOnlyCollection<string> DefaultTags => _defaultTags;
 
         /// <summary>
         ///     默认属性列表：
@@ -81,18 +81,17 @@ namespace EasyPack.EmeCardSystem
         /// <param name="defaultTags">默认标签集合；null 时使用空数组。</param>
         /// <param name="sprite">卡牌图标。</param>
         public CardData(string id, string name = "Default", string desc = "",
-                        string category = DEFAULT_CATEGORY, string[] defaultTags = null, Sprite sprite = null)
+                        string category = DEFAULT_CATEGORY, IEnumerable<string> defaultTags = null, Sprite sprite = null)
         {
             ID = id;
             Name = name;
             Description = desc;
             Category = category ?? DEFAULT_CATEGORY;
-            if (defaultTags is { Length: > 0 })
+            if (defaultTags != null)
             {
                 foreach (string tag in defaultTags)
                 {
-                    if (string.IsNullOrWhiteSpace(tag)) continue;
-                    if (!_defaultTags.Contains(tag)) _defaultTags.Add(tag);
+                    WithTag(tag);
                 }
             }
             Sprite = sprite ?? Resources.Load<Sprite>(ID);
@@ -104,7 +103,7 @@ namespace EasyPack.EmeCardSystem
         public CardData WithTag(string tag)
         {
             if (string.IsNullOrWhiteSpace(tag)) return this;
-            if (!_defaultTags.Contains(tag)) _defaultTags.Add(tag);
+            _defaultTags.Add(tag);
             return this;
         }
 
@@ -113,13 +112,29 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public CardData WithTags(params string[] tags)
         {
-            if (tags == null || tags.Length == 0) return this;
+            return WithTags((IEnumerable<string>)tags);
+        }
+
+        /// <summary>
+        ///     为模板添加多个默认标签。
+        /// </summary>
+        public CardData WithTags(IEnumerable<string> tags)
+        {
+            if (tags == null) return this;
             foreach (string tag in tags)
             {
                 WithTag(tag);
             }
 
             return this;
+        }
+
+        /// <summary>
+        ///     检查模板是否包含指定默认标签。
+        /// </summary>
+        public bool HasDefaultTag(string tag)
+        {
+            return _defaultTags.Contains(tag);
         }
 
         /// <summary>
@@ -164,7 +179,7 @@ namespace EasyPack.EmeCardSystem
                 Name,
                 Description,
                 Category,
-                DefaultTags is { Length: > 0 } ? (string[])DefaultTags.Clone() : null,
+                _defaultTags,
                 Sprite
             );
 

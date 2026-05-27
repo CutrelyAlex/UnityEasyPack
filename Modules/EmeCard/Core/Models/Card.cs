@@ -49,7 +49,7 @@ namespace EasyPack.EmeCardSystem
         /// </remark>
         private readonly string _id;
 
-        public CardData Data => Engine?.GetTemplateData(_id);
+        public CardData Data => Engine.GetTemplateData(_id);
 
         /// <summary>
         ///     唯一标识符：由 CardFactory 分配，全局唯一，线程安全。
@@ -148,16 +148,7 @@ namespace EasyPack.EmeCardSystem
         /// <returns>如果包含该标签返回 true。</returns>
         public bool HasTag(string tag)
         {
-            if (string.IsNullOrEmpty(tag)) return false;
-
-            string[] defaultTags = Data?.DefaultTags;
-            if (defaultTags == null || defaultTags.Length == 0) return false;
-            for (int i = 0; i < defaultTags.Length; i++)
-            {
-                if (defaultTags[i] == tag) return true;
-            }
-
-            return false;
+            return Data.HasDefaultTag(tag);
         }
 
         public bool ChildHasTag(string tag, out Card target)
