@@ -1,11 +1,12 @@
 {
-  "name": "EasyPack",
+  "name": "EasyPack.ENekoFramework.Editor",
   "rootNamespace": "",
   "references": [
-    "UnityEngine",
-    "UnityEngine.CoreModule"
+    "EasyPack"
   ],
-  "includePlatforms": [],
+  "includePlatforms": [
+    "Editor"
+  ],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": false,

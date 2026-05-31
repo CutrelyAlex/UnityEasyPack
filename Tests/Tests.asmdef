@@ -4,8 +4,7 @@
   "references": [
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner",
-    "EasyPack",
-    "EasyPack.ENekoFramework"
+    "EasyPack"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
