@@ -86,8 +86,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public CardData GetTemplateData(string id)
         {
-            if (string.IsNullOrEmpty(id)) return null;
-            return _cardDataTemplates.TryGetValue(id, out CardData data) ? data : null;
+            return _cardDataTemplates.GetValueOrDefault(id);
         }
 
         /// <summary>

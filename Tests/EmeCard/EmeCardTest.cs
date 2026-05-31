@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using EasyPack.CustomData;
 using EasyPack.EmeCardSystem;
 using EasyPack.GamePropertySystem;
@@ -50,7 +51,7 @@ namespace EasyPack.EmeCardTests
             string[] tags = { "武器", "近战", "铁制" };
             var data3 = new CardData("iron_sword", "铁剑", "铁制的剑", "Card.Object", tags);
             Assert.IsNotNull(data3.DefaultTags, "默认标签不应为 null");
-            Assert.AreEqual(3, data3.DefaultTags.Length, $"标签数量应为 3，实际: {data3.DefaultTags.Length}");
+            Assert.AreEqual(3, data3.DefaultTags.ToArray().Length, $"标签数量应为 3，实际: {data3.DefaultTags.ToArray().Length}");
         }
 
         [Test]
