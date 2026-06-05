@@ -52,6 +52,8 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         void SyncUID(long maxUID);
 
+        void ResetMaxUID();
+
         IReadOnlyCollection<string> GetAllCardIds();
     }
 
@@ -152,7 +154,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     重置 UID 计数器。
         /// </summary>
-        internal static void ResetForTesting()
+        public void ResetMaxUID()
         {
             _nextUID = 1000;
         }

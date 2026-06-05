@@ -401,7 +401,7 @@ namespace EasyPack.EmeCardSystem
                 }
             }
 
-            CategoryManager.Clear();
+            ICategoryManager.Clear();
 
             _idIndexes.Clear();
             _idMaxIndexes.Clear();

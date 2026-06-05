@@ -5,81 +5,27 @@ using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
 {
-    /// <summary>
-    ///     卡牌的静态数据
-    ///     该类型不包含运行时状态
-    ///     运行时应由 <see cref="Card" /> 持有一份 <see cref="CardData" />，并在实例化时基于此进行初始化。
-    /// </summary>
     public class CardData
     {
-        /// <summary>
-        ///     通用默认分类路径，用于 CategoryManager 注册。
-        /// </summary>
         public const string DEFAULT_CATEGORY = "Default";
 
-        /// <summary>
-        ///     卡牌唯一标识
-        /// </summary>
         public string ID { get; }
-
-        /// <summary>
-        ///     展示名
-        /// </summary>
         public string Name { get; }
-
-        /// <summary>
-        ///     文本描述
-        /// </summary>
         public string Description { get; }
-
-        /// <summary>
-        ///     默认分类路径
-        ///     示例："Card.Object"、"Card.Action"、"Equipment.Weapon"
-        /// </summary>
         public string Category { get; }
-
-        /// <summary>
-        ///     卡牌图标
-        /// </summary>
         public Sprite Sprite { get; set; }
 
-        /// <summary>
-        ///     默认标签集合，内部使用 HashSet 保证标签唯一，并优化标签查找。
-        /// </summary>
         private readonly HashSet<string> _defaultTags = new();
-
         public IReadOnlyCollection<string> DefaultTags => _defaultTags;
 
-        /// <summary>
-        ///     默认属性列表：
-        ///     Card 被添加到 Engine 时，若自身 Properties 为空，则从此列表初始化。
-        /// </summary>
         private readonly List<(string id, float value)> _defaultProperties = new();
-
         public IReadOnlyList<(string id, float value)> DefaultProperties => _defaultProperties;
 
-        /// <summary>
-        ///     默认子卡列表：(childId, intrinsic)
-        ///     Card 被 Factory 创建时，自动添加这些子卡。
-        /// </summary>
         private readonly List<(string childId, bool intrinsic)> _defaultChildren = new();
-
         public IReadOnlyList<(string childId, bool intrinsic)> DefaultChildren => _defaultChildren;
 
-        /// <summary>
-        ///     自定义数据集合的默认实例
-        /// </summary>
         public CustomDataCollection DefaultMetaData { get; } = new();
 
-        /// <summary>
-        ///     创建一条卡牌静态数据。
-        /// </summary>
-        /// <param name="id">逻辑ID</param>
-        /// <param name="name">展示名。默认为 "Default"</param>
-        /// <param name="desc">描述文本</param>
-        /// <param name="category">分类路径，用于 CategoryManager（默认为 "Default"）</param>
-        /// <param name="defaultTags">默认标签集合；null 时使用空数组。</param>
-        /// <param name="sprite">卡牌图标。</param>
         public CardData(string id, string name = "Default", string desc = "",
                         string category = DEFAULT_CATEGORY, IEnumerable<string> defaultTags = null, Sprite sprite = null)
         {
@@ -89,17 +35,11 @@ namespace EasyPack.EmeCardSystem
             Category = category ?? DEFAULT_CATEGORY;
             if (defaultTags != null)
             {
-                foreach (string tag in defaultTags)
-                {
-                    WithTag(tag);
-                }
+                foreach (string tag in defaultTags) WithTag(tag);
             }
             Sprite = sprite ?? Resources.Load<Sprite>(ID);
         }
 
-        /// <summary>
-        ///     为模板添加默认标签。
-        /// </summary>
         public CardData WithTag(string tag)
         {
             if (string.IsNullOrWhiteSpace(tag)) return this;
@@ -107,48 +47,23 @@ namespace EasyPack.EmeCardSystem
             return this;
         }
 
-        /// <summary>
-        ///     为模板添加多个默认标签。
-        /// </summary>
-        public CardData WithTags(params string[] tags)
-        {
-            return WithTags((IEnumerable<string>)tags);
-        }
+        public CardData WithTags(params string[] tags) => WithTags((IEnumerable<string>)tags);
 
-        /// <summary>
-        ///     为模板添加多个默认标签。
-        /// </summary>
         public CardData WithTags(IEnumerable<string> tags)
         {
             if (tags == null) return this;
-            foreach (string tag in tags)
-            {
-                WithTag(tag);
-            }
-
+            foreach (string tag in tags) WithTag(tag);
             return this;
         }
 
-        /// <summary>
-        ///     检查模板是否包含指定默认标签。
-        /// </summary>
-        public bool HasDefaultTag(string tag)
-        {
-            return _defaultTags.Contains(tag);
-        }
+        public bool HasDefaultTag(string tag) => _defaultTags.Contains(tag);
 
-        /// <summary>
-        ///     配置模板默认元数据。
-        /// </summary>
         public CardData WithMetaData(Action<CustomDataCollection> action)
         {
             action?.Invoke(DefaultMetaData);
             return this;
         }
 
-        /// <summary>
-        ///     为模板添加默认属性。
-        /// </summary>
         public CardData WithProperty(string id, float value)
         {
             if (string.IsNullOrEmpty(id)) return this;
@@ -156,10 +71,6 @@ namespace EasyPack.EmeCardSystem
             return this;
         }
 
-        /// <summary>
-        ///     为模板添加默认子卡。
-        ///     Factory 创建卡牌时自动 CreateCard 并 AddChild。
-        /// </summary>
         public CardData WithChild(string childId, bool intrinsic = false)
         {
             if (string.IsNullOrEmpty(childId)) return this;
@@ -167,45 +78,41 @@ namespace EasyPack.EmeCardSystem
             return this;
         }
 
-        /// <summary>
-        ///     克隆当前数据并指定新的 ID。
-        /// </summary>
-        /// <param name="newId">新的逻辑 ID。</param>
-        /// <returns>克隆后的 CardData 实例。</returns>
+        public CardData ClearChildren()
+        {
+            _defaultChildren.Clear();
+            return this;
+        }
+
+        public CardData RemoveChild(string childId, bool intrinsic, int count = 1)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                int idx = _defaultChildren.FindIndex(c => c.childId == childId && c.intrinsic == intrinsic);
+                if (idx < 0) break;
+                _defaultChildren.RemoveAt(idx);
+            }
+            return this;
+        }
+
+        public CardData ModifyChild(string fromChildId, bool fromIntrinsic, string toChildId, bool toIntrinsic, int count = 1)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                int idx = _defaultChildren.FindIndex(c => c.childId == fromChildId && c.intrinsic == fromIntrinsic);
+                if (idx < 0) break;
+                _defaultChildren[idx] = (toChildId, toIntrinsic);
+            }
+            return this;
+        }
+
         public CardData Clone(string newId)
         {
-            var clone = new CardData(
-                newId,
-                Name,
-                Description,
-                Category,
-                _defaultTags,
-                Sprite
-            );
+            var clone = new CardData(newId, Name, Description, Category, _defaultTags, Sprite);
 
-            // 深度拷贝元数据
-            if (DefaultMetaData != null)
-            {
-                clone.DefaultMetaData.Merge(DefaultMetaData);
-            }
-
-            // 深度拷贝默认属性
-            if (_defaultProperties.Count > 0)
-            {
-                foreach (var prop in _defaultProperties)
-                {
-                    clone._defaultProperties.Add(prop);
-                }
-            }
-
-            // 深度拷贝默认子卡
-            if (_defaultChildren.Count > 0)
-            {
-                foreach (var child in _defaultChildren)
-                {
-                    clone._defaultChildren.Add(child);
-                }
-            }
+            if (DefaultMetaData != null) clone.DefaultMetaData.Merge(DefaultMetaData);
+            foreach (var prop in _defaultProperties) clone._defaultProperties.Add(prop);
+            foreach (var child in _defaultChildren) clone._defaultChildren.Add(child);
 
             return clone;
         }

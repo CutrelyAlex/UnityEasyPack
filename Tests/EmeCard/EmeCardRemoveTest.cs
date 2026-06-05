@@ -141,7 +141,7 @@ namespace EasyPack.EmeCardTests
             Assert.AreEqual(2, card.Tags.Count, "卡牌应该有2个标签");
 
             // 验证CategoryManager包含该卡牌
-            Assert.IsNotNull(_engine.CategoryManager.GetById(cardUID),
+            Assert.IsNotNull(_engine.ICategoryManager.GetById(cardUID),
                 "删除前CategoryManager应包含该卡牌");
 
             // 删除卡牌
@@ -150,7 +150,7 @@ namespace EasyPack.EmeCardTests
             // 使用反射访问CategoryManager的私有字段
             Type categoryManagerType = typeof(CategoryManager<Card, long>);
 
-            var categoryManager = _engine.CategoryManager as CategoryManager<Card, long>;
+            var categoryManager = _engine.ICategoryManager as CategoryManager<Card, long>;
             Assert.IsNotNull(categoryManager, "CategoryManager应为CategoryManager<Card, long>类型");
 
             // 检查 _entities
@@ -346,7 +346,7 @@ namespace EasyPack.EmeCardTests
             // 检查是否是 CategoryManager<Card, long> 类型
             if (type == typeof(CategoryManager<Card, long>))
             {
-                instance = _engine.CategoryManager;
+                instance = _engine.ICategoryManager;
             }
             else if (type == typeof(CardEngine))
             {
@@ -354,7 +354,7 @@ namespace EasyPack.EmeCardTests
             }
             else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(CategoryManager<,>))
             {
-                instance = _engine.CategoryManager;
+                instance = _engine.ICategoryManager;
             }
 
             if (instance == null)

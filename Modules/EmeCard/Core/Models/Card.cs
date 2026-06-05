@@ -49,7 +49,14 @@ namespace EasyPack.EmeCardSystem
         /// </remark>
         private readonly string _id;
 
-        public CardData Data => Engine.GetTemplateData(_id);
+        public CardData Data
+        {
+            get
+            {
+                //if(Engine==null) Debug.Log("是" + IdAndIndex );
+                return Engine.GetTemplateData(_id);
+            }
+        }
 
         /// <summary>
         ///     唯一标识符：由 CardFactory 分配，全局唯一，线程安全。
@@ -451,7 +458,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     当前卡牌注册时使用的分类管理器（运行时标签/元数据管理）。
         /// </summary>
-        public ICategoryManager<Card, long> RuntimeCategoryManager => Engine?.CategoryManager;
+        public ICategoryManager<Card, long> RuntimeCategoryManager => Engine?.ICategoryManager;
 
         /// <summary>
         ///     在 CategoryManager 中存储的运行时元数据（如果已注册）。

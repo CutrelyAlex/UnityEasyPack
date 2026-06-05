@@ -20,7 +20,7 @@ namespace EasyPack.EmeCardSystem
             _cardFactory = factory;
             _cardSerializer = new CardJsonSerializer(factory);
 
-            CategoryManager = new CategoryManager<Card, long>(card => card.UID);
+            ICategoryManager = new CategoryManager<Card, long>(card => card.UID);
 
             PreCacheAllCardTemplates();
 
@@ -73,13 +73,13 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     卡牌工厂注册接口
         /// </summary>
-        public ICardFactoryRegistry CardFactory => _cardFactory as ICardFactoryRegistry;
+        public ICardFactoryRegistry ICardFactory => _cardFactory as ICardFactoryRegistry;
 
         /// <summary>
         ///     分类管理系统，用于统一管理卡牌的分类和标签。
         ///     提供基于标签的 O(1) 查询和基于层级分类的 O(log n) 查询。
         /// </summary>
-        public ICategoryManager<Card, long> CategoryManager { get; private set; }
+        public ICategoryManager<Card, long> ICategoryManager { get; private set; }
 
         /// <summary>
         ///     获取指定 ID 的模板数据。
@@ -186,7 +186,7 @@ namespace EasyPack.EmeCardSystem
                 CustomDataCollection runtimeMetadata = original.RuntimeMetadata;
                 if (runtimeMetadata == null || clone.UID < 0) continue;
 
-                CategoryManager.UpdateMetadata(clone.UID, runtimeMetadata.Clone());
+                ICategoryManager.UpdateMetadata(clone.UID, runtimeMetadata.Clone());
             }
 
             return clonedRoot;
@@ -321,7 +321,7 @@ namespace EasyPack.EmeCardSystem
             if (card == null) return;
 
             // 仅使用 CategoryManager 的 metadata 能力，不使用其 tag/category 能力
-            IEntityRegistration registration = CategoryManager.RegisterEntity(card, CardData.DEFAULT_CATEGORY);
+            IEntityRegistration registration = ICategoryManager.RegisterEntity(card, CardData.DEFAULT_CATEGORY);
 
             // 应用默认的metadata
             CustomDataCollection defaultMetaData = card.Data?.DefaultMetaData;
@@ -348,7 +348,7 @@ namespace EasyPack.EmeCardSystem
             if (uid < 0) return;
 
             // 使用 UID（int）删除实体
-            OperationResult result = CategoryManager.DeleteEntity(uid);
+            OperationResult result = ICategoryManager.DeleteEntity(uid);
             if (!result.IsSuccess && result.ErrorCode != ErrorCode.NotFound)
             {
                 Debug.LogWarning($"[CardEngine] CategoryManager 注销失败: Card UID={uid}, Error={result.ErrorMessage}");

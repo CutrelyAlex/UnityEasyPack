@@ -418,7 +418,7 @@ namespace EasyPack.EmeCardTests
             // Add metadata via CategoryManager
             var metadata = new CustomDataCollection();
             metadata.Set("Level", 5);
-            _engine.CategoryManager.UpdateMetadata(hero.UID, metadata);
+            _engine.ICategoryManager.UpdateMetadata(hero.UID, metadata);
 
             // Act
             string json = _engine.SerializeToJson();
@@ -454,7 +454,7 @@ namespace EasyPack.EmeCardTests
             Assert.IsTrue(restoredHero.HasTag("Character"), "Hero tag should be restored");
 
             // 6. Verify Metadata
-            var restoredMetadata = newEngine.CategoryManager.GetMetadata(restoredHero.UID);
+            var restoredMetadata = newEngine.ICategoryManager.GetMetadata(restoredHero.UID);
             Assert.IsNotNull(restoredMetadata, "Metadata should be restored");
             Assert.AreEqual(5, restoredMetadata.Get<int>("Level"), "Metadata value should be correct");
 
@@ -463,11 +463,11 @@ namespace EasyPack.EmeCardTests
             Assert.AreEqual(new Vector2(1.0f, 0.0f), restoredVel.Data.DefaultMetaData.Get<Vector2>("Direction"), "Velocity Direction should be restored");
 
             // 8. Verify MetaData in CategoryManger
-            var velMetadata = newEngine.CategoryManager.GetMetadata(restoredVel.UID);
+            var velMetadata = newEngine.ICategoryManager.GetMetadata(restoredVel.UID);
             Assert.IsNotNull(velMetadata, "Velocity Metadata should be restored");
             Assert.IsTrue(velMetadata.Get<bool>("IsVelocity"), "Velocity IsVelocity metadata should be true");
             Assert.AreEqual(9.8f, velMetadata.Get<float>("Speed"), "Velocity Speed metadata should be correct");
-            var vuMetadata = newEngine.CategoryManager.GetMetadata(restoredVu.UID);
+            var vuMetadata = newEngine.ICategoryManager.GetMetadata(restoredVu.UID);
             Assert.IsNotNull(vuMetadata, "VU Metadata should be restored");
             Assert.IsTrue(vuMetadata.Get<bool>("IsVelocity"), "VU IsVelocity metadata should be true");
             Assert.AreEqual(9.8f, vuMetadata.Get<float>("Speed"), "VU Speed metadata should be correct");
@@ -524,7 +524,7 @@ namespace EasyPack.EmeCardTests
                 "反序列化后模板 DefaultMetaData 不应包含运行时字段");
 
             // 运行时 metadata 保持序列化时的更改
-            CustomDataCollection runtimeMeta = restoredEngine.CategoryManager.GetMetadata(restored.UID);
+            CustomDataCollection runtimeMeta = restoredEngine.ICategoryManager.GetMetadata(restored.UID);
             Assert.IsNotNull(runtimeMeta, "反序列化后应有运行时 metadata");
             Assert.AreEqual(999, runtimeMeta.Get("TemplateOnly", -1),
                 "反序列化后运行时 TemplateOnly 应保留修改值");

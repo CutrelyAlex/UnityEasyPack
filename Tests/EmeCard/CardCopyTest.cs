@@ -64,8 +64,8 @@ namespace EasyPack.EmeCardTests
             Assert.AreEqual(child.GetProperty("Damage").GetValue(), copiedChild.GetProperty("Damage").GetValue());
             Assert.AreNotSame(source.GetProperty("HP"), copy.GetProperty("HP"));
 
-            CustomDataCollection copyMeta = _engine.CategoryManager.GetMetadata(copy.UID);
-            CustomDataCollection copyChildMeta = _engine.CategoryManager.GetMetadata(copiedChild.UID);
+            CustomDataCollection copyMeta = _engine.ICategoryManager.GetMetadata(copy.UID);
+            CustomDataCollection copyChildMeta = _engine.ICategoryManager.GetMetadata(copiedChild.UID);
             Assert.IsNotNull(copyMeta);
             Assert.IsNotNull(copyChildMeta);
             Assert.AreEqual(7, copyMeta.Get<int>("Level"));
@@ -76,7 +76,7 @@ namespace EasyPack.EmeCardTests
             copy.ModifyRuntimeMetadata(meta => meta.Set("Level", 100));
 
             Assert.AreEqual(15f, source.GetProperty("HP").GetValue());
-            Assert.AreEqual(7, _engine.CategoryManager.GetMetadata(source.UID).Get<int>("Level"));
+            Assert.AreEqual(7, _engine.ICategoryManager.GetMetadata(source.UID).Get<int>("Level"));
         }
     }
 }

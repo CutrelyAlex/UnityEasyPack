@@ -8,28 +8,16 @@ using UnityEngine;
 
 namespace EasyPack.EmeCardSystem
 {
-    /// <summary>
-    ///     EmeCard 的 JSON 序列化器
-    ///     实现双泛型接口，将 Card 与其子层级转换为 JSON，及从 JSON 重建
-    /// </summary>
     public class CardJsonSerializer : ITypeSerializer<Card, SerializableCard>
     {
         private readonly GamePropertyJsonSerializer _propertySerializer = new();
         private readonly ICardFactory _factory;
 
-        /// <summary>
-        ///     可选的卡牌工厂引用，用于在反序列化时重建符合静态数据的原型
-        /// </summary>
         public CardJsonSerializer(ICardFactory factory = null)
         {
             _factory = factory;
         }
 
-        #region ITypeSerializer<Card, SerializableCard> 实现
-
-        /// <summary>
-        ///     将 Card 对象转换为可序列化的 DTO
-        /// </summary>
         public SerializableCard ToSerializable(Card obj)
         {
             if (obj == null)
@@ -38,202 +26,72 @@ namespace EasyPack.EmeCardSystem
                 return null;
             }
 
-            var visited = new HashSet<Card>(ReferenceEqualityComparer<Card>.Default);
-            return SerializeCardRecursive(obj, visited, new());
+            return SerializeCard(obj);
         }
 
-        /// <summary>
-        ///     从可序列化 DTO 转换回 Card 对象
-        /// </summary>
-        public Card FromSerializable(SerializableCard dto) => DeserializeCardRecursive(dto, null);
-
-        /// <summary>
-        ///     从可序列化 DTO 转换回 Card 对象
-        /// </summary>
-        public Card FromSerializable(SerializableCard dto, Dictionary<long, Card> cache) =>
-            DeserializeCardRecursive(dto, cache);
-
-        /// <summary>
-        ///     将 DTO 序列化为 JSON 字符串
-        /// </summary>
+        public Card FromSerializable(SerializableCard dto) => DeserializeCard(dto, null);
+        public Card FromSerializable(SerializableCard dto, Dictionary<long, Card> cache) => DeserializeCard(dto, cache);
         public string ToJson(SerializableCard dto) => dto == null ? null : JsonUtility.ToJson(dto);
 
-        /// <summary>
-        ///     从 JSON 字符串反序列化为 DTO
-        /// </summary>
         public SerializableCard FromJson(string json)
         {
             if (string.IsNullOrEmpty(json)) return null;
-
             SerializableCard data;
-            try
-            {
-                data = JsonUtility.FromJson<SerializableCard>(json);
-            }
+            try { data = JsonUtility.FromJson<SerializableCard>(json); }
             catch (Exception ex)
             {
-                throw new SerializationException(
-                    $"无效的 JSON 结构：{ex.Message}",
-                    typeof(Card),
-                    SerializationErrorCode.DeserializationFailed,
-                    ex
-                );
+                throw new SerializationException($"无效的 JSON 结构：{ex.Message}", typeof(Card), SerializationErrorCode.DeserializationFailed, ex);
             }
-
-            if (data == null)
-            {
-                throw new SerializationException(
-                    "JSON 解析结果为空",
-                    typeof(Card),
-                    SerializationErrorCode.DeserializationFailed
-                );
-            }
-
+            if (data == null) throw new SerializationException("JSON 解析结果为空", typeof(Card), SerializationErrorCode.DeserializationFailed);
             return data;
         }
 
-        /// <summary>
-        ///     将 Card 直接序列化为 JSON
-        /// </summary>
-        public string SerializeToJson(Card obj)
-        {
-            SerializableCard dto = ToSerializable(obj);
-            return ToJson(dto);
-        }
-
-        /// <summary>
-        ///     从 JSON 直接反序列化为 Card
-        /// </summary>
+        public string SerializeToJson(Card obj) => ToJson(ToSerializable(obj));
         public Card DeserializeFromJson(string json) => DeserializeFromJson(json, null);
+        public Card DeserializeFromJson(string json, Dictionary<long, Card> cache) => FromSerializable(FromJson(json), cache);
 
-        /// <summary>
-        ///     从 JSON 直接反序列化为 Card，使用缓存避免重复创建
-        /// </summary>
-        public Card DeserializeFromJson(string json, Dictionary<long, Card> cache)
+        private SerializableCard SerializeCard(Card card)
         {
-            SerializableCard dto = FromJson(json);
-            return FromSerializable(dto, cache);
-        }
-
-        #endregion
-
-        #region 私有辅助方法
-
-        private SerializableCard SerializeCardRecursive(Card card, HashSet<Card> visited, List<Card> path)
-        {
-            if (!visited.Add(card))
+            var dto = new SerializableCard
             {
-                string message = $"检测到循环引用：{BuildPath(path)} → Card[ID={card.Id}, Index={card.Index}]";
-                throw new SerializationException(message, typeof(Card), SerializationErrorCode.SerializationFailed);
-            }
+                ID = card.Id,
+                Index = card.Index,
+                UID = card.UID,
+                HasPosition = card.Position.HasValue,
+                Position = card.Position ?? Vector3Int.zero,Properties = Array.Empty<SerializableGameProperty>(),
+                // ChildrenUIDs 不再写入——children 由 CardData 重建
+                ChildrenUIDs = Array.Empty<long>(),
+                IntrinsicChildrenUIDs = Array.Empty<long>(),
+            };
 
-            path.Add(card);
-            try
+            if (card.Properties != null)
             {
-                var propertiesList = new List<SerializableGameProperty>();
-                var childrenUIDsList = new List<long>();
-                var intrinsicChildrenUIDsList = new List<long>();
-
-                var dto = new SerializableCard
+                var props = new List<SerializableGameProperty>();
+                foreach (GameProperty prop in card.Properties)
                 {
-                    ID = card.Id,
-                    Index = card.Index,
-                    UID = card.UID,
-                    Properties = Array.Empty<SerializableGameProperty>(),
-                    ChildrenUIDs = Array.Empty<long>(), // 默认为空，有子类时填充
-                    IntrinsicChildrenUIDs = Array.Empty<long>(), // 固有子卡 UID 列表
-
-                    // 位置信息
-                    HasPosition = card.Position.HasValue,
-                    Position = card.Position ?? Vector3Int.zero,
-                };
-
-                // Debug.Log($"[Serialize] ID={dto.ID}, DefaultCategory={dto.DefaultCategory}, Category={dto.Category}");
-
-                // 序列化 GameProperty 列表
-                if (card.Properties != null)
-                {
-                    foreach (GameProperty prop in card.Properties)
+                    try
                     {
-                        try
-                        {
-                            var sProp = _propertySerializer.ToSerializable(prop);
-                            if (sProp != null)
-                            {
-                                propertiesList.Add(sProp);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.LogWarning(
-                                $"[CardJsonSerializer] 跳过序列化失败的 GameProperty [ID={prop?.ID}]: {ex.Message}");
-                        }
+                        var sProp = _propertySerializer.ToSerializable(prop);
+                        if (sProp != null) props.Add(sProp);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[CardJsonSerializer] 跳过序列化失败的 GameProperty [ID={prop?.ID}]: {ex.Message}");
                     }
                 }
-
-                // 递归序列化子卡（收集 UID 引用）
-                if (card.Children is { Count: > 0 })
-                {
-                    foreach (Card child in card.Children)
-                    {
-                        // 先递归序列化子卡（确保子卡也被处理）
-                        SerializeCardRecursive(child, visited, path);
-
-                        // 记录子卡的 UID
-                        childrenUIDsList.Add(child.UID);
-
-                        // 如果是固有子卡，也记录到固有列表中
-                        if (card.IsIntrinsic(child))
-                        {
-                            intrinsicChildrenUIDsList.Add(child.UID);
-                        }
-                    }
-
-                    // 转换为数组
-                    if (childrenUIDsList.Count > 0)
-                    {
-                        dto.ChildrenUIDs = childrenUIDsList.ToArray();
-                    }
-
-                    if (intrinsicChildrenUIDsList.Count > 0)
-                    {
-                        dto.IntrinsicChildrenUIDs = intrinsicChildrenUIDsList.ToArray();
-                    }
-                }
-
-                // 转换为数组
-                dto.Properties = propertiesList.ToArray();
-
-                return dto;
+                dto.Properties = props.ToArray();
             }
-            finally
-            {
-                path.RemoveAt(path.Count - 1);
-                visited.Remove(card);
-            }
+
+            return dto;
         }
 
-        private Card DeserializeCardRecursive(SerializableCard data, Dictionary<long, Card> cache)
+        private Card DeserializeCard(SerializableCard data, Dictionary<long, Card> cache)
         {
-            if (data == null)
-            {
-                return null;
-            }
+            if (data == null) return null;
+            if (string.IsNullOrEmpty(data.ID))throw new SerializationException("CardData.ID 是必需字段", typeof(Card), SerializationErrorCode.DeserializationFailed);
 
-            if (string.IsNullOrEmpty(data.ID))
-            {
-                throw new SerializationException("CardData.ID 是必需字段", typeof(Card),
-                    SerializationErrorCode.DeserializationFailed);
-            }
+            if (cache != null && cache.TryGetValue(data.UID, out Card existingCard)) return existingCard;
 
-            // 检查缓存
-            if (cache != null && cache.TryGetValue(data.UID, out Card existingCard))
-            {
-                return existingCard;
-            }
-
-            // 从工厂模板字典获取 CardData
-            // 用于回退构造最小信息
             var card = new Card(data.ID)
             {
                 Index = data.Index,
@@ -241,13 +99,8 @@ namespace EasyPack.EmeCardSystem
                 Position = data.HasPosition ? data.Position : null,
             };
 
-            // 加入缓存
-            if (cache != null)
-            {
-                cache[card.UID] = card;
-            }
+            if (cache != null) cache[card.UID] = card;
 
-            // 恢复属性
             if (data.Properties != null)
             {
                 foreach (SerializableGameProperty sProp in data.Properties)
@@ -264,37 +117,14 @@ namespace EasyPack.EmeCardSystem
                 }
             }
 
-            // 注意：子卡关系在两阶段反序列化中处理
-            // 第一阶段只创建卡牌对象，第二阶段建立父子关系
-            // ChildrenUIDs 的处理由外部调用者负责（如 CategoryManager）
-
             return card;
         }
-
-        private static string BuildPath(List<Card> path)
-        {
-            if (path == null || path.Count == 0) return string.Empty;
-            var sb = new StringBuilder();
-            for (int i = 0; i < path.Count; i++)
-            {
-                Card c = path[i];
-                if (i > 0) sb.Append(" → ");
-                sb.Append($"Card[ID={c.Id}, Index={c.Index}]");
-            }
-
-            return sb.ToString();
-        }
     }
-
 
     internal sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
     {
         public static readonly ReferenceEqualityComparer<T> Default = new();
-
         public bool Equals(T x, T y) => ReferenceEquals(x, y);
-
         public int GetHashCode(T obj) => RuntimeHelpers.GetHashCode(obj);
     }
-
-    #endregion
 }

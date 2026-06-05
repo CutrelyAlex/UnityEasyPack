@@ -85,11 +85,11 @@ namespace EasyPack.EmeCardTests
 
             var rootMetadata = new CustomDataCollection();
             rootMetadata.Set("Stack", 3);
-            sourceEngine.CategoryManager.UpdateMetadata(root.UID, rootMetadata);
+            sourceEngine.ICategoryManager.UpdateMetadata(root.UID, rootMetadata);
 
             var childMetadata = new CustomDataCollection();
             childMetadata.Set("Heat", 12);
-            sourceEngine.CategoryManager.UpdateMetadata(child.UID, childMetadata);
+            sourceEngine.ICategoryManager.UpdateMetadata(child.UID, childMetadata);
 
             string json = sourceEngine.SerializeToJson();
 
@@ -101,9 +101,9 @@ namespace EasyPack.EmeCardTests
 
             Assert.IsNotNull(restoredRoot, "应恢复根卡");
             Assert.IsNotNull(restoredChild, "应恢复子卡");
-            Assert.AreEqual(3, restoredEngine.CategoryManager.GetMetadata(restoredRoot.UID).Get<int>("Stack"),
+            Assert.AreEqual(3, restoredEngine.ICategoryManager.GetMetadata(restoredRoot.UID).Get<int>("Stack"),
                 "根卡运行时 metadata 应恢复");
-            Assert.AreEqual(12, restoredEngine.CategoryManager.GetMetadata(restoredChild.UID).Get<int>("Heat"),
+            Assert.AreEqual(12, restoredEngine.ICategoryManager.GetMetadata(restoredChild.UID).Get<int>("Heat"),
                 "子卡运行时 metadata 应恢复");
         }
 

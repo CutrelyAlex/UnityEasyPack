@@ -44,10 +44,10 @@ namespace EasyPack.EmeCardSystem
         public EventSourceType SourceType => Source != null ? EventSourceType.Card : EventSourceType.System;
 
         /// <summary>分类管理器。</summary>
-        public ICategoryManager<Card, long> CategoryManager => Engine?.CategoryManager;
+        public ICategoryManager<Card, long> CategoryManager => Engine?.ICategoryManager;
 
         /// <summary>卡牌工厂。</summary>
-        public ICardFactoryRegistry Factory => Engine?.CardFactory;
+        public ICardFactoryRegistry Factory => Engine?.ICardFactory;
 
         /// <summary>
         ///     从 Tick 事件获取时间增量。

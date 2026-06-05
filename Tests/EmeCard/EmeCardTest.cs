@@ -125,7 +125,7 @@ namespace EasyPack.EmeCardTests
 
             // 验证Card通过CategoryManager获取到metadata
             // 注：metadata是在RegisterToCategoryManager时通过CategoryManager应用的
-            CustomDataCollection metaDataByEngine = engine.CategoryManager.GetMetadata(card.UID);
+            CustomDataCollection metaDataByEngine = engine.ICategoryManager.GetMetadata(card.UID);
 
             // 检查metadata中的数据
             Assert.IsTrue(cardData.DefaultMetaData.HasValue("Mana"), "DefaultMetaData应包含Mana");
@@ -189,7 +189,7 @@ namespace EasyPack.EmeCardTests
                 meta.Set("RuntimeOnly", "runtime");
             });
 
-            CustomDataCollection runtimeMeta = engine.CategoryManager.GetMetadata(root.UID);
+            CustomDataCollection runtimeMeta = engine.ICategoryManager.GetMetadata(root.UID);
             Assert.AreEqual(999, runtimeMeta.Get("TemplateOnly", -1), "运行时元数据应已修改");
             Assert.AreEqual("runtime", runtimeMeta.Get("RuntimeOnly", ""), "运行时新增字段应存在");
 
@@ -227,7 +227,7 @@ namespace EasyPack.EmeCardTests
                 meta.Set("ChildRuntimeOnly", true);
             });
 
-            CustomDataCollection childRuntimeMeta = engine.CategoryManager.GetMetadata(child.UID);
+            CustomDataCollection childRuntimeMeta = engine.ICategoryManager.GetMetadata(child.UID);
             Assert.AreEqual(888, childRuntimeMeta.Get("ChildTemplate", -1), "子卡运行时元数据应已修改");
             Assert.IsTrue(childRuntimeMeta.Get("ChildRuntimeOnly", false), "子卡运行时新增字段应存在");
 
@@ -638,9 +638,9 @@ namespace EasyPack.EmeCardTests
                 .DoInvoke((ctx, matched) =>
                 {
                     usedTriggered = true;
-                    var meta = ctx.Engine.CategoryManager.GetMetadata(ctx.Source.UID) ?? new CustomDataCollection();
+                    var meta = ctx.Engine.ICategoryManager.GetMetadata(ctx.Source.UID) ?? new CustomDataCollection();
                     meta.Set("已使用", true);
-                    ctx.Engine.CategoryManager.UpdateMetadata(ctx.Source.UID, meta);
+                    ctx.Engine.ICategoryManager.UpdateMetadata(ctx.Source.UID, meta);
                 })
                 .Build();
 
