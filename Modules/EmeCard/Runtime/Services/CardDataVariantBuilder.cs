@@ -49,7 +49,7 @@ namespace EasyPack.EmeCardSystem
                     var to = new ChildKey(diff.ToChildID, diff.ToIntrinsic);
                     int consumed = Consume(remaining, from, diff.Count);
                     if (consumed < diff.Count)
-                        Debug.LogWarning($"[CardDataVariantBuilder] Variant '{variant.ID}' modifies {diff.Count} x {from.ChildID}, base only has {consumed}.");
+                        Debug.LogWarning($"[MCardDataVariantBuilder] Variant '{variant.ID}' modifies {diff.Count} x {from.ChildID}, base only has {consumed}.");
                     for (int i = 0; i < consumed; i++) products.Add(to);
                 }
             }

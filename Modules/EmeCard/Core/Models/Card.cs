@@ -47,7 +47,7 @@ namespace EasyPack.EmeCardSystem
         ///     注意：更改 Data 不会自动更新 CategoryManager 中的标签，
         ///     标签管理统一由 Engine 在注册时处理。
         /// </remark>
-        private readonly string _id;
+        private string _id;
 
         public CardData Data
         {
@@ -73,7 +73,11 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     卡牌标识，来自 <see cref="Data" />。
         /// </summary>
-        public string Id => _id;
+        public string Id
+        {
+            get => _id;
+            set => _id=value;
+        }
 
         public string IdAndIndex => Id + Index;
 
