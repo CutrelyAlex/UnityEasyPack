@@ -53,7 +53,7 @@ namespace EasyPack.EmeCardSystem
         {
             get
             {
-                //if(Engine==null) Debug.Log("是" + IdAndIndex );
+                if(Engine==null) Debug.Log("是" + IdAndIndex );
                 return Engine.GetTemplateData(_id);
             }
         }

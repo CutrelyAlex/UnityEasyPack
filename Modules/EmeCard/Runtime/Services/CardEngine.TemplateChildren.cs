@@ -19,7 +19,9 @@ namespace EasyPack.EmeCardSystem
                     continue;
                 }
 
-                _cardDataTemplates[variant.ID] = CardDataVariantBuilder.BuildVariant(baseData, variant);
+                CardData variantData = CardDataVariantBuilder.BuildVariant(baseData, variant);
+                _cardDataTemplates[variant.ID] = variantData;
+                (_cardFactory as ICardFactoryRegistry)?.RegisterData(variant.ID, variantData);
             }
         }
 
