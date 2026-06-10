@@ -49,6 +49,7 @@ namespace EasyPack.EmeCardSystem
         private void PreCacheAllCardTemplates()
         {
             _cardDataTemplates.Clear();
+            _cardDataLogicalIds.Clear();
 
             if (_cardFactory == null) return;
 
@@ -58,6 +59,7 @@ namespace EasyPack.EmeCardSystem
             foreach (var kvp in allTemplates)
             {
                 _cardDataTemplates[kvp.Key] = kvp.Value.Clone(kvp.Key);
+                _cardDataLogicalIds[kvp.Key] = kvp.Value.ID;
             }
         }
 
@@ -108,16 +110,25 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         internal void EnsureTemplateDataRegistered(Card card)
         {
-            if (card == null || string.IsNullOrEmpty(card.Id)) return;
+            if (card == null || string.IsNullOrEmpty(card.DataId)) return;
 
-            if (_cardDataTemplates.ContainsKey(card.Id)) return;
+            if (_cardDataTemplates.ContainsKey(card.DataId)) return;
 
             // 尝试从工厂获取模板数据
-            CardData factoryTemplate = _cardFactory?.GetTemplateData(card.Id);
+            CardData factoryTemplate = _cardFactory?.GetTemplateData(card.DataId);
             if (factoryTemplate != null)
             {
-                _cardDataTemplates[card.Id] = factoryTemplate.Clone(card.Id);
+                _cardDataTemplates[card.DataId] = factoryTemplate.Clone(card.DataId);
+                _cardDataLogicalIds[card.DataId] = factoryTemplate.ID;
             }
+        }
+
+        internal string GetLogicalIdForDataId(string dataId)
+        {
+            if (string.IsNullOrEmpty(dataId)) return dataId;
+            return _cardDataLogicalIds.TryGetValue(dataId, out string logicalId) && !string.IsNullOrEmpty(logicalId)
+                ? logicalId
+                : dataId;
         }
 
         #endregion
@@ -128,19 +139,23 @@ namespace EasyPack.EmeCardSystem
         ///     按ID创建并注册卡牌实例。
         ///     自动应用 CardData.DefaultChildren。
         /// </summary>
-        public T CreateCard<T>(string id) where T : Card
+        public T CreateCard<T>(string dataId) where T : Card
         {
-            if (id == null) throw new ArgumentNullException(nameof(id));
+            if (dataId == null) throw new ArgumentNullException(nameof(dataId));
 
-            T card = _cardFactory?.Create<T>(id);
+            T card = _cardFactory?.Create<T>(dataId);
 
             if (card == null) return null;
+
+            string logicalId = GetLogicalIdForDataId(dataId);
+            card.Id = logicalId;
+            card.DataId = dataId;
 
             // AddCard 会设置 Engine 引用并注册到 CategoryManager
             AddCard(card);
 
             // 在卡牌注册到引擎后，创建并添加默认子卡
-            CardData templateData = GetTemplateData(id);
+            CardData templateData = GetTemplateData(dataId);
             if (templateData?.DefaultChildren is { Count: > 0 })
             {
                 foreach (var (childId, intrinsic) in templateData.DefaultChildren)
@@ -156,7 +171,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     按ID创建并注册Card类型的卡牌。
         /// </summary>
-        public Card CreateCard(string id) => CreateCard<Card>(id);
+        public Card CreateCard(string dataId) => CreateCard<Card>(dataId);
 
         /// <summary>
         ///     复制一张已注册到当前引擎的卡牌，保留 ID / 子卡树 / 属性 / Metadata，
@@ -171,7 +186,7 @@ namespace EasyPack.EmeCardSystem
                 throw new InvalidOperationException($"卡牌 '{source.Id}' 未注册到当前引擎");
             }
 
-            if (GetTemplateData(source.Id) == null)
+            if (GetTemplateData(source.DataId) == null)
             {
                 throw new InvalidOperationException($"卡牌 '{source.Id}' 缺少模板数据");
             }
@@ -196,7 +211,10 @@ namespace EasyPack.EmeCardSystem
         {
             if (source == null) return null;
 
-            var clone = new Card(source.Id);
+            var clone = new Card(source.Id)
+            {
+                DataId = source.DataId
+            };
             cloneMap[source] = clone;
 
             if (source.Properties is { Count: > 0 })

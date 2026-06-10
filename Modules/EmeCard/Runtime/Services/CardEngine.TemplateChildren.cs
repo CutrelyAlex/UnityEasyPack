@@ -21,6 +21,7 @@ namespace EasyPack.EmeCardSystem
 
                 CardData variantData = CardDataVariantBuilder.BuildVariant(baseData, variant);
                 _cardDataTemplates[variant.ID] = variantData;
+                _cardDataLogicalIds[variant.ID] = variant.BaseID;
                 (_cardFactory as ICardFactoryRegistry)?.RegisterData(variant.ID, variantData);
             }
         }
@@ -60,7 +61,7 @@ namespace EasyPack.EmeCardSystem
         {
             //if (parent == null) return;
 
-            CardData templateData = GetTemplateData(parent.Id);
+            CardData templateData = GetTemplateData(parent.DataId);
             if (templateData?.DefaultChildren is not { Count: > 0 }) return;
 
             foreach (var (childId, intrinsic) in templateData.DefaultChildren)

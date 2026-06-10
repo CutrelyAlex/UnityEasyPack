@@ -48,13 +48,14 @@ namespace EasyPack.EmeCardSystem
         ///     标签管理统一由 Engine 在注册时处理。
         /// </remark>
         private string _id;
+        private string _dataId;
 
         public CardData Data
         {
             get
             {
                 if(Engine==null) Debug.Log("是" + IdAndIndex );
-                return Engine.GetTemplateData(_id);
+                return Engine.GetTemplateData(DataId);
             }
         }
 
@@ -71,12 +72,29 @@ namespace EasyPack.EmeCardSystem
         public int Index { get; set; } = -1;
 
         /// <summary>
-        ///     卡牌标识，来自 <see cref="Data" />。
+        ///     卡牌逻辑标识。规则、查询和玩法判断应使用该 ID；变体不会改变该值。
         /// </summary>
         public string Id
         {
             get => _id;
-            set => _id=value;
+            set
+            {
+                string oldId = _id;
+                _id = value ?? string.Empty;
+                if (string.IsNullOrEmpty(_dataId) || _dataId == oldId)
+                {
+                    _dataId = _id;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     实际 CardData 模板标识。普通卡等于 <see cref="Id" />，地图变体卡可指向变体 CardData ID。
+        /// </summary>
+        public string DataId
+        {
+            get => string.IsNullOrEmpty(_dataId) ? _id : _dataId;
+            set => _dataId = string.IsNullOrEmpty(value) ? _id : value;
         }
 
         public string IdAndIndex => Id + Index;

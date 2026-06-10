@@ -17,8 +17,11 @@ namespace EasyPack.EmeCardSystem
     [Serializable]
     public class SerializableCard : ISerializable
     {
-        // 模板标识
+        // 逻辑标识
         public string ID;
+
+        // 实际 CardData 模板标识。为空时兼容旧数据，视为 ID。
+        public string DataID;
 
         // 运行时实例字段
         public int Index;

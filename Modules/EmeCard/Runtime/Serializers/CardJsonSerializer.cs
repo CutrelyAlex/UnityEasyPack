@@ -55,6 +55,7 @@ namespace EasyPack.EmeCardSystem
             var dto = new SerializableCard
             {
                 ID = card.Id,
+                DataID = card.DataId,
                 Index = card.Index,
                 UID = card.UID,
                 HasPosition = card.Position.HasValue,
@@ -94,6 +95,7 @@ namespace EasyPack.EmeCardSystem
 
             var card = new Card(data.ID)
             {
+                DataId = string.IsNullOrEmpty(data.DataID) ? data.ID : data.DataID,
                 Index = data.Index,
                 UID = data.UID,
                 Position = data.HasPosition ? data.Position : null,

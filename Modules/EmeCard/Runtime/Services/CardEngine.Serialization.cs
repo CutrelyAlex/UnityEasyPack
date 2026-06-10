@@ -104,6 +104,14 @@ namespace EasyPack.EmeCardSystem
             card.Engine = this;
             EnsureTemplateDataRegistered(card);
 
+            string dataId = card.DataId;
+            string logicalId = GetLogicalIdForDataId(dataId);
+            if (!string.IsNullOrEmpty(logicalId) && card.Id != logicalId)
+            {
+                card.Id = logicalId;
+                card.DataId = dataId;
+            }
+
             string id = card.Id;
             if (!_idIndexes.TryGetValue(id, out var indexes))
             {

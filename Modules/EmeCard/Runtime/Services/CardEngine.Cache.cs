@@ -34,8 +34,11 @@ namespace EasyPack.EmeCardSystem
         // UID -> 位置缓存
         private readonly Dictionary<long, Vector3Int?> _positionByUID = new();
 
-        // ID -> CardData 模板缓存
+        // DataID -> CardData 模板缓存
         private readonly Dictionary<string, CardData> _cardDataTemplates = new();
+
+        // DataID -> Logical ID 映射。基础模板映射到自身，地图变体映射到 BaseID。
+        private readonly Dictionary<string, string> _cardDataLogicalIds = new();
 
         private void CacheCardPosition(Card card)
         {
@@ -78,7 +81,7 @@ namespace EasyPack.EmeCardSystem
             // 从模板的 DefaultProperties 初始化属性（如果卡牌自身无属性）
             if (card.Properties.Count == 0)
             {
-                CardData templateData = GetTemplateData(card.Id);
+                CardData templateData = GetTemplateData(card.DataId);
                 if (templateData?.DefaultProperties is { Count: > 0 })
                 {
                     foreach (var prop in templateData.DefaultProperties)
