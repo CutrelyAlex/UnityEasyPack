@@ -155,6 +155,24 @@ namespace EasyPack.EmeCardSystem
                     1, 0, 3),
             },
         });
+        /// <summary>需要源卡或递归子卡中有一张指定标签的卡牌</summary>
+        public CardRuleBuilder GreedNeedOneSourceOrDescendantHasTag(string tag) => AddRequirement(new AnyRequirement
+        {
+            Children =
+            {
+                new ConditionRequirement(context =>
+                {
+                    if (context.Source.HasTag(tag))
+                    {
+                        return (true, new() { context.Source });
+                    }
+
+                    return (false, null);
+                }),
+                new CardsRequirement(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag,
+                    0, 0, 3),
+            },
+        });
         
         /// <summary> 需要子卡中有一张指定标签的卡牌 </summary>
         public CardRuleBuilder NeedOneChildHasTag(string tag) =>
