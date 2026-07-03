@@ -155,7 +155,7 @@ namespace EasyPack.EmeCardSystem
                     1, 0, 3),
             },
         });
-        /// <summary>需要源卡或递归子卡中有一张指定标签的卡牌</summary>
+        /// <summary>需要源卡或递归子卡中有一张指定标签的卡牌，并会尽可能的收集更多符合条件的卡牌</summary>
         public CardRuleBuilder GreedNeedOneSourceOrDescendantHasTag(string tag) => AddRequirement(new AnyRequirement
         {
             Children =
