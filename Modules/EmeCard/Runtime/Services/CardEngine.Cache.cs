@@ -254,9 +254,9 @@ namespace EasyPack.EmeCardSystem
 
             if (_cardsByPosition.TryGetValue(newPosition, out Card existingCard) && !existingCard.Equals(card))
             {
-                Debug.LogWarning($"[CardEngine] 位置 {newPosition} 已被占用，无法移动卡牌 '{card.Id}' (UID: {card.UID})");
                 if (!forceOverwrite)
                 {
+                    Debug.LogWarning($"[CardEngine] 位置 {newPosition} 已被占用，无法移动卡牌 '{card.Id}' (UID: {card.UID})");
                     return false;
                 }
                 
