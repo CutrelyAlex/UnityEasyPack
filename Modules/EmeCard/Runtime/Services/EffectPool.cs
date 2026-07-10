@@ -15,7 +15,7 @@ namespace EasyPack.EmeCardSystem
         public readonly CardRuleContext Context;
 
         /// <summary>匹配的卡牌列表。</summary>
-        public readonly HashSet<Card> Matched;
+        public readonly IReadOnlyList<Card> Matched;
 
         /// <summary>规则优先级（用于排序）。</summary>
         public readonly int Priority;
@@ -32,7 +32,7 @@ namespace EasyPack.EmeCardSystem
         public EffectPoolEntry(
             IRuleEffect effect,
             CardRuleContext context,
-            HashSet<Card> matched,
+            IReadOnlyList<Card> matched,
             int priority,
             int eventIndex,
             int ruleOrderIndex,
@@ -81,7 +81,7 @@ namespace EasyPack.EmeCardSystem
         public void AddRuleEffects(
             CardRule rule,
             CardRuleContext context,
-            HashSet<Card> matched,
+            IReadOnlyList<Card> matched,
             int eventIndex,
             int ruleOrderIndex)
         {
@@ -112,7 +112,7 @@ namespace EasyPack.EmeCardSystem
         public void AddEffect(
             IRuleEffect effect,
             CardRuleContext context,
-            HashSet<Card> matched,
+            IReadOnlyList<Card> matched,
             int priority = 0,
             int eventIndex = 0,
             int ruleOrderIndex = 0,

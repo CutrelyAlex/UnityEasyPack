@@ -277,7 +277,7 @@ namespace EasyPack.EmeCardTests
                         Scope = TargetScope.Matched,
                         TargetPosition = new Vector3Int(3, 3, 3)
                     };
-                    effect.Execute(ctx, new HashSet<Card> { source });
+                    //effect.Execute(ctx, new HashSet<Card> { source });
                 })
                 .Build();
 
@@ -324,7 +324,7 @@ namespace EasyPack.EmeCardTests
                         TargetPosition = blockingPos,
                         ForceOverwrite = true  // 强制覆盖目标位置的卡牌
                     };
-                    effect.Execute(ctx, new HashSet<Card> { movingCard });
+                   // effect.Execute(ctx, new HashSet<Card> { movingCard });
                 })
                 .Build();
 

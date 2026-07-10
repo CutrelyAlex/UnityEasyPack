@@ -60,7 +60,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="ctx">规则上下文。</param>
         /// <param name="matched">匹配阶段结果（当 <see cref="Scope" />=Matched 时使用）。</param>
-        public void Execute(CardRuleContext ctx, HashSet<Card> matched)
+        public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
             List<Card> targets;
 

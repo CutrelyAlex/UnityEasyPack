@@ -93,9 +93,9 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="ctx">规则上下文。</param>
         /// <param name="matched">匹配阶段的结果（当 <see cref="Scope" />=Matched 时使用）。</param>
-        public void Execute(CardRuleContext ctx, HashSet<Card> matched)
+        public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
-            HashSet<Card> targets;
+            IReadOnlyList<Card> targets;
 
             if (Scope == TargetScope.Matched)
             {
@@ -109,19 +109,17 @@ namespace EasyPack.EmeCardSystem
                 }
                 else
                 {
-                    targets = new(matched);
+                    targets = new List<Card>(matched);
                 }
 
                 // 应用 Take 限制
                 if (Take is > 0 && targets.Count > Take.Value)
                 {
-                    var limited = new HashSet<Card>();
-                    int count = 0;
-                    foreach (Card card in targets)
+                    int takeCount = Take.Value;
+                    var limited = new List<Card>(takeCount);
+                    for (int i = 0; i < takeCount; i++)
                     {
-                        if (count >= Take.Value) break;
-                        limited.Add(card);
-                        count++;
+                        limited.Add(targets[i]);
                     }
 
                     targets = limited;

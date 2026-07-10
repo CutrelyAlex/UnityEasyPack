@@ -111,7 +111,7 @@ namespace EasyPack.EmeCardSystem
     public sealed class RulePolicy
     {
         /// <summary>
-        ///     是否对聚合的 matched 去重
+        ///     是否对聚合的 matched 稳定去重。启用时保留卡牌第一次出现的位置。
         ///     <remarks>默认值：true</remarks>
         /// </summary>
         public bool DistinctMatched { get; set; } = true;

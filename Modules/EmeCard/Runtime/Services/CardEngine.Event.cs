@@ -346,7 +346,7 @@ namespace EasyPack.EmeCardSystem
         ///     执行规则效果。
         /// </summary>
         private void ProcessRulesEffects(
-            List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+            List<(CardRule rule, IReadOnlyList<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
         {
             if (Policy.EnableEffectPool)
             {
@@ -362,7 +362,7 @@ namespace EasyPack.EmeCardSystem
         ///     直接执行规则效果。
         /// </summary>
         private void ExecuteRulesDirect(
-            List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+            List<(CardRule rule, IReadOnlyList<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
         {
             if (evals.Count == 0) return;
 
@@ -383,7 +383,7 @@ namespace EasyPack.EmeCardSystem
         ///     收集效果到全局效果池。
         /// </summary>
         private void CollectEffectsToPool(
-            List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
+            List<(CardRule rule, IReadOnlyList<Card> matched, CardRuleContext ctx, int orderIndex)> evals)
         {
             if (evals.Count == 0) return;
 
@@ -426,7 +426,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     执行单个规则的效果。
         /// </summary>
-        private bool ExecuteOne((CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex) e)
+        private bool ExecuteOne((CardRule rule, IReadOnlyList<Card> matched, CardRuleContext ctx, int orderIndex) e)
         {
             if (e.matched == null || e.rule.Effects == null || e.rule.Effects.Count == 0)
             {

@@ -54,7 +54,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         /// <param name="ctx">规则执行上下文</param>
         /// <param name="matched">规则匹配阶段的结果（当 <see cref="Scope" /> 为 <see cref="TargetScope.Matched" /> 时使用）</param>
-        public void Execute(CardRuleContext ctx, HashSet<Card> matched)
+        public void Execute(CardRuleContext ctx, IReadOnlyList<Card> matched)
         {
             List<Card> targets;
 

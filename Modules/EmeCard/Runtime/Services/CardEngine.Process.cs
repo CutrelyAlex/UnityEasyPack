@@ -48,23 +48,23 @@ namespace EasyPack.EmeCardSystem
 
         #region 对象池与缓存比较器
 
-        [ThreadStatic] private static List<(CardRule, HashSet<Card>, CardRuleContext, int)> t_evals;
+        [ThreadStatic] private static List<(CardRule, IReadOnlyList<Card>, CardRuleContext, int)> t_evals;
 
         // 缓存排序比较器
-        private static readonly Comparison<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>
+        private static readonly Comparison<(CardRule rule, IReadOnlyList<Card> matched, CardRuleContext ctx, int orderIndex)>
             s_priorityComparison = (a, b) =>
             {
                 int cmp = a.rule.Priority.CompareTo(b.rule.Priority);
                 return cmp != 0 ? cmp : a.orderIndex.CompareTo(b.orderIndex);
             };
 
-        private static readonly Comparison<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>
+        private static readonly Comparison<(CardRule rule, IReadOnlyList<Card> matched, CardRuleContext ctx, int orderIndex)>
             s_orderComparison = (a, b) => a.orderIndex.CompareTo(b.orderIndex);
 
         /// <summary>
         ///     从线程局部池获取或创建 evals 列表
         /// </summary>
-        private static List<(CardRule, HashSet<Card>, CardRuleContext, int)> RentEvalsList(int capacity = 8)
+        private static List<(CardRule, IReadOnlyList<Card>, CardRuleContext, int)> RentEvalsList(int capacity = 8)
         {
             var list = t_evals;
             if (list == null)
@@ -179,7 +179,7 @@ namespace EasyPack.EmeCardSystem
         /// <summary>
         ///     串行评估规则（默认模式）。
         /// </summary>
-        private List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>
+        private List<(CardRule rule, IReadOnlyList<Card> matched, CardRuleContext ctx, int orderIndex)>
             EvaluateRulesSerial(List<CardRule> rules, Card source, ICardEvent evt)
         {
             // 使用线程局部缓存复用 evals 列表
@@ -210,11 +210,11 @@ namespace EasyPack.EmeCardSystem
         ///         另外，并行的后果会导致规则评估顺序不定，如果不是效果池模式，可能影响效果执行顺序，或者产生竞态条件；
         ///     </para>
         /// </summary>
-        private List<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>
+        private List<(CardRule rule, IReadOnlyList<Card> matched, CardRuleContext ctx, int orderIndex)>
             EvaluateRulesParallel(List<CardRule> rules, Card source, ICardEvent evt)
         {
             var results =
-                new ConcurrentBag<(CardRule rule, HashSet<Card> matched, CardRuleContext ctx, int orderIndex)>();
+                new ConcurrentBag<(CardRule rule, IReadOnlyList<Card> matched, CardRuleContext ctx, int orderIndex)>();
 
             var options = new ParallelOptions();
             if (Policy.MaxDegreeOfParallelism > 0)
@@ -242,12 +242,15 @@ namespace EasyPack.EmeCardSystem
         ///     评估规则的所有条件要求。
         /// </summary>
         private bool EvaluateRequirements(CardRuleContext ctx, List<IRuleRequirement> requirements,
-                                          out HashSet<Card> matchedAll)
+                                          out IReadOnlyList<Card> matchedAll)
         {
-            matchedAll = new();
+            var aggregated = new List<Card>();
+            bool distinct = ctx.CurrentRule?.Policy?.DistinctMatched ?? true;
+            HashSet<Card> seen = distinct ? new HashSet<Card>() : null;
 
             if (requirements == null || requirements.Count == 0)
             {
+                matchedAll = aggregated;
                 return true;
             }
 
@@ -269,11 +272,15 @@ namespace EasyPack.EmeCardSystem
                 {
                     foreach (Card card in picks)
                     {
-                        matchedAll.Add(card);
+                        if (!distinct || seen.Add(card))
+                        {
+                            aggregated.Add(card);
+                        }
                     }
                 }
             }
 
+            matchedAll = aggregated;
             return true;
         }
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace EasyPack.EmeCardSystem
 {
     /// <summary>
-    ///     任意一个子条件命中即为真；匹配结果为所有命中子条件的匹配集合并（去重）。
+    ///     任意一个子条件命中即为真；匹配结果按子条件声明顺序聚合。
     ///     空子集视为“假”。
     /// </summary>
     public sealed class AnyRequirement : IRuleRequirement
@@ -16,7 +16,6 @@ namespace EasyPack.EmeCardSystem
             if (Children == null || Children.Count == 0) return false;
 
             bool any = false;
-            var set = new HashSet<Card>();
             foreach (IRuleRequirement child in Children)
             {
                 if (child == null) continue;
@@ -25,15 +24,11 @@ namespace EasyPack.EmeCardSystem
                     any = true;
                     if (picks is { Count: > 0 })
                     {
-                        foreach (Card c in picks)
-                        {
-                            set.Add(c);
-                        }
+                        matched.AddRange(picks);
                     }
                 }
             }
 
-            if (any && set.Count > 0) matched.AddRange(set);
             return any;
         }
     }

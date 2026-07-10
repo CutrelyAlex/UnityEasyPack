@@ -152,7 +152,7 @@ namespace EasyPack.EmeCardSystem
                     return (false, null);
                 }),
                 new CardsRequirement(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag,
-                    1, 0, 3),
+                    1, 1, 3),
             },
         });
         /// <summary>需要源卡或递归子卡中有一张指定标签的卡牌，并会尽可能的收集更多符合条件的卡牌</summary>
@@ -170,7 +170,7 @@ namespace EasyPack.EmeCardSystem
                     return (false, null);
                 }),
                 new CardsRequirement(SelectionRoot.Source, TargetScope.Descendants, CardFilterMode.ByTag, tag,
-                    0, 0, 3),
+                    1, 0, 3),
             },
         });
         
