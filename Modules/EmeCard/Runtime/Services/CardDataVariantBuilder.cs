@@ -34,11 +34,9 @@ namespace EasyPack.EmeCardSystem
 
         private static void ApplyChildrenDiff(CardData result, CardData baseData, SerializableCardDataVariant variant)
         {
-            var remaining = new Dictionary<ChildKey, int>();
+            var children = new List<ChildKey>(baseData.DefaultChildren.Count);
             foreach (var (childId, intrinsic) in baseData.DefaultChildren)
-                Increment(remaining, new ChildKey(childId, intrinsic), 1);
-
-            var products = new List<ChildKey>();
+                children.Add(new ChildKey(childId, intrinsic));
 
             if (variant.ModifiedChildren != null)
             {
@@ -47,10 +45,9 @@ namespace EasyPack.EmeCardSystem
                     if (diff == null || diff.Count <= 0 || string.IsNullOrEmpty(diff.FromChildID) || string.IsNullOrEmpty(diff.ToChildID)) continue;
                     var from = new ChildKey(diff.FromChildID, diff.FromIntrinsic);
                     var to = new ChildKey(diff.ToChildID, diff.ToIntrinsic);
-                    int consumed = Consume(remaining, from, diff.Count);
+                    int consumed = Replace(children, from, to, diff.Count);
                     if (consumed < diff.Count)
                         Debug.LogWarning($"[MCardDataVariantBuilder] Variant '{variant.ID}' modifies {diff.Count} x {from.ChildID}, base only has {consumed}.");
-                    for (int i = 0; i < consumed; i++) products.Add(to);
                 }
             }
 
@@ -60,29 +57,53 @@ namespace EasyPack.EmeCardSystem
                 {
                     if (diff == null || diff.Count <= 0 || string.IsNullOrEmpty(diff.ChildID)) continue;
                     var key = new ChildKey(diff.ChildID, diff.Intrinsic);
-                    int consumed = Consume(remaining, key, diff.Count);
+                    int consumed = Remove(children, key, diff.Count);
                     if (consumed < diff.Count)
                         Debug.LogWarning($"[CardDataVariantBuilder] Variant '{variant.ID}' removes {diff.Count} x {diff.ChildID}, base only has {consumed}.");
                 }
             }
-
-            result.ClearChildren();
-
-            foreach (var pair in remaining)
-                for (int i = 0; i < pair.Value; i++)
-                    result.WithChild(pair.Key.ChildID, pair.Key.Intrinsic);
-
-            foreach (var key in products)
-                result.WithChild(key.ChildID, key.Intrinsic);
 
             if (variant.AddedChildren != null)
             {
                 foreach (var diff in variant.AddedChildren)
                 {
                     if (diff == null || diff.Count <= 0 || string.IsNullOrEmpty(diff.ChildID)) continue;
-                    for (int i = 0; i < diff.Count; i++) result.WithChild(diff.ChildID, diff.Intrinsic);
+                    for (int i = 0; i < diff.Count; i++) children.Add(new ChildKey(diff.ChildID, diff.Intrinsic));
                 }
             }
+
+            children = ApplyOrderedLayout(children, variant.OrderedChildren);
+
+            result.ClearChildren();
+            foreach (ChildKey child in children)
+                result.WithChild(child.ChildID, child.Intrinsic);
+        }
+
+        private static List<ChildKey> ApplyOrderedLayout(
+            IReadOnlyList<ChildKey> children,
+            IReadOnlyList<SerializableDefaultChildDiff> orderedChildren)
+        {
+            if (orderedChildren == null || orderedChildren.Count == 0)
+                return new List<ChildKey>(children);
+
+            var remaining = new List<ChildKey>(children);
+            var ordered = new List<ChildKey>(children.Count);
+
+            foreach (SerializableDefaultChildDiff entry in orderedChildren)
+            {
+                if (entry == null || entry.Count <= 0 || string.IsNullOrEmpty(entry.ChildID)) continue;
+                var key = new ChildKey(entry.ChildID, entry.Intrinsic);
+                for (int i = 0; i < entry.Count; i++)
+                {
+                    int index = remaining.FindIndex(child => child.Equals(key));
+                    if (index < 0) break;
+                    ordered.Add(remaining[index]);
+                    remaining.RemoveAt(index);
+                }
+            }
+
+            ordered.AddRange(remaining);
+            return ordered;
         }
 
         private static void ApplyMetaDataDiff(CardData result, CardData baseData, IReadOnlyList<CustomDataEntry> modifiedMetaData)
@@ -121,21 +142,35 @@ namespace EasyPack.EmeCardSystem
                  or CustomDataType.Vector2 or CustomDataType.Vector3
                  or CustomDataType.Vector3Int or CustomDataType.Color;
 
-        private static void Increment(IDictionary<ChildKey, int> counts, ChildKey key, int amount)
+        private static int Replace(List<ChildKey> children, ChildKey from, ChildKey to, int count)
         {
-            if (amount <= 0) return;
-            counts.TryGetValue(key, out int current);
-            counts[key] = current + amount;
+            int replaced = 0;
+            for (int i = 0; i < children.Count && replaced < count; i++)
+            {
+                if (!children[i].Equals(from)) continue;
+                children[i] = to;
+                replaced++;
+            }
+
+            return replaced;
         }
 
-        private static int Consume(IDictionary<ChildKey, int> counts, ChildKey key, int requested)
+        private static int Remove(List<ChildKey> children, ChildKey key, int count)
         {
-            if (requested <= 0 || !counts.TryGetValue(key, out int available) || available <= 0) return 0;
-            int consumed = Mathf.Min(available, requested);
-            int remaining = available - consumed;
-            if (remaining <= 0) counts.Remove(key);
-            else counts[key] = remaining;
-            return consumed;
+            int removed = 0;
+            for (int i = 0; i < children.Count && removed < count;)
+            {
+                if (!children[i].Equals(key))
+                {
+                    i++;
+                    continue;
+                }
+
+                children.RemoveAt(i);
+                removed++;
+            }
+
+            return removed;
         }
     }
 }

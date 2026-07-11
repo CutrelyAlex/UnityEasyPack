@@ -54,7 +54,11 @@ namespace EasyPack.EmeCardSystem
         {
             get
             {
-                if(Engine==null) Debug.Log("是" + IdAndIndex );
+                if (Engine == null)
+                {
+                    Debug.LogWarning("是" + IdAndIndex );
+                    return null;
+                }
                 return Engine.GetTemplateData(DataId);
             }
         }
@@ -369,6 +373,33 @@ namespace EasyPack.EmeCardSystem
         {
             AddChildCore(child, intrinsic, raiseEvents: true, updateEngineIndices: true);
             return this;
+        }
+
+        /// <summary>
+        ///     将已有 child 移动到指定索引，不改变父子关系、Intrinsic 状态或触发父子事件。
+        /// </summary>
+        /// <param name="child">当前卡牌直接持有的 child。</param>
+        /// <param name="targetIndex">移动后的目标索引，范围为 [0, ChildrenCount - 1]。</param>
+        /// <returns>顺序实际发生变化时返回 true。</returns>
+        public bool MoveChild(Card child, int targetIndex)
+        {
+            if (child == null || targetIndex < 0 || targetIndex >= _children.Count) return false;
+
+            int currentIndex = _children.IndexOf(child);
+            if (currentIndex < 0 || currentIndex == targetIndex) return false;
+
+            _children.RemoveAt(currentIndex);
+            _children.Insert(targetIndex, child);
+            return true;
+        }
+
+        /// <summary>
+        ///     将指定索引的 child 移动到目标索引。
+        /// </summary>
+        public bool MoveChild(int currentIndex, int targetIndex)
+        {
+            if (currentIndex < 0 || currentIndex >= _children.Count) return false;
+            return MoveChild(_children[currentIndex], targetIndex);
         }
 
         /// <summary>

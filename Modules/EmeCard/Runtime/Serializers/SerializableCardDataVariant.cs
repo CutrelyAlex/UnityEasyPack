@@ -13,6 +13,7 @@ namespace EasyPack.EmeCardSystem
         public SerializableDefaultChildDiff[] AddedChildren;
         public SerializableDefaultChildDiff[] RemovedChildren;
         public SerializableDefaultChildModifyDiff[] ModifiedChildren;
+        public SerializableDefaultChildDiff[] OrderedChildren;
 
         public CustomDataEntry[] ModifiedMetaData;
     }
