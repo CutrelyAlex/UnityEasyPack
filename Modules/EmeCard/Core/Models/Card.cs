@@ -109,13 +109,7 @@ namespace EasyPack.EmeCardSystem
         /// </summary>
         public string Description => Data != null ? Data.Description : string.Empty;
 
-        public string Category
-        {
-            get
-            {
-                return Data?.Category ?? string.Empty;
-            }
-        }
+        public string Category => Data?.Category ?? string.Empty;
 
         /// <summary>
         ///     卡牌在世界中的位置。
