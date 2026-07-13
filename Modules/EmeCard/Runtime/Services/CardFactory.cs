@@ -47,6 +47,8 @@ namespace EasyPack.EmeCardSystem
         /// <param name="tweakAction">可选的微调操作，用于修改变体的 CardData。</param>
         void RegisterVariant(string baseId, string newId, Action<CardData> tweakAction = null);
 
+        bool UnregisterData(string id);
+
         /// <summary>
         ///     同步 UID 计数器，确保后续分配的 UID 大于当前已知的最大值。
         /// </summary>
@@ -106,6 +108,11 @@ namespace EasyPack.EmeCardSystem
             CardData newData = baseData.Clone(newId);
             tweakAction?.Invoke(newData);
             _templates[newId] = newData;
+        }
+
+        public bool UnregisterData(string id)
+        {
+            return !string.IsNullOrEmpty(id) && _templates.Remove(id);
         }
 
         /// <summary>

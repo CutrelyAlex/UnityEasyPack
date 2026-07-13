@@ -26,6 +26,15 @@ namespace EasyPack.EmeCardSystem
             }
         }
 
+        public void UnregisterMapCardDataVariant(string variantId)
+        {
+            if (string.IsNullOrEmpty(variantId)) return;
+
+            _cardDataTemplates.Remove(variantId);
+            _cardDataLogicalIds.Remove(variantId);
+            (_cardFactory as ICardFactoryRegistry)?.UnregisterData(variantId);
+        }
+
         public void RebuildTemplateChildrenForAllRootCards()
         {
             var rootCards = new List<Card>();
