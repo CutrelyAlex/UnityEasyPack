@@ -91,6 +91,26 @@ namespace EasyPack.EmeCardSystem
         public CardRuleBuilder NeedMatchRootTag(string tag, int minCount = 1, int maxMatched = -1) => Need(
             SelectionRoot.MatchRoot, TargetScope.Children, CardFilterMode.ByTag, tag, minCount, maxMatched);
 
+        /// <summary>需要源卡或递归子卡中有一张指定标签的卡牌，并会尽可能的收集更多符合条件的卡牌</summary>
+        public CardRuleBuilder GreedNeedOneMatchRootOrDescendantHasTag(string tag) => AddRequirement(new AnyRequirement
+        {
+            Children =
+            {
+                new ConditionRequirement(context =>
+                {
+                    if (context.MatchRoot.HasTag(tag))
+                    {
+                        return (true, new() { context.MatchRoot });
+                    }
+
+                    return (false, null);
+                }),
+                new CardsRequirement(SelectionRoot.MatchRoot, TargetScope.Descendants, CardFilterMode.ByTag, tag,
+                    1, 0, 3),
+            },
+        });
+
+        
         /// <summary>需要容器的直接子卡中有指定ID的卡牌</summary>
         public CardRuleBuilder NeedMatchRootId(string id, int minCount = 1, int maxMatched = -1) => Need(
             SelectionRoot.MatchRoot,
