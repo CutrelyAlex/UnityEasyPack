@@ -30,6 +30,7 @@ namespace EasyPack.EmeCardSystem
             _rules[CardEventTypes.REMOVED_FROM_OWNER] = new();
             _rules[CardEventTypes.USE] = new();
             _rules[CardEventTypes.INIT] = new();
+            _rules[CardEventTypes.ADDINENGINE] = new();
             _rules[CardEventTypes.RENDERING_INIT] = new();
 
             // 预注册 Pump 生命周期事件类型
@@ -164,7 +165,7 @@ namespace EasyPack.EmeCardSystem
                     if (child != null) card.AddChild(child, intrinsic);
                 }
             }
-
+            card.AddInEngine();
             return card;
         }
 
@@ -204,6 +205,7 @@ namespace EasyPack.EmeCardSystem
                 ICategoryManager.UpdateMetadata(clone.UID, runtimeMetadata.Clone());
             }
 
+            clonedRoot.AddInEngine();
             return clonedRoot;
         }
 

@@ -84,6 +84,8 @@ namespace EasyPack.EmeCardSystem
                         newManager.RegisterEntityWithMetadata(card.UID, card, CardData.DEFAULT_CATEGORY, card.Data.DefaultMetaData.Clone());
                     else
                         newManager.RegisterEntity(card.UID, card, CardData.DEFAULT_CATEGORY);
+                    
+                    card.AddInEngine();
                 }
             }
 

@@ -146,7 +146,11 @@ namespace EasyPack.EmeCardSystem
             {
                 foreach (Card child in card.Children)
                 {
-                    if (child != null && !HasCard(child)) AddCard(child);
+                    if (child != null && !HasCard(child))
+                    {
+                        AddCard(child);
+                        child.AddInEngine();
+                    }
                 }
             }
 
@@ -175,7 +179,7 @@ namespace EasyPack.EmeCardSystem
 
             child.Owner?.RemoveChild(child);
 
-            if (!HasCard(child)) AddCard(child);
+            if (!HasCard(child)) Debug.LogWarning("子卡此时并没有注册进入CardEngine");
 
             parent.AddChild(child, intrinsic);
             return this;

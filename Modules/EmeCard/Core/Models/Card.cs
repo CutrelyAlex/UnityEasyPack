@@ -578,6 +578,17 @@ namespace EasyPack.EmeCardSystem
         {
             RaiseEventInternal(CardEventTypes.Init.CreateEvent(null));
         }
+        
+        /// <summary>
+        ///     触发注册到引擎事件（AddInEngine）
+        ///    该事件触发时卡牌数据可能并没有完全同步，并不适合在加载存档的环节调用。
+        /// </summary>
+        public void AddInEngine()
+        {
+            //Debug.Log("被触发"+i+"次");
+            //i++;
+            RaiseEventInternal(CardEventTypes.AddInEngine.CreateEvent(null));
+        }
 
         /// <summary>
         ///     触发渲染初始化事件（RenderingInit）。

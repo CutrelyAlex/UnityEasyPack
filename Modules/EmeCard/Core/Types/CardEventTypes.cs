@@ -33,6 +33,9 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>卡牌初始化事件类型标识符</summary>
         public const string INIT = "Init";
+
+        /// <summary>卡牌创建事件类型标识符</summary>
+        public const string ADDINENGINE = "AddInEngine";
         
         /// <summary>渲染初始化事件类型标识符</summary>
         public const string RENDERING_INIT = "RenderingInit";
@@ -91,6 +94,11 @@ namespace EasyPack.EmeCardSystem
         ///     初始化事件
         /// </summary>
         public static readonly CardEventDefinition<object> Init = new(INIT);
+
+        /// <summary>
+        ///     注册引擎事件
+        /// </summary>
+        public static readonly CardEventDefinition<object> AddInEngine = new(ADDINENGINE);
         
         /// <summary>
         ///     渲染初始化事件

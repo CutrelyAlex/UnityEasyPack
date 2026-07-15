@@ -36,6 +36,9 @@ namespace EasyPack.EmeCardSystem
 
         /// <summary>监听 Init 事件</summary>
         public CardRuleBuilder OnInit() => On(CardEventTypes.INIT);
+
+        /// <summary>监听 AddInENgine 事件(不要直接调用！)</summary>
+        public CardRuleBuilder OnAddInEngine() => On(CardEventTypes.ADDINENGINE);
         
         /// <summary>监听 RenderingInit 事件</summary>
         public CardRuleBuilder OnRenderingInit() => On(CardEventTypes.RENDERING_INIT);
