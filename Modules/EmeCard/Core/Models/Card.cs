@@ -56,7 +56,7 @@ namespace EasyPack.EmeCardSystem
             {
                 if (Engine == null)
                 {
-                    Debug.LogWarning("是" + IdAndIndex );
+                    //Debug.LogWarning("是" + IdAndIndex );
                     return null;
                 }
                 return Engine.GetTemplateData(DataId);
